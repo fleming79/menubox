@@ -1,0 +1,21 @@
+{
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.languageServer": "Pylance",
+    "python.testing.cwd": "${workspaceFolder}",
+    "python.analysis.autoImportCompletions": false,
+    "editor.formatOnSave": true,
+    "python.analysis.typeCheckingMode": "standard",
+    "ruff.organizeImports": true,
+    "ruff.enable": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "python.experiments.optInto": [
+        "pythonTestAdapter"
+    ]
+}
+// https://code.visualstudio.com/docs/editor/variables-reference

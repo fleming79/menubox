@@ -1,0 +1,4 @@
+*.pyc
+dist
+.coverage
+.ipynb_checkpoints
