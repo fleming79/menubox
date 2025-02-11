@@ -1,0 +1,102 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "name": "Python: Current File Setup (build)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [
+                "build"
+            ],
+        },
+        {
+            "name": "Python: Attach using Process Id",
+            "type": "debugpy",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "subProcess": false,
+            // "logToFile": true,
+        },
+        {
+            "name": "Python: Attach using Process Id allcode",
+            "type": "debugpy",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "justMyCode": false,
+            "subProcess": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": true,
+            "args": [
+                "-X dev",
+                "Wd"
+            ]
+        },
+        {
+            "name": "Python: Current File allcode",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [],
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+        },
+        {
+            "name": "Ipylab",
+            "type": "debugpy",
+            "request": "launch",
+            "args": [
+            "--notebook-dir=docs/examples",
+            "--no-browser",
+            "--ServerApp.token=''",
+            "--port=9990"
+            ],
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "module": "ipylab",
+            "presentation": {
+            "hidden": false
+            }
+        },
+        {
+            "name": "Ipylab frontend with Firefox",
+            "type": "firefox",
+            "request": "launch",
+            "reAttach": true,
+            "url": "http://localhost:9990",
+            "webRoot": "${workspaceFolder}",
+            "pathMappings": [],
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug JupyterLab with firefox",
+            "configurations": [
+                "Ipylab",
+                "Ipylab frontend with Firefox"
+            ]
+        }
+    ]
+}
