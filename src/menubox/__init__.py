@@ -3,7 +3,19 @@
 # SPDX-License-Identifier: MIT
 
 
-from menubox import defaults, hasparent, instance, log, pack, trait_types, utils, valuetraits, widget_loader, widgets
+from menubox import (
+    async_run_button,
+    defaults,
+    hasparent,
+    instance,
+    log,
+    pack,
+    trait_types,
+    utils,
+    valuetraits,
+    widget_loader,
+    widgets,
+)
 from menubox.__about__ import __version__
 from menubox.hasparent import HasParent
 from menubox.home import Home
@@ -19,6 +31,7 @@ DEBUG_ENABLED = False
 
 
 __all__ = [
+    "async_run_button",
     "defaults",
     "hasparent",
     "instance",

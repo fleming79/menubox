@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, cast
 import ipylab
 import ipywidgets as ipw
 
+import menubox.async_run_button
 import menubox.defaults as dv
 import menubox.widgets
 from menubox import utils
@@ -267,11 +268,11 @@ SimpleOutput = IHP(ipylab.SimpleOutput)
 MenuBox = IHP(cast(type["menubox.menubox.MenuBox"], "MenuBox"))
 
 AsyncRunButton = IHP(
-    menubox.widgets.AsyncRunButton,
+    menubox.async_run_button.AsyncRunButton,
     defaults=dv.b_kwargs | {"tasktype": utils.TaskType.general},
 )
 AsyncRunButton_U = IHP(
-    menubox.widgets.AsyncRunButton,
+    menubox.async_run_button.AsyncRunButton,
     defaults=dv.b_kwargs | {"tasktype": utils.TaskType.update},
 )
 ModalBox = IHP(cast(type["menubox.modalbox.ModalBox"], "menubox.modalbox.ModalBox"))

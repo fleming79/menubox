@@ -4,7 +4,7 @@ import ipywidgets as ipw
 
 import menubox as mb
 from menubox import trait_factory as tf
-from menubox.widgets import AsyncRunButton
+from menubox.async_run_button import AsyncRunButton
 
 a_kwargs = {}
 
