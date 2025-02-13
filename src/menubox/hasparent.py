@@ -513,16 +513,12 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         else:
             self.set_trait(name, None)
 
-    def instanceHP_reset(self, name: str):
-        """Reset the InstanceHP with `name` to original state."""
-
+    def _reset_trait(self, name: str):
+        """Reset the trait to an unloaded stated."""
         if name in self._trait_values:
             if self._InstanceHP[name].allow_none:
                 self.set_trait(name, None)
-                self._trait_values.pop(name)
-            else:
-                old_v = self._trait_values.pop(name)
-                self._InstanceHP[name]._process_old_value(self, old_v)
+            self._trait_values.pop(name)
             self.log.debug(f"InstanceHP trait {name=} has been reset")
 
     def discontinue(self, force=False):
@@ -538,7 +534,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             if isinstance(obj, tuple):
                 utils.trait_tuple_discard(self, owner=self.parent, name=self._ptname)
             elif obj is self:
-                self.parent.instanceHP_reset(self._ptname)
+                self.parent._reset_trait(self._ptname)
         self.set_trait("parent", None)
         if self.trait_has_value("_hasparent_all_links"):
             for link in self._hasparent_all_links.values():

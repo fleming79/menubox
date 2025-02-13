@@ -40,7 +40,7 @@ class IHPDlinkType(TypedDict):
 
     source: tuple[str, str]  # Dotted name of HasTraits object relative to parent, trait name
     target: str  # The trait name of the Instance to dlink
-    transform: NotRequired[str | Callable[[Any], Any]]
+    transform: NotRequired[Callable[[Any], Any]]
 
 
 class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
@@ -50,10 +50,9 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         "allow_none",
         "load_default",
         "set_parent",
-        "on_replace_discontinue",
-        "on_replace_drop_parent",
         "dlink",
         "add_classes",
+        "on_replace_discontinue",
     ]
     _klass: type[T] | None = None
     if TYPE_CHECKING:
@@ -153,7 +152,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         if silent is not True:
             # we explicitly compare silent to True just in case the equality
             # comparison above returns something other than True/False
-            self._value_changed(obj, new_value)
+            self._value_changed(obj, old_value, new_value)
             obj._notify_trait(self.name, old_value, new_value)
 
     def get(self, obj: HasParent, cls: Any = None) -> T | None:  # type: ignore
@@ -177,7 +176,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                 obj._cross_validation_lock = _cross_validation_lock
             obj._trait_values[self.name] = value  # type: ignore
             if isinstance(value, traitlets.HasTraits):
-                self._value_changed(obj, value)
+                self._value_changed(obj, None, value)
                 obj._notify_observers(Bunched(name=self.name, old=None, new=value, owner=obj, type="change"))
             if getattr(self, "children_mode", "") == "monitor":
                 from menubox.synchronise import ChildrenSetter
@@ -237,45 +236,19 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             raise
 
     def _validate(self, obj: HasParent, value):
-        # Note: obj is parent
-        try:
-            if value is not None and not isinstance(value, self.klass):
-                if obj.trait_has_value(self.name):
-                    value_ = getattr(obj, self.name)
-                    if isinstance(value_, self.klass):
-                        return value_
-                value = self.default(obj, value)  # type: ignore
-            # TODO: Shift this OUT  #################################################
-            value = super()._validate(obj, value)
+        if value is not None and not isinstance(value, self.klass):
             if obj.trait_has_value(self.name):
-                old_v = getattr(obj, self.name)
-                if value is not old_v:
-                    if mb.DEBUG_ENABLED:
-                        obj.log.debug(f"InstanceHP replaced\t {obj.__class__.__name__}.{self.name}\t")
-                    self._process_old_value(obj, old_v)
-            if value is None:
-                return value
-            if self.set_parent and hasattr(value, "_ptname"):
-                value.parent = obj  # type: ignore
-                value.set_trait("_ptname", self.name)  # type: ignore
-            if isinstance(value, ipw.Button):
-                for name in self.on_click:
-                    self._register_on_click(obj, name, value)
-            if isinstance(self.set_attrs, dict):
-                for k, v in self.set_attrs.items():
-                    val = v
-                    if isinstance(val, str) and val.startswith("."):
-                        val = val[1:]
-                        val = obj if val == "self" else utils.getattr_nested(obj, val)
-                    elif callable(val):
-                        config = IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs)
-                        val = val(config)
-                    utils.setattr_nested(value, k, val, setattr)
-        except Exception as e:
-            obj.on_error(e, f"InstanceHP Trait '{self.name} validation error", self)
-            raise
-        else:
+                value_ = getattr(obj, self.name)
+                if isinstance(value_, self.klass):
+                    return value_
+            value = self.default(obj, value)  # type: ignore
+        value = super()._validate(obj, value)
+        if value is None:
             return value
+        if self.set_parent and hasattr(value, "_ptname"):
+            value.parent = obj  # type: ignore
+            value.set_trait("_ptname", self.name)  # type: ignore
+        return value
 
     def validate(self, obj: HasParent, value) -> T | None:
         if not self.klass:
@@ -292,17 +265,22 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             raise RuntimeError(msg)
         self.error(obj, value)  # noqa: RET503
 
-    def _process_old_value(self, obj: HasParent, value: T) -> None:
-        if self.on_replace_discontinue and value is not None:
-            utils.call_later(0, utils.close_ipw, value, True, False)
-            obj.log.debug(f"{value} is scheduled to close.")
-        if isinstance(value, HasParent) and self.on_replace_drop_parent:
-            value.parent = None
-            value.set_trait("_ptname", "")
-
-    def _value_changed(self, obj: HasParent, target_obj: Any | None):
-        target_obj_ = target_obj
+    def _value_changed(self, obj: HasParent, old: Any | None, new: Any | None):
+        if isinstance(new, ipw.Button):
+            for name in self.on_click:
+                self._register_on_click(obj, name, new)
+        if isinstance(self.set_attrs, dict):
+            for k, v in self.set_attrs.items():
+                val = v
+                if isinstance(val, str) and val.startswith("."):
+                    val = val[1:]
+                    val = obj if val == "self" else utils.getattr_nested(obj, val)
+                elif callable(val):
+                    config = IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs)
+                    val = val(config)
+                utils.setattr_nested(new, k, val, setattr)
         if isinstance(self.dlink, tuple):
+            target_obj = new
             for dlink in self.dlink:
                 src_name, src_trait = dlink["source"]
                 src_obj = obj if src_name == "self" else utils.getattr_nested(obj, src_name, hastrait_value=False)
@@ -310,31 +288,25 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                 key = f"{id(obj)} {obj.__class__.__name__}.{self.name}.{tgt_trait}"
                 if "." in tgt_trait:
                     class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
-                    target_obj_ = utils.getattr_nested(target_obj, class_name, hastrait_value=False)
+                    target_obj = utils.getattr_nested(new, class_name, hastrait_value=False)
                 transform = dlink.get("transform")
                 if isinstance(transform, str):
-                    transform = transform.strip()
-                    if transform.startswith("def"):
-                        # Use exec and pull out the last object added to the namespace
-                        ns = {"parent": obj, "source_obj": src_obj, "target_obj": target_obj_}
-                        exec(transform.strip(), ns)  # noqa: S102
-                        transform = ns[list(ns)[-1]]
-                    elif transform.startswith("lambda"):
-                        # Use exec and pull out the last object added to the namespace
-                        ns = {"parent": obj, "source_obj": src_obj, "target_obj": target_obj_}
-                        transform = eval(transform.strip(), ns)  # noqa: S307
-                    else:
-                        transform = utils.getattr_nested(obj, transform, hastrait_value=False)
+                    transform = utils.getattr_nested(obj, transform, hastrait_value=False)
                 if transform and not callable(transform):
                     msg = f"Transform must be callable but got {transform:!r}"
                     raise TypeError(msg)
                 obj.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
-                if isinstance(target_obj_, traitlets.HasTraits):
-                    obj.dlink((src_obj, src_trait), target=(target_obj_, tgt_trait), transform=transform, key=key)
-
-        if self.add_classes and isinstance(target_obj, ipw.DOMWidget):
+                if isinstance(target_obj, traitlets.HasTraits):
+                    obj.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
+        if self.add_classes and isinstance(new, ipw.DOMWidget):
             for class_name in self.add_classes:
-                target_obj.add_class(class_name)
+                new.add_class(class_name)
+        if old is not None and old is not traitlets.Undefined:
+            if getattr(old, "parent", None) is obj:
+                old.parent = None
+                old.set_trait("_ptname", "")
+            if self.on_replace_discontinue:
+                mb.utils.close_obj(old)
 
     def _register_on_click(self, obj: HasParent, name: str, b: ipw.Button):
         """Link the on_click to the Button.
@@ -383,8 +355,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         on_click: str | tuple[str, ...] = "button_clicked",
         set_attrs: dict[str, Any] | None = None,
         dlink: IHPDlinkType | tuple[IHPDlinkType, ...] | Literal[_NoValue.token] = NO_VALUE,
-        on_replace_discontinue=False,
-        on_replace_drop_parent=False,
+        on_replace_discontinue=True,
         add_classes=(),
     ) -> Self:
         """Configure everything about how the instance will be handled.
@@ -396,18 +367,16 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         * dlink
 
         on_replace_discontinue: Bool
-            Discontinue the previous instance if it is replaced.
+            Discontinue/close the previous instance if it is replaced.
             Using the call:
             ```
-            utils.close_ipw(old_value, discontinue_hasparent=False, recursive=True)
+            utils.close_obj(old_value)
             ```
             Note: items marked with `KEEP_ALIVE` will not be closed.
         allow_none : Optional bool
             default : True if (load_default is False) else False.
         set_parent: Bool [True]
             Set the parent to the owner of the trait (HasParent).
-        on_replace_drop_parent: Bool [False]
-            Set parent to None when replaced.
         dynamic_kwgs: dict
             mapping of dynamic kwargs to use during instantiation.
             values can be a mapping of dotted name to an attribute on the parent
@@ -430,10 +399,8 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             A mapping or tuple of mappings for dlinks to add when creating.
             'source': tuple[obj, str]
             'target: str
-            transform: str | callable
-                If transform is a string:
-                    If it is a string that represents a callable  (starts with 'def' or 'lambda'):
-                        It will be evaluated with the globals {"parent": parent, "source_obj": `source object`, "target_obj": `target object`}
+            transform: Callable[Any, Any]
+                A function to convert the source value to the target value.
         add_classes: tuple
             A tuple of class names to add  (applies only to DOMWidget subclasses)
         Button **ONLY** Tags
@@ -457,7 +424,6 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         self.load_default = load_default
         self.set_parent = set_parent
         self.on_replace_discontinue = on_replace_discontinue
-        self.on_replace_drop_parent = on_replace_drop_parent
         if dlink is NO_VALUE:
             dlink = getattr(self, "dlink", NO_VALUE)
         if isinstance(dlink, dict):
@@ -505,8 +471,7 @@ def instanceHP_wrapper(
     dynamic_kwgs: dict[str, Any] | None = None,
     on_click: str | tuple[str, ...] = "button_clicked",
     set_attrs: dict[str, Any] | None = None,
-    on_replace_discontinue=False,
-    on_replace_drop_parent=False,
+    on_replace_discontinue=True,
     dlink: IHPDlinkType | tuple[IHPDlinkType] | Literal[_NoValue.token] = NO_VALUE,
     tags: None | dict[str, Any] = None,
     add_classes=(),
@@ -576,8 +541,9 @@ def instanceHP_wrapper(
                 allow_none=allow_none,
                 load_default=load_default,
                 set_parent=set_parent,
-                on_replace_discontinue=on_replace_discontinue,
-                on_replace_drop_parent=on_replace_drop_parent,
+                on_replace_discontinue=on_replace_discontinue
+                if isinstance(klass, str) or not issubclass(klass, ipw.Widget | HasParent)
+                else False,
                 create=create,
                 set_attrs=set_attrs,
                 dynamic_kwgs=dynamic_kwgs,

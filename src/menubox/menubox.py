@@ -54,8 +54,8 @@ class MenuBox(HasParent, Panel):
     TAB_BUTTON_KW: ClassVar[dict[str, Any]] = dict(defaults.bt_kwargs)
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__name__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
-    _html_discontinued = ipw.HTML("Discontinued (closed)")
-    _html_loading = ipw.HTML("Loading ...")
+    html_discontinued = tf.HTML("Discontinued (closed)")
+    html_loading = tf.HTML("Loading ...")
     _MenuBox_init_complete = False
 
     # Traits
@@ -197,7 +197,7 @@ class MenuBox(HasParent, Panel):
             if view is defaults.NO_VALUE:
                 view = self.DEFAULT_VIEW
             if view:
-                kwargs["children"] = (self._html_loading,)
+                kwargs["children"] = (self.html_loading,)
             if self.DEFAULT_LAYOUT and "layout" not in kwargs:
                 layout = self.DEFAULT_LAYOUT
                 kwargs["layout"] = layout
@@ -219,6 +219,8 @@ class MenuBox(HasParent, Panel):
             self.load_view(view)
 
     def discontinue(self, force=False):
+        if self.discontinued or (self.KEEP_ALIVE and not force):
+            return
         self.set_trait("showbox", None)
         super().discontinue(force)
 
@@ -322,7 +324,7 @@ class MenuBox(HasParent, Panel):
             if view in self.slow_loading_views or (
                 view not in self._RESERVED_VIEWNAMES and view not in self._loaded_views
             ):
-                self.set_trait("children", (self._html_loading,))
+                self.set_trait("children", (self.html_loading,))
         return self.task_load_view
 
     @utils.singular_task(handle="task_load_view", tasktype=utils.TaskType.update)
@@ -526,7 +528,7 @@ class MenuBox(HasParent, Panel):
                 self._update_shuffle_buttons()
             case "shuffle_buttons" if change["old"] is not traitlets.Undefined:
                 for b in set(change["old"]).difference(change["new"]):
-                    utils.close_ipw(b)
+                    b.close()
         if self.view:
             self.mb_refresh()
 

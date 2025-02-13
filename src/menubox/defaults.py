@@ -80,7 +80,8 @@ NO_DEFAULT = _NoDefault.token
 NO_VALUE = _NoValue.token
 INDEX = _Index.token
 
-NO_VALUE_TYPE = Literal[_NoValue.token]
+if TYPE_CHECKING:
+    NO_VALUE_TYPE = Literal[_NoValue.token]
 
 unicode_icons = """
 💾→↶-✚↻🗘→←↑↓⇇⇆⇄⇵⇉⇊⇶⇣⇡✂📝🔭✂️📌⎘📋☷‒‾…❔❓👀📜📋📂📁📂📃📄📅📆📡⁞│🔍📖
@@ -128,8 +129,16 @@ bs_kwargs: dict[str, Any] = {  # Shuffle
     "layout": {"flex": "0 0 auto", "width": "max-content", "min_width": "30px"},
     "style": {"button_color": "Bisque"},
 }
-H_FILL = ipw.Box(layout={"flex": "1 10 0%", "justify_content": "space-between", "overflow": "hidden"})
-V_FILL = ipw.Box(
+
+
+class NoCloseBox(ipw.Box):
+    def close(self, force=False):
+        if force:
+            super().close()
+
+
+H_FILL = NoCloseBox(layout={"flex": "1 10 0%", "justify_content": "space-between", "overflow": "hidden"})
+V_FILL = NoCloseBox(
     layout={
         "flex_flow": "column",
         "flex": "1 10 auto",
@@ -137,7 +146,6 @@ V_FILL = ipw.Box(
         "overflow": "hidden",
     }
 )
-H_FILL.KEEP_ALIVE = V_FILL.KEEP_ALIVE = True  # type: ignore
 
 
 CLS_RESIZE_BOTH = "menubox-resize-both"

@@ -14,10 +14,12 @@ import ruamel.yaml.scalarstring
 import traitlets
 
 from menubox import utils
-from menubox.defaults import NO_VALUE, NO_VALUE_TYPE, is_no_value
+from menubox.defaults import NO_VALUE, is_no_value
 
 if TYPE_CHECKING:
     from fsspec import AbstractFileSystem
+
+    from menubox.defaults import NO_VALUE_TYPE
 
 # ruff: noqa: UP038
 

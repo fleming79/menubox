@@ -97,7 +97,7 @@ async def test_ipywidgets_gc():
         weakref.finalize(w, on_delete)
         await asyncio.sleep(0.01)
         if not weakref_enabled:
-            mb.utils.close_ipw(w)
+            w.close()
         objs.add(w)
         del w
     await asyncio.sleep(0.01)

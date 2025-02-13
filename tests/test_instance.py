@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import gc
+import weakref
 from typing import cast
 
 import ipywidgets as ipw
@@ -15,7 +17,7 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.MenuBox):
-    a = InstanceHP(cast(type["HPI"], "HPI"), name="a").configure(allow_none=True, on_replace_discontinue=True)
+    a = InstanceHP(cast(type["HPI"], "HPI"), name="a").configure(allow_none=True)
     b = InstanceHP(cast(type["HPI"], "HPI"), name="b").configure(load_default=False, allow_none=False)
     my_button = tf.Button(description="A button")
     box = tf.HBox().set_children("my_button", mode="monitor")
@@ -30,22 +32,13 @@ class HPI(mb.MenuBox):
 
 
 class HPI2(HPI):
-    b = InstanceHP(HPI, name="b").configure(
-        on_replace_drop_parent=True, set_attrs={"name": lambda config: config["parent"].get_name(config)}
-    )
+    b = InstanceHP(HPI, name="b").configure(set_attrs={"name": lambda config: config["parent"].get_name(config)})
     c = InstanceHP(HPI, name="C has value").configure(set_parent=False)
     d = InstanceHP(ipw.Dropdown).configure(dynamic_kwgs={"description": "c.name"}, allow_none=True)
-    e = Dropdown(description="From a factory").configure(on_replace_discontinue=True, allow_none=True)
+    e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository()
     button = tf.AsyncRunButton(cfunc="_button_async")
     widgetlist = mb.StrTuple("select_repository", "not a widget")
-    box_widgets = tf.Box().configure(
-        dlink={
-            "source": ("self", "widgetlist"),
-            "target": "children",
-            "transform": "lambda val:tuple(parent.get_widgets(val))",
-        }
-    )
 
     @staticmethod
     def get_name(config: tf.IHPConfig):
@@ -55,11 +48,16 @@ class HPI2(HPI):
         return True
 
 
+class HPI3(mb.MenuBox):
+    box = tf.Box().configure(allow_none=True)
+    menubox = tf.MenuBox(views={"main": None}).configure(allow_none=True)
+
+
 async def test_instance():
     with pytest.raises(ValueError, match="`parent`is an invalid argument. Use the `set_parent` tag instead."):
         InstanceHP(HPI, parent=None)
 
-    hp1 = HPI()
+    hp1 = HPI(name="hp1")
     assert hp1.my_button
     assert hp1.a.name
     hp1.parent = None
@@ -76,17 +74,38 @@ async def test_instance():
     assert hp2.e
     assert hp2.a is not hp1.a
     assert isinstance(hp2.b, HasParent)
-    assert hp2.b.parent
+    assert hp2.b.parent is hp2
+    assert hp2.b.name == "<HPI2 name:''>.b", "by `get_name`."
+    assert hp2.b.b is hp1
     hp2.log.info("About to test a raised exception.")
     with pytest.raises(RuntimeError, match="already a parent."):
         hp2.set_trait("b", hp2)
-    assert hp2.b.name == "<HPI2 name:''>.b", "by `get_name`."
     hp2_b = hp2.b
     hp2.set_trait("b", HPI())
-    assert not hp2_b.parent, "Tag on_replace_drop_parent should be respected."
+    assert not hp2_b.parent, "hp2.parent should be removed when hp2 is replaced"
     assert await hp2.button.start() is True
-    assert hp2.select_repository in hp2.box_widgets.children, "using dlink with a lambda transform"
 
+    # Check replacement (validation)
+    assert not hp2.parent, "No parent by default."
+    hp1.set_trait("a", hp2)
+    assert hp1.a is hp2, "hp1.a  replaced by hp2."
+    assert hp2.parent is hp1, "When value is updated the parent is updated."
+
+    assert not hp2.c.parent, "Tag specifying no parent succeeded."
+    assert hp2.d.description == "C has value", "from dynamic_kwgs."
+
+    hp1.instanceHP_enable_disable("a", False)
+    assert not hp1.a, "Should have removed (hp2)"
+
+    assert isinstance(hp2.d, ipw.Dropdown), "Spawning a widget."
+    assert isinstance(hp2.e, ipw.Dropdown), "Spawning via instanceHP_wrapper inst."
+    assert hp2.e.description == "From a factory"
+    assert hp2.e.options == (1, 2, 3), "provided in defaults."
+    hp2.instanceHP_enable_disable("e", False)
+
+
+async def test_instance2():
+    hp1 = HPI(name="hp1", a=None)
     # Check button
     hp1.my_button.click()
     await hp1.wait_tasks()
@@ -99,34 +118,6 @@ async def test_instance():
     await hp1.wait_tasks()
     assert hp1.clicked == 2, "Should have connected b2"
     assert b2 in hp1.box.children, "'set_children' with mode='monitor' should update box.children"
-
-    # Check replacement (validation)
-    assert not hp2.parent, "No parent by default."
-    hp_a_original = hp1.a
-    hp1.set_trait("a", hp2)
-    assert hp1.a is hp2, "hp1.a  replaced by hp2."
-    assert hp2.parent is hp1, "When value is updated the parent is updated."
-    assert hp_a_original.parent is hp1, "parent should be retained."
-
-    await asyncio.sleep(1)
-    assert hp_a_original.discontinued, "Tag specifies it should be discontinued."
-    assert not hp2.c.parent, "Tag specifying no parent succeeded."
-    assert hp2.d.description == "C has value", "from dynamic_kwgs."
-
-    hp1.instanceHP_enable_disable("a", False)
-    assert not hp1.a, "Should have removed (hp2)"
-    await asyncio.sleep(1)
-    assert hp2.discontinued
-
-    assert isinstance(hp2.d, ipw.Dropdown), "Spawning a widget."
-    assert isinstance(hp2.e, ipw.Dropdown), "Spawning via instanceHP_wrapper inst."
-    assert hp2.e.description == "From a factory"
-    assert hp2.e.options == (1, 2, 3), "provided in defaults."
-    hp2_e = hp2.e
-    hp2.instanceHP_enable_disable("e", False)
-
-    await asyncio.sleep(1)
-    assert not hp2_e.comm, "Comm is set to None when `close` is called."
 
     # Test can regenerate
     assert not hp1.a
@@ -149,3 +140,21 @@ async def test_instance():
     assert not hp2b.trait_has_value("select_repository")
     assert hp2b.select_repository, "Discontinue should reset so default will load."
     assert not hp2b.select_repository.discontinued
+
+
+@pytest.mark.parametrize("trait", ["box", "menubox"])
+async def test_instance_gc(trait):
+    hpi3 = HPI3()
+    deleted = False
+
+    def on_delete():
+        nonlocal deleted
+        deleted = True
+
+    ref = weakref.ref(getattr(hpi3, trait))
+    weakref.finalize(ref(), on_delete)
+    hpi3.set_trait(trait, None)
+    # warning: adding break points can cause this to fail.
+    await asyncio.sleep(1)
+    gc.collect()
+    assert deleted, f"'{trait}' should be deleted after it is replaced. Referrers={gc.get_referrers(ref())}"

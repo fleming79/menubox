@@ -663,39 +663,13 @@ def joinpaths(*parts):
 sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_")
 
 
-def close_ipw(w: ipw.Widget | HasParent | Any, discontinue_hasparent=False, recursive=True) -> None:
-    """Close widgets and clear children from ipywidget box.
+def close_obj(obj: ipw.Widget | HasParent | Any) -> None:
+    """Close widgets and discontinue Hasparent and clear children from ipywidget box."""
+    if isinstance(obj, mb.HasParent):
+        obj.discontinue()
+    elif isinstance(obj, ipw.Widget):
+        obj.close()
 
-    discontinue_hasparent:
-    ---------------------
-        Discontinue HasParent instances.
-
-    recursive:
-    ---------
-        Discontinue children in boxes.
-
-    set the attribute KEEP_ALIVE = True to prevent gc of the widget.
-
-    Attempt to close to enable garable collection.
-    """
-    if isinstance(w, mb.HasParent):
-        if discontinue_hasparent:
-            w.discontinue()
-        else:
-            return
-    if getattr(w, "KEEP_ALIVE", False):
-        return
-    if isinstance(w, ipw.Box):
-        if recursive:
-            for c in w.children:
-                close_ipw(c)
-        w.children = ()
-    if isinstance(w, ipw.Button):
-        w._msg_callbacks.callbacks.clear()
-        w._click_handlers.callbacks.clear()
-    elif isinstance(w, ipw.Widget):
-        w.close()
-        w.unobserve_all()
 
 
 def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:

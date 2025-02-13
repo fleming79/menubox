@@ -357,7 +357,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
 
     def _tuple_on_remove(self, _: ValueTraits, obj: HasParent):
         if self._discontinue_on_remove:
-            utils.close_ipw(obj, discontinue_hasparent=True)
+            utils.close_obj(obj)
 
     def tag(self, **kw):
         raise NotImplementedError
@@ -729,29 +729,32 @@ class ValueTraits(HasParent):
         # Callbacks
         new = set(change["new"])
         old = set(change["old"] or ())
+        obj: ValueTraits = change["owner"]  # type: ignore
         if _tuple_on_remove or on_remove:
-            for obj in old.difference(new):
+            for val in old.difference(new):
                 if _tuple_on_remove:
-                    self._typed_tuple_do_callback(_tuple_on_remove, obj, tuplename, INTERNAL)
+                    self._typed_tuple_do_callback(_tuple_on_remove, obj, val, tuplename, INTERNAL)
                 if on_remove:
-                    self._typed_tuple_do_callback(on_remove, obj, tuplename, EXTERNAL)
+                    self._typed_tuple_do_callback(on_remove, obj, val, tuplename, EXTERNAL)
         if _tuple_on_add or on_add:
-            for obj in new.difference(old):
+            for val in new.difference(old):
                 if _tuple_on_add:
-                    self._typed_tuple_do_callback(_tuple_on_add, obj, tuplename, INTERNAL)
+                    self._typed_tuple_do_callback(_tuple_on_add, obj, val, tuplename, INTERNAL)
                 if on_add:
-                    self._typed_tuple_do_callback(on_add, obj, tuplename, EXTERNAL)
+                    self._typed_tuple_do_callback(on_add, obj, val, tuplename, EXTERNAL)
         # Share notification to on_change and update the value
         if change["name"] not in (*self.value_traits, *self.value_traits_persist):
             self._vt_on_change(change)
 
-    def _typed_tuple_do_callback(self, callback: Callable, obj: ValueTraits, tuplename: str, mode: CallbackMode):
+    def _typed_tuple_do_callback(
+        self, callback: Callable, obj: ValueTraits, val: Any, tuplename: str, mode: CallbackMode
+    ):
         """Callback specific to typed instance tuples. for on_change, on_add, on_remove.
 
         Will log an error on failure rather than raising it (except when debugging)
         """
         try:
-            callback(self, obj) if mode is INTERNAL else callback(obj)
+            callback(self, val) if mode is INTERNAL else callback(val)
         except Exception as e:
             obj.on_error(e, f"Typed tuple callback '{tuplename}'")
             if mb.DEBUG_ENABLED:

@@ -82,7 +82,7 @@ async def test_value_traits():
     vt1.instanceHP_enable_disable("nested", False)
     assert vt1.on_change_counts == 2
     assert vt1.value_change_count == 2
-    vt1.instanceHP_reset("nested")
+    vt1._reset_trait("nested")
     assert vt1.nested
     assert vt1.value_change_count == 3
     vt1.drop_value_traits("nested.number.value")
