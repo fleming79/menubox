@@ -364,6 +364,7 @@ class _Periodic:
         return self._periodic_async()
 
     async def _periodic_async(self):
+        # TODO: Stop returning a result
         result = None
         try:
             while self._repeat:
@@ -665,11 +666,8 @@ sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()
 
 def close_obj(obj: ipw.Widget | HasParent | Any) -> None:
     """Close widgets and discontinue Hasparent and clear children from ipywidget box."""
-    if isinstance(obj, mb.HasParent):
-        obj.discontinue()
-    elif isinstance(obj, ipw.Widget):
+    if hasattr(obj, "close"):
         obj.close()
-
 
 
 def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:

@@ -368,11 +368,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
 
         on_replace_discontinue: Bool
             Discontinue/close the previous instance if it is replaced.
-            Using the call:
-            ```
-            utils.close_obj(old_value)
-            ```
-            Note: items marked with `KEEP_ALIVE` will not be closed.
+            Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
         allow_none : Optional bool
             default : True if (load_default is False) else False.
         set_parent: Bool [True]

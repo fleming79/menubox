@@ -521,7 +521,15 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self._trait_values.pop(name)
             self.log.debug(f"InstanceHP trait {name=} has been reset")
 
+    def close(self, force=False):
+        self.discontinue(force)
+        if not self.KEEP_ALIVE or force:
+            close = getattr(super(), "close", None)
+            if callable(close):
+                close()
+
     def discontinue(self, force=False):
+        # TODO: Investigate if discontinue can be changed to close.
         if self.discontinued or (self.KEEP_ALIVE and not force):
             return
         for task in self.tasks:

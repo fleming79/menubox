@@ -187,9 +187,8 @@ async def test_value_traits():
     assert (number2, "value") in hhp2._vt_tuple_reg["somelist2"].reg
     assert len(hhp2._vt_tuple_reg["somelist2"].reg) == 3
 
-    hp1 = hhp2.somelist2[0]
-    assert (hp1, "number") in hhp2._vt_tuple_reg["somelist2"].reg
-    assert (hp1.number, "value") in hhp2._vt_tuple_reg["somelist2"].reg
+    assert (vt11, "number") in hhp2._vt_tuple_reg["somelist2"].reg
+    assert (vt11.number, "value") in hhp2._vt_tuple_reg["somelist2"].reg
     hhp2.somelist2 = ()
     assert len(hhp2._vt_tuple_reg["somelist2"].reg) == 0
 
