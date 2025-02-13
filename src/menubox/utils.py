@@ -364,8 +364,6 @@ class _Periodic:
         return self._periodic_async()
 
     async def _periodic_async(self):
-        # TODO: Stop returning a result
-        result = None
         try:
             while self._repeat:
                 self._repeat = False
@@ -375,21 +373,19 @@ class _Periodic:
                     continue
                 if _is_discontinued(self.instance):
                     raise asyncio.CancelledError  # noqa: TRY301
-                if inspect.iscoroutinefunction(self.wrapped):
-                    result = await self.wrapped(*self.args, **self.kwargs)
-                else:
-                    result = self.wrapped(*self.args, **self.kwargs)
+                result = self.wrapped(*self.args, **self.kwargs)
+                while inspect.isawaitable(result):
+                    result = await result
+                if self.mode is PeriodicMode.debounce:
                     await asyncio.sleep(0)
-                if self.mode is not PeriodicMode.debounce:
+                else:
                     await asyncio.sleep(self.wait)
-            self._repeat = None
         except asyncio.CancelledError:
-            raise
+            return
         except Exception as e:
             mb.log.on_error(self.wrapped, self.instance, self.mode, e)
             raise
-        else:
-            return result
+
 
 
 def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous, **kw):

@@ -319,13 +319,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
                 # Support for loading the value back into a HasTraits instance (Widget)
                 obj = val
                 name = "value"
-            # else:
-            #     # TODO: Is this required? or counterproductive?
-            #     try:
-            #         if val is value or val == value:
-            #             return
-            #     except Exception:
-            #         pass
         if isinstance(obj, HasTraits) and obj.has_trait(name):
             obj.set_trait(name, value)
         else:
@@ -461,8 +454,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         self._HasParent_init_complete = True
         for k, v in values.items():
             self.instanceHP_enable_disable(k, bool(v), v)
-        if parent:
-            parent._on_hp_trait_created(self)
         if callable(self.init_async):
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
             utils.run_async(self.init_async, tasktype=utils.TaskType.init, obj=self)
@@ -486,11 +477,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         msg = "Make a subclass instead."
         raise NotImplementedError(msg)
 
-    def _on_hp_trait_created(self, obj: HasParent):
-        # Called by instances
-        # TODO: add a callback register
-        if mb.DEBUG_ENABLED:
-            self.log.debug(f"HasParent trait created {utils.fullname(obj)}")
 
     def on_error(self, error: Exception, msg: str, obj: Any = None):
         self.log.exception(msg, obj=obj, exc_info=error)
