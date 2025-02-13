@@ -456,7 +456,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self.instanceHP_enable_disable(k, bool(v), v)
         if callable(self.init_async):
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
-            utils.run_async(self.init_async, tasktype=utils.TaskType.init, obj=self)
+            utils.run_async(self.init_async, tasktype=utils.TaskType.init, obj=self)  # type: ignore
 
     def __repr__(self):
         if self._ptname:
@@ -732,7 +732,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             if tasks := [
                 t
                 for t in self.tasks
-                if t is not current_task and getattr(t, "tasktype", utils.TaskType.general) in tasktypes_
+                if t is not current_task and utils.background_tasks.get(t, utils.TaskType.general) in tasktypes_
             ]:
                 async with asyncio.timeout(timeout):
                     await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))

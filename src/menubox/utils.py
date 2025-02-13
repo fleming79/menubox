@@ -4,7 +4,6 @@ import asyncio
 import enum
 import functools
 import inspect
-import os
 import weakref
 from collections.abc import Awaitable, Callable, Iterable
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
@@ -58,10 +57,11 @@ __all__ = [
 ]
 
 
-background_tasks: set[asyncio.Task] = set()
+background_tasks: dict[asyncio.Task, TaskType] = {}
 
 
-VSCODE_MODE = "VSCODE_PID" in os.environ
+def _background_task_complete(task: asyncio.Task):
+    background_tasks.pop(task, None)
 
 
 def limited_string(obj, max_len=100, suffix=" …", mode="start"):
@@ -130,6 +130,7 @@ def weak_observe(
 
     obj.observe(handle, names=names)
     return handle
+
 
 
 class TaskType(int, enum.Enum):
@@ -212,8 +213,8 @@ def run_async(
 
     loop = asyncio.get_running_loop()
     task = loop.create_task(_run_async_wrapper(), name=name)
-    background_tasks.add(task)
-    task.add_done_callback(background_tasks.discard)
+    background_tasks[task] = tasktype
+    task.add_done_callback(_background_task_complete)
     if isinstance(obj, mb.HasParent):
         obj.tasks.add(task)
         task.add_done_callback(obj.tasks.discard)
@@ -230,7 +231,6 @@ def run_async(
                 obj.set_trait(handle, task)
 
                 task.add_done_callback(on_done)
-    task.tasktype = tasktype  # type: ignore
     return task
 
 

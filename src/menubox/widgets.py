@@ -74,10 +74,10 @@ class ValidateWidget(ipw.ValueWidget):
     def set_state(self, sync_data):
         if isinstance(sync_data, dict) and "value" in sync_data:
             # Validate the incoming data from the frontend
+            fe_value = self._trait_from_json(sync_data["value"], self)
             try:
                 # Perform validation prior to setting it with the traitlets machinery making it straight forward
                 # to revert the original value back to the frontend should the validation fail.
-                fe_value = self._trait_from_json(sync_data["value"], self)
                 sync_data["value"] = self._trait_to_json(self.validate(fe_value), self)
                 self._skip_validate = True
                 super().set_state(sync_data)
