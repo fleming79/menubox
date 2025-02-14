@@ -1,102 +1,92 @@
 import asyncio
 
-import ipywidgets as ipw
+import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
-from menubox.async_run_button import AsyncRunButton
-
-a_kwargs = {}
+from menubox.hasparent import HasParent
 
 
 class PMB(mb.MenuBox):
-    task_button_run = tf.Task()
-    task_update = tf.Task()
-    button = tf.AsyncRunButton(cfunc="_button_async")
-    button_sub = tf.AsyncRunButton(cfunc="button", disable_when_sub_button_runs=True)
+    ab_main = tf.AsyncRunButton(cfunc="_button_async", description="Button")
+    ab_nested = tf.AsyncRunButton(cfunc="ab_main", description="Nested button")
+    ab_nested_sub = tf.AsyncRunButton(cfunc="ab_main", description="Sub button", link_button=True)
+    data = traitlets.Dict()
 
-    async def _button_async(self):
+    async def _button_async(self, **kwgs):
         await asyncio.sleep(0.4)
+        self.data.update(kwgs)
+        return kwgs
+
+def has_task(obj: HasParent):
+    return bool(getattr(obj, "task", None))
 
 
-async def cfunc(**kwargs):
-    a_kwargs.update(kwargs)
-    await asyncio.sleep(0.1)
-    return "OKAY"
-
-
-async def test_async_run_button():
-    parent = PMB()
-    assert parent.button.parent is parent, "Auto sets parent"
-    task = parent.button.start()
-    assert parent.button.task is task
-    assert parent.button_sub.disabled is True, "disable_when_sub_button_runs"
-    async with asyncio.timeout(1):
-        await task
-    assert not parent.button.task
-    assert parent.button_sub.disabled is False, "disable_when_sub_button_runs"
-
-    b = AsyncRunButton(
-        cfunc=cfunc,
-        description="my_button",
-        kw=lambda: {"a": True},
-        parent=parent,
-        handle="task_button_run",
-    )
-    assert parent.task_button_run is None
-    task1 = b.start()
-    assert b.task is task1
-    assert parent.task_button_run is task1
-    assert await task1 == "OKAY"
-    assert b.task is None
-    assert parent.task_button_run is None
-    assert a_kwargs["a"] is True
-
-    task2 = b.start(a=False)
-    assert task2 is not task1
-    task3 = b.start(restart=False, a=False)
-    assert task3 is task2
-    await task2
-    assert a_kwargs["a"] is False
-
-    b.start(a=False)
-    await b.cancel_wait()
-    assert b.task is None
-
-    await b.start()
-    assert b.description == "my_button"
-
-    # Test a nested button
-    b2 = AsyncRunButton(
-        cfunc=b,
-        description="Nested button",
-        kw=lambda: {"b": True},
-        parent=parent,
-        handle="task_update",
-    )
-
-    a_kwargs.clear()
-    task = b2.start()
-    assert parent.task_update is task
-    assert task in parent.tasks
-    assert b.task
-    assert not b.task.done()
-    assert b.task in parent.tasks
-    assert b.description == "Cancel"
-    assert b2.description == "Cancel"
+async def test_async_run_button_description_and_task():
+    obj = PMB()
+    assert obj.ab_main.description == "Button"
+    task = obj.ab_main.start()
+    assert obj.ab_main.task is task
+    assert task in obj.tasks
+    assert obj.ab_main.description == "Cancel"
     await task
-    assert b2.description == "Nested button"
-    assert b.description == "my_button"
-    assert a_kwargs["b"] is True
-    assert a_kwargs["a"] is True
-    assert not b2.task
-    assert not parent.tasks
-    assert not parent.task_update
+    assert obj.ab_main.description == "Button"
+    assert task not in obj.tasks
+    assert not obj.ab_main.task
 
-    # Test get widgets
-    mbox = mb.MenuBox(views={"Main": ipw.HTML("Test")})
 
-    assert mbox.get_widgets([ipw.Box([ipw.Button(disabled=True)])], skip_disabled=True)
+async def test_async_run_button_kwargs():
+    obj = PMB()
+    task = obj.ab_main.start(a=False)
+    obj.ab_main.start(restart=False, a=False)
+    assert obj.ab_main.task is task
+    await task
+    assert not obj.data.get("a")
 
-    b.discontinue()
-    del b
+    obj.ab_main.start()
+    await obj.ab_main.cancel_wait()
+    assert not has_task(obj.ab_main)
+
+
+async def test_async_run_button_nested():
+    obj = PMB()
+    assert obj.ab_nested.description == "Nested button"
+    assert obj.ab_main.description == "Button"
+    b_task = obj.ab_main.start(primary=True)
+    assert obj.ab_nested_sub.disabled, "A sub button should disable when the main button has a task"
+    assert not obj.ab_nested.disabled, "A nested button should be allowed to restart a running task."
+    obj.ab_nested.start(nested=True)
+    assert b_task.cancelling(), "Starting b2 should cancel b.task before stating a new task"
+    assert obj.ab_nested.task is obj.ab_main.task
+    assert not obj.ab_main.task.done()
+    assert obj.ab_main.task in obj.tasks
+    assert obj.ab_main.description == "Cancel"
+    assert obj.ab_nested.description == "Cancel"
+    await obj.ab_nested.task
+    assert obj.ab_nested.description == "Nested button"
+    assert obj.ab_main.description == "Button"
+    assert not obj.data.get("primary"), "The task should that sets this should be cancelled"
+    assert obj.data.get("nested"), "The kwarg should be passed in the called to button_nest.start"
+    assert not obj.ab_nested.task
+    assert not obj.tasks
+
+
+async def test_async_run_button_link_button():
+    obj = PMB()
+    assert obj.ab_main.parent is obj, "Auto sets parent"
+    task = obj.ab_main.start()
+    assert obj.ab_main.task is task
+    assert obj.ab_nested_sub.disabled is True, "link_button"
+    await task
+    assert not obj.ab_main.task
+    assert obj.ab_nested_sub.disabled is False, "link_button"
+
+async def test_async_run_no_restart():
+    # Passing restart=False should always return None
+    obj = PMB()
+    assert await obj.ab_main.start(restart=False, ab_main=True) is None
+    assert "ab_main" in obj.data
+    assert await obj.ab_nested.start(restart=False, nested=True) is None
+    assert "nested" in obj.data
+    assert await obj.ab_nested_sub.start(restart=False, sub=True) is None
+    assert "sub" in obj.data

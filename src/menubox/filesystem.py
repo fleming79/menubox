@@ -73,9 +73,16 @@ class Filesystem(MenuBoxVT):
     )
     button_home = tf.Button(description="🏠")
     button_up = tf.Button(description="↑", tooltip="Navigate up one folder")
-    button_add = tf.Button(description="✚", tooltip="Create new file or folder", disabled=True)
     button_update_sw_main = tf.AsyncRunButton(
         cfunc="_button_update_sw_main_async", description="↻", cancel_description="✗", tasktype=utils.TaskType.update
+    )
+    button_add = tf.AsyncRunButton(
+        cfunc="button_update_sw_main",
+        kw={"create": True},
+        description="✚",
+        tooltip="Create new file or folder",
+        disabled=True,
+        link_button=True,
     )
     box_settings = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).set_children("protocol", "kw")
     control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).set_children(
@@ -171,7 +178,7 @@ class Filesystem(MenuBoxVT):
                     self.button_update_sw_main.start()
         else:
             match change["owner"]:
-                case self.url | self.sw_main:
+                case self.url | self.sw_main if self.view_active:
                     self.button_update_sw_main.start()
 
     async def button_clicked(self, b: Button):
@@ -182,12 +189,8 @@ class Filesystem(MenuBoxVT):
             case self.button_home:
                 self.url.value = self.home_url
                 self.sw_main.value = None
-                self.button_update_sw_main.start()
             case self.button_up:
                 self.url.value = self.fs._parent(self.url.value)
-                self.button_update_sw_main.start()
-            case self.button_add:
-                self.button_update_sw_main.start(create=True)
 
     def update_widget_locks(self):
         for widget in (self.url, self.button_up, self.button_home, self.button_add):

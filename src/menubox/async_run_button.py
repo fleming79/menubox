@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import ipywidgets as ipw
 import traitlets
 
-from menubox import hasparent, trait_types, utils
+from menubox import hasparent, utils
 from menubox.instance import InstanceHP
 from menubox.log import log_exceptions
 
@@ -31,7 +31,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         with dotted name access relative to parent.
     handle:
         The name of either a set or attribute as used by run_async.
-    disable_when_sub_button_runs:
+    link_button:
         Disable the button while the other button is running (if not called )
     kw : dict | callable
     If kw is callable, it will be called when the button is clicked.  It must return a
@@ -61,8 +61,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         button_style: str = "primary",
         cancel_button_style: str = "warning",
         tooltip: str = "",
-        handle: str | None = None,
-        disable_when_sub_button_runs=False,
+        link_button=False,
         tasktype: utils.TaskType = utils.TaskType.general,
         parent: hasparent.HasParent | None = None,
         **kwargs,
@@ -71,9 +70,6 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             style = {}
         if kw is None:
             kw = {}
-        if handle and parent is None:
-            msg = f"handle' is only relevant when a parent is provided. {handle=}."
-            raise TypeError(msg)
         if isinstance(cfunc, str):
             cfunc = utils.getattr_nested(parent, cfunc)
         self.set_trait("_corofunc_or_button", cfunc)
@@ -92,7 +88,6 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         self._button_style = button_style
         self._cancel_style = cancel_button_style
         self._tooltip = tooltip
-        self._handle = handle
         self._tasktype = tasktype
         if callable(cfunc):
             detail = f"[{utils.funcname(cfunc)}]"
@@ -102,17 +97,14 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             msg = "Not sure what to do with cfunc"
             raise TypeError(msg)
         self._taskname = f"async_run_button_{id(self)}_{detail}"
-        if disable_when_sub_button_runs:
+        if link_button:
             if not isinstance(self._corofunc_or_button, AsyncRunButton):
-                msg = "When `disable_when_sub_button_runs` cfunc must resolve to an AsyncRunButton."
+                msg = "When `link_button` cfunc must resolve to be a AsyncRunButton."
                 raise TypeError(msg)
-            self._corofunc_or_button.observe(self._observe_corofunc_button_task, "task")
-            if cfunc.task:
-                self.disabled = True
-                self._update_disabled = True
-        super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
+            utils.weak_observe(self._corofunc_or_button, self._update_link_button, "task")
+            self._update_link_button()
         self.set_description(description)
-
+        super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
         self.on_click(self.button_clicked)
         if self.parent:
             self.log = self.parent.log
@@ -120,14 +112,26 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
     @traitlets.validate("name")
     def _hp_validate_name(self, proposal):
         if self.disabled:
-            msg = f"{self} - cannot set name when disabled."
+            msg = "Cannot set name when disabled!"
             raise RuntimeError(msg)
+        value = super()._hp_validate_name(proposal)
         if self.description == self.name:
-            self.set_description(proposal["value"])
-        return super()._hp_validate_name(proposal)
+            self.set_description(value)
+        return value
 
-    def _observe_corofunc_button_task(self, change: trait_types.ChangeType):
-        if change["new"]:
+    @traitlets.observe("task")
+    def _observe_task(self, _):
+        if self.task:
+            self.tooltip = f"Cancel\n Task name is: {self.task.get_name()}"
+            self.button_style = self._cancel_style
+            self.set_description(self._cancel_description)
+        else:
+            self.set_description(self.name)
+            self.tooltip = self._tooltip
+            self.button_style = self._button_style
+
+    def _update_link_button(self):
+        if getattr(self._corofunc_or_button, "task", None):
             if not self.task:
                 self.disabled = True
                 self._update_disabled = True
@@ -135,7 +139,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             self._update_disabled = False
             self.disabled = False
 
-    def button_clicked(self, _: ipw.Button):
+    def button_clicked(self, _: ipw.Button):  # type: ignore
         if self.task:
             self.cancel()
         else:
@@ -147,9 +151,6 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
     def _done_callback(self, task: asyncio.Task):
         "Task done callback"
         if task is self.task:
-            self.set_trait("description", self.name)
-            self.button_style = self._button_style
-            self.tooltip = self._tooltip
             self.set_trait("task", None)
 
     @log_exceptions
@@ -158,33 +159,27 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         if self.disabled:
             msg = f"'{self}' is disabled!"
             raise RuntimeError(msg)
-        if not restart and self.task:
+        if not restart and self.task and not self.task.cancelling():
             if task and task is self.task:
                 msg = f"Recursive call to {self}"
                 raise RecursionError(msg)
             return self.task
-        kwargs_in = self._kw() if callable(self._kw) else self._kw
-        kw = kwargs_in | kwargs
+        kw = (self._kw() if callable(self._kw) else self._kw) | kwargs
         if isinstance(self._corofunc_or_button, AsyncRunButton):
-            task = self._corofunc_or_button.start(**kw)
-            aw = functools.partial(asyncio.wait_for, task, None)
+            aw = self._corofunc_or_button.start(restart=restart, task=task, **kw)
+            if isinstance(aw, asyncio.Task):
+                task = aw
         else:
             aw = functools.partial(self._corofunc_or_button, **kw)
-        if coro_mode and isinstance(task, asyncio.Task):
-            if self.task:
-                self.task.cancel()
-            if not getattr(task, "tasktype", None):
-                task.tasktype = self._tasktype  # type: ignore
-        else:
-            task = utils.run_async_singular(
-                aw, obj=self.parent or self, handle=self._handle, tasktype=self._tasktype, name=self._taskname
-            )
-        self.set_trait("task", task)
-        task.add_done_callback(self._done_callback)
-        self.set_description(self._cancel_description)
-        self.tooltip = f"Cancel\n Task name is: {task.get_name()}"
-        self.button_style = self._cancel_style
-        return aw() if coro_mode else task
+        if not task:
+            task = utils.run_async_singular(aw, obj=self, tasktype=self._tasktype, name=self._taskname, restart=restart)
+        if task is not self.task:
+            self.set_trait("task", task)
+            task.add_done_callback(self._done_callback)
+        if self.parent and task not in self.parent.tasks:
+            self.parent.tasks.add(task)
+            task.add_done_callback(self.parent.tasks.discard)
+        return (aw() if callable(aw) else aw) if coro_mode else task
 
     def start(self, restart=True, **kwargs) -> asyncio.Task:
         """Start always unless restart=False.
@@ -198,7 +193,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         return self._start(restart=restart, **kwargs)  # type: ignore
 
     def start_wait(self, restart=True, **kwargs) -> Coroutine:
-        "Same as start but must be awaitied to run."
+        "Same as start but returns a coroutine and uses the current task."
         return self._start(restart=restart, task=asyncio.current_task(), **kwargs)  # type: ignore
 
     def cancel(self, force=False):
