@@ -42,7 +42,7 @@ async def test_persist():
     await p.button_save_persistence_data.start()
 
     for view in p.views:
-        await mb.utils.wait_for(p.load_view(view))
+        await mb.mb_async.wait_for(p.load_view(view))
 
     assert p.get_persistence_versions(p.home, p.name)
 

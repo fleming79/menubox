@@ -7,7 +7,7 @@ import traitlets
 
 import menubox.hasparent as mhp
 import menubox.trait_types as tt
-from menubox import log, utils
+from menubox import log, mb_async
 
 match = "This exception is intentional"
 
@@ -180,7 +180,7 @@ async def test_hasparent3():
         hp.a_func(True)
     assert hp.caught_errors == 1
     with pytest.raises(ValueError, match=match):
-        await utils.run_async(hp.a_func_async(True), obj=hp)
+        await mb_async.run_async(hp.a_func_async(True), obj=hp)
 
     assert hp.caught_errors == 2
 

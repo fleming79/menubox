@@ -12,12 +12,12 @@ async def test_menubox():
     assert m.task_load_view
     await m.task_load_view
     assert m.view == "a", "autoload selects first view"
-    await utils.wait_for(m.load_view(None))
+    await mb.mb_async.wait_for(m.load_view(None))
     assert m.view is None, "load no view"
-    await utils.wait_for(m.load_view())
+    await mb.mb_async.wait_for(m.load_view())
     assert m.view == "a", "should load first view"
 
-    await utils.wait_for(m.load_view(None))
+    await mb.mb_async.wait_for(m.load_view(None))
     assert m.view is None, "load no view"
     m.load_view("b")
     assert m._view_loading == "b"
@@ -48,22 +48,22 @@ async def test_menubox():
     await m.wait_tasks()
     m.refresh_view()
     m.mb_refresh()
-    await utils.wait_for(m.load_view("Minimized"))
+    await mb.mb_async.wait_for(m.load_view("Minimized"))
 
     assert m.view == m._MINIMIZED
     m.maximize()
     m.views = {"A tuple": (ipw.HTML("Item1"), ipw.HTML("Item2"))}
-    await utils.wait_for(m.load_view("A tuple"))
+    await mb.mb_async.wait_for(m.load_view("A tuple"))
 
     m.shuffle_button_views = {"d": lambda: ipw.HTML("new")}
     assert "_shuffle_buttons" not in m.header_children
-    await utils.wait_for(m.load_view())
+    await mb.mb_async.wait_for(m.load_view())
     await m.wait_tasks()
     m.shuffle_buttons[0].click()  # type: ignore # shuffle button for views 'd'
     await m.wait_tasks()
     m2 = mb.MenuBox()
     m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-    await utils.wait_for(m2.load_view("b"))
+    await mb.mb_async.wait_for(m2.load_view("b"))
 
     assert m2.view == "b"
     # Can also load views by setting the trait. It will be scheduled to load
@@ -95,7 +95,7 @@ async def test_menubox():
 
     await m3.wait_tasks()
 
-    await utils.wait_for(m2.load_view(None))
+    await mb.mb_async.wait_for(m2.load_view(None))
     assert m2.view is None, "load no view"
     m3.enable_widget("box_shuffle")
     abox = m3.box_shuffle
@@ -122,7 +122,7 @@ async def test_menubox():
     assert utils.obj_is_in_box(b, abox) is wrapper
     assert wrapper is m3.obj_in_box_shuffle(b), "should be able to find it."
     assert m3.obj_in_box_shuffle(m3) is None
-    await utils.wait_for(wrapper.load_view())
+    await mb.mb_async.wait_for(wrapper.load_view())
     assert b is wrapper._center, "b should be the loaded 'view'"
     assert abox.children.index(wrapper) == 0
     wrapper.button_demote.click()

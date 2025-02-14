@@ -6,7 +6,6 @@ import weakref
 import ipywidgets as ipw
 
 import menubox as mb
-from menubox import utils
 
 weakref_enabled = False
 with contextlib.suppress(Exception):
@@ -48,7 +47,7 @@ class ButtonM(ipw.Button):
 
 async def test_menubox_gc():
     mbox = MenuBoxM()
-    await utils.wait_for(mbox.show())
+    await mb.mb_async.wait_for(mbox.show())
     mbox.discontinue()
     await asyncio.sleep(0.2)
     del mbox

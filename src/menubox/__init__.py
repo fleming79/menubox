@@ -9,6 +9,7 @@ from menubox import (
     hasparent,
     instance,
     log,
+    mb_async,
     pack,
     trait_types,
     utils,
@@ -19,11 +20,11 @@ from menubox import (
 from menubox.__about__ import __version__
 from menubox.hasparent import HasParent
 from menubox.home import Home
+from menubox.mb_async import TaskType
 from menubox.menubox import MenuBox
 from menubox.menuboxvt import MenuBoxVT
 from menubox.modalbox import ModalBox
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, StrTuple, TypedTuple
-from menubox.utils import TaskType
 from menubox.valuetraits import TypedInstanceTuple, ValueTraits
 
 VERSION_INFO = {"menubox": __version__}
@@ -36,6 +37,7 @@ __all__ = [
     "hasparent",
     "instance",
     "log",
+    "mb_async",
     "pack",
     "valuetraits",
     "trait_types",

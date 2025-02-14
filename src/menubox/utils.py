@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import enum
 import functools
 import inspect
 import weakref
-from collections.abc import Awaitable, Callable, Iterable
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import ipylab
 import ipylab.log
@@ -14,21 +12,20 @@ import ipywidgets as ipw
 import pandas as pd
 import toolz
 import traitlets
-import wrapt
 
 import menubox as mb
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine, Generator
+    from collections.abc import Callable, Generator, Iterable
 
     from menubox.hasparent import HasParent
     from menubox.trait_types import ChangeType
 
 
-AW = TypeVar("AW")
 T = TypeVar("T")
 R = TypeVar("R")
+
 P = ParamSpec("P")
 
 __all__ = [
@@ -38,30 +35,15 @@ __all__ = [
     "setattr_nested",
     "fullname",
     "fstr",
-    "debounce",
     "limited_string",
     "tuple_discard",
     "tuple_add",
-    "run_async",
-    "run_async_singular",
-    "singular_task",
-    "cancel_task",
-    "get_task",
-    "call_later",
-    "wait_for",
     "funcname",
     "sanatise_name",
     "sanatise_filename",
     "iterflatten",
     "weak_observe",
 ]
-
-
-background_tasks: dict[asyncio.Task, TaskType] = {}
-
-
-def _background_task_complete(task: asyncio.Task):
-    background_tasks.pop(task, None)
 
 
 def limited_string(obj, max_len=100, suffix=" …", mode="start"):
@@ -130,337 +112,6 @@ def weak_observe(
 
     obj.observe(handle, names=names)
     return handle
-
-
-
-class TaskType(int, enum.Enum):
-    general = enum.auto()
-    continuous = enum.auto()
-    update = enum.auto()
-    init = enum.auto()
-    click = enum.auto()
-
-
-def run_async(
-    aw: Awaitable[AW] | functools.partial,
-    *,
-    name: str | None = None,
-    obj: HasParent | None = None,
-    handle: str = "",
-    restart=True,
-    timeout: float | None = None,
-    tasktype=TaskType.general,
-) -> asyncio.Task[AW]:
-    """Run aw as a task, possibly cancelling an existing task if the name overlaps.
-
-    Also accepts a partial function provided that it produces an awaitable.
-
-    Parameters
-    ----------
-
-    name: The name of the task. If a task with the same name already exists it will
-    be cancelled. See run_async_singular as an easier option to prevent accidental
-    task cancellation.
-    obj:
-        `obj` may be a subclass from HasParent
-        `obj.handle` if provided adds the task to `obj`. Two options exist:
-        1.If the handle is a `set`, `obj` is added to the set
-        2 The task is set to obj.<handle>.
-    timeout:
-        The timeout for the task to complete. A Timeout exception will be raised.
-    widget:
-        A widget is disabled for the duration of the task.
-    loginfo:
-        Provided to aid with the exception details.
-    On completion the task is removed from the set or replaced with `None`.
-    :
-        Make identifiable as an update task as used by HasParent.wait_update_tasks()
-
-    Exceptions for cancelled tasks are not raised.
-    widget: If provided the widget is disabled immediately and then disabled once the
-        awaitable is completed.
-    """
-
-    if handle:
-        if obj and not isinstance(obj, mb.hasparent.HasParent):
-            msg = f"{obj} is not an instantance of HasParent."
-            raise TypeError(msg)
-        if not obj.has_trait(handle):  # type: ignore
-            msg = f"{handle=} is not a trait of {limited_string(obj)}!"
-            raise AttributeError(msg)
-    if not restart and not name:
-        msg = "A name must be provided if restart=False!"
-        raise TypeError(msg)
-    current = get_task(name)
-    if current:
-        if not restart and not current.cancelling() and not current.done():
-            return current
-        current.cancel()
-
-    async def _run_async_wrapper():
-        if current and not current.done():
-            await asyncio.wait([current])
-        aw_ = None
-        try:
-            aw_ = aw() if callable(aw) else aw
-            if timeout:
-                async with asyncio.timeout(timeout):
-                    return await aw_
-            return await aw_
-        except Exception as e:
-            mb.log.on_error(aw_ or aw, obj, "run async", e)
-            raise
-
-    loop = asyncio.get_running_loop()
-    task = loop.create_task(_run_async_wrapper(), name=name)
-    background_tasks[task] = tasktype
-    task.add_done_callback(_background_task_complete)
-    if isinstance(obj, mb.HasParent):
-        obj.tasks.add(task)
-        task.add_done_callback(obj.tasks.discard)
-        if handle:
-            if isinstance(set_ := getattr(obj, handle, None), set):
-                set_.add(task)
-                task.add_done_callback(set_.discard)
-            else:
-
-                def on_done(task):
-                    if getattr(obj, handle, None) is task and isinstance(obj, mb.HasParent):
-                        obj.set_trait(handle, None)
-
-                obj.set_trait(handle, task)
-
-                task.add_done_callback(on_done)
-    return task
-
-
-def run_async_singular(
-    aw: Awaitable[AW] | functools.partial[AW], *, obj: HasParent | None = None, name: str | None = None, **kwargs
-) -> asyncio.Task[AW]:
-    """Schedule the aw for execution with run_async.
-
-    A singular task `name` is either:
-    1. name
-    2. f"singular_task_{ID}_{funcname(aw)}"
-
-    **kwargs are passed to `run_async`.
-    """
-    return run_async(
-        aw,
-        name=name or f"singular_task_{id(obj) if obj else ''}_{funcname(aw)}",
-        obj=obj if isinstance(obj, mb.HasParent) else None,
-        **kwargs,
-    )
-
-
-def singular_task(*, restart=True, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
-    """A decorator to wrap a coroutine function to run as a singular task.
-
-    obj is as the instance.
-    kw are passed to run_async_singular such as 'handle'.
-    """
-
-    @wrapt.decorator
-    def _run_as_singular(wrapped: Awaitable[AW], instance, args, kwargs: dict) -> asyncio.Task[AW]:
-        if not inspect.iscoroutinefunction(wrapped):
-            msg = "The wrapped function must be coroutine function."
-            raise TypeError(msg)
-        # use partial to avoid creating coroutines that may never be awaited
-        restart_ = restart
-        if "restart" in kwargs:
-            restart_ = kwargs.pop("restart")
-        func = functools.partial(wrapped, *args, **kwargs)
-        return run_async_singular(cast(Awaitable[AW], func), **{"obj": instance, "restart": restart_} | kw)
-
-    return _run_as_singular  # type: ignore
-
-
-def cancel_task(task):
-    """Cancel the first found task with name from background tasks."""
-
-    if not task:
-        return
-    if isinstance(task, str):
-        for task_ in background_tasks:
-            if task_.get_name() == task:
-                if not task_.done():
-                    task_.cancel()
-                return
-    elif isinstance(task, asyncio.Task):
-        if hasattr(task, "done") and not task.done():
-            task.cancel()
-    else:
-        msg = f"{type(task)}"
-        raise NotImplementedError(msg)
-
-
-def get_task(task: str | asyncio.Task | None):
-    """Return the task if it exists."""
-    if task is None:
-        return None
-    if isinstance(task, asyncio.Task):
-        return task
-    if not isinstance(task, str):
-        msg = f"{type(task)}"
-        raise TypeError(msg)
-    for task_ in background_tasks:
-        if task_.get_name() == task:
-            return task_
-    return None
-
-
-def call_later(delay, callback, *args, **kwargs):
-    """Run callback after a delay."""
-    callit = functools.partial(callback, *args, **kwargs)
-    asyncio.get_running_loop().call_later(delay, callit)
-
-
-async def wait_for(fut, timeout: float | None = None, info=""):
-    """If coro is awaitable, wait for and return the result.
-
-    fut name and info are used in a timeout message.
-    """
-    if asyncio.isfuture(fut) or asyncio.iscoroutine(fut):
-        try:
-            return await asyncio.wait_for(fut, timeout=timeout)
-        except TimeoutError:
-            info = f" {info=}." if info else "."
-            msg = f"Timeout after {timeout=}s waiting for {funcname(fut)}(){info}"
-            raise TimeoutError(msg) from None
-    return fut
-
-
-## Periodic functions initially inspired by:
-# https://github.com/jupyter-widgets/ipywidgets/blob/d35010f2e5abd7ae306902e177529be5eb42c441/docs/source/examples/Widget%20Events.ipynb
-## They are now usable in all expected contexts as per https://wrapt.readthedocs.io/en/latest/decorators.html#universal-decorators
-
-
-def _is_discontinued(obj):
-    # Need to handle class methods that will test positive always with a simple test.
-    return getattr(obj, "discontinued", False) is True
-
-
-class PeriodicMode(str, enum.Enum):
-    debounce = "debounce"
-    throttle = "throttle"
-    periodic = "periodic"
-
-
-class _Periodic:
-    __slots__ = ("_repeat", "task", "wrapped", "instance", "args", "kwargs", "wait", "mode")
-
-    def __new__(cls, wrapped, instance, args, kwargs, wait, mode):
-        self = super().__new__(cls)
-        self._repeat = True
-        self.wrapped = wrapped
-        self.instance = instance
-        self.args = args
-        self.kwargs = kwargs
-        self.wait = wait
-        self.mode = mode
-        return self
-
-    def __call__(self) -> Coroutine:
-        return self._periodic_async()
-
-    async def _periodic_async(self):
-        try:
-            while self._repeat:
-                self._repeat = False
-                if self.mode is PeriodicMode.debounce:
-                    await asyncio.sleep(self.wait)
-                elif self._repeat:
-                    continue
-                if _is_discontinued(self.instance):
-                    raise asyncio.CancelledError  # noqa: TRY301
-                result = self.wrapped(*self.args, **self.kwargs)
-                while inspect.isawaitable(result):
-                    result = await result
-                if self.mode is PeriodicMode.debounce:
-                    await asyncio.sleep(0)
-                else:
-                    await asyncio.sleep(self.wait)
-        except asyncio.CancelledError:
-            return
-        except Exception as e:
-            mb.log.on_error(self.wrapped, self.instance, self.mode, e)
-            raise
-
-
-
-def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous, **kw):
-    """A wrapper to control the rate at which a function may be called.
-
-    Can wrap functions, coroutines and methods. Several modes are supported.
-    Parameters
-    ----------
-    mode:
-        "debounce":
-            Sleep for wait until the last call is received before running the function.
-        "throttle":
-            Call once every debounce period whilst being called. Will
-            Always run until after the last call is made.
-        "periodic":
-            Run periodically forever.
-    kw are passed to run_async_singular
-    Returns the current task.
-    """
-
-    mode = PeriodicMode(mode)
-    tasktype = TaskType(tasktype)
-    _periodic_tasks: dict[tuple[Callable, object | None], _Periodic] = {}
-
-    def on_done(k, task):
-        info = _periodic_tasks.get(k)
-        if info and info.task is task:
-            info.task = info.wrapped = info.instance = None
-            del _periodic_tasks[k]
-
-    @wrapt.decorator
-    def _periodic_wrapper(wrapped, instance, args, kwargs):
-        if _is_discontinued(instance):
-            return None
-        k = (instance, wrapped)
-        info = _periodic_tasks.get(k)
-        if info and info._repeat is not None:
-            info._repeat = True
-            info.args = args
-            info.kwargs = kwargs
-            return info.task
-        info = _Periodic(wrapped, instance, args, kwargs, wait, mode)
-        info.task = run_async(
-            info,  # type: ignore
-            name=f"{tasktype.name} {funcname(wrapped)} {id(instance or wrapped)}",
-            obj=instance if isinstance(instance, mb.HasParent) else None,
-            tasktype=tasktype,
-            **kw,
-        )
-        _periodic_tasks[k] = info
-        info.task.add_done_callback(functools.partial(on_done, k))
-        return info.task
-
-    return _periodic_wrapper
-
-
-def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
-    """A decorator that throttles the call to wrapped function.
-
-    Compatible with coroutines and functions and methods.
-
-    pass log=defaults.NO_VALUE to disable all logging.
-
-    Returns a task.
-    """
-    return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype, **kw)  # type: ignore
-
-
-def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
-    """A decorator that debounces the call to the wrapped function.
-
-    Compatible with coroutines and functions and methods.
-    Returns a task.
-    """
-    return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype, **kw)  # type: ignore
 
 
 def add_remove_prefix(prefix: str, items: list, add=True):
@@ -576,7 +227,7 @@ def funcname(obj: Any) -> str:
     """
     if hasattr(obj, "__wrapped__"):
         return funcname(obj.__wrapped__)
-    if isinstance(obj, _Periodic):
+    if isinstance(obj, mb.mb_async._Periodic):
         return funcname(obj.wrapped)
     if not callable(obj) and not inspect.isawaitable(obj):
         msg = f"{fullname(obj)} is not callable"

@@ -49,7 +49,7 @@ def on_error(wrapped, instance, msg, e):
     """
     if not instance and getattr(wrapped, "__self__", None):
         instance = wrapped.__self__
-    if instance and utils._is_discontinued(instance):
+    if instance and getattr(instance, "discontinued", False):
         return
     if hasattr(instance, "on_error"):
         instance.on_error(e, msg, obj=wrapped)

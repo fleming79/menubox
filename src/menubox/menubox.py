@@ -16,7 +16,7 @@ from ipylab import Panel
 from ipywidgets import widgets as ipw
 
 import menubox as mb
-from menubox import defaults, log, utils
+from menubox import defaults, log, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.defaults import H_FILL, V_FILL
 from menubox.hasparent import HasParent
@@ -229,10 +229,10 @@ class MenuBox(HasParent, Panel):
         self.close()
         super()._discontinue_clean_up()
 
-    def close(self):
+    def close(self, force=False):
         self.discontinue()
         if self.discontinued:
-            super().close()
+            super().close(force)
 
     def enable_widget(self, name: str, overrides: dict | None = None) -> None:
         "Load the widget."
@@ -327,7 +327,7 @@ class MenuBox(HasParent, Panel):
                 self.set_trait("children", (self.html_loading,))
         return self.task_load_view
 
-    @utils.singular_task(handle="task_load_view", tasktype=utils.TaskType.update)
+    @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
         try:
             if not self.viewlist:
@@ -401,7 +401,7 @@ class MenuBox(HasParent, Panel):
             return
         self.load_view(self._view_loading or self.view, reload=True)
 
-    @utils.debounce(0.02)
+    @mb_async.debounce(0.02)
     async def mb_refresh(self) -> None:
         if self.discontinued or not self._MenuBox_init_complete:
             return

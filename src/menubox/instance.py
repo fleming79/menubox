@@ -11,7 +11,7 @@ import traitlets
 from mergedeep import Strategy, merge
 
 import menubox as mb
-from menubox import utils
+from menubox import mb_async, utils
 from menubox.defaults import NO_VALUE, _NoValue, is_no_value
 from menubox.hasparent import HasParent
 from menubox.trait_types import Bunched
@@ -340,7 +340,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                     if obj.BUTTON_BUSY_BORDER:
                         b.layout.border = ""
 
-            utils.run_async(click_callback(), name=taskname, obj=obj)
+            mb_async.run_async(click_callback(), name=taskname, obj=obj)
 
     # TODO: add overloads if allow_none is True/false
     def configure(

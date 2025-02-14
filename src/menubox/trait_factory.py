@@ -17,7 +17,7 @@ import ipywidgets as ipw
 import menubox.async_run_button
 import menubox.defaults as dv
 import menubox.widgets
-from menubox import utils
+from menubox import mb_async
 from menubox.instance import IHPConfig, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as IHP
@@ -269,11 +269,11 @@ MenuBox = IHP(cast(type["menubox.menubox.MenuBox"], "MenuBox"))
 
 AsyncRunButton = IHP(
     menubox.async_run_button.AsyncRunButton,
-    defaults=dv.b_kwargs | {"tasktype": utils.TaskType.general},
+    defaults=dv.b_kwargs | {"tasktype": mb_async.TaskType.general},
 )
 AsyncRunButton_U = IHP(
     menubox.async_run_button.AsyncRunButton,
-    defaults=dv.b_kwargs | {"tasktype": utils.TaskType.update},
+    defaults=dv.b_kwargs | {"tasktype": mb_async.TaskType.update},
 )
 ModalBox = IHP(cast(type["menubox.modalbox.ModalBox"], "menubox.modalbox.ModalBox"))
 

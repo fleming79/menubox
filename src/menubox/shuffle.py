@@ -2,12 +2,12 @@ import ipywidgets as ipw
 import traitlets
 from pandas.io import clipboards
 
+from menubox import mb_async
 from menubox import trait_factory as tf
 from menubox.menuboxvt import MenuBoxVT
 from menubox.pack import to_yaml
 from menubox.persist import MenuBoxPersist
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
-from menubox.utils import debounce
 from menubox.valuetraits import TypedInstanceTuple
 
 
@@ -128,7 +128,7 @@ class ObjShuffle(MenuBoxVT):
         self.load_shuffle_item(obj, **kwargs)
         return obj
 
-    @debounce(0.1)
+    @mb_async.debounce(0.1)
     def update_box_info(self) -> None:
         self.update_sw_version_options()
         if name := self.sw_obj.value:

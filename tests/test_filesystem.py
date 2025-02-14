@@ -1,7 +1,7 @@
 import pathlib
 import tempfile
 
-from menubox import Home, utils
+from menubox import Home, mb_async
 from menubox.filesystem import Filesystem
 
 
@@ -10,7 +10,7 @@ async def test_filesystem():
     home = Home(root)
 
     fs = Filesystem(home=home, url=root)
-    await utils.wait_for(fs.load_view())
+    await mb_async.wait_for(fs.load_view())
     fs.button_update_sw_main.start()
     await fs.wait_tasks()
 

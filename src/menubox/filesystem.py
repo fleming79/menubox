@@ -9,8 +9,8 @@ import psutil
 import traitlets
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
+from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox import utils
 from menubox.menuboxvt import MenuBoxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
@@ -74,7 +74,7 @@ class Filesystem(MenuBoxVT):
     button_home = tf.Button(description="🏠")
     button_up = tf.Button(description="↑", tooltip="Navigate up one folder")
     button_update_sw_main = tf.AsyncRunButton(
-        cfunc="_button_update_sw_main_async", description="↻", cancel_description="✗", tasktype=utils.TaskType.update
+        cfunc="_button_update_sw_main_async", description="↻", cancel_description="✗", tasktype=mb_async.TaskType.update
     )
     button_add = tf.AsyncRunButton(
         cfunc="button_update_sw_main",

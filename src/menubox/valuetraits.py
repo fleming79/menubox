@@ -15,7 +15,7 @@ import toolz
 from traitlets import Dict, HasTraits, Instance, Set, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
-from menubox import defaults, utils
+from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent
 from menubox.home import Home, InstanceHome
 from menubox.log import log_exceptions
@@ -824,7 +824,7 @@ class ValueTraits(HasParent):
             a delay = 0 is equivalent to `asyncio.call_soon`.
         """
         if delay is not None:
-            utils.call_later(0, self.add_value_traits, *names)
+            mb_async.call_later(0, self.add_value_traits, *names)
             return
         self.set_trait("value_traits", (*self.value_traits, *names))
 

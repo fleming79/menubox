@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, ClassVar, Self
 import ipywidgets as ipw
 import traitlets
 
+from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox import utils
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
 from menubox.trait_types import ChangeType, StrTuple
@@ -121,7 +121,7 @@ class ModalBox(HasParent, ipw.VBox):
         self._on_expand = on_expand
         self._on_collapse = on_collapse
         if expand:
-            utils.call_later(0.1, self.expand)
+            mb_async.call_later(0.1, self.expand)
 
     async def button_clicked(self, b: ipw.Button):
         match b:
@@ -149,7 +149,7 @@ class ModalBox(HasParent, ipw.VBox):
         else:
             self.children = children
 
-    @utils.debounce(0.1)
+    @mb_async.debounce(0.1)
     def refresh(self):
         """Reload widgets for the current state."""
         if self.expanded:

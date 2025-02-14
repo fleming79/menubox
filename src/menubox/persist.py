@@ -9,8 +9,8 @@ import pandas as pd
 import traitlets
 
 import menubox.defaults as dv
+from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox import utils
 from menubox.home import Home
 from menubox.log import TZ
 from menubox.menuboxvt import MenuBoxVT
@@ -87,7 +87,7 @@ class MenuBoxPersist(MenuBoxVT):
         cfunc="_button_save_persistence_data_async",
         description="💾",
         tooltip="Save persistence data for current version",
-        tasktype=utils.TaskType.update,
+        tasktype=mb_async.TaskType.update,
         **dv.b_kwargs,
     )
     version_widget = tf.BoundedIntText(
@@ -267,7 +267,7 @@ class MenuBoxPersist(MenuBoxVT):
             view = self._CONFIGURE_VIEW
         return await super().load_view_async(view)
 
-    @utils.singular_task(tasktype=utils.TaskType.update)
+    @mb_async.singular_task(tasktype=mb_async.TaskType.update)
     async def load_persistence_data(self, version=None, quiet=False, data: dict | None = None, set_version=False):
         """Loads persistence data from file.
 

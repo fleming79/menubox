@@ -16,7 +16,7 @@ from traitlets import HasTraits
 import menubox
 import menubox as mb
 from menubox import defaults as dv
-from menubox import utils
+from menubox import mb_async, utils
 from menubox.trait_types import ChangeType, MetaHasParent, NameTuple, ProposalType
 
 __all__ = ["HasParent", "Link", "Dlink"]
@@ -456,7 +456,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self.instanceHP_enable_disable(k, bool(v), v)
         if callable(self.init_async):
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
-            utils.run_async(self.init_async, tasktype=utils.TaskType.init, obj=self)  # type: ignore
+            mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
 
     def __repr__(self):
         if self._ptname:
@@ -705,12 +705,14 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
 
     async def wait_update_tasks(self, timeout=None) -> Self:
         if self.tasks:
-            await self.wait_tasks(utils.TaskType.update, utils.TaskType.init, utils.TaskType.click, timeout=timeout)
+            await self.wait_tasks(
+                mb_async.TaskType.update, mb_async.TaskType.init, mb_async.TaskType.click, timeout=timeout
+            )
         return self
 
     async def wait_init_tasks(self, timeout=None) -> Self:
         if self.tasks:
-            await self.wait_tasks(utils.TaskType.init, timeout=timeout)
+            await self.wait_tasks(mb_async.TaskType.init, timeout=timeout)
         return self
 
     async def wait_tasks(self, *tasktypes, timeout=None) -> Self:
@@ -723,16 +725,16 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             raise asyncio.CancelledError(msg)
         if self.tasks:
             tasktypes_ = []
-            for tt in tasktypes or utils.TaskType:
-                if not isinstance(tt, utils.TaskType):
+            for tt in tasktypes or mb_async.TaskType:
+                if not isinstance(tt, mb_async.TaskType):
                     raise TypeError(str(tt))
-                if tt is not utils.TaskType.continuous:
+                if tt is not mb_async.TaskType.continuous:
                     tasktypes_.append(tt)
             current_task = asyncio.current_task()
             if tasks := [
                 t
                 for t in self.tasks
-                if t is not current_task and utils.background_tasks.get(t, utils.TaskType.general) in tasktypes_
+                if t is not current_task and mb_async.background_tasks.get(t, mb_async.TaskType.general) in tasktypes_
             ]:
                 async with asyncio.timeout(timeout):
                     await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))

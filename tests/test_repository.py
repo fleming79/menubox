@@ -25,7 +25,7 @@ async def test_repository(tmp_path: pathlib.Path):
     repo2 = rps.get_obj(name)
     assert repo2 is repo
     assert repo2.home is home
-    await mb.utils.wait_for(rps.show())
+    await mb.mb_async.wait_for(rps.show())
 
     repo3 = Repository(name=name, home=home)
     assert repo3 is repo2

@@ -12,7 +12,7 @@ import ipywidgets as ipw
 import traitlets
 from IPython import display as ipd
 
-from menubox import utils
+from menubox import mb_async
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -153,6 +153,6 @@ class MarkdownViewer(ipylab.SimpleOutput):
             case "_converted_value":
                 self.push(ipd.Markdown(self._converted_value, url=self.url or None))
 
-    @utils.debounce(1)
+    @mb_async.debounce(1)
     def update(self):
         self._converted_value = self.converter(self.value)

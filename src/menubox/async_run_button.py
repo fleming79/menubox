@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import ipywidgets as ipw
 import traitlets
 
-from menubox import hasparent, utils
+from menubox import hasparent, mb_async, utils
 from menubox.instance import InstanceHP
 from menubox.log import log_exceptions
 
@@ -62,7 +62,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         cancel_button_style: str = "warning",
         tooltip: str = "",
         link_button=False,
-        tasktype: utils.TaskType = utils.TaskType.general,
+        tasktype: mb_async.TaskType = mb_async.TaskType.general,
         parent: hasparent.HasParent | None = None,
         **kwargs,
     ):
@@ -172,7 +172,9 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         else:
             aw = functools.partial(self._corofunc_or_button, **kw)
         if not task:
-            task = utils.run_async_singular(aw, obj=self, tasktype=self._tasktype, name=self._taskname, restart=restart)
+            task = mb_async.run_async_singular(
+                aw, obj=self, tasktype=self._tasktype, name=self._taskname, restart=restart
+            )
         if task is not self.task:
             self.set_trait("task", task)
             task.add_done_callback(self._done_callback)
