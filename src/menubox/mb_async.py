@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from menubox.hasparent import HasParent
 
 
-AW = TypeVar("AW")
 T = TypeVar("T")
 R = TypeVar("R")
 P = ParamSpec("P")
@@ -27,8 +26,6 @@ __all__ = [
     "run_async",
     "run_async_singular",
     "singular_task",
-    "cancel_task",
-    "get_task",
     "call_later",
     "wait_for",
     "debounce",
@@ -53,7 +50,7 @@ class TaskType(int, enum.Enum):
 
 
 def run_async(
-    aw: Awaitable[AW] | Callable[[], Awaitable[AW]],
+    aw: Awaitable[T] | Callable[[], Awaitable[T]],
     *,
     name: str | None = None,
     obj: HasParent | None = None,
@@ -104,7 +101,7 @@ def run_async(
     if not restart and not name:
         msg = "A name must be provided if restart=False!"
         raise TypeError(msg)
-    current = get_task(name)
+    current = _get_task(name)
     if current:
         if not restart and not current.cancelling() and not current.done():
             return current
@@ -150,8 +147,8 @@ def run_async(
 
 
 def run_async_singular(
-    aw: Awaitable[AW] | functools.partial[AW], *, obj: HasParent | None = None, name: str | None = None, **kwargs
-) -> asyncio.Task[AW]:
+    aw: Awaitable[T] | functools.partial[T], *, obj: HasParent | None = None, name: str | None = None, **kwargs
+) -> asyncio.Task[T]:
     """Schedule the aw for execution with run_async.
 
     A singular task `name` is either:
@@ -168,7 +165,7 @@ def run_async_singular(
     )  # type: ignore
 
 
-def singular_task(**kw) -> Callable[..., Callable[..., asyncio.Task]]:
+def singular_task(restart=True, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
     """A decorator to wrap a coroutine function to run as a singular task.
 
     obj is as the instance.
@@ -176,37 +173,21 @@ def singular_task(**kw) -> Callable[..., Callable[..., asyncio.Task]]:
     """
 
     @wrapt.decorator
-    def _run_as_singular(wrapped: Awaitable[AW], instance, args, kwargs: dict) -> asyncio.Task[AW]:
+    def _run_as_singular(wrapped: Awaitable[T], instance, args, kwargs: dict):
         if not inspect.iscoroutinefunction(wrapped):
             msg = "The wrapped function must be coroutine function."
             raise TypeError(msg)
         # use partial to avoid creating coroutines that may never be awaited
+        restart_ = restart
+        if "restart" in kwargs:
+            restart_ = kwargs.pop("restart")
         func = functools.partial(wrapped, *args, **kwargs)
-        return run_async_singular(cast(Awaitable[AW], func), obj=instance, **kw)
+        return run_async_singular(cast(Awaitable[T], func), **{"obj": instance, "restart": restart_} | kw)
 
     return _run_as_singular  # type: ignore
 
 
-def cancel_task(task):
-    """Cancel the first found task with name from background tasks."""
-
-    if not task:
-        return
-    if isinstance(task, str):
-        for task_ in background_tasks:
-            if task_.get_name() == task:
-                if not task_.done():
-                    task_.cancel()
-                return
-    elif isinstance(task, asyncio.Task):
-        if hasattr(task, "done") and not task.done():
-            task.cancel()
-    else:
-        msg = f"{type(task)}"
-        raise NotImplementedError(msg)
-
-
-def get_task(task: str | asyncio.Task | None):
+def _get_task(task: str | asyncio.Task | None):
     """Return the task if it exists."""
     if task is None:
         return None
@@ -227,6 +208,7 @@ def call_later(delay, callback, *args, **kwargs):
     asyncio.get_running_loop().call_later(delay, callit)
 
 
+# TODO: get rid of this - Menubox load_view needs re-writing.
 async def wait_for(fut, timeout: float | None = None, info=""):
     """If coro is awaitable, wait for and return the result.
 

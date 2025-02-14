@@ -20,7 +20,7 @@ from menubox import (
 from menubox.__about__ import __version__
 from menubox.hasparent import HasParent
 from menubox.home import Home
-from menubox.mb_async import TaskType
+from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import MenuBox
 from menubox.menuboxvt import MenuBoxVT
 from menubox.modalbox import ModalBox
@@ -33,6 +33,8 @@ DEBUG_ENABLED = False
 
 __all__ = [
     "async_run_button",
+    "debounce",
+    "throttle",
     "defaults",
     "hasparent",
     "instance",
