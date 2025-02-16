@@ -1,4 +1,4 @@
 # SPDX-FileCopyrightText: 2025-present
 #
 # SPDX-License-Identifier: MIT
-__version__ = "2025.02.06b0"
+__version__ = "0.1a0"
