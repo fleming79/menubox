@@ -202,7 +202,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         force: if task is already being cancelled force will call cancel again.
         """
         if self.task and (force or not self.task.cancelling()):
-            self.task.cancel(f'cancelled by function name:"{self.task.get_name()}"')
+            self.task.cancel(f'Cancelled by call to cancel of :"{self}"')
 
     async def cancel_wait(self, force=False):
         if self.task:
