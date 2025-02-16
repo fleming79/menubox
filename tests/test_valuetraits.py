@@ -1,13 +1,12 @@
-import ipywidgets as iw
+import ipywidgets as ipw
 import pytest
 import traitlets
+from ipylab import Fixed
 
 import menubox
 from menubox import HasParent, ValueTraits
 from menubox import trait_factory as tf
 from menubox.trait_types import NameTuple
-
-menubox.log.START_DEBUG()
 
 # ruff: noqa: PLR2004
 
@@ -22,14 +21,17 @@ class VT1(ValueTraits):
     nested = tf.InstanceHP(Nested).configure(allow_none=True)
     a = traitlets.Unicode()
     b = traitlets.Int()
+    c = Fixed(ipw.Dropdown, created=lambda info:info["obj"].set_trait('options', [1,2,3]))
+    change_owners = traitlets.Tuple()
     on_change_counts = traitlets.Int()
 
     value_traits_persist = NameTuple("a", "b")
     parent_dlink = NameTuple("linked_trait")
 
-    def on_change(self, change):
+    def on_change(self, change:menubox.ChangeType):
         self.log.info(f"{self} value updated {change['new']}")
         self.on_change_counts += 1
+        self.change_owners = (*self.change_owners,change['owner'])
 
     @traitlets.observe("value")
     def _observe_value(self, change):
@@ -43,6 +45,7 @@ class VT2(VT1):
     update_counts = traitlets.Int()
     on_change_counts = traitlets.Int()
 
+
     @traitlets.default("vt1")
     def _defaualt_vt1(self):
         return VT1(parent=self)
@@ -52,8 +55,9 @@ class VT2(VT1):
         self.log.info(f"{self} value updated {change['new']}")
         self.update_counts += 1
 
-    def on_change(self, _):
+    def on_change(self, change:menubox.ChangeType):
         self.on_change_counts += 1
+
 
 
 async def test_value_traits():
@@ -139,7 +143,7 @@ async def test_value_traits():
     # Check swapping out a HasTraits instance updates the register
     numberwidget = vt1.nested.number
     assert (numberwidget, "value") in vt1._vt_reg_value_traits_persist
-    vt1.nested.set_trait("number", iw.FloatText(description="new number"))
+    vt1.nested.set_trait("number", ipw.FloatText(description="new number"))
     assert len(vt1._vt_reg_value_traits_persist) == 5, "Monitors for changes throughout"
 
     assert (numberwidget, "value") not in vt1._vt_reg_value_traits_persist
@@ -184,3 +188,11 @@ async def test_value_traits():
     vt2vt1 = vt2.vt1 = VT1(parent=vt2)
     vt2.discontinue()
     assert vt2vt1.discontinued, "Should discontinue when parent discontinues"
+
+async def test_vt1_fixed_widget():
+    v  = VT1(home='default', value_traits_persist=['c'])
+    assert v.value() == {'c':None}
+    v.load_value ( {'c': 1})
+    assert v.value() == {'c':1  }
+    assert v.c in v.change_owners
+
