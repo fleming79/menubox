@@ -99,7 +99,6 @@ class InstanceHome(traitlets.TraitType[Home, Home]):
 
 class _HomeRegister(traitlets.HasTraits):
     homes = trait_types.TypedTuple(InstanceHome(), read_only=True)
-    _dlink_homes_to_options = traitlets.Set()
 
     @property
     def all_roots(self):

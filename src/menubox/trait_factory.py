@@ -90,7 +90,6 @@ __all__ = [
     "Play",
     "RadioButtons",
     "Repositories",
-    "SWHome",
     "Select",
     "SelectMultiple",
     "SelectRepository",
@@ -287,18 +286,6 @@ SelectRepository = IHP(
         type["menubox.repository.SelectRepository"],
         "menubox.repository.SelectRepository",
     )
-)
-
-SWHome = IHP(  # A dropdown widget with options of the available homes
-    ipw.Dropdown,
-    defaults={
-        "description": "Home",
-    },
-    dlink={
-        "source": ("home._HREG", "homes"),
-        "target": "options",
-        "transform": lambda homes: map(str, homes),
-    },
 )
 
 # other
