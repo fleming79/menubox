@@ -90,13 +90,12 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         self._tooltip = tooltip
         self._tasktype = tasktype
         if callable(cfunc):
-            detail = f"[{utils.funcname(cfunc)}]"
+            self._taskname = f"async_run_button_{id(self)}_[{utils.funcname(cfunc)}]"
         elif isinstance(cfunc, AsyncRunButton):
-            detail = "[" + cfunc._taskname.split("_[", maxsplit=1)[1]
+            self._taskname = cfunc._taskname
         else:
             msg = "Not sure what to do with cfunc"
             raise TypeError(msg)
-        self._taskname = f"async_run_button_{id(self)}_{detail}"
         if link_button:
             if not isinstance(self._corofunc_or_button, AsyncRunButton):
                 msg = "When `link_button` cfunc must resolve to be a AsyncRunButton."
@@ -178,9 +177,9 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         if task is not self.task:
             self.set_trait("task", task)
             task.add_done_callback(self._done_callback)
-        if self.parent and task not in self.parent.tasks:
-            self.parent.tasks.add(task)
-            task.add_done_callback(self.parent.tasks.discard)
+        if self.parent and task not in self.parent.mb_tasks:
+            self.parent.mb_tasks.add(task)
+            task.add_done_callback(self.parent.mb_tasks.discard)
         return (aw() if callable(aw) else aw) if coro_mode else task
 
     def start(self, restart=True, **kwargs) -> asyncio.Task:
@@ -203,7 +202,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         force: if task is already being cancelled force will call cancel again.
         """
         if self.task and (force or not self.task.cancelling()):
-            self.task.cancel()
+            self.task.cancel(f'cancelled by function name:"{self.task.get_name()}"')
 
     async def cancel_wait(self, force=False):
         if self.task:

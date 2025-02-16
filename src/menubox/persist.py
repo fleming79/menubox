@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import pathlib
 from typing import TYPE_CHECKING
 
@@ -106,6 +105,7 @@ class MenuBoxPersist(MenuBoxVT):
     box_version = tf.Box()
     header_right_children = StrTuple("menu_load_index", *MenuBoxVT.header_right_children)
 
+    task_loading_persistence_data = tf.Task()
     views = traitlets.Dict({"Main": "view_main_get"})
     value_traits = StrTuple(*MenuBoxVT.value_traits, "version", "sw_version_load")
     value_traits_persist = StrTuple("saved_timestamp", "name", "description")
@@ -123,7 +123,7 @@ class MenuBoxPersist(MenuBoxVT):
         if self.name and self._AUTOLOAD:
             version = self.get_latest_version()
             if self.versions:
-                await self.load_persistence_data(version, restart=False, set_version=True)
+                await self.load_persistence_data(version, set_version=True)
             elif self.menu_load_index:
                 self.menu_load_index.expand()
         if not self.SINGLE_VERSION:
@@ -166,11 +166,6 @@ class MenuBoxPersist(MenuBoxVT):
             box.children = [ipw.HTML('<font color="red">Not saved yet!</font>'), self.button_save_persistence_data]
         return box
 
-    async def _load_values(self, *, data: dict, log_message=""):
-        # Provided for overloading (see: Record).
-        self.set_trait("value", data)
-        if log_message:
-            self.log.debug(log_message)
 
     async def _button_save_persistence_data_async(self, version=None):
         """Use button_save.start to get an awaitable task."""
@@ -178,7 +173,7 @@ class MenuBoxPersist(MenuBoxVT):
         version = self._to_version(version)
         path = repo.to_path(self._get_persist_name(self.name, version))
         self.saved_timestamp = str(pd.Timestamp.now(TZ))
-        await asyncio.to_thread(self.to_yaml, self.value(), fs=repo.fs, path=path)  # type: ignore
+        await mb_async.to_thread(self.to_yaml, self.value(), fs=repo.fs, path=path)
         if self.dataframe_persist:
             await self.save_dataframes_async(self.name, version)
         self._update_versions()
@@ -195,7 +190,7 @@ class MenuBoxPersist(MenuBoxVT):
             if df.empty:
                 continue
             path = repo.to_path(self.get_df_filename(name, version, dotted_name))
-            await asyncio.to_thread(self.save_dataframe, df, repo.fs, path)
+            await mb_async.to_thread(self.save_dataframe, df, repo.fs, path)
             self.log.info(f"Saved {path}")
 
     async def get_dataframes_async(self, name: str, version: int) -> dict[str, pd.DataFrame]:
@@ -204,7 +199,7 @@ class MenuBoxPersist(MenuBoxVT):
         values = {}
         for dotted_name in self.dataframe_persist:
             path = repo.to_path(self.get_df_filename(name, version, dotted_name))
-            coro = asyncio.to_thread(self.load_dataframe, repo.fs, path)
+            coro = mb_async.to_thread(self.load_dataframe, repo.fs, path)
             try:
                 values[dotted_name] = await coro
                 self.log.info(f"loaded {path}")
@@ -267,7 +262,7 @@ class MenuBoxPersist(MenuBoxVT):
             view = self._CONFIGURE_VIEW
         return await super().load_view_async(view)
 
-    @mb_async.singular_task(tasktype=mb_async.TaskType.update)
+    @mb_async.singular_task(tasktype=mb_async.TaskType.update, handle="task_loading_persistence_data")
     async def load_persistence_data(self, version=None, quiet=False, data: dict | None = None, set_version=False):
         """Loads persistence data from file.
 
@@ -276,7 +271,7 @@ class MenuBoxPersist(MenuBoxVT):
         if data is None:
             try:
                 version = self._to_version(version)
-                data = await asyncio.to_thread(
+                data = await mb_async.to_thread(
                     self.get_persistence_data, self.home, self.name, self._to_version(version)
                 )
                 if self.dataframe_persist:
@@ -288,7 +283,7 @@ class MenuBoxPersist(MenuBoxVT):
             except Exception:
                 raise
         if data:
-            await self._load_values(data=data, log_message=f"Loaded persistence data {version=}")
+            self.set_trait("value", data)
         if version is not None and set_version:
             with self.ignore_change():
                 self.set_trait("version", version)

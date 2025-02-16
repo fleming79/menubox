@@ -4,6 +4,7 @@ import asyncio
 import enum
 import functools
 import inspect
+import weakref
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, ParamSpec, TypeVar, cast
 
@@ -22,6 +23,7 @@ T = TypeVar("T")
 R = TypeVar("R")
 P = ParamSpec("P")
 
+
 __all__ = [
     "run_async",
     "run_async_singular",
@@ -34,11 +36,13 @@ __all__ = [
 ]
 
 
-background_tasks: dict[asyncio.Task, TaskType] = {}
+background_tasks: weakref.WeakKeyDictionary[asyncio.Task, TaskType] = weakref.WeakKeyDictionary()
+_background_tasks = set[asyncio.Task]()  # A strong ref for task that down belong to an object.
 
 
 def _background_task_complete(task: asyncio.Task):
     background_tasks.pop(task, None)
+    _background_tasks.discard(task)
 
 
 class TaskType(int, enum.Enum):
@@ -61,7 +65,9 @@ def run_async(
 ):
     """Run aw as a task, possibly cancelling an existing task if the name overlaps.
 
-    Also accepts a partial function provided that it produces an awaitable.
+    Also accepts a callables that return produces an awaitable.
+
+    A strong ref is kept for the task in either obj.mb_tasks
 
     **Important: A result is returned ONLY when `restart=True`**
 
@@ -99,17 +105,17 @@ def run_async(
             msg = f"{handle=} is not a trait of {limited_string(obj)}!"
             raise AttributeError(msg)
     if not restart and not name:
-        msg = "A name must be provided if restart=False!"
+        msg = "A name must be provided if `restart=False`!"
         raise TypeError(msg)
-    current = _get_task(name)
+    current = _get_task(name) if name else None
     if current:
         if not restart and not current.cancelling() and not current.done():
             return current
-        current.cancel()
+        current.cancel(f"Restarting task {name=}")
 
     async def _run_async_wrapper(aw_=aw):
         if current and not current.done():
-            await asyncio.wait_for(asyncio.shield(current), None)
+            await asyncio.wait([current])
         try:
             if callable(aw_):
                 aw_ = aw_()
@@ -123,13 +129,12 @@ def run_async(
         else:
             return result if restart else None
 
-    loop = asyncio.get_running_loop()
-    task = loop.create_task(_run_async_wrapper(), name=name)
+    task = asyncio.create_task(_run_async_wrapper(), name=name)
     background_tasks[task] = tasktype
     task.add_done_callback(_background_task_complete)
     if isinstance(obj, mb.HasParent):
-        obj.tasks.add(task)
-        task.add_done_callback(obj.tasks.discard)
+        obj.mb_tasks.add(task)
+        task.add_done_callback(obj.mb_tasks.discard)
         if handle:
             if isinstance(set_ := getattr(obj, handle, None), set):
                 set_.add(task)
@@ -143,6 +148,8 @@ def run_async(
                 obj.set_trait(handle, task)
 
                 task.add_done_callback(on_done)
+    else:
+        _background_tasks.add(task)
     return task
 
 
@@ -187,18 +194,11 @@ def singular_task(restart=True, **kw) -> Callable[..., Callable[..., asyncio.Tas
     return _run_as_singular  # type: ignore
 
 
-def _get_task(task: str | asyncio.Task | None):
+def _get_task(name: str):
     """Return the task if it exists."""
-    if task is None:
-        return None
-    if isinstance(task, asyncio.Task):
-        return task
-    if not isinstance(task, str):
-        msg = f"{type(task)}"
-        raise TypeError(msg)
-    for task_ in background_tasks:
-        if task_.get_name() == task:
-            return task_
+    for task in background_tasks:
+        if task.get_name() == name:
+            return task
     return None
 
 
@@ -222,6 +222,31 @@ async def wait_for(fut, timeout: float | None = None, info=""):
             msg = f"Timeout after {timeout=}s waiting for {funcname(fut)}(){info}"
             raise TimeoutError(msg) from None
     return fut
+
+
+async def to_thread(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs):
+    """Run a function in an executor.
+
+    This uses asyncio.to_thread, but catches excpetions re-raising them
+    inside the calling
+    """
+
+    def func_call():
+        try:
+            result = func(*args, **kwargs)
+        except Exception as e:
+            return {"exception": e}
+        else:
+            return {"result": result}
+
+    result = await asyncio.to_thread(func_call)
+    try:
+        return cast(T, result["result"])
+    except KeyError:
+        pass
+    e: Exception = result["exception"]  # type: ignore
+    e.add_note(f'This exception occurred while executing "{funcname(func)}" inside "mb_async.to_thread".')
+    raise e
 
 
 class PeriodicMode(str, enum.Enum):

@@ -281,7 +281,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent()
     _ptname = traitlets.Unicode("", read_only=True)
-    tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
+    mb_tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
     init_async: ClassVar[None | Coroutine] = None
 
     def setter(self, obj, name: str, value):
@@ -518,8 +518,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         # TODO: Investigate if discontinue can be changed to close.
         if self.discontinued or (self.KEEP_ALIVE and not force):
             return
-        for task in self.tasks:
-            task.cancel()
         self.discontinued = True
         if self._singleton_instances_key:
             self._singleton_instances.pop(self._singleton_instances_key, None)
@@ -529,38 +527,17 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
                 utils.trait_tuple_discard(self, owner=self.parent, name=self._ptname)
             elif obj is self:
                 self.parent._reset_trait(self._ptname)
-        self.set_trait("parent", None)
+        # self.set_trait("parent", None)
         if self.trait_has_value("_hasparent_all_links"):
             for link in self._hasparent_all_links.values():
                 link.unlink()
             self._hasparent_all_links.clear()
-        if self.tasks:
-            with contextlib.suppress(RuntimeError):
-                self._discontinue_task = asyncio.create_task(self._discontinue_async())
-        else:
-            self._discontinue_clean_up()
-
-    async def _discontinue_async(self):
-        await asyncio.sleep(0)
-        if self.tasks:
-            counter = 10
-            while counter and self.tasks:
-                for task in self.tasks:
-                    task.cancel()
-                    counter -= 1
-                await asyncio.sleep(1)
-            if self.tasks:
-                self.log.error(f"Failed to shutdown all tasks {list(self.tasks)}.")
-            await asyncio.sleep(1)
-        self._discontinue_clean_up()
-
-    def _discontinue_clean_up(self):
         self.unobserve_all()
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
             d = getattr(self, n, None)
             if isinstance(d, dict):
                 d.clear()
-        self.discontinued = True
+        self.discontinued = True  # Need to restore this trait to false.
 
     @traitlets.default("log")
     def _default_log(self):
@@ -704,26 +681,23 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             await button_clicked(b)
 
     async def wait_update_tasks(self, timeout=None) -> Self:
-        if self.tasks:
+        if self.mb_tasks:
             await self.wait_tasks(
                 mb_async.TaskType.update, mb_async.TaskType.init, mb_async.TaskType.click, timeout=timeout
             )
         return self
 
     async def wait_init_tasks(self, timeout=None) -> Self:
-        if self.tasks:
+        if self.mb_tasks:
             await self.wait_tasks(mb_async.TaskType.init, timeout=timeout)
         return self
 
     async def wait_tasks(self, *tasktypes, timeout=None) -> Self:
-        """Wait for those tasks in self.tasks in self tasktypes, not including the
+        """Wait for those tasks in self.mb_tasks in self tasktypes, not including the
         current task. Default is all tasks.
         TaskType.continuous are always omitted.
         """
-        if self.discontinued:
-            msg = f"{self} is discontinued."
-            raise asyncio.CancelledError(msg)
-        if self.tasks:
+        if self.mb_tasks:
             tasktypes_ = []
             for tt in tasktypes or mb_async.TaskType:
                 if not isinstance(tt, mb_async.TaskType):
@@ -733,7 +707,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             current_task = asyncio.current_task()
             if tasks := [
                 t
-                for t in self.tasks
+                for t in self.mb_tasks
                 if t is not current_task and mb_async.background_tasks.get(t, mb_async.TaskType.general) in tasktypes_
             ]:
                 async with asyncio.timeout(timeout):

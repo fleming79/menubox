@@ -27,11 +27,11 @@ async def test_async_run_button_description_and_task():
     assert obj.ab_main.description == "Button"
     task = obj.ab_main.start()
     assert obj.ab_main.task is task
-    assert task in obj.tasks
+    assert task in obj.mb_tasks
     assert obj.ab_main.description == "Cancel"
     await task
     assert obj.ab_main.description == "Button"
-    assert task not in obj.tasks
+    assert task not in obj.mb_tasks
     assert not obj.ab_main.task
 
 
@@ -59,7 +59,7 @@ async def test_async_run_button_nested():
     assert b_task.cancelling(), "Starting b2 should cancel b.task before stating a new task"
     assert obj.ab_nested.task is obj.ab_main.task
     assert not obj.ab_main.task.done()
-    assert obj.ab_main.task in obj.tasks
+    assert obj.ab_main.task in obj.mb_tasks
     assert obj.ab_main.description == "Cancel"
     assert obj.ab_nested.description == "Cancel"
     await obj.ab_nested.task
@@ -68,7 +68,7 @@ async def test_async_run_button_nested():
     assert not obj.data.get("primary"), "The task should that sets this should be cancelled"
     assert obj.data.get("nested"), "The kwarg should be passed in the called to button_nest.start"
     assert not obj.ab_nested.task
-    assert not obj.tasks
+    assert not obj.mb_tasks
 
 
 async def test_async_run_button_link_button():

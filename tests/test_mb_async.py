@@ -29,8 +29,8 @@ class TestRunAsync:
         await task
 
     async def test_run_async_restart(self):
-        task1 = mba.run_async(async_function(3, 0.1), name="test_task_restart")
-        task2 = mba.run_async(async_function(4), name="test_task_restart")
+        task1 = mba.run_async(lambda: async_function(3, 0.1), name="test_task_restart")
+        task2 = mba.run_async(lambda: async_function(4), name="test_task_restart")
         assert task1 is not task2
         assert await task2 == 4
         assert task1.done()
@@ -38,8 +38,8 @@ class TestRunAsync:
             task1.exception()
 
     async def test_run_async_no_restart(self):
-        task1 = mba.run_async(async_function(5, 0.1), name="test_task_no_restart", restart=False)
-        task2 = mba.run_async(async_function(6), name="test_task_no_restart", restart=False)
+        task1 = mba.run_async(lambda: async_function(5, 0.1), name="test_task_no_restart", restart=False)
+        task2 = mba.run_async(lambda: async_function(6), name="test_task_no_restart", restart=False)
         assert task1 is task2
         assert (await task1) is None
 
@@ -80,8 +80,8 @@ class TestRunAsync:
             await mba.run_async(raising_function())
 
     async def test_run_async_no_name_no_restart(self):
-        with pytest.raises(TypeError, match="A name must be provided if restart=False!"):
-            mba.run_async(async_function(12), restart=False)
+        with pytest.raises(TypeError, match="A name must be provided if `restart=False`!"):
+            mba.run_async(lambda: async_function(12), restart=False)
 
 
 class MBRunAsyncSingular(HasParent):
@@ -116,17 +116,39 @@ class TestSingularTaskDecorator:
         assert (await task3) is None
         task4 = obj.async_singular_function(a=3)
         assert (await task4) == ((), {"a": 3}), "Pass keyword argument"
+        obj.discontinue()
+        await obj.wait_tasks()
 
     async def test_singular_task_decorator_restart_false_default(self):
-        instance = MBRunAsyncSingular()
-        task1 = instance.async_singular_function_restart_false(1)
-        task2 = instance.async_singular_function_restart_false(2)
+        obj = MBRunAsyncSingular()
+        task1 = obj.async_singular_function_restart_false(1)
+        task2 = obj.async_singular_function_restart_false(2)
         assert task1 is task2
         assert (await task1) is None
+        obj.discontinue()
+        await obj.wait_tasks()
 
     async def test_singular_task_decorator_kwargs(self):
-        instance = MBRunAsyncSingular()
-        task1 = instance.async_singular_function(1)
-        assert instance.my_task_trait is task1
+        obj = MBRunAsyncSingular()
+        task1 = obj.async_singular_function(1)
+        assert obj.my_task_trait is task1
         await task1
-        assert instance.my_task_trait is None
+        assert obj.my_task_trait is None
+        obj.discontinue()
+        await obj.wait_tasks()
+
+class TestToThread:
+    async def test_to_thread_success(self):
+        def sync_function(x, y=2):
+            return x + y
+
+        result = await mba.to_thread(sync_function, 1, y=3)
+        assert result == 4
+
+    async def test_to_thread_exception(self):
+        def sync_raising_function():
+            msg = "Sync Test Exception"
+            raise ValueError(msg)
+
+        with pytest.raises(ValueError, match="Sync Test Exception"):
+            await mba.to_thread(sync_raising_function)

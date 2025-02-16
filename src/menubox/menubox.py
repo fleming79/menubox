@@ -223,11 +223,7 @@ class MenuBox(HasParent, Panel):
             return
         self.set_trait("showbox", None)
         super().discontinue(force)
-
-    def _discontinue_clean_up(self):
-        # Close needs to be called to permit gc
         self.close()
-        super()._discontinue_clean_up()
 
     def close(self, force=False):
         self.discontinue()
@@ -547,7 +543,7 @@ class MenuBox(HasParent, Panel):
         return self.out_help
 
     def update_title(self):
-        if not self.title_description:
+        if not self.view or not self.title_description:
             return
         self.enable_widget("html_title")
         description = self.fstr(self.title_description)

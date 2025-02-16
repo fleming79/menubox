@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, ClassVar
 
 import traitlets
 
+from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox import utils
 from menubox.filesystem import Filesystem
 from menubox.menuboxvt import MenuBoxVT
 from menubox.persist import MenuBoxPersist
@@ -66,7 +65,7 @@ class Repository(Filesystem, MenuBoxPersist):
 
     async def write_async(self, path: str, data: bytes):
         # write data to path in fs
-        await asyncio.to_thread(self.write, path, data)
+        await mb_async.to_thread(self.write, path, data)
 
     def write(self, path: str, data: bytes):
         with self.fs.open(path, "wb") as f:

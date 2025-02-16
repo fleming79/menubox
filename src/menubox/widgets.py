@@ -54,7 +54,7 @@ class ValidateWidget(ipw.ValueWidget):
 
     _skip_validate = False
     value = ValidatedTrait().tag(sync=True)
-    _validate: weakref.ref | None = None
+    _bi_validate: weakref.ref | None = None
 
     @traitlets.validate("value")
     def _validate_value(self, proposal: ProposalType):
@@ -65,9 +65,9 @@ class ValidateWidget(ipw.ValueWidget):
     def __init__(self, *, validate: None | Callable[[ProposalType], Any] = None, **kwargs):
         if validate:
             if inspect.ismethod(validate):
-                self._validate = weakref.WeakMethod(validate)
+                self._bi_validate = weakref.WeakMethod(validate)
             else:
-                self._validate = weakref.ref(validate)
+                self._bi_validate = weakref.ref(validate)
 
         super().__init__(**kwargs)
 
@@ -93,7 +93,7 @@ class ValidateWidget(ipw.ValueWidget):
             super().set_state(sync_data)
 
     def validate(self, x):
-        return v(x) if self._validate and (v := self._validate()) else x
+        return v(x) if self._bi_validate and (v := self._bi_validate()) else x
 
 
 class TextareaValidate(ipw.Textarea, ValidateWidget):

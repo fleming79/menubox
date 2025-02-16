@@ -143,7 +143,7 @@ async def test_instance2():
 
 
 @pytest.mark.parametrize("trait", ["box", "menubox"])
-async def test_instance_gc(trait):
+async def test_instance_gc(trait, weakref_enabled):  # noqa: ARG001
     hpi3 = HPI3()
     deleted = False
 
@@ -154,7 +154,8 @@ async def test_instance_gc(trait):
     ref = weakref.ref(getattr(hpi3, trait))
     weakref.finalize(ref(), on_delete)
     hpi3.set_trait(trait, None)
-    # warning: adding break points can cause this to fail.
-    await asyncio.sleep(1)
-    gc.collect()
+    # ------- WARNING ------ : adding debug break points may cause this to fail.
+    for _ in range(2):
+        gc.collect()
+        await asyncio.sleep(0)
     assert deleted, f"'{trait}' should be deleted after it is replaced. Referrers={gc.get_referrers(ref())}"
