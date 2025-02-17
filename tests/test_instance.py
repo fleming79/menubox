@@ -131,16 +131,16 @@ async def test_instance2(home: mb.Home):
     hp1.instanceHP_enable_disable("a", True)
     assert hp1_a is hp1.a
     hp2b = HPI2(home=home)
-    # Test can load a more complex object & and discontinue
+    # Test can load a more complex object & and close
     assert hp2b.select_repository.repository.root
     assert hp2b.select_repository.parent is hp2b
     assert hp2b.select_repository._ptname == "select_repository"
     sr = hp2b.select_repository
-    sr.discontinue()
-    assert sr.discontinued
+    sr.close()
+    assert sr.closed
     assert not hp2b.trait_has_value("select_repository")
-    assert hp2b.select_repository, "Discontinue should reset so default will load."
-    assert not hp2b.select_repository.discontinued
+    assert hp2b.select_repository, "close should reset so default will load."
+    assert not hp2b.select_repository.closed
 
 
 @pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])

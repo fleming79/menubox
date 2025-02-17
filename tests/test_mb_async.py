@@ -116,7 +116,7 @@ class TestSingularTaskDecorator:
         assert (await task3) is None
         task4 = obj.async_singular_function(a=3)
         assert (await task4) == ((), {"a": 3}), "Pass keyword argument"
-        obj.discontinue()
+        obj.close()
         await obj.wait_tasks()
 
     async def test_singular_task_decorator_restart_false_default(self):
@@ -125,7 +125,7 @@ class TestSingularTaskDecorator:
         task2 = obj.async_singular_function_restart_false(2)
         assert task1 is task2
         assert (await task1) is None
-        obj.discontinue()
+        obj.close()
         await obj.wait_tasks()
 
     async def test_singular_task_decorator_kwargs(self):
@@ -134,7 +134,7 @@ class TestSingularTaskDecorator:
         assert obj.my_task_trait is task1
         await task1
         assert obj.my_task_trait is None
-        obj.discontinue()
+        obj.close()
         await obj.wait_tasks()
 
 class TestToThread:

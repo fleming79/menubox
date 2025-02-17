@@ -251,7 +251,7 @@ class Filesystem(MenuBoxVT):
                 raise asyncio.CancelledError
             return rp.relative_path.value
         finally:
-            rp.discontinue()
+            rp.close()
 
 
 class RelativePath(Filesystem):

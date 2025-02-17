@@ -41,7 +41,7 @@ class ObjShuffle(MenuBoxVT):
         factory="factory_pool",
         update_item_names=("name", "versions"),
         set_parent=True,
-        discontinue_on_remove=False,
+        close_on_remove=False,
     )
 
     title_description = traitlets.Unicode("<b>{self.obj_cls.__name__.replace('_','').capitalize()} set</b>")

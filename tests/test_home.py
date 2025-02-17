@@ -20,10 +20,10 @@ async def test_home():
     repo1 = await home2.get_repository("repo")  # type:Repository
     repo1a = await home2.get_repository("repo")
     assert repo1a is repo1, "Should return the same repository"
-    repo1.discontinue(force=True)
-    assert repo1.discontinued
+    repo1.close(force=True)
+    assert repo1.closed
     repo1b = await home2.get_repository("repo")
-    assert repo1b is not repo1, "Should have made a new version as the last was discontinued"
+    assert repo1b is not repo1, "Should have made a new version as the last was closed"
 
     assert isinstance(repo1, Repository)
     repo2 = await home1.get_repository("repo")

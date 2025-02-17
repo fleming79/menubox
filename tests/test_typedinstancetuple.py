@@ -191,4 +191,4 @@ async def test_value_traits(home: mb.Home):
     hhp2.somelist2 = ()
     assert len(hhp2._vt_tuple_reg["somelist2"].reg) == 0
 
-    assert vt11.discontinued
+    assert vt11.closed

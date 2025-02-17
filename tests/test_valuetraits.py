@@ -182,11 +182,11 @@ async def test_value_traits():
     vt2vt1.b = 2
     assert vt2.on_change_counts == 2, "Should not have updated"
 
-    vt1.discontinue()
+    vt1.close()
 
     vt2vt1 = vt2.vt1 = VT1(parent=vt2)
-    vt2.discontinue()
-    assert vt2vt1.discontinued, "Should discontinue when parent discontinues"
+    vt2.close()
+    assert vt2vt1.closed, "Should close when parent closes"
 
 async def test_vt1_fixed_widget():
     v  = VT1(home='default', value_traits_persist=['c'])

@@ -43,7 +43,7 @@ class IHPSettings(TypedDict):
     set_attrs: NotRequired[dict[str, Any]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
     on_click: NotRequired[str | tuple[str, ...]]
-    on_replace_discontinue: NotRequired[bool]
+    on_replace_close: NotRequired[bool]
 
 
 class IHPDlinkType(TypedDict):
@@ -64,7 +64,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         "read_only": True,
         "set_parent": True,
         "on_click": ("button_clicked",),
-        "on_replace_discontinue": True,
+        "on_replace_close": True,
     }
 
     def class_init(self, cls, name):
@@ -183,8 +183,8 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
     def get(self, obj: HasParent, cls: Any = None) -> T | None:  # type: ignore
         try:
             value = obj._trait_values[self.name]  # type: ignore
-            if getattr(value, "discontinued", False) and not obj.discontinued:
-                # This object has been discontinued, so a new default should be obtained
+            if getattr(value, "closed", False) and not obj.closed:
+                # This object has been closed, so a new default should be obtained
                 obj._trait_values.pop(self.name, None)
                 raise KeyError  # noqa: TRY301
         except KeyError:
@@ -330,7 +330,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             if getattr(old, "parent", None) is obj:
                 old.parent = None
                 old.set_trait("_ptname", "")
-            if self.settings.get("on_replace_discontinue"):
+            if self.settings.get("on_replace_close"):
                 mb.utils.close_obj(old)
 
     def _register_on_click(self, obj: HasParent, name: str, b: ipw.Button):
@@ -380,13 +380,13 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         * allow_none: True
         * set_parent: True
         * read_only: True
-        * on_replace_discontinue: True
+        * on_replace_close: True
         * on_click: "button_clicked" (Only relevant to buttons)
 
         Parameters
         ----------
-        on_replace_discontinue: Bool
-            Discontinue/close the previous instance if it is replaced.
+        on_replace_close: Bool
+            close/close the previous instance if it is replaced.
             Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
         allow_none :  bool
             Allow the value to be None. Note: If load_default is passed,

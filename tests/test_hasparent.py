@@ -171,7 +171,7 @@ async def test_hasparent3():
     hps.link((parent, "a_link"), (hps, "a_dlink"))
     hps.dlink((parent, "a_dlink"), (parent, "a_dlink"))
 
-    hps.discontinue()
+    hps.close()
 
     assert hp.a_func() is True
     assert await hp.a_func_async() is True
@@ -191,7 +191,7 @@ async def test_hasparent3():
     with pytest.raises(Exception, match=match):
         await hp.a_func_async(True)
 
-    hp.discontinue()
+    hp.close()
 
-    assert hps2.discontinued
-    assert hps3.discontinued
+    assert hps2.closed
+    assert hps3.closed

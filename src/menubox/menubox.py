@@ -54,7 +54,7 @@ class MenuBox(HasParent, Panel):
     TAB_BUTTON_KW: ClassVar[dict[str, Any]] = dict(defaults.bt_kwargs)
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__name__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
-    html_discontinued = tf.HTML("Discontinued (closed)")
+    html_closed = tf.HTML("closed (closed)")
     html_loading = tf.HTML("Loading ...")
     _MenuBox_init_complete = False
 
@@ -157,7 +157,7 @@ class MenuBox(HasParent, Panel):
     )
 
     def __repr__(self):
-        cs = "discontinued: " if self.discontinued else ""
+        cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name:'{self.name if self.trait_has_value('name') else ''}'>"
 
     def get_log_name(self):
@@ -218,17 +218,11 @@ class MenuBox(HasParent, Panel):
         if view is not None:
             self.load_view(view)
 
-    def discontinue(self, force=False):
-        if self.discontinued or (self.KEEP_ALIVE and not force):
+    def close(self, force=False):
+        if self.closed or (self.KEEP_ALIVE and not force):
             return
         self.set_trait("showbox", None)
-        super().discontinue(force)
-        self.close()
-
-    def close(self, force=False):
-        self.discontinue()
-        if self.discontinued:
-            super().close(force)
+        super().close(force)
 
     def enable_widget(self, name: str, overrides: dict | None = None) -> None:
         "Load the widget."
@@ -357,7 +351,7 @@ class MenuBox(HasParent, Panel):
 
     async def load_view_async(self, view: str | None):
         # provisioned to permit intersection by subclasses potentially changing the view
-        if not view or self.discontinued:
+        if not view or self.closed:
             self.set_trait("_center", None)
             return None
         if not isinstance(view, str):
@@ -393,13 +387,13 @@ class MenuBox(HasParent, Panel):
 
     def refresh_view(self):
         """Reload the current view."""
-        if not self._MenuBox_init_complete or self.discontinued:
+        if not self._MenuBox_init_complete or self.closed:
             return
         self.load_view(self._view_loading or self.view, reload=True)
 
     @mb_async.debounce(0.02)
     async def mb_refresh(self) -> None:
-        if self.discontinued or not self._MenuBox_init_complete:
+        if self.closed or not self._MenuBox_init_complete:
             return
         try:
             if self.task_load_view:
@@ -463,7 +457,7 @@ class MenuBox(HasParent, Panel):
 
     async def _configure(self) -> None:
         """Create widgets and link."""
-        if self._mb_configured or self.discontinued:
+        if self._mb_configured or self.closed:
             return
         if not self._MenuBox_init_complete or not self._HasParent_init_complete:
             raise RuntimeError
@@ -485,7 +479,7 @@ class MenuBox(HasParent, Panel):
         self._update_shuffle_buttons()
 
     def _observe_mb_refresh(self, change: ChangeType):
-        if self.discontinued:
+        if self.closed:
             return
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
@@ -641,7 +635,7 @@ class MenuBox(HasParent, Panel):
             case self.button_maximize:
                 self.maximize()
             case self.button_close:
-                self.discontinue()
+                self.close(force=True)
             case self.button_exit:
                 self.set_trait("showbox", None)
             case self.button_help:
@@ -744,7 +738,7 @@ class MenuBox(HasParent, Panel):
         Note: shuffle box needs to be added somewhere to be visible
         (in a view or sidebar).
         """
-        if self.discontinued:
+        if self.closed:
             return None
         if isinstance(obj_or_name, ipw.Widget):
             obj = obj_or_name

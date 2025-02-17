@@ -40,6 +40,6 @@ class ChildrenSetter(ValueTraits):
             try:
                 box = getattr(parent, self.name)
                 if box:
-                    box.children = () if parent.discontinued else parent.get_widgets(self.items, show=True)
+                    box.children = () if parent.closed else parent.get_widgets(self.items, show=True)
             finally:
                 self._updating = False

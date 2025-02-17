@@ -80,7 +80,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
     _update_item_names: tuple[str, ...] = ()
     _spawn_new_instances: bool = True
     _set_parent = True
-    _discontinue_on_remove = True
+    _close_on_remove = True
     _factory = ""
     _on_add = ""
     _on_remove = ""
@@ -173,7 +173,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
         )  # type: ignore
 
     def validate(self, obj: ValueTraits, value: ProposalType):
-        if obj.discontinued:
+        if obj.closed:
             return ()
         try:
             if self.validating:
@@ -288,7 +288,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
         update_item_names: tuple[str, ...] | str = (),
         spawn_new_instances: bool = True,
         set_parent=True,
-        discontinue_on_remove=True,
+        close_on_remove=True,
         factory="",
         on_add="",
         on_remove="",
@@ -311,8 +311,8 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
             Set the parent of the trait items to the value_traits instance to which this
             tuple belongs.
             *note:* parent is passed as a kwarg during instantiation of new objects.
-        discontinue_on_remove: bool
-            Discontinue the instance once it is removed
+        close_on_remove: bool
+            close the instance once it is removed
 
         factory (**kwargs): str
             The name of a method of the object to which the tuple belongs.
@@ -340,10 +340,10 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
             msg = "A factory is required when trait doesn't specify a klass (such as Union)"
             raise RuntimeError(msg)
         self._set_parent = bool(set_parent)
-        self._discontinue_on_remove = bool(discontinue_on_remove)
+        self._close_on_remove = bool(close_on_remove)
         if not self._set_parent:
             self._tuple_on_add = None  # type: ignore
-        if not self._discontinue_on_remove:
+        if not self._close_on_remove:
             self._tuple_on_remove = None  # type: ignore
         self._on_add = on_add
         self._on_remove = on_remove
@@ -356,7 +356,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
             obj.set_trait("_ptname", self.name)
 
     def _tuple_on_remove(self, _: ValueTraits, obj: HasParent):
-        if self._discontinue_on_remove and hasattr(obj, "close"):
+        if self._close_on_remove and hasattr(obj, "close"):
             obj.close()
 
     def tag(self, **kw):
@@ -453,7 +453,7 @@ class ValueTraits(HasParent):
         return self.__repr__()
 
     def __repr__(self):
-        cs = "discontinued: " if self.discontinued else ""
+        cs = "closed: " if self.closed else ""
         home = f"home:{self.home}" if self._vt_init_complete else ""
         return f"<{cs}{self.__class__.__name__} name='{self.name}' {home}>"
 
@@ -578,8 +578,8 @@ class ValueTraits(HasParent):
                 raise TypeError(msg)
             await corofunc()
 
-    @observe("discontinued")
-    def _vt_observe_discontinued(self, change: ChangeType):
+    @observe("closed")
+    def _vt_observe_closed(self, change: ChangeType):
         # Unobserve by clearing the registers
         self._ignore_change_cnt = self._ignore_change_cnt + 1
         self._vt_tuple_reg.clear()
@@ -687,7 +687,7 @@ class ValueTraits(HasParent):
 
     def _vt_update_reg_value_traits(self):
         pairs = set()
-        if not self.discontinued:
+        if not self.closed:
             for dotname in self.value_traits:
                 for pair in self._get_observer_pairs(self, dotname):
                     pairs.add(pair)
@@ -695,7 +695,7 @@ class ValueTraits(HasParent):
 
     def _vt_update_reg_value_traits_persist(self):
         pairs = set()
-        if not self.discontinued:
+        if not self.closed:
             for dotname in self.value_traits_persist:
                 for pair in self._get_observer_pairs(self, dotname):
                     pairs.add(pair)
@@ -731,7 +731,7 @@ class ValueTraits(HasParent):
         _tuple_on_remove: Callable,
     ):
         # Collect pairs and update register
-        if self.discontinued:
+        if self.closed:
             return
         self._vt_update_reg_tuples(tuplename)
         # Callbacks
@@ -817,7 +817,7 @@ class ValueTraits(HasParent):
                     self.set_trait("value", defaults.NO_VALUE)
 
     def _load_value(self, data: Literal[defaults._NoValue.token] | dict | Callable):
-        if self.discontinued:
+        if self.closed:
             return
         try:
             self.load_value(data)

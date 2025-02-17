@@ -45,11 +45,11 @@ def on_error(wrapped, instance, msg, e):
 
     raise_exception: bool
         Will raise the exception after logging the error provided the instance/owner is
-        not discontinued.
+        not closed.
     """
     if not instance and getattr(wrapped, "__self__", None):
         instance = wrapped.__self__
-    if instance and getattr(instance, "discontinued", False):
+    if instance and getattr(instance, "closed", False):
         return
     if hasattr(instance, "on_error"):
         instance.on_error(e, msg, obj=wrapped)
@@ -96,7 +96,7 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
 def observe_ipylab_log_level(_):
     def refresh_all_menuboxes():
         for inst in mb.MenuBox._instances.values():
-            if isinstance(inst, mb.MenuBox) and not inst.discontinued and inst.view:
+            if isinstance(inst, mb.MenuBox) and not inst.closed and inst.view:
                 inst.mb_refresh()
 
     if ipylab.app.log_level == ipylab.log.LogLevel.DEBUG:

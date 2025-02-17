@@ -280,8 +280,8 @@ class _Periodic:
                     await asyncio.sleep(self.wait)
                 elif self._repeat:
                     continue
-                if getattr(self.instance, "discontinued", False):
-                    asyncio.current_task().cancel(f"{self.instance} is discontinued!")  # type: ignore
+                if getattr(self.instance, "closed", False):
+                    asyncio.current_task().cancel(f"{self.instance} is closed!")  # type: ignore
                 result = self.wrapped(*self.args, **self.kwargs)
                 while inspect.isawaitable(result):
                     result = await result

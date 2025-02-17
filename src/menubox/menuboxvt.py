@@ -137,7 +137,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
     def __repr__(self):
         if self._MenuBox_init_complete:
             name = self.name if self.trait_has_value("name") else ""
-            cs = "discontinued: " if self.discontinued else ""
+            cs = "closed: " if self.closed else ""
             return f"<{cs}{self.__class__.__name__} home='{self.home}' {name=}>"
         return super().__repr__()
 

@@ -60,8 +60,8 @@ class Link:
             if not isinstance(obj, HasParent):
                 msg = f"obj must be an instance of HasParent not {type(obj)}"
                 raise TypeError(msg)
-            if obj.discontinued:
-                msg = f"{obj=} is discontinued!"
+            if obj.closed:
+                msg = f"{obj=} is closed!"
                 raise RuntimeError(msg)
         self.obj = obj
         self._transform, self._transform_inv = transform or (self._pass_through,) * 2
@@ -84,7 +84,7 @@ class Link:
     def _pass_through(self, x):
         return x
 
-    def _obj_discontinued_observe(self, _: ChangeType):
+    def _obj_closed_observe(self, _: ChangeType):
         self.unlink()
 
     def link(self):
@@ -96,12 +96,12 @@ class Link:
         self.source[0].observe(self._update_target, names=self.source[1])
         self.target[0].observe(self._update_source, names=self.target[1])
         if self.obj:
-            self.obj.observe(self._obj_discontinued_observe, names="discontinued")
+            self.obj.observe(self._obj_closed_observe, names="closed")
 
     def _update_target(self, change: ChangeType):
         if self.updating or not self._transform:
             return
-        if self.obj and self.obj.discontinued:
+        if self.obj and self.obj.closed:
             self.unlink()
             return
         with self._busy_updating():
@@ -123,7 +123,7 @@ class Link:
     def _update_source(self, change: ChangeType):
         if self.updating or not self._transform:
             return
-        if self.obj and self.obj.discontinued:
+        if self.obj and self.obj.closed:
             self.unlink()
             return
         with self._busy_updating():
@@ -136,7 +136,7 @@ class Link:
     def unlink(self):
         if self.obj:
             with contextlib.suppress(Exception):
-                self.obj.unobserve(self._obj_discontinued_observe, names="discontinued")
+                self.obj.unobserve(self._obj_closed_observe, names="closed")
         with contextlib.suppress(Exception):
             self.source[0].unobserve(self._update_target, names=self.source[1])
         with contextlib.suppress(Exception):
@@ -166,8 +166,8 @@ class Dlink:
             if not isinstance(obj, HasParent):
                 msg = f"obj must be an instance of HasParent not {type(obj)}"
                 raise TypeError(msg)
-            if obj.discontinued:
-                msg = f"{obj=} is discontinued!"
+            if obj.closed:
+                msg = f"{obj=} is closed!"
                 raise RuntimeError(msg)
         self.obj = obj
         self.link()
@@ -189,7 +189,7 @@ class Dlink:
     def _pass_through(self, x):
         return x
 
-    def _obj_discontinued_observe(self, _: ChangeType):
+    def _obj_closed_observe(self, _: ChangeType):
         self.unlink()
 
     def link(self):
@@ -202,12 +202,12 @@ class Dlink:
         finally:
             self.source[0].observe(self._update, names=self.source[1])
         if self.obj:
-            self.obj.observe(self._obj_discontinued_observe, names="discontinued")
+            self.obj.observe(self._obj_closed_observe, names="closed")
 
     def _update(self, change):
         if self.updating or not self._transform:
             return
-        if self.obj and self.obj.discontinued:
+        if self.obj and self.obj.closed:
             self.unlink()
             return
         with self._busy_updating():
@@ -221,7 +221,7 @@ class Dlink:
     def unlink(self):
         if self.obj:
             with contextlib.suppress(Exception):
-                self.obj.unobserve(self._obj_discontinued_observe, names="discontinued")
+                self.obj.unobserve(self._obj_closed_observe, names="closed")
         with contextlib.suppress(Exception):
             self.source[0].unobserve(self._update, names=self.source[1])
 
@@ -274,7 +274,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         key_trait=traitlets.Unicode(),
         read_only=True,
     )
-    discontinued = traitlets.Bool()
+    closed = traitlets.Bool()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
@@ -431,7 +431,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         return inst
 
     def __del__(self):
-        self.discontinue()
+        self.close()
 
     def __init__(self, *, parent: HasParent | None = None, _ptname: str = "", **kwargs):
         """A HasTraits object that can have a parent and link to traits of the parent.
@@ -439,7 +439,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         parent_link : tuple
         parent_dlink: tuple
 
-        It will discontinue if the parent is discontinued.
+        It will close if the parent is closed.
         """
         if self._HasParent_init_complete:
             return
@@ -481,11 +481,11 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     def on_error(self, error: Exception, msg: str, obj: Any = None):
         self.log.exception(msg, obj=obj, exc_info=error)
 
-    def _hp_parent_discontinued(self, _: ChangeType):
+    def _hp_parent_closed(self, _: ChangeType):
         try:
-            self.discontinue()
+            self.close()
         except Exception as e:
-            self.on_error(e, "Discontinue failed")
+            self.on_error(e, "close failed")
             if mb.DEBUG_ENABLED:
                 raise
 
@@ -507,21 +507,18 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self._trait_values.pop(name)
             self.log.debug(f"InstanceHP trait {name=} has been reset")
 
-    def close(self, force=False):
-        self.discontinue(force)
-        if not self.KEEP_ALIVE or force:
-            close = getattr(super(), "close", None)
-            if callable(close):
-                close()
 
-    def discontinue(self, force=False):
-        # TODO: Investigate if discontinue can be changed to close.
-        if self.discontinued or (self.KEEP_ALIVE and not force):
+    def close(self, force=False):
+        if self.closed or (self.KEEP_ALIVE and not force):
             return
-        self.discontinued = True
+        self.closed = True
+        close = getattr(super(), "close", None)
+        if callable(close):
+            close()
         if self._singleton_instances_key:
             self._singleton_instances.pop(self._singleton_instances_key, None)
-        if self.parent and self._ptname and not self.parent.discontinued:
+        self.log.debug("Closed")
+        if self.parent and self._ptname and not self.parent.closed:
             obj = self.parent._trait_values.get(self._ptname)
             if isinstance(obj, tuple):
                 utils.trait_tuple_discard(self, owner=self.parent, name=self._ptname)
@@ -532,12 +529,12 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             for link in self._hasparent_all_links.values():
                 link.unlink()
             self._hasparent_all_links.clear()
-        self.unobserve_all()
+        # Reset the object.
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
             d = getattr(self, n, None)
             if isinstance(d, dict):
                 d.clear()
-        self.discontinued = True  # Need to restore this trait to false.
+        self.closed = True  # Need to restore this trait to false.
 
     @traitlets.default("log")
     def _default_log(self):
@@ -571,9 +568,9 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         if change["name"] == "parent":
             if isinstance(change["old"], HasParent):
                 with contextlib.suppress(Exception):
-                    change["old"].unobserve(self._hp_parent_discontinued, "discontinued")
+                    change["old"].unobserve(self._hp_parent_closed, "closed")
             if isinstance(change["new"], HasParent):
-                change["new"].observe(self._hp_parent_discontinued, "discontinued")
+                change["new"].observe(self._hp_parent_closed, "closed")
         p_link = set()
         p_dlink = set()
         if self.parent:
@@ -634,7 +631,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         connect=True,
         key="",
     ):
-        """Does link and keeps a reference link until discontinued.
+        """Does link and keeps a reference link until closed.
 
         Designed to link the target to one source at a time.
         note: there is no need to use connect=False if simply updating the link for a
@@ -655,7 +652,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         connect=True,
         key="",
     ):
-        """Does dlink and and keeps a reference link until discontinued.
+        """Does dlink and and keeps a reference link until closed.
 
         Designed to dlink the target to one source at a time.
         note: there is no need to use connect=False if simply updating the link for a

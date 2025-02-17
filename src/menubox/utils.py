@@ -312,7 +312,7 @@ sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()
 
 
 def close_obj(obj: ipw.Widget | HasParent | Any) -> None:
-    """Close widgets and discontinue Hasparent and clear children from ipywidget box."""
+    """Close widgets and close Hasparent and clear children from ipywidget box."""
     if hasattr(obj, "close"):
         obj.close()
 
@@ -475,8 +475,8 @@ def show_obj_in_box(
 
     If obj is in the box already it will be moved to top (or bottom).
     """
-    if isinstance(obj, mb.MenuBox) and obj.discontinued:
-        msg = f"The instance of {fullname(obj)} is discontinued!"
+    if isinstance(obj, mb.MenuBox) and obj.closed:
+        msg = f"The instance of {fullname(obj)} is closed!"
         raise RuntimeError(msg)
     if not isinstance(obj, ipw.Widget):
         msg = f"obj of type={type(obj)} is not a widget!"
