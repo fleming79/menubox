@@ -281,7 +281,7 @@ class _Periodic:
                 elif self._repeat:
                     continue
                 if getattr(self.instance, "discontinued", False):
-                    return
+                    asyncio.current_task().cancel(f"{self.instance} is discontinued!")  # type: ignore
                 result = self.wrapped(*self.args, **self.kwargs)
                 while inspect.isawaitable(result):
                     result = await result
@@ -316,7 +316,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
 
     mode = PeriodicMode(mode)
     tasktype = TaskType(tasktype)
-    _periodic_tasks: dict[tuple[Callable, object | None], _Periodic] = {}
+    _periodic_tasks: dict[tuple[object | None, Callable], _Periodic] = {}
 
     def on_done(k, task):
         info = _periodic_tasks.get(k)
@@ -326,8 +326,6 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
 
     @wrapt.decorator
     def _periodic_wrapper(wrapped, instance, args, kwargs):
-        if getattr(instance, "discontinued", False):
-            return None
         k = (instance, wrapped)
         info = _periodic_tasks.get(k)
         if info and info._repeat is not None:

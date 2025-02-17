@@ -4,7 +4,7 @@ import asyncio
 import functools
 import inspect
 import weakref
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, ParamSpec, Self, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NotRequired, ParamSpec, Self, TypedDict, TypeVar, Unpack
 
 import ipywidgets as ipw
 import traitlets
@@ -12,10 +12,8 @@ from mergedeep import Strategy, merge
 
 import menubox as mb
 from menubox import mb_async, utils
-from menubox.defaults import NO_VALUE, _NoValue, is_no_value
 from menubox.hasparent import HasParent
 from menubox.trait_types import Bunched
-from menubox.utils import iterflatten
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -34,6 +32,19 @@ class IHPConfig(TypedDict):
     args: tuple
     kwgs: dict
 
+class IHPSettings(TypedDict):
+    load_default: NotRequired[bool]
+    allow_none: NotRequired[bool]
+    read_only: NotRequired[bool]
+    set_parent: NotRequired[bool]
+    add_css_class: NotRequired[str | tuple[str, ...]]
+    create: NotRequired[str | Callable[[IHPConfig], Any]]
+    dynamic_kwgs: NotRequired[dict[str, Any]]
+    set_attrs: NotRequired[dict[str, Any]]
+    dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
+    on_click: NotRequired[str | tuple[str, ...]]
+    on_replace_discontinue: NotRequired[bool]
+
 
 class IHPDlinkType(TypedDict):
     """A TypedDict template to use with `InstanceHP.configure`."""
@@ -44,19 +55,17 @@ class IHPDlinkType(TypedDict):
 
 
 class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
-    __slots__ = [
-        "create",
-        "read_only",
-        "allow_none",
-        "load_default",
-        "set_parent",
-        "dlink",
-        "add_classes",
-        "on_replace_discontinue",
-    ]
     _klass: type[T] | None = None
     if TYPE_CHECKING:
         name: str  # type: ignore
+    _default_settings: ClassVar[IHPSettings] = {
+        "load_default": True,
+        "allow_none": True,
+        "read_only": True,
+        "set_parent": True,
+        "on_click": ("button_clicked",),
+        "on_replace_discontinue": True,
+    }
 
     def class_init(self, cls, name):
         if issubclass(cls, HasParent):
@@ -109,10 +118,10 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         if "parent" in kwgs:
             msg = "`parent`is an invalid argument. Use the `set_parent` tag instead."
             raise ValueError(msg)
-        super().__init__(allow_none=False, read_only=True)
+        self.settings = self._default_settings.copy()
+        super().__init__()
         self.args = args
         self.kwgs = kwgs
-        self.configure()
 
     @property
     def klass(self) -> type[T]:
@@ -132,8 +141,24 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             raise ValueError(msg) from e
 
     @property
+    def allow_none(self):  # type: ignore
+        return self.settings["allow_none"]  # type: ignore
+
+    @property
+    def read_only(self):  # type: ignore
+        return self.settings["read_only"]  # type: ignore
+
+    @property
     def info_text(self):  # type: ignore
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
+
+    @property
+    def load_default(self):
+        return self.settings["load_default"]  # type: ignore
+
+    @property
+    def set_parent(self):
+        return self.settings["set_parent"]  # type: ignore
 
     def set(self, obj: HasParent, value: Any) -> None:  # type: ignore
         new_value = self._validate(obj, value)
@@ -214,8 +239,8 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             if children := getattr(self, "children", None):
                 kwgs["children"] = obj.get_widgets(children, skip_hidden=False, show=True)
             name: str
-            if self.dynamic_kwgs:
-                for name, value in self.dynamic_kwgs.items():
+            if dynamic_kwgs := self.settings.get("dynamic_kwgs"):
+                for name, value in dynamic_kwgs.items():
                     if callable(value):
                         kwgs[name] = value(
                             IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs)
@@ -224,8 +249,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                         kwgs[name] = obj
                     else:
                         kwgs[name] = utils.getattr_nested(obj, value, hastrait_value=False)
-            create = self.create
-            if not is_no_value(create):
+            if create := self.settings.get("create"):
                 if isinstance(create, str):
                     create = getattr(obj, create)
                 if callable(create):
@@ -267,10 +291,10 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
 
     def _value_changed(self, obj: HasParent, old: Any | None, new: Any | None):
         if isinstance(new, ipw.Button):
-            for name in self.on_click:
+            for name in utils.iterflatten(self.settings.get("on_click", ())):
                 self._register_on_click(obj, name, new)
-        if isinstance(self.set_attrs, dict):
-            for k, v in self.set_attrs.items():
+        if set_attrs := self.settings.get("set_attrs"):
+            for k, v in set_attrs.items():
                 val = v
                 if isinstance(val, str) and val.startswith("."):
                     val = val[1:]
@@ -279,9 +303,10 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                     config = IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs)
                     val = val(config)
                 utils.setattr_nested(new, k, val, setattr)
-        if isinstance(self.dlink, tuple):
+        if dlink := self.settings.get("dlink"):
+            dlinks = (dlink,) if isinstance(dlink, dict) else dlink
             target_obj = new
-            for dlink in self.dlink:
+            for dlink in dlinks:
                 src_name, src_trait = dlink["source"]
                 src_obj = obj if src_name == "self" else utils.getattr_nested(obj, src_name, hastrait_value=False)
                 tgt_trait = dlink["target"]
@@ -298,14 +323,14 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                 obj.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
                 if isinstance(target_obj, traitlets.HasTraits):
                     obj.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
-        if self.add_classes and isinstance(new, ipw.DOMWidget):
-            for class_name in self.add_classes:
+        if isinstance(new, ipw.DOMWidget) and (css_class_names := self.settings.get("add_css_class")):
+            for class_name in utils.iterflatten(css_class_names):
                 new.add_class(class_name)
         if old is not None and old is not traitlets.Undefined:
             if getattr(old, "parent", None) is obj:
                 old.parent = None
                 old.set_trait("_ptname", "")
-            if self.on_replace_discontinue:
+            if self.settings.get("on_replace_discontinue"):
                 mb.utils.close_obj(old)
 
     def _register_on_click(self, obj: HasParent, name: str, b: ipw.Button):
@@ -314,10 +339,10 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         The callback is handled in a singular task. Returning an awaitable from the
         callback will be awaited
         """
-        if mb.DEBUG_ENABLED and not callable(utils.getattr_nested(obj, name)):
+        if not callable(utils.getattr_nested(obj, name)):
             msg = f"`{utils.fullname(obj)}.{name}` is not callable!"
             raise TypeError(msg)
-        if mb.DEBUG_ENABLED and name == "button_clicked" and not asyncio.iscoroutinefunction(obj.button_clicked):
+        if name == "button_clicked" and not asyncio.iscoroutinefunction(obj.button_clicked):
             msg = f"By convention `{utils.fullname(obj)}.button_clicked` must be a coroutine function!"
             raise TypeError(msg)
         taskname = f"button_clicked[{id(obj)}] → {obj.__class__.__name__}.{self.name}"
@@ -342,35 +367,29 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
 
             mb_async.run_async(click_callback(), name=taskname, obj=obj)
 
+
     # TODO: add overloads if allow_none is True/false
-    def configure(
-        self,
-        *,
-        load_default=True,
-        set_parent=True,
-        read_only=True,
-        allow_none: bool | Literal[_NoValue.token] = NO_VALUE,
-        create: str | Callable[[IHPConfig], T] | Literal[_NoValue.token] = NO_VALUE,
-        dynamic_kwgs: dict[str, Any] | None = None,
-        on_click: str | tuple[str, ...] = "button_clicked",
-        set_attrs: dict[str, Any] | None = None,
-        dlink: IHPDlinkType | tuple[IHPDlinkType, ...] | Literal[_NoValue.token] = NO_VALUE,
-        on_replace_discontinue=True,
-        add_classes=(),
-    ) -> Self:
-        """Configure everything about how the instance will be handled.
+    def configure(self, **kwgs: Unpack[IHPSettings]) -> Self:
+        """Configure how the instance will be handled.
 
-        Calling with no arguments is the default setting.
+        Configuration changes are merged using a nested replace strategy except as explained below.
 
-        When calling All settings will be overwritten except for:
-        * create
-        * dlink
+        Defaults
+        --------
+        * load_default: True
+        * allow_none: True
+        * set_parent: True
+        * read_only: True
+        * on_replace_discontinue: True
+        * on_click: "button_clicked" (Only relevant to buttons)
 
+        Parameters
+        ----------
         on_replace_discontinue: Bool
             Discontinue/close the previous instance if it is replaced.
             Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
-        allow_none : Optional bool
-            default : True if (load_default is False) else False.
+        allow_none :  bool
+            Allow the value to be None. Note: If load_default is passed,
         set_parent: Bool [True]
             Set the parent to the owner of the trait (HasParent).
         dynamic_kwgs: dict
@@ -397,36 +416,15 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             'target: str
             transform: Callable[Any, Any]
                 A function to convert the source value to the target value.
-        add_classes: tuple
-            A tuple of class names to add  (applies only to DOMWidget subclasses)
-        Button **ONLY** Tags
-        --------------------
-        on_click: Str | Tuple
+        add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
+            Class names to add to the instance. Useful for selectors such as context menus.
+        on_click: Str | Tuple[str, ...] <Button **ONLY**>
             Dotted name access to the on_click callbacks.
         """
-        if allow_none is NO_VALUE:
-            allow_none = load_default is False
-        if is_no_value(create):
-            create = getattr(self, "create", NO_VALUE)
-        else:
-            assert callable(create) or isinstance(create, str)  # noqa: S101
-        self.create = create
-        self.dynamic_kwgs = dict(dynamic_kwgs) if dynamic_kwgs else None
-        self.on_click = tuple(iterflatten(on_click))
-        self.set_attrs = dict(set_attrs) if set_attrs else None
-        self.read_only = read_only
-        self.allow_none = allow_none
-        self.set_parent = set_parent
-        self.load_default = load_default
-        self.set_parent = set_parent
-        self.on_replace_discontinue = on_replace_discontinue
-        if dlink is NO_VALUE:
-            dlink = getattr(self, "dlink", NO_VALUE)
-        if isinstance(dlink, dict):
-            dlink = (dlink,)
-        assert dlink is NO_VALUE or isinstance(dlink, tuple)  # noqa: S101
-        self.dlink = dlink
-        self.add_classes = add_classes
+        if "load_default" in kwgs and "allow_none" not in kwgs:
+            kwgs["allow_none"] = not kwgs["load_default"]
+        if kwgs:
+            merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
 
     def set_children(
@@ -459,18 +457,8 @@ def instanceHP_wrapper(
     *,
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
-    load_default=True,
-    set_parent=True,
-    read_only=True,
-    allow_none: bool | Literal[_NoValue.token] = NO_VALUE,
-    create: str | Callable[[IHPConfig], T] | Literal[_NoValue.token] = NO_VALUE,
-    dynamic_kwgs: dict[str, Any] | None = None,
-    on_click: str | tuple[str, ...] = "button_clicked",
-    set_attrs: dict[str, Any] | None = None,
-    on_replace_discontinue=True,
-    dlink: IHPDlinkType | tuple[IHPDlinkType] | Literal[_NoValue.token] = NO_VALUE,
     tags: None | dict[str, Any] = None,
-    add_classes=(),
+    **kwargs: Unpack[IHPSettings],
 ):
     """
     A decorator style function to produce InstanceHP trait for klass.
@@ -514,8 +502,6 @@ def instanceHP_wrapper(
 
     """
     defaults_ = merge({}, defaults) if defaults else {}
-    if allow_none is NO_VALUE:
-        allow_none = load_default is False
     tags = dict(tags) if tags else {}
 
     # TODO : Requires py 3.12+ https://typing.readthedocs.io/en/latest/spec/constructors.html#converting-a-constructor-to-callable
@@ -529,25 +515,12 @@ def instanceHP_wrapper(
 
         Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
         """
-        kw = merge({}, defaults_, kwgs, strategy=strategy)
-        return (
-            InstanceHP(klass, *args, **kw)
-            .configure(
-                read_only=read_only,
-                allow_none=allow_none,
-                load_default=load_default,
-                set_parent=set_parent,
-                on_replace_discontinue=on_replace_discontinue
-                if isinstance(klass, str) or not issubclass(klass, ipw.Widget | HasParent)
-                else False,
-                create=create,
-                set_attrs=set_attrs,
-                dynamic_kwgs=dynamic_kwgs,
-                on_click=on_click,
-                dlink=dlink,
-                add_classes=add_classes,
-            )
-            .tag(**tags)
-        )
+        kw = merge({}, defaults_, kwgs, strategy=strategy) if defaults_ else kwgs
+        instance = InstanceHP(klass, *args, **kw)
+        if kwargs:
+            instance.configure(**kwargs)
+        if tags:
+            instance.tag(**tags)
+        return instance
 
     return instanceHP_factory

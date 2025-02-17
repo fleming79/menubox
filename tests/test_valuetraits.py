@@ -38,7 +38,6 @@ class VT1(ValueTraits):
         assert change["new"]() == change["old"](), "Should return same result"
         self.value_change_count += 1
 
-
 class VT2(VT1):
     value_traits_persist = NameTuple("vt1")
     vt1 = traitlets.Instance(VT1, allow_none=True)

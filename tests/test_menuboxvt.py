@@ -114,7 +114,7 @@ async def test_menuboxvt():
 
     # Test for RENAMEABLE == False
 
-    m2 = MyNewObjSingleInstanceByName(name="fixed name")
+    m2 = MyNewObjSingleInstanceByName(name="fixed name", home=home)
     assert not m2.RENAMEABLE
     assert m2.text_name.value == "fixed name"
 

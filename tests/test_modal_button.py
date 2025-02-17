@@ -39,8 +39,8 @@ class PMBB(mb.MenuBoxVT):
         return None, self.count
 
 
-async def test_modal_button():
-    obj = PMBB()
+async def test_modal_button(home: mb.Home):
+    obj = PMBB(home=home)
     assert isinstance(obj.mb1, ModalBox)
     assert obj.mb1_change_count == 0
     obj.mb1.expand()

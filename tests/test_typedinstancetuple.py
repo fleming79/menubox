@@ -83,7 +83,7 @@ class VTT2(mb.ValueTraits):
         return VTT1(**kwargs)
 
 
-async def test_value_traits():
+async def test_value_traits(home: mb.Home):
     assert len(VTT._vt_tit_names["menuboxvts"]["SINGLETON_BY"]()) == 2, "Registered at import"
 
     # Check registers working
@@ -91,10 +91,9 @@ async def test_value_traits():
     assert list(VTT._tuple_register("menuboxvts")) == vals
     assert VTT.get_tuple_singleton_by("menuboxvts") == ("cls", "name")
 
-    vt = VTT(value_traits_persist=("somelist",), home="typed instance tuples")
-    vt2 = VTT(home=vt.home)
+    vt = VTT(value_traits_persist=("somelist",), home=home)
+    vt2 = VTT(parent=vt)
     assert isinstance(vt.home, mb.Home)
-    assert vt.home.name == "typed instance tuples"
     assert vt2.home is vt.home
 
     item1 = ipw.Text(description="Item1")
@@ -131,12 +130,12 @@ async def test_value_traits():
     assert vt.change_count == 5
     assert vt2.change_count == 2
 
-    mb1: mb.MenuBoxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1")
+    mb1: mb.MenuBoxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1", home=vt2.home)
     assert mb1 not in vt2.menuboxvts, "Should not have added to tuple."
     vt2.menuboxvts = (mb1,)
     assert mb1 in vt2.menuboxvts, "Should have been added to tuple."
     assert mb1 is vt2.get_tuple_obj("menuboxvts", name="mb1")
-    mb2 = vt2.get_tuple_obj("menuboxvts", name="mb2")
+    mb2 = vt2.get_tuple_obj("menuboxvts", name="mb2", home=home)
     assert mb2 is not mb1, "A new instance was expected with name='mb2'."
     assert mb2 in vt2.menuboxvts, "The new instance should be added."
     assert len(vt2.menuboxvts) == 2, "Both instances should be in tuple."

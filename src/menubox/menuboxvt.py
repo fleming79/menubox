@@ -10,7 +10,6 @@ import traitlets
 import menubox as mb
 from menubox import trait_factory as tf
 from menubox import utils
-from menubox.home import InstanceHome
 from menubox.menubox import MenuBox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_types import ChangeType, NameTuple, StrTuple, classproperty
@@ -42,7 +41,6 @@ class MenuBoxVT(MenuBox, ValueTraits):
     )
     FANCY_NAME = ""
     _RESERVED_VIEWNAMES = (*MenuBox._RESERVED_VIEWNAMES, _CONFIGURE_VIEW)
-    home = InstanceHome("default")
     repository: traitlets.Instance[Repository] = traitlets.Instance("menubox.repository.Repository")
     title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
@@ -85,7 +83,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
     description_viewer = tf.MarkdownViewer(layout={"margin": "0px 0px 0px 10px"}).configure(
         dlink={"source": ("description", "value"), "target": "value"},
         set_attrs={"converter": "._convert_description"},
-        add_classes=(mb.defaults.CLS_RESIZE_VERTICAL,),
+        add_css_class=(mb.defaults.CLS_RESIZE_VERTICAL,),
     )
     button_configure = tf.Button_O(tooltip="Configure").configure(
         load_default=False,

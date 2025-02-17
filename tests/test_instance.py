@@ -31,7 +31,7 @@ class HPI(mb.MenuBox):
                 await super().button_clicked(b)
 
 
-class HPI2(HPI):
+class HPI2(HPI, mb.MenuBoxVT):
     b = InstanceHP(HPI, name="b").configure(set_attrs={"name": lambda config: config["parent"].get_name(config)})
     c = InstanceHP(HPI, name="C has value").configure(set_parent=False)
     d = InstanceHP(ipw.Dropdown).configure(dynamic_kwgs={"description": "c.name"}, allow_none=True)
@@ -51,9 +51,10 @@ class HPI2(HPI):
 class HPI3(mb.MenuBox):
     box = tf.Box().configure(allow_none=True)
     menubox = tf.MenuBox(views={"main": None}).configure(allow_none=True)
+    hpi2 = tf.InstanceHP(HPI2).configure(allow_none=True)
 
 
-async def test_instance():
+async def test_instance(home: mb.Home):
     with pytest.raises(ValueError, match="`parent`is an invalid argument. Use the `set_parent` tag instead."):
         InstanceHP(HPI, parent=None)
 
@@ -68,7 +69,7 @@ async def test_instance():
     assert hp1.a.name == "a"
     assert hp1.a.parent is hp1
 
-    hp2 = HPI2(a=None, b={"b": hp1, "a": None})  # Can override values during __init__
+    hp2 = HPI2(a=None, b={"b": hp1, "a": None}, home=home)  # Can override values during __init__
     assert not hp2.a, "Disabled during init"
     assert not hp2.b.a, "Disabled during init (nested)"
     assert hp2.e
@@ -104,7 +105,7 @@ async def test_instance():
     hp2.instanceHP_enable_disable("e", False)
 
 
-async def test_instance2():
+async def test_instance2(home: mb.Home):
     hp1 = HPI(name="hp1", a=None)
     # Check button
     hp1.my_button.click()
@@ -129,7 +130,7 @@ async def test_instance2():
     hp1_a = hp1.a
     hp1.instanceHP_enable_disable("a", True)
     assert hp1_a is hp1.a
-    hp2b = HPI2()
+    hp2b = HPI2(home=home)
     # Test can load a more complex object & and discontinue
     assert hp2b.select_repository.repository.root
     assert hp2b.select_repository.parent is hp2b
@@ -142,8 +143,12 @@ async def test_instance2():
     assert not hp2b.select_repository.discontinued
 
 
-@pytest.mark.parametrize("trait", ["box", "menubox"])
+@pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])
 async def test_instance_gc(trait, weakref_enabled):  # noqa: ARG001
+    """Test that some objects will be automatically garbage collected.
+
+    **Requires weakref_enabled.**
+    """
     hpi3 = HPI3()
     deleted = False
 
@@ -155,7 +160,10 @@ async def test_instance_gc(trait, weakref_enabled):  # noqa: ARG001
     weakref.finalize(ref(), on_delete)
     hpi3.set_trait(trait, None)
     # ------- WARNING ------ : adding debug break points may cause this to fail.
-    for _ in range(2):
+    for _ in range(20):
         gc.collect()
-        await asyncio.sleep(0)
+        await asyncio.sleep(0.01)
+        if deleted:
+            break
+        # Some objects schedule tasks against functions that may take a while to exit.
     assert deleted, f"'{trait}' should be deleted after it is replaced. Referrers={gc.get_referrers(ref())}"

@@ -1,5 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import ipywidgets as ipw
 import pytest
+
+import menubox as mb
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 @pytest.fixture(scope="session")
@@ -17,3 +26,9 @@ def weakref_enabled():
     ipw.enable_weakreference()
     yield None
     ipw.disable_weakreference()
+
+
+@pytest.fixture
+async def home(tmp_path: pathlib.Path):
+    """"""
+    return mb.Home(tmp_path)

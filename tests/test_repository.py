@@ -3,7 +3,7 @@ import pathlib
 import traitlets
 
 import menubox as mb
-from menubox import Home, MenuBoxVT
+from menubox import MenuBoxVT
 from menubox import trait_factory as tf
 from menubox.repository import Repositories, Repository
 
@@ -13,8 +13,7 @@ class SelectRepositoryWidget(MenuBoxVT):
     views = traitlets.Dict({"Widgets": "select_repository"})
 
 
-async def test_repository(tmp_path: pathlib.Path):
-    home = Home(tmp_path)
+async def test_repository(home: mb.Home, tmp_path: pathlib.Path):
     assert home.repository.root == tmp_path.as_posix()
     assert home.repository.home is home
     assert home.repository.parent is home
@@ -31,8 +30,7 @@ async def test_repository(tmp_path: pathlib.Path):
     assert repo3 is repo2
 
 
-async def test_select_repository(tmp_path: pathlib.Path):
-    home = Home(tmp_path)
+async def test_select_repository(home: mb.Home):
     w = SelectRepositoryWidget(home=home)
 
     assert w.select_repository.repository is w.home.repository, "Loads the default repo."

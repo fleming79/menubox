@@ -84,15 +84,14 @@ class Home(HasParent):
 class InstanceHome(traitlets.TraitType[Home, Home]):
     """Use this to ensure the correct home instance is used."""
 
-    default_value = None
-
     def _validate(self, obj, value: Home | str):
-        if not value and not self.default_value:
-            msg = "home is required!\nHint: `home` can be specified as a string or inherited from a parent."
+        if not value:
+            msg = """`home` is required!
+                Hint: `home` can be specified as a string or inherited from a parent."""
             raise RuntimeError(msg)
-        home = Home(value or self.default_value)
-        if obj.trait_has_value("home") and home is not obj.home and obj.home:
-            msg = "Changing home is not allowed after it is set"
+        home = Home(value)
+        if obj.trait_has_value("home") and home is not obj.home:
+            msg = "Changing home is not allowed after it is set current={obj.home} new={home}"
             raise RuntimeError(msg)
         return home
 

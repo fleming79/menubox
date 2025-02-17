@@ -102,7 +102,7 @@ class MenuBox(HasParent, Panel):
     html_title = tf.HTML_Title().configure(load_default=False)
     out_help = tf.MarkdownViewer(
         layout={"border": "solid 1px LightGrey", "margin": "5px " * 4, "padding": "5px " * 4}
-    ).configure(add_classes=(defaults.CLS_RESIZE_BOTH,))
+    ).configure(add_css_class=(defaults.CLS_RESIZE_BOTH,))
 
     # Buttons
     button_menu = tf.Button_M(description="☰").configure(load_default=False)
