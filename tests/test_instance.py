@@ -145,7 +145,6 @@ async def test_instance2(home: mb.Home):
     # Test can load a more complex object & and close
     assert hp2b.select_repository.repository.root
     assert hp2b.select_repository.parent is hp2b
-    assert hp2b.select_repository._ptname == "select_repository"
     sr = hp2b.select_repository
     sr.close()
     assert sr.closed
@@ -154,23 +153,23 @@ async def test_instance2(home: mb.Home):
     assert not hp2b.select_repository.closed
 
 
-async def test_instance_invalid_value(home: mb.Home):
-    hpi3 = HPI3(home=home)
+async def test_instance_invalid_value():
+    hpi3 = HPI3()
     with pytest.raises(
         TraitError, match="The 'hpi2' trait of a HPI3 instance expected an instance of `HPI2` or `None`, not the int 0."
     ):
         hpi3.set_trait("hpi2", 0)
 
 
-async def test_instance_change(home: mb.Home):
-    hpi4 = HPI4(home=home)
+async def test_instance_change():
+    hpi4 = HPI4()
     assert hpi4.hpi
     assert hpi4.change_new == IHPChange(name="hpi", parent=hpi4, obj=hpi4.hpi)
     old = hpi4.hpi
     new = HPI()
     hpi4.set_trait("hpi", new)
-    assert hpi4.change_new == IHPChange(name="hpi", parent=hpi4, obj=new)
-    assert hpi4.change_old == IHPChange(name="hpi", parent=hpi4, obj=old)
+    assert str(hpi4.change_new) == str(IHPChange(name="hpi", parent=hpi4, obj=new))
+    assert str(hpi4.change_old) == str(IHPChange(name="hpi", parent=hpi4, obj=old))
 
 
 @pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])

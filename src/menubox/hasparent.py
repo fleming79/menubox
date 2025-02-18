@@ -270,7 +270,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
     log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent()
-    _ptname = traitlets.Unicode("", read_only=True)
     mb_tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
     init_async: ClassVar[None | Coroutine] = None
 
@@ -423,7 +422,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     def __del__(self):
         self.close()
 
-    def __init__(self, *, parent: HasParent | None = None, _ptname: str = "", **kwargs):
+    def __init__(self, *, parent: HasParent | None = None, **kwargs):
         """A HasTraits object that can have a parent and link to traits of the parent.
 
         parent_link : tuple
@@ -439,8 +438,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
                 values[name] = kwargs.pop(name)
         super().__init__(**kwargs)
         self.parent = parent
-        if _ptname:
-            self.set_trait("_ptname", _ptname)
         self._HasParent_init_complete = True
         for name, v in values.items():
             self.instanceHP_enable_disable(name, v)
@@ -448,10 +445,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
             mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
 
-    def __repr__(self):
-        if self._ptname:
-            return f"{utils.fullname(self.parent)}.{self._ptname}"
-        return super().__repr__()
 
     def get_log_name(self):
         "A representation for logging"
@@ -503,11 +496,10 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     def _reset_trait(self, name: str):
         """Reset the trait to an unloaded stated."""
         if name in self._trait_values:
+            self.log.debug("InstanceHP resetting trait %s", name)
             if self._InstanceHP[name].allow_none:
                 self.set_trait(name, None)
             self._trait_values.pop(name)
-            self.log.debug(f"InstanceHP trait {name=} has been reset")
-
 
     def close(self, force=False):
         if self.closed or (self.KEEP_ALIVE and not force):
@@ -516,16 +508,10 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         close = getattr(super(), "close", None)
         if callable(close):
             close()
+        self.log.debug("Closed")
         if self._singleton_instances_key:
             self._singleton_instances.pop(self._singleton_instances_key, None)
-        self.log.debug("Closed")
-        if self.parent and self._ptname and not self.parent.closed:
-            obj = self.parent._trait_values.get(self._ptname)
-            if isinstance(obj, tuple):
-                utils.trait_tuple_discard(self, owner=self.parent, name=self._ptname)
-            elif obj is self:
-                self.parent._reset_trait(self._ptname)
-        # self.set_trait("parent", None)
+        self.set_trait("parent", None)
         if self.trait_has_value("_hasparent_all_links"):
             for link in self._hasparent_all_links.values():
                 link.unlink()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import weakref
 from typing import (
@@ -81,7 +82,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
     _klass: type[T] | None = None
     _default_settings: ClassVar[IHPSettings] = {
         "load_default": True,
-        "allow_none": True,
+        "allow_none": False,
         "read_only": True,
         "set_parent": True,
         "on_click": "button_clicked",
@@ -151,6 +152,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         super().__init__()
         self.args = args
         self.kwgs = kwgs
+        self._close_observers: weakref.WeakKeyDictionary[HasParent, dict] = weakref.WeakKeyDictionary()
 
     @property
     def klass(self) -> type[T]:
@@ -219,10 +221,6 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
     def get(self, obj: HasParent, cls: Any = None) -> T | None:  # type: ignore
         try:
             value: T | None = obj._trait_values[self.name]  # type: ignore
-            if getattr(value, "closed", False) and not obj.closed:
-                # This object has been closed, so a new default should be obtained
-                obj._trait_values.pop(self.name, None)
-                raise KeyError  # noqa: TRY301
         except KeyError:
             # Obtain the default.
             default = self.default(obj)
@@ -256,7 +254,6 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             kwgs = dict(self.kwgs)
             if issubclass(self.klass, HasParent) and self.set_parent:
                 kwgs["parent"] = obj
-                kwgs["_ptname"] = self.name
 
             # dynamic_kwgs
             if dynamic_kwgs := self.settings.get("dynamic_kwgs"):
@@ -306,10 +303,6 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         # This is the main handler function for loading and configuration
         # providing consitent/predictable behaviour reducing boilerplate code.
 
-        #  set_parent
-        if self.set_parent and isinstance(new, HasParent):
-            new.parent = owner
-            new.set_trait("_ptname", self.name)
 
         # set_children
         if isinstance(new, ipw.Widget) and (children := getattr(self, "children", None)):
@@ -402,7 +395,6 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         if old is not None and old is not traitlets.Undefined:
             if isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
                 old.parent = None
-                old.set_trait("_ptname", "")
             if self.settings.get("on_replace_close"):
                 mb.utils.close_obj(old)
 
@@ -412,6 +404,33 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                 if isinstance(changed, str):
                     changed = getattr(owner, changed)
                 changed(IHPChange(name=self.name, parent=owner, obj=obj))
+
+        # value closed
+        if (old_observer := self._close_observers.pop(owner, None)) and isinstance(old, HasParent | ipw.Widget):
+            with contextlib.suppress(KeyError):
+                old.unobserve(**old_observer)
+
+        if isinstance(new, HasParent | ipw.Widget):
+            owner_ref = weakref.ref(owner)
+            traitname = self.name
+
+            def _observe_closed(change: mb.ChangeType):
+                # Check if the change owner has closed, if remove it from parent if appropriate.
+                owner_ = owner_ref()
+                cname, value = change["name"], change["new"]
+                if (
+                    owner_
+                    and ((cname == "closed" and value) or (cname == "comm" and not value))
+                    and owner_._trait_values.get(traitname) is change["owner"]
+                ):
+                    if self.allow_none and not owner_.closed:
+                        owner_.set_trait(traitname, None)
+                    else:
+                        owner_._reset_trait(traitname)
+
+            names = "closed" if isinstance(new, HasParent) else "comm"
+            new.observe(_observe_closed, names)
+            self._close_observers[owner] = {"handler": _observe_closed, "names": names}
 
     # TODO: add overloads if allow_none is True/false
     def configure(self, **kwgs: Unpack[IHPSettings[T]]) -> Self:

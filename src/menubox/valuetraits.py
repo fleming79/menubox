@@ -354,7 +354,6 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
     def _tuple_on_add(self, parent: ValueTraits, obj: HasParent):
         if isinstance(obj, HasParent) and self._set_parent:
             obj.parent = parent
-            obj.set_trait("_ptname", self.name)
 
     def _tuple_on_remove(self, _: ValueTraits, obj: HasParent):
         if self._close_on_remove and hasattr(obj, "close"):
@@ -508,7 +507,6 @@ class ValueTraits(HasParent):
         *,
         home: Home | str | None = None,
         parent: HasParent | None = None,
-        _ptname="",  # TypedInstanceTuple name of parent
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str = None,
@@ -564,7 +562,8 @@ class ValueTraits(HasParent):
             names=("value_traits", "value_traits_persist"),
         )
         self._vt_init_complete = True
-        super().__init__(parent=parent, _ptname=_ptname, **kwargs)
+        super().__init__(parent=parent, **kwargs)
+        # super().__init__(parent=parent, _ptname=_ptname, **kwargs)
         # Parent must be set prior to setting value because HasParent
         # may load data from a parent which is need to load values
         if self._STASH_DEFAULTS:
