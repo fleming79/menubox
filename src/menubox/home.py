@@ -17,8 +17,7 @@ __all__ = ["Home"]
 
 
 def to_safe_homename(name: str):
-    if not name:
-        return "default"
+
     n = pathlib.PurePath(utils.sanatise_filename(name)).name
     if not n:
         msg = f"Unable convert {name=} to a valid home"
@@ -50,7 +49,7 @@ class Home(HasParent):
     def validate_name(cls, name: str) -> str:
         return to_safe_homename(name)
 
-    def __new__(cls, name: Home | str | pathlib.Path = "default", **kwargs):
+    def __new__(cls, name: Home | str | pathlib.Path, **kwargs):
         if isinstance(name, Home):
             return name
         if name not in cls._all_homes:
@@ -59,14 +58,14 @@ class Home(HasParent):
         return cls._all_homes[name]
 
     @log_exceptions
-    def __init__(self, name: str | Home | pathlib.Path = "default", *, private=False, **kwargs):
+    def __init__(self, name: str | Home | pathlib.Path, *, private=False, **kwargs):
         if self._HasParent_init_complete:
             return
         path = name if isinstance(name, pathlib.Path) else pathlib.Path(str(name))
         self._url = path.absolute().as_posix() if path.is_absolute() else pathlib.Path().absolute().as_posix()
         super().__init__(**kwargs)
 
-        if name != "default" and not private:
+        if not private and not self.name.startswith("_"):
             utils.trait_tuple_add(self, owner=self._HREG, name="homes")
 
     def __repr__(self):

@@ -1,10 +1,22 @@
 from __future__ import annotations
 
 import asyncio
-import functools
 import inspect
 import weakref
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, NotRequired, ParamSpec, Self, TypedDict, TypeVar, Unpack
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    NotRequired,
+    ParamSpec,
+    Self,
+    TypedDict,
+    TypeVar,
+    Unpack,
+    overload,
+)
 
 import ipywidgets as ipw
 import traitlets
@@ -16,7 +28,8 @@ from menubox.hasparent import HasParent
 from menubox.trait_types import Bunched
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Awaitable, Callable, Iterable
+
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
 
@@ -25,24 +38,33 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class IHPConfig(TypedDict):
-    parent: HasParent
+class IHPCreate(Generic[T], TypedDict):
     name: str
-    klass: type
+    parent: HasParent
+    klass: type[T]
     args: tuple
     kwgs: dict
 
-class IHPSettings(TypedDict):
+
+class IHPChange(Generic[T], TypedDict):
+    name: str
+    parent: HasParent
+    obj: T
+
+
+class IHPSettings(Generic[T], TypedDict):
     load_default: NotRequired[bool]
     allow_none: NotRequired[bool]
     read_only: NotRequired[bool]
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str, ...]]
-    create: NotRequired[str | Callable[[IHPConfig], Any]]
+    create: NotRequired[str | Callable[[IHPCreate[T]], T]]
+    change_new: NotRequired[str | Callable[[IHPChange[T]], None]]
+    change_old: NotRequired[str | Callable[[IHPChange[T]], None]]
     dynamic_kwgs: NotRequired[dict[str, Any]]
     set_attrs: NotRequired[dict[str, Any]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
-    on_click: NotRequired[str | tuple[str, ...]]
+    on_click: NotRequired[str | Callable[[ipw.Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
 
 
@@ -54,18 +76,24 @@ class IHPDlinkType(TypedDict):
     transform: NotRequired[Callable[[Any], Any]]
 
 
-class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
+class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
+    default_value: None = None
     _klass: type[T] | None = None
-    if TYPE_CHECKING:
-        name: str  # type: ignore
     _default_settings: ClassVar[IHPSettings] = {
         "load_default": True,
         "allow_none": True,
         "read_only": True,
         "set_parent": True,
-        "on_click": ("button_clicked",),
+        "on_click": "button_clicked",
         "on_replace_close": True,
     }
+
+    if TYPE_CHECKING:
+        name: str  # type: ignore
+        settings: IHPSettings[T]
+
+        @overload
+        def __get__(self, obj: Any, cls: type[HasParent]) -> T: ...  # type: ignore
 
     def class_init(self, cls, name):
         if issubclass(cls, HasParent):
@@ -110,8 +138,9 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         """
         if isinstance(klass, str):
             self.klass_name = klass
-        elif issubclass(klass, HasParent) or inspect.isclass(klass):  # type: ignore
-            self._klass = klass  # type: ignore
+        elif inspect.isclass(klass):
+            self._klass = klass
+            self.klass_name = klass.__name__
         else:
             msg = f"{klass} is not a class or string!"
             raise TypeError(msg)
@@ -160,9 +189,13 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
     def set_parent(self):
         return self.settings["set_parent"]  # type: ignore
 
-    def set(self, obj: HasParent, value: Any) -> None:  # type: ignore
+    def set(self, obj: HasParent, value) -> None:  # type: ignore
+        if isinstance(value, dict) and self.klass_name:
+            value = self.default(obj, value)
         new_value = self._validate(obj, value)
-        assert self.name is not None  # noqa: S101
+        if isinstance(value, HasParent) and self.set_parent:
+            # Do this early incase the parent is invalid.
+            value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
         except KeyError:
@@ -177,12 +210,15 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
         if silent is not True:
             # we explicitly compare silent to True just in case the equality
             # comparison above returns something other than True/False
-            self._value_changed(obj, old_value, new_value)
+            try:
+                self._value_changed(obj, old_value, new_value)
+            except Exception as e:
+                obj.on_error(e, "Instance configuration error.")
             obj._notify_trait(self.name, old_value, new_value)
 
     def get(self, obj: HasParent, cls: Any = None) -> T | None:  # type: ignore
         try:
-            value = obj._trait_values[self.name]  # type: ignore
+            value: T | None = obj._trait_values[self.name]  # type: ignore
             if getattr(value, "closed", False) and not obj.closed:
                 # This object has been closed, so a new default should be obtained
                 obj._trait_values.pop(self.name, None)
@@ -200,14 +236,8 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             finally:
                 obj._cross_validation_lock = _cross_validation_lock
             obj._trait_values[self.name] = value  # type: ignore
-            if isinstance(value, traitlets.HasTraits):
-                self._value_changed(obj, None, value)
-                obj._notify_observers(Bunched(name=self.name, old=None, new=value, owner=obj, type="change"))
-            if getattr(self, "children_mode", "") == "monitor":
-                from menubox.synchronise import ChildrenSetter
-
-                home = getattr(obj, "home", "default")
-                ChildrenSetter(home=home, parent=obj, name=self.name, items=self.children)
+            self._value_changed(obj, None, value)
+            obj._notify_observers(Bunched(name=self.name, old=None, new=value, owner=obj, type="change"))
             return value  # type: ignore
         except Exception as e:
             # This should never be reached.
@@ -218,7 +248,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
 
     def default(self, obj: HasParent, override: None | dict = None) -> T | None:  # type: ignore
         try:
-            if override is None and not self.load_default:
+            if not self.load_default and override is None:
                 if self.allow_none:
                     return None
                 msg = f'Both `load_default` and `allow_none` are False for "{obj.__class__.__name__}.{self.name}".'
@@ -227,149 +257,164 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
             if issubclass(self.klass, HasParent) and self.set_parent:
                 kwgs["parent"] = obj
                 kwgs["_ptname"] = self.name
-            if override:
-                if isinstance(override, dict):
-                    kwgs = kwgs | override
-                elif not isinstance(override, bool):
-                    obj.log.warning(
-                        f"'{utils.fullname(obj)}.{self.name}' provided "
-                        f"{override=} is not a dict and will be returned 'as is'."
-                    )
-                    return override
-            if children := getattr(self, "children", None):
-                kwgs["children"] = obj.get_widgets(children, skip_hidden=False, show=True)
-            name: str
+
+            # dynamic_kwgs
             if dynamic_kwgs := self.settings.get("dynamic_kwgs"):
                 for name, value in dynamic_kwgs.items():
                     if callable(value):
                         kwgs[name] = value(
-                            IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs)
+                            IHPCreate(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs)
                         )
                     elif value == "self":
                         kwgs[name] = obj
                     else:
                         kwgs[name] = utils.getattr_nested(obj, value, hastrait_value=False)
+
+            # Overrides - use via `HasParent.instanceHP_enable_disable`, `Menubox.enable_widget` or set directly with a dict.
+            if override:
+                kwgs = kwgs | override
+            # create
             if create := self.settings.get("create"):
                 if isinstance(create, str):
                     create = getattr(obj, create)
-                if callable(create):
-                    return create(IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs))  # type: ignore # type: T
-            return self.klass(*(self.args), **kwgs)  # type:ignore[operator]
+                return create(IHPCreate(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs))
+            return self.klass(*(self.args), **kwgs)
         except Exception as e:
-            obj.on_error(e, f"instance for trait '{self.name}'", self)
+            obj.on_error(e, f'Instance creation failed for "{utils.fullname(obj)}.{self.name}"', self)
             raise
 
-    def _validate(self, obj: HasParent, value):
-        if value is not None and not isinstance(value, self.klass):
-            if obj.trait_has_value(self.name):
-                value_ = getattr(obj, self.name)
-                if isinstance(value_, self.klass):
-                    return value_
-            value = self.default(obj, value)  # type: ignore
-        value = super()._validate(obj, value)
+    def _validate(self, obj: HasParent, value) -> T | None:
         if value is None:
-            return value
-        if self.set_parent and hasattr(value, "_ptname"):
-            value.parent = obj  # type: ignore
-            value.set_trait("_ptname", self.name)  # type: ignore
-        return value
-
-    def validate(self, obj: HasParent, value) -> T | None:
-        if not self.klass:
-            msg = f"klass has not been set for the InstanceHP object: {obj.__class__}.{self.name}"
-            raise RuntimeError(msg)
-        if isinstance(value, self.klass):  # type:ignore[arg-type]
-            return value
-        if value is None and not self.allow_none:
+            if self.allow_none:
+                return value
             msg = (
                 f"None is not allowed for the InstanceHP trait `{obj.__class__.__name__}.{self.name}`. "
                 f"Use `.configure(allow_none=True)` "
                 "to permit it."
             )
             raise RuntimeError(msg)
+        if not self.klass:
+            msg = f"klass has not been set for the InstanceHP object: {obj.__class__}.{self.name}"
+            raise RuntimeError(msg)
+        if isinstance(value, self.klass):  # type:ignore[arg-type]
+            if obj._cross_validation_lock is False:
+                value = self._cross_validate(obj, value)
+            return value
         self.error(obj, value)  # noqa: RET503
 
-    def _value_changed(self, obj: HasParent, old: Any | None, new: Any | None):
-        if isinstance(new, ipw.Button):
-            for name in utils.iterflatten(self.settings.get("on_click", ())):
-                self._register_on_click(obj, name, new)
+    def _value_changed(self, owner: HasParent, old: T | None, new: T | None):
+        # This is the main handler function for loading and configuration
+        # providing consitent/predictable behaviour reducing boilerplate code.
+
+        #  set_parent
+        if self.set_parent and isinstance(new, HasParent):
+            new.parent = owner
+            new.set_trait("_ptname", self.name)
+
+        # set_children
+        if isinstance(new, ipw.Widget) and (children := getattr(self, "children", None)):
+            if getattr(self, "children_mode", "") == "monitor":
+                from menubox.synchronise import ChildrenSetter
+
+                home = getattr(owner, "home", "_child setter")
+                ChildrenSetter(home=home, parent=owner, name=self.name, items=children)
+            else:
+                new.set_trait("children", owner.get_widgets(children, skip_hidden=False, show=True))
+
+        # on_click
+        if (
+            isinstance(new, ipw.Button)
+            and not isinstance(new, mb.async_run_button.AsyncRunButton)
+            and (on_click := self.settings.get("on_click"))
+        ):
+            if mb.DEBUG_ENABLED:
+                if not callable(utils.getattr_nested(owner, on_click) if isinstance(on_click, str) else on_click):
+                    msg = f"`{on_click=}` is not callable!"
+                    raise TypeError(msg)
+                if on_click == "button_clicked" and not asyncio.iscoroutinefunction(owner.button_clicked):
+                    msg = f"By convention `{utils.fullname(new)}.button_clicked` must be a coroutine function!"
+                    raise TypeError(msg)
+            taskname = f"button_clicked[{id(new)}] → {owner.__class__.__name__}.{self.name}"
+
+            ref = weakref.ref(owner)
+            busy_border = owner.BUTTON_BUSY_BORDER
+
+            def _on_click(b: ipw.Button):
+                obj: HasParent | None = ref()
+                if obj:
+
+                    async def click_callback():
+                        callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
+                        if busy_border:
+                            b.layout.border = busy_border
+                        try:
+                            result = callback(b)
+                            if inspect.isawaitable(result):
+                                await result
+                        finally:
+                            if busy_border:
+                                b.layout.border = ""
+
+                    mb_async.run_async(click_callback, name=taskname, obj=obj)
+
+            new.on_click(_on_click)
+
+        # set_attrs
         if set_attrs := self.settings.get("set_attrs"):
             for k, v in set_attrs.items():
                 val = v
                 if isinstance(val, str) and val.startswith("."):
                     val = val[1:]
-                    val = obj if val == "self" else utils.getattr_nested(obj, val)
+                    val = owner if val == "self" else utils.getattr_nested(owner, val)
                 elif callable(val):
-                    config = IHPConfig(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs)
+                    config = IHPCreate(parent=owner, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs)
                     val = val(config)
                 utils.setattr_nested(new, k, val, setattr)
+
+        # dlink
         if dlink := self.settings.get("dlink"):
             dlinks = (dlink,) if isinstance(dlink, dict) else dlink
             target_obj = new
             for dlink in dlinks:
                 src_name, src_trait = dlink["source"]
-                src_obj = obj if src_name == "self" else utils.getattr_nested(obj, src_name, hastrait_value=False)
+                src_obj = owner if src_name == "self" else utils.getattr_nested(owner, src_name, hastrait_value=False)
                 tgt_trait = dlink["target"]
-                key = f"{id(obj)} {obj.__class__.__name__}.{self.name}.{tgt_trait}"
+                key = f"{id(owner)} {owner.__class__.__name__}.{self.name}.{tgt_trait}"
                 if "." in tgt_trait:
                     class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
                     target_obj = utils.getattr_nested(new, class_name, hastrait_value=False)
                 transform = dlink.get("transform")
                 if isinstance(transform, str):
-                    transform = utils.getattr_nested(obj, transform, hastrait_value=False)
+                    transform = utils.getattr_nested(owner, transform, hastrait_value=False)
                 if transform and not callable(transform):
                     msg = f"Transform must be callable but got {transform:!r}"
                     raise TypeError(msg)
-                obj.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
+                owner.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
                 if isinstance(target_obj, traitlets.HasTraits):
-                    obj.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
+                    owner.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
+
+        # add_css_class
         if isinstance(new, ipw.DOMWidget) and (css_class_names := self.settings.get("add_css_class")):
             for class_name in utils.iterflatten(css_class_names):
                 new.add_class(class_name)
+
+        # on_replace_close
         if old is not None and old is not traitlets.Undefined:
-            if getattr(old, "parent", None) is obj:
+            if isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
                 old.parent = None
                 old.set_trait("_ptname", "")
             if self.settings.get("on_replace_close"):
                 mb.utils.close_obj(old)
 
-    def _register_on_click(self, obj: HasParent, name: str, b: ipw.Button):
-        """Link the on_click to the Button.
-
-        The callback is handled in a singular task. Returning an awaitable from the
-        callback will be awaited
-        """
-        if not callable(utils.getattr_nested(obj, name)):
-            msg = f"`{utils.fullname(obj)}.{name}` is not callable!"
-            raise TypeError(msg)
-        if name == "button_clicked" and not asyncio.iscoroutinefunction(obj.button_clicked):
-            msg = f"By convention `{utils.fullname(obj)}.button_clicked` must be a coroutine function!"
-            raise TypeError(msg)
-        taskname = f"button_clicked[{id(obj)}] → {obj.__class__.__name__}.{self.name}"
-        b.on_click(functools.partial(self._button_clicked, weakref.ref(obj), name, taskname))
-
-    @staticmethod
-    def _button_clicked(ref: weakref.ref, name: str, taskname: str, b: ipw.Button):
-        obj: HasParent | None = ref()
-        if obj:
-
-            async def click_callback():
-                callback = utils.getattr_nested(obj, name)
-                if obj.BUTTON_BUSY_BORDER:
-                    b.layout.border = obj.BUTTON_BUSY_BORDER
-                try:
-                    result = callback(b)
-                    if inspect.isawaitable(result):
-                        await result
-                finally:
-                    if obj.BUTTON_BUSY_BORDER:
-                        b.layout.border = ""
-
-            mb_async.run_async(click_callback(), name=taskname, obj=obj)
-
+        # change_new & change_old
+        for obj, key in [(old, "change_old"), (new, "change_new")]:
+            if obj is not None and (changed := self.settings.get(key)):
+                if isinstance(changed, str):
+                    changed = getattr(owner, changed)
+                changed(IHPChange(name=self.name, parent=owner, obj=obj))
 
     # TODO: add overloads if allow_none is True/false
-    def configure(self, **kwgs: Unpack[IHPSettings]) -> Self:
+    def configure(self, **kwgs: Unpack[IHPSettings[T]]) -> Self:
         """Configure how the instance will be handled.
 
         Configuration changes are merged using a nested replace strategy except as explained below.
@@ -408,7 +453,7 @@ class InstanceHP(traitlets.ClassBasedTraitType[T, type[T]]):
                 with the dotted name after the `.`.
             **Callable values**
                 If the value is callable, the result of the callable is used. The callable
-                is passed the structure `IHPConfig` noting that kwgs is updated in the same
+                is passed the structure `IHPCreate` noting that kwgs is updated in the same
                 order as set_attrs.
         dlink: IHPDlinkType | tuple[IHPDlinkType]
             A mapping or tuple of mappings for dlinks to add when creating.

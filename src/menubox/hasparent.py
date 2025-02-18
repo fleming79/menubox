@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import pathlib
 import weakref
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -27,15 +26,6 @@ if TYPE_CHECKING:
 
     from menubox.instance import InstanceHP
 
-
-def to_safe_homename(name):
-    if not name:
-        return "default"
-    n = utils.sanatise_filename(pathlib.PurePath(name).name)
-    if not n:
-        msg = f"Unable convert {name=} to a valid home"
-        raise NameError(msg)
-    return n
 
 
 class Link:
@@ -444,16 +434,16 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         if self._HasParent_init_complete:
             return
         values = {}
-        for k in tuple(kwargs):
-            if k in self._InstanceHP:
-                values[k] = kwargs.pop(k)
+        for name in tuple(kwargs):
+            if name in self._InstanceHP:
+                values[name] = kwargs.pop(name)
         super().__init__(**kwargs)
         self.parent = parent
         if _ptname:
             self.set_trait("_ptname", _ptname)
         self._HasParent_init_complete = True
-        for k, v in values.items():
-            self.instanceHP_enable_disable(k, bool(v), v)
+        for name, v in values.items():
+            self.instanceHP_enable_disable(name, v)
         if callable(self.init_async):
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
             mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
@@ -467,6 +457,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         "A representation for logging"
         return utils.limited_string(self, 40)
 
+    @override
     def add_traits(self, **_: Any) -> NoReturn:
         """-- DO NOT USE --
 
@@ -489,15 +480,25 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             if mb.DEBUG_ENABLED:
                 raise
 
-    def instanceHP_enable_disable(self, name: str, enable: bool, overrides: dict | None = None):  # noqa: FBT001
-        """Enable or disable the trait with 'name'."""
+    def instanceHP_enable_disable(self, name: str, enable: bool | dict):
+        """Enables or disables an InstanceHP trait.
+        Args:
+            name: The name of the instance HP to enable or disable.
+            enable:
+            If True or a dict, the instance HP is enabled. If a dict, it
+            becomes the value of the instance HP. If False or None, the
+            instance HP is disabled (set to None).
+        Raises:
+            KeyError: If the given name is not a valid instance HP.
+        """
+
         if name not in self._InstanceHP:
             msg = f"{name=} not in {list(self._InstanceHP)}"
             raise KeyError(msg)
-        if enable:
-            self.set_trait(name, overrides or True)
-        else:
+        if enable in [False, None]:
             self.set_trait(name, None)
+        elif self._trait_values.get(name) is None:
+            self.set_trait(name, {} if enable is True else enable)
 
     def _reset_trait(self, name: str):
         """Reset the trait to an unloaded stated."""

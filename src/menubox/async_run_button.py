@@ -104,7 +104,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             self._update_link_button()
         self.set_description(description)
         super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
-        self.on_click(self.button_clicked)
+        self.on_click(self._on_click)
         if self.parent:
             self.log = self.parent.log
 
@@ -138,7 +138,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             self._update_disabled = False
             self.disabled = False
 
-    def button_clicked(self, _: ipw.Button):  # type: ignore
+    def _on_click(self, _: ipw.Button):
         if self.task:
             self.cancel()
         else:

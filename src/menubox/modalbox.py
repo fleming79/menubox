@@ -99,18 +99,16 @@ class ModalBox(HasParent, ipw.VBox):
         title = fstr(title)
         if title:
             self.instanceHP_enable_disable(
-                "html_title", True, {"description": f"<b>{title}</b>", "tooltip": fstr(title_tooltip)}
+                "html_title", {"description": f"<b>{title}</b>", "tooltip": fstr(title_tooltip)}
             )
         if header_children:
             self.header_children = header_children
         self.instanceHP_enable_disable(
             "button_expand",
-            True,
             {"description": fstr(button_expand_description or title), "tooltip": fstr(button_expand_tooltip)},
         )
         self.instanceHP_enable_disable(
             "button_collapse",
-            True,
             {"description": fstr(button_collapse_description), "tooltip": fstr(button_collapse_tooltip)},
         )
         super().__init__(parent=parent, children=(self.button_expand,), **kwargs)

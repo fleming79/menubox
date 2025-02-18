@@ -83,19 +83,19 @@ async def test_value_traits():
     assert len(vt1._vt_reg_value_traits) == 1
     assert len(vt1._vt_reg_value_traits_persist) == 2
     vt1.instanceHP_enable_disable("nested", False)
-    assert vt1.on_change_counts == 2
-    assert vt1.value_change_count == 2
+    assert vt1.on_change_counts == 1
+    assert vt1.value_change_count == 1
     vt1._reset_trait("nested")
     assert vt1.nested
-    assert vt1.value_change_count == 3
+    assert vt1.value_change_count == 2
     vt1.drop_value_traits("nested.number.value")
-    assert vt1.on_change_counts == 3
-    assert vt1.value_change_count == 3
+    assert vt1.on_change_counts == 2
+    assert vt1.value_change_count == 2
     assert len(vt1._vt_reg_value_traits) == 0
     vt1.value = {"a": "change two at once", "b": 3}
     assert vt1.value() == {"a": "change two at once", "b": 3}  # type: ignore
-    assert vt1.value_change_count == 4, "Should get called once per set of changes"
-    assert vt1.on_change_counts == 5, "Called for each update"
+    assert vt1.value_change_count == 3, "Should get called once per set of changes"
+    assert vt1.on_change_counts == 4, "Called for each update"
 
     # Check
     vt2 = VT2(home="default")

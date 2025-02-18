@@ -18,7 +18,7 @@ import menubox.async_run_button
 import menubox.defaults as dv
 import menubox.widgets
 from menubox import mb_async
-from menubox.instance import IHPConfig, IHPDlinkType, InstanceHP
+from menubox.instance import IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as IHP
 
@@ -71,7 +71,7 @@ __all__ = [
     "HTMLMath",
     "HTML_Title",
     "IHP",
-    "IHPConfig",
+    "IHPCreate",
     "IHPDlinkType",
     "Image",
     "InstanceHP",

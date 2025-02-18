@@ -19,6 +19,7 @@ class ChildrenSetter(ValueTraits):
     value_traits = NameTuple("items")
     _updating = False
 
+    # TODO: Handle nested trait names
     def on_change(self, change: ChangeType):
         if change["owner"] is self.parent and change["name"] == self.name and isinstance(change["old"], Box):
             change["old"].children = ()

@@ -226,7 +226,7 @@ class MenuBox(HasParent, Panel):
 
     def enable_widget(self, name: str, overrides: dict | None = None) -> None:
         "Load the widget."
-        self.instanceHP_enable_disable(name, True, overrides)
+        self.instanceHP_enable_disable(name, overrides or True)
 
     def disable_widget(self, name: str) -> None:
         "Remove the widget."
@@ -335,8 +335,7 @@ class MenuBox(HasParent, Panel):
         for button in self._view_buttons:
             border = "solid 1px blue" if button.description == view else ""
             mb.utils.set_border(button, border)
-        if mb.DEBUG_ENABLED:
-            self.log.debug(f"Loaded view: {view}")
+        self.log.debug("Loaded view: %s", view)
         self.menu_close()
         self.mb_refresh()
         view = self.view
@@ -506,7 +505,7 @@ class MenuBox(HasParent, Panel):
                 else:
                     self.menu_close()
             case "toggleviews":
-                if len(self.toggleviews):
+                if len(self.toggleviews) > 1:
                     self.enable_widget("button_toggleview")
                 else:
                     self.disable_widget("button_toggleview")

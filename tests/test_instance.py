@@ -7,11 +7,12 @@ from typing import cast
 
 import ipywidgets as ipw
 import pytest
+from traitlets import Dict, TraitError
 
 import menubox as mb
 import menubox.trait_factory as tf
 from menubox.hasparent import HasParent
-from menubox.instance import InstanceHP, instanceHP_wrapper
+from menubox.instance import IHPChange, InstanceHP, instanceHP_wrapper
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
@@ -41,7 +42,7 @@ class HPI2(HPI, mb.MenuBoxVT):
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     @staticmethod
-    def get_name(config: tf.IHPConfig):
+    def get_name(config: tf.IHPCreate):
         return f"{config['parent']}.{config['name']}"
 
     async def _button_async(self):
@@ -52,6 +53,16 @@ class HPI3(mb.MenuBox):
     box = tf.Box().configure(allow_none=True)
     menubox = tf.MenuBox(views={"main": None}).configure(allow_none=True)
     hpi2 = tf.InstanceHP(HPI2).configure(allow_none=True)
+
+
+class HPI4(HasParent):
+    hpi = tf.InstanceHP(HPI).configure(
+        allow_none=True,
+        change_new=lambda change: change["parent"].set_trait("change_new", change),
+        change_old=lambda change: change["parent"].set_trait("change_old", change),
+    )
+    change_new = Dict()
+    change_old = Dict()
 
 
 async def test_instance(home: mb.Home):
@@ -122,7 +133,7 @@ async def test_instance2(home: mb.Home):
 
     # Test can regenerate
     assert not hp1.a
-    hp1.instanceHP_enable_disable("a", True, overrides={"a": None})
+    hp1.instanceHP_enable_disable("a", {"a": None})
     assert isinstance(hp1.a, HPI), "Re generated"
     assert not hp1.a.a, "From overrides is disabled"
 
@@ -141,6 +152,25 @@ async def test_instance2(home: mb.Home):
     assert not hp2b.trait_has_value("select_repository")
     assert hp2b.select_repository, "close should reset so default will load."
     assert not hp2b.select_repository.closed
+
+
+async def test_instance_invalid_value(home: mb.Home):
+    hpi3 = HPI3(home=home)
+    with pytest.raises(
+        TraitError, match="The 'hpi2' trait of a HPI3 instance expected an instance of `HPI2` or `None`, not the int 0."
+    ):
+        hpi3.set_trait("hpi2", 0)
+
+
+async def test_instance_change(home: mb.Home):
+    hpi4 = HPI4(home=home)
+    assert hpi4.hpi
+    assert hpi4.change_new == IHPChange(name="hpi", parent=hpi4, obj=hpi4.hpi)
+    old = hpi4.hpi
+    new = HPI()
+    hpi4.set_trait("hpi", new)
+    assert hpi4.change_new == IHPChange(name="hpi", parent=hpi4, obj=new)
+    assert hpi4.change_old == IHPChange(name="hpi", parent=hpi4, obj=old)
 
 
 @pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])
@@ -162,7 +192,7 @@ async def test_instance_gc(trait, weakref_enabled):  # noqa: ARG001
     # ------- WARNING ------ : adding debug break points may cause this to fail.
     for _ in range(20):
         gc.collect()
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.05)
         if deleted:
             break
         # Some objects schedule tasks against functions that may take a while to exit.
