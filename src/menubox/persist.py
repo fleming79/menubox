@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -18,6 +18,7 @@ from menubox.trait_types import ChangeType, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+    from logging import Logger, LoggerAdapter
 
     from fsspec import AbstractFileSystem
 
@@ -106,7 +107,6 @@ class MenuBoxPersist(MenuBoxVT):
     header_right_children = StrTuple("menu_load_index", *MenuBoxVT.header_right_children)
 
     task_loading_persistence_data = tf.Task()
-    views = traitlets.Dict({"Main": "view_main_get"})
     value_traits = StrTuple(*MenuBoxVT.value_traits, "version", "sw_version_load")
     value_traits_persist = StrTuple("saved_timestamp", "name", "description")
     dataframe_persist = StrTuple()
@@ -183,6 +183,17 @@ class MenuBoxPersist(MenuBoxVT):
         return path
 
     async def save_dataframes_async(self, name: str, version: int) -> None:
+        """Asynchronously saves dataframes to the repository.
+
+        Iterates through the dataframes specified in `self.dataframe_persist`,
+        skipping empty dataframes.  Constructs a file path for each dataframe
+        based on the given name, version, and dotted name, then saves the
+        dataframe to the repository using an asynchronous thread.
+
+        Args:
+            name (str): The name associated with the dataframes to be saved.
+            version (int): The version number associated with the dataframes.
+        """
         repo = self.home.repository
         for dotted_name in self.dataframe_persist:
             df: pd.DataFrame = utils.getattr_nested(self, dotted_name)
@@ -193,7 +204,17 @@ class MenuBoxPersist(MenuBoxVT):
             self.log.info(f"Saved {path}")
 
     async def get_dataframes_async(self, name: str, version: int) -> dict[str, pd.DataFrame]:
-        """Obtain a dict mapping the dataframe_persist:df loaded from file."""
+        """Asynchronously retrieves a dictionary of pandas DataFrames.
+
+        Args:
+            name (str): The name associated with the DataFrames.
+            version (int): The version number associated with the DataFrames.
+
+        Returns:
+            dict[str, pd.DataFrame]: A dictionary where keys are dotted names
+            and values are the corresponding pandas DataFrames.  Returns an
+            empty dictionary if no DataFrames are found.
+        """
         repo = self.home.repository
         values = {}
         for dotted_name in self.dataframe_persist:
@@ -215,6 +236,22 @@ class MenuBoxPersist(MenuBoxVT):
 
     @classmethod
     def get_persistence_base(cls, name: str, version: int | str) -> str:
+        """Generates a base string for persistence keys.
+
+        The base string incorporates the class name, a provided name, and a version number.
+        It is used as a foundation for constructing keys used to persist and retrieve data.
+
+        Args:
+            cls: The class for which the persistence base is being generated.
+            name: A descriptive name to include in the persistence base.
+            version: An integer or string representing the version of the data structure. Must be >= 1.
+
+        Returns:
+            A string formatted as '{cls.__name__}.{name}.v{version}', all lowercased.
+
+        Raises:
+            ValueError: If the version is None, empty, or less than 1.
+        """
         if not version or not isinstance(version, str) and version < 1:
             msg = f"version must be >= 1 but is {version}"
             raise ValueError(msg)
@@ -222,7 +259,16 @@ class MenuBoxPersist(MenuBoxVT):
 
     @classmethod
     def list_stored_datasets(cls, home: Home | str) -> list[str]:
-        """List the stored datasets for this class."""
+        """List the names of all stored datasets in the given home.
+
+        The names are sorted alphabetically.
+
+        Args:
+            home: The home directory or a Home object.
+
+        Returns:
+            A list of dataset names.
+        """
         repo = Home(home).repository
         datasets = set()
         ptn = repo.to_path(cls._get_persist_name("*", "*"))
@@ -232,11 +278,35 @@ class MenuBoxPersist(MenuBoxVT):
 
     @classmethod
     def get_df_filename(cls, name: str, version: int, dotted_name: str) -> str:
+        """Generates the filename for a DataFrame to be persisted.
+
+        Args:
+            name (str): The name of the menu.
+            version (int): The version of the menu.
+            dotted_name (str): The dotted name of the DataFrame.
+
+        Returns:
+            str: The filename for the DataFrame.
+        """
         base = cls.get_persistence_base(name, version)
         return pathlib.Path(base, utils.sanatise_filename(f"{dotted_name}.parquet")).as_posix()
 
     @classmethod
-    def get_persistence_versions(cls, home: Home | str, name: str, log=None) -> tuple[int, ...]:
+    def get_persistence_versions(
+        cls, home: Home | str, name: str, log: Logger | LoggerAdapter | None = None
+    ) -> tuple[int, ...]:
+        """Get all persistence versions for a given name.
+
+        Args:
+            home: The home directory or a Home object.
+            name: The name of the persisted object.
+            log: An optional logger.
+
+        Returns:
+            A tuple of sorted version numbers.
+            If SINGLE_VERSION is True, returns (1,) if version 1 exists, otherwise ().
+            Returns () if any error occurs.
+        """
         repo = Home(home).repository
         path = repo.to_path(cls._get_persist_name(name, "*"))
         files = repo.fs.glob(str(path))
@@ -256,17 +326,35 @@ class MenuBoxPersist(MenuBoxVT):
         except Exception:
             return ()
 
-    async def load_view_async(self, view: str | None):
+    @override
+    async def load_center_widgets(self, view: str | None):
         if not self.name:
             view = self._CONFIGURE_VIEW
-        return await super().load_view_async(view)
+        return await super().load_center_widgets(view)
 
     @mb_async.singular_task(tasktype=mb_async.TaskType.update, handle="task_loading_persistence_data")
     async def load_persistence_data(self, version=None, quiet=False, data: dict | None = None, set_version=False):
-        """Loads persistence data from file.
+        """Asynchronously loads persistence data for the menubox.
 
-        (loading data is async)
+        This method retrieves and sets the menubox's data from persistent storage.
+        It handles loading both regular data and dataframe data, if applicable.
+        Args:
+            version (int, optional): The version of the data to load. If None, the latest version is loaded. Defaults to None.
+            quiet (bool, optional): If True, suppresses FileNotFoundError exceptions. Defaults to False.
+            data (dict | None, optional):  A dictionary containing the data to load. If provided, data is loaded from this dictionary instead of disk. Defaults to None.
+            set_version (bool, optional): If True, updates the version widget and trait with the loaded version. Defaults to False.
+        Raises:
+            Exception: If an error occurs during data loading (excluding FileNotFoundError when quiet=True).
+        Returns:
+            None
+        Notes:
+            - If `data` is provided, the method bypasses loading from disk and directly sets the menubox's value.
+            - If `dataframe_persist` is True, it also loads dataframe data and merges it with the regular data.
+            - If `set_version` is True, it updates the version widget to reflect the loaded version.
+            - If `menu_load_index` is set, it collapses the menu after loading.
+            - Finally, it calls `update_title` to refresh the menubox's title.
         """
+
         if data is None:
             try:
                 version = self._to_version(version)
@@ -295,6 +383,21 @@ class MenuBoxPersist(MenuBoxVT):
 
     @classmethod
     def get_persistence_data(cls, home: str | Home, name: str, version: int | None = None) -> dict:
+        """
+        Retrieves persistence data for a given name and version from a specified home directory.
+
+        Args:
+            home: The home directory or Home object where the persistence data is stored.
+            name: The name of the persistence data.
+            version: The version of the persistence data to retrieve. If None, the latest version is retrieved.
+
+        Returns:
+            A dictionary containing the persistence data. Returns an empty dictionary if no data is found or if the data is not a dictionary.
+
+        Raises:
+            FileNotFoundError: If the file containing the persistence data is not found.
+            TypeError: If the loaded data is not a dictionary.
+        """
         repo = Home(home).repository
         versions = cls.get_persistence_versions(home, name)
         if not versions or version is not None and version not in versions:
@@ -316,6 +419,13 @@ class MenuBoxPersist(MenuBoxVT):
             raise FileNotFoundError(msg)
 
     def get_latest_version(self) -> int:
+        """Retrieves the latest version number from the available versions.
+
+        If no versions are available, it returns a default version number of 1.
+
+        Returns:
+            int: The latest version number, or 1 if no versions are available.
+        """
         self._update_versions()
         return max(self.versions) if self.versions else 1
 
@@ -328,6 +438,19 @@ class MenuBoxPersist(MenuBoxVT):
 
     @classmethod
     def save_dataframe(cls, df: pd.DataFrame, fs: AbstractFileSystem, path: str):
+        """Save a Pandas DataFrame to a file using the given filesystem.
+
+        Args:
+            df: The Pandas DataFrame to save.
+            fs: The filesystem to use for saving.
+            path: The path to save the DataFrame to. The suffix of the path
+            determines the file format. Supported formats are:
+            - csv, txt: CSV file
+            - parquet: Parquet file
+
+        Raises:
+            NotImplementedError: If the file suffix is not supported.
+        """
         accessed = False  # Allow for removal of partially written files
         try:
             with fs.open(path, "wb") as f:
@@ -348,6 +471,18 @@ class MenuBoxPersist(MenuBoxVT):
 
     @classmethod
     def load_dataframe(cls, fs: AbstractFileSystem, path: str) -> pd.DataFrame:
+        """Load a dataframe from the given path on the given filesystem.
+
+        Args:
+            fs: The filesystem to load from.
+            path: The path to load from.
+
+        Returns:
+            The loaded dataframe.
+
+        Raises:
+            NotImplementedError: If the file extension is not supported.
+        """
         with fs.open(path, "rb") as f:
             match path.rsplit(".", maxsplit=1)[-1]:
                 case "csv" | "txt":
@@ -356,6 +491,3 @@ class MenuBoxPersist(MenuBoxVT):
                     return pd.read_parquet(f)  # type: ignore
                 case suffix:
                     raise NotImplementedError(suffix)
-
-    def view_main_get(self) -> ipw.Widget | Iterable[ipw.Widget | str | Callable] | Callable:
-        return ipw.HTML(f"This function should be overloaded: {utils.fullname(self.view_main_get)}")

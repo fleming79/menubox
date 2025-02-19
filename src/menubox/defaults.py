@@ -59,8 +59,12 @@ class _NoValue(float, enum.Enum):
     def __getattr__(self, name):
         if name == "_value_":
             return nan
-        return getattr(pd.NA, name)
-
+        try:
+            return getattr(pd.NA, name)
+        except AttributeError:
+            if name not in ["_typ", "__iter__"]:
+                raise
+            return None
 
 class _Index(enum.StrEnum):
     token = "--INDEX--"  # noqa: S105

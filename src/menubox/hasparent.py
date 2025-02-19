@@ -270,6 +270,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent()
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
+    _init_task: traitlets.Instance[asyncio.Task[None] | None] = traitlets.Instance(asyncio.Task, allow_none=True)  # type: ignore
     init_async: ClassVar[None | Coroutine] = None
 
     def setter(self, obj, name: str, value):
@@ -440,9 +441,10 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         self._HasParent_init_complete = True
         for name, v in values.items():
             self.instanceHP_enable_disable(name, v)
-        if callable(self.init_async):
+        if self.init_async:
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
-            mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
+            mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self, handle="_init_task")  # type: ignore
+            self.init_async = None  # type: ignore # This function is only intended to be called once here.
 
     def get_log_name(self):
         "A representation for logging"
@@ -657,6 +659,20 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self._hasparent_all_links[key] = link
 
     async def button_clicked(self, b: ipw.Button):
+        """Handles button click events.
+
+        When overriding this method, ensure to call:
+
+        ``` python
+        await super().button_clicked(b)
+        ```
+
+        to pass on click events.
+
+            Args:
+                b (ipw.Button): The button that was clicked.
+        """
+
         button_clicked = getattr(super(), "button_clicked", None)
         if button_clicked:
             await button_clicked(b)
@@ -669,9 +685,8 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
 
     async def wait_init_tasks(self, timeout=None) -> Self:
         "Will await init tasks once"
-        if not getattr(self, "_init_async_awaited", False):
+        if self._init_task:
             await self.wait_tasks(mb_async.TaskType.init, timeout=timeout)
-            self._init_async_awaited = True
         return self
 
     async def wait_tasks(self, *tasktypes, timeout=None) -> Self:

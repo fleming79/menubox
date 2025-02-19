@@ -7,7 +7,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal, overload, override
 
 import docstring_to_markdown
 import ipylab
@@ -50,7 +50,9 @@ class MenuBox(HasParent, Panel):
 
     _MINIMIZED: Final = "Minimized"
     _setting_view = False
-    _loading_view: defaults.NO_DEFAULT_TYPE | str | None = NO_DEFAULT
+    loading_view: traitlets.Instance[defaults.NO_DEFAULT_TYPE | str | None] = traitlets.Any(
+        default_value=NO_DEFAULT, read_only=True
+    )  # type: ignore
     _RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (_MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
     DEFAULT_BORDER = ""
@@ -247,10 +249,10 @@ class MenuBox(HasParent, Panel):
 
     @traitlets.validate("view")
     def _vaidate_view(self, proposal: ProposalType):
+        if proposal["value"] not in self._current_views:
+            msg = f"View{proposal['value']} not in {self._current_views}"
+            raise IndexError(msg)
         if self._setting_view:
-            if proposal["value"] not in self._current_views:
-                msg = f"View{proposal['value']} not in {self._current_views}"
-                raise IndexError(msg)
             return proposal["value"]
         self.load_view(proposal["value"])
         return self.view
@@ -307,26 +309,29 @@ class MenuBox(HasParent, Panel):
                 msg = f'{view=} not a current view! Available views = "{self._current_views}"'
                 raise RuntimeError(msg)
         else:
-            view = (self._loading_view if self._loading_view is not NO_DEFAULT else self.view) or NO_DEFAULT
+            view = (self.loading_view if self.loading_view is not NO_DEFAULT else self.view) or NO_DEFAULT
             view = view if view in self._current_views else next(iter(self._current_views))
         if not reload:
             if self.task_load_view:
-                if self._loading_view is not NO_DEFAULT:
-                    self._loading_view = view
+                if self.loading_view is not NO_DEFAULT:
+                    self.set_trait("loading_view", view)
                     return self.task_load_view
             elif self.view == view:
                 return None
-        self._loading_view = view
+        self.set_trait("loading_view", view)
         self.mb_refresh()
         return self._load_view()
 
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self):
         try:
-            view = await self.load_view_async(self._loading_view)
+            view = await self.load_center_widgets(self.loading_view)
+            # Set the view using `_setting_view` gates
             self._setting_view = True
             self.view = view
             self._setting_view = False
+            if view and view != self.view_previous:
+                self.view_previous = view
             for button in self._view_buttons:
                 border = "solid 1px blue" if button.description == view else ""
                 mb.utils.set_border(button, border)
@@ -340,14 +345,28 @@ class MenuBox(HasParent, Panel):
                 self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
             return view
         finally:
-            self._loading_view = NO_DEFAULT
+            self.set_trait("loading_view", NO_DEFAULT)
 
-    async def load_view_async(self, view: str | None) -> str | None:
-        """Load the `_centre` trait, the main items to load into the widget.
+    async def load_center_widgets(self, view: str | None) -> str | None:
+        """Loads a widget into the center region of the MenuBox.
+        The widget can be specified by a view name, which corresponds to either a
+        reserved view or a user-defined view. If the view is a string, it can
+        represent either a direct widget or a nested attribute of the MenuBox
+        instance including callables.
 
-        Tip: This function can be overload to load a different view, however
-            it is still recommended to call `return await super().load_view_async(view)`.
+        Tip: This function can be overload to conditionally specify a different view.
+
+        Args:
+            view (str | None): The name of the view to load. If None or the MenuBox
+            is closed, the center widget is cleared.
+        Returns:
+            str | None: The name of the loaded view, or None if no view was loaded.
+        Raises:
+            TypeError: If view is not a string or None.
+            ValueError: If the view name corresponds to a string that is not a valid
+            attribute of the MenuBox instance.
         """
+
         if not view or self.closed:
             self.set_trait("_center", None)
             return None
@@ -376,12 +395,19 @@ class MenuBox(HasParent, Panel):
                 else:
                     vw = vw()
         self.set_trait("_center", vw)
-        if self.view and self.view != self.view_previous:
-            self.view_previous = self.view
         return view
 
     @mb_async.debounce(0.01)
     async def mb_refresh(self) -> None:
+        """Refreshes the MenuBox's display based on its current state.
+
+        This method updates the MenuBox's children widgets to reflect changes
+        in the view, title, and header. It handles loading states, minimized
+        views, and debug mode configurations.
+
+        Returns:
+            None
+        """
         if not self._MenuBox_init_complete:
             return
         if self.task_load_view:
@@ -399,7 +425,7 @@ class MenuBox(HasParent, Panel):
         if self.view == self._MINIMIZED:
             self.children = (self.header,)
         else:
-            center = tuple(self.get_widgets(self.get_help_widget() if self.show_help else None, self._center))
+            center = tuple(self.get_widgets(self._get_help_widget() if self.show_help else None, self._center))
             if mb.DEBUG_ENABLED and not self.header:
                 center = (*center, self.button_activate)
             if self.box_center:
@@ -429,7 +455,12 @@ class MenuBox(HasParent, Panel):
                 self.header.layout.margin = "0px 0px 6px 0px"
 
     def refresh_view(self) -> asyncio.Task[str | None]:
-        """Reload the current view."""
+        """Refreshes the view by reloading it.
+        Returns:
+            asyncio.Task[str | None]: An asynchronous task that reloads the view
+            and returns either a string or None.
+        """
+
         return self.load_view(reload=True)  # type: ignore
 
     def get_menu_widgets(self):
@@ -443,7 +474,6 @@ class MenuBox(HasParent, Panel):
             self.box_menu.children = (self.button_menu,) if self.button_menu else ()
 
     async def _configure(self) -> None:
-        """Create widgets and link."""
         if self._mb_configured or self.closed:
             return
         if not self._MenuBox_init_complete or not self._HasParent_init_complete:
@@ -509,12 +539,18 @@ class MenuBox(HasParent, Panel):
         if self.view:
             self.mb_refresh()
 
-    def get_help_widget(self):
-        """Get an output widget for the help defined for this instance.
-
-        Help can be defined in the main docstring or as the 'help' attribute/property.
+    def _get_help_widget(self):
         """
-        # Custom help permitted with the 'help' attribute/property.
+        Generates and returns a help widget containing documentation for the menubox.
+
+        The documentation is derived from the `help` attribute of the menubox,
+        or the menubox's docstring if `help` is not defined. The docstring is
+        split into a header and body, and then dedented. The resulting string
+        is then converted to markdown.
+
+        Returns:
+            ipywidgets.Output: An output widget containing the formatted help text.
+        """
         doc = (getattr(self, "help", None) or self.__doc__ or "No help found").split("\n", maxsplit=1)
         help_ = self.fstr(self.HELP_HEADER_TEMPLATE)
         help_ = help_ + doc[0] + ("\n" + textwrap.dedent(doc[1]) if len(doc) == 2 else "")
@@ -524,6 +560,13 @@ class MenuBox(HasParent, Panel):
         return self.out_help
 
     def update_title(self):
+        """Updates the title and tooltip of the menubox.
+
+        If the view or title description is not available, the function returns early.
+        Otherwise, it enables the 'html_title' widget and formats the title description and tooltip.
+        If 'html_title' is available, it sets the description and tooltip, allowing HTML in the description.
+        Finally, it updates the label and caption of the title with the cleaned description and tooltip.
+        """
         if not self.view or not self.title_description:
             return
         self.enable_widget("html_title")
@@ -537,7 +580,18 @@ class MenuBox(HasParent, Panel):
         self.title.caption = tooltip
 
     def get_button_loadview(self, view, *, description="", disabled=False, b_kwargs=defaults.bm_kwargs):
-        """"""
+        """Creates a button that, when clicked, loads a specified view.
+        Args:
+            view: The name of the view to load when the button is clicked. Must be a key in `self._current_views`.
+            description: The text to display on the button. If not provided, defaults to the view name.
+            disabled: Whether the button is initially disabled.
+            b_kwargs: Keyword arguments to pass to the ipywidgets.Button constructor. Defaults to `defaults.bm_kwargs`.
+        Returns:
+            An ipywidgets.Button instance that, when clicked, loads the specified view.
+        Raises:
+            ValueError: If `view` is None or an empty string.
+            KeyError: If `view` is not a key in `self._current_views`.
+        """
         if not view:
             msg = f"A view name is required. {view=}"
             raise ValueError(msg)
@@ -601,6 +655,7 @@ class MenuBox(HasParent, Panel):
             if hasattr(self, "_previous_margin"):
                 self.layout.margin = self._previous_margin
 
+    @override
     async def button_clicked(self, b: ipw.Button):
         await super().button_clicked(b)
         match b:
