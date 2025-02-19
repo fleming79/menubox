@@ -66,7 +66,27 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             obj.vt_validating = False
 
 
-class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
+class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
+    """A tuple for ValueTraits where elements can be spawned and observed.
+
+    This class provides a way to manage a tuple of instances within a ValueTraits
+    object. It allows for the creation, validation, and updating of instances
+    within the tuple, as well as the execution of callbacks when instances are
+    added or removed.
+    The key features include:
+    - **Type Safety:** Enforces that all elements in the tuple are of the same
+      type, as defined by the provided TraitType.
+    - **Instance Management:** Can automatically create new instances based on
+      dictionary input, update existing instances based on a specified key, and
+      set the parent of new instances to the ValueTraits object.
+    - **Callbacks:** Supports callbacks for when instances are added or removed
+      from the tuple.
+    - **Validation:** Validates each element added to the tuple using the
+      TraitType's validation logic.
+    - **Configuration:** Offers extensive configuration options to control the
+      behavior of the tuple, such as whether to spawn new instances, how to
+      update existing instances, and whether to set the parent of new instances.
+    """
     name: str
     default_value = ()
     info_text = "A tuple that can spawn new instances"
@@ -137,7 +157,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T]]):
             yield obj
 
     def __init__(self, trait: TraitType[T, T], *, allow_none=False, read_only=False, help=""):  # noqa: A002
-        """A tuple for ValueTraits where elements can be spawned and observed."""
+        """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
         if not isinstance(trait, TraitType):
             msg = f"{trait=} is not a TraitType"
             raise TypeError(msg)

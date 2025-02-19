@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
 import ipywidgets as ipw
 import traitlets
@@ -122,6 +122,7 @@ class ModalBox(HasParent, ipw.VBox):
         if expand:
             mb_async.call_later(0.1, self.expand)
 
+    @override
     async def button_clicked(self, b: ipw.Button):
         match b:
             case self.button_collapse:

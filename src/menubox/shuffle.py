@@ -106,6 +106,7 @@ class ObjShuffle(MenuBoxVT):
             case _:
                 self.update_box_info()
 
+    @override
     async def button_clicked(self, b: ipw.Button):
         await super().button_clicked(b)
         match b:

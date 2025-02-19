@@ -137,6 +137,7 @@ class SelectRepository(MenuBoxVT):
             + "\nClick to edit repositories."
         )
 
+    @override
     async def button_clicked(self, b: Button):
         await super().button_clicked(b)
         match b:

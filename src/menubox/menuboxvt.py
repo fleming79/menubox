@@ -190,6 +190,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
                         cls._templates[f.stem] = f
         cls._n_template_folders = len(_template_folders)
 
+    @override
     async def button_clicked(self, b: ipw.Button):
         await super().button_clicked(b)
         match b:
