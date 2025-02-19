@@ -1,6 +1,6 @@
 import pathlib
 import tempfile
-from typing import ClassVar
+from typing import ClassVar, override
 
 import ipywidgets as ipw
 
@@ -31,6 +31,7 @@ class MyNewObj(mb.MenuBoxVT):
         await super().init_async()
         self.add_value_traits("b")
 
+    @override
     def on_change(self, change: mb.ChangeType):
         super().on_change(change)
         self.change_count = self.change_count + 1

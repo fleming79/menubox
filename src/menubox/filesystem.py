@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import pathlib
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, override
 
 import psutil
 import traitlets
@@ -145,6 +145,7 @@ class Filesystem(MenuBoxVT):
             return self.sw_main
         return (self.control_widgets, self.box_settings, self.sw_main)
 
+    @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
         match change["owner"]:

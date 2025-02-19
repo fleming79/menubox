@@ -1,3 +1,5 @@
+from typing import override
+
 import ipywidgets as ipw
 import traitlets
 from pandas.io import clipboards
@@ -92,6 +94,7 @@ class ObjShuffle(MenuBoxVT):
         """List the stored datasets for the obj_cls."""
         return self.obj_cls.list_stored_datasets(self.home)
 
+    @override
     def on_change(self, change):
         super().on_change(change)
         if change["owner"] is self.sw_obj:

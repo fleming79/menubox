@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, override
 
 import traitlets
 
@@ -49,6 +49,7 @@ class Repository(Filesystem, MenuBoxPersist):
         self.disable_widget("template_controls")
         self.viewlist = ("Main",)
 
+    @override
     def on_change(self, change: ChangeType):
         if not self.read_only:
             super().on_change(change)
@@ -111,6 +112,7 @@ class SelectRepository(MenuBoxVT):
     value_traits = NameTuple(*MenuBoxVT.value_traits, "repository", "repository_name")
     value_traits_persist = NameTuple("repository_name")
 
+    @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
         if change["name"] == "repository":

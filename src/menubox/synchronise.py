@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import override
+
 from ipywidgets import Box
 from traitlets import Tuple
 
@@ -20,6 +22,7 @@ class ChildrenSetter(ValueTraits):
     _updating = False
 
     # TODO: Handle nested trait names
+    @override
     def on_change(self, change: ChangeType):
         if change["owner"] is self.parent and change["name"] == self.name and isinstance(change["old"], Box):
             change["old"].children = ()

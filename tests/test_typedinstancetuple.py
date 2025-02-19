@@ -1,3 +1,5 @@
+from typing import override
+
 import ipywidgets as ipw
 import pytest
 import traitlets
@@ -37,7 +39,8 @@ class VTT(mb.ValueTraits):
         factory="_new_menubox",
     )
 
-    def on_change(self, _):
+    @override
+    def on_change(self, change: mb.ChangeType):
         assert isinstance(self, VTT)
         self.change_count += 1
 

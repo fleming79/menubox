@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 import ipylab
 import ipywidgets as ipw
@@ -239,6 +239,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
 
         clipboard_set(to_yaml(self.value(), walkstring=True))
 
+    @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
         if "text_name" in self._trait_values:  # For text_name

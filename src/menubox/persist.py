@@ -17,7 +17,6 @@ from menubox.pack import deep_copy, load_yaml
 from menubox.trait_types import ChangeType, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
     from logging import Logger, LoggerAdapter
 
     from fsspec import AbstractFileSystem
@@ -129,6 +128,7 @@ class MenuBoxPersist(MenuBoxVT):
         if not self.SINGLE_VERSION:
             self.add_value_traits("version_widget")
 
+    @override
     def on_change(self, change: ChangeType) -> None:
         super().on_change(change)
         if not self._MenuBox_init_complete:

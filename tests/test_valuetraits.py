@@ -1,3 +1,5 @@
+from typing import override
+
 import ipywidgets as ipw
 import pytest
 import traitlets
@@ -28,6 +30,7 @@ class VT1(ValueTraits):
     value_traits_persist = NameTuple("a", "b")
     parent_dlink = NameTuple("linked_trait")
 
+    @override
     def on_change(self, change: menubox.ChangeType):
         self.log.info(f"{self} value updated {change['new']}")
         self.on_change_counts += 1
@@ -54,6 +57,7 @@ class VT2(VT1):
         self.log.info(f"{self} value updated {change['new']}")
         self.update_counts += 1
 
+    @override
     def on_change(self, change: menubox.ChangeType):
         self.on_change_counts += 1
 

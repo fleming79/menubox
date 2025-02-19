@@ -947,20 +947,31 @@ class ValueTraits(HasParent):
         return to_yaml(self.to_dict(names=names), walkstring=True, path=path, fs=fs)  # type: ignore
 
     def on_change(self, change: ChangeType):
-        """To overload:
+        """Handle change events of all traits listed in `value_traits` and `value_trait_persist`.
 
-        Main handler for monitored traits as defined in the list of value_traits.
-        TypedInstanceTuples notifications are also delivered here.
+        Since nested traits are allowed, trait changes in children are also observed.
+        adding, removing and creating (InstanceHP only) of items are all propagated.
 
-        It is recommended to use the following system:
+        `TypedInstanceTuples` change events are also delivered here, specify the
+        `update_item_names` with the `configure` method when defining them in a class,
+        dynamically changing this is not currently supported.
 
-        ``` def on_change(self, change:Change):
+        To overload, included a call to super(), passing or intercepting changes as
+        appropriate.
 
-            self._CLASS_on_change(change) ```
+        Use the context method `ignore_change` to set a value and ignore the change
+        in `on_change` only (the trait change is still triggered).
+
+        ``` python
+        def on_change(self, change: mb.ChangeType):
+            super().on_change(change)
+            ...
+        ```
 
         Using super().on_change() should be avoided. Instead call directly the methods
         as required.
         """
+
         on_change = getattr(super(), "on_change", None)
         if callable(on_change):
             on_change(change)

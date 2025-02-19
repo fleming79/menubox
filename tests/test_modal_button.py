@@ -1,4 +1,5 @@
 import asyncio
+from typing import override
 
 import menubox as mb
 from menubox import trait_factory as tf
@@ -29,6 +30,7 @@ class PMBB(mb.MenuBoxVT):
         self.header_children = ("mb1", "mb2")
         self.views = {"Main": "box_mb2"}
 
+    @override
     def on_change(self, change: mb.ChangeType):
         match change["owner"]:
             case self.mb1:
