@@ -120,7 +120,7 @@ class MenuBox(HasParent, Panel):
     # Boxes
     box_shuffle = tf.BoxShuffle().configure(allow_none=True)
     box_menu = tf.BoxMenu().configure(allow_none=True)
-    showbox = traitlets.Any()
+    showbox = tf.Box().configure(allow_none=True, load_default=False, on_replace_close=False)
     header = tf.BoxHeader().configure(allow_none=True)
     box_center = tf.BoxCenter().configure(allow_none=True)
     _mb_refresh_traitnames = (
@@ -624,9 +624,13 @@ class MenuBox(HasParent, Panel):
                 view = self.toggleviews[i]
                 self.load_view(view)
             case self.button_promote:
-                self.promote()
+                if box:= self.showbox:
+                    box.set_trait("children", utils.move_item(box.children, self, -1))
+                    self.button_promote.focus()
             case self.button_demote:
-                self.demote()
+                if box:= self.showbox:
+                    box.set_trait("children", utils.move_item(box.children, self, 1))
+                    self.button_demote.focus()
             case self.button_menu_minimize:
                 self.menu_close()
             case self.button_minimize:
@@ -643,62 +647,6 @@ class MenuBox(HasParent, Panel):
                 self.button_help.description = "❓" if self.show_help else "❔"
             case self.button_activate:
                 self.activate()
-
-    def _get_move_obj_info(self):
-        if isinstance(self.showbox, ipw.Box):
-            obj = self.showbox
-            name = "children"
-        elif self.parent and self._ptname:
-            obj = self.parent
-            name = self._ptname
-        else:
-            msg = "Neither showbox not parent and self._ptname are set."
-            raise RuntimeError(msg)
-        items = list(getattr(obj, name))
-        return obj, name, items, self
-
-    def promote(self):
-        """Move up inside parentbox."""
-        try:
-            obj, name, items, value = self._get_move_obj_info()
-        except ValueError:
-            return
-        idx = items.index(value)
-        if idx:
-            a = []
-            b = []
-            for c in items:
-                if isinstance(c, ipw.Box) and not c.children:
-                    b.append(c)
-                    continue
-                a.append(c)
-            children = a + b
-            idx = children.index(value)
-            if idx:
-                children.insert(idx - 1, children.pop(idx))
-            items = children
-        obj.set_trait(name, tuple(items))
-
-    def demote(self):
-        """Move down inside parentbox."""
-        try:
-            obj, name, items, value = self._get_move_obj_info()
-        except ValueError:
-            return
-        idx = items.index(value)
-        if idx < len(items):
-            a = []
-            b = []
-            for c in items:
-                if isinstance(c, ipw.Box) and not c.children:
-                    b.append(c)
-                    continue
-                a.append(c)
-            children = a + b
-            if idx < len(children):
-                children.insert(idx + 1, children.pop(idx))
-            items = children
-        obj.set_trait(name, tuple(items))
 
     @log.log_exceptions
     def _shuffle_button_on_click(self, b: ipw.Button):

@@ -4,7 +4,7 @@ import asyncio
 import functools
 import inspect
 import weakref
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
 
 import ipylab
 import ipylab.log
@@ -504,6 +504,35 @@ def show_obj_in_box(
         obj.set_border(border)
     obj.show(unhide=True)
     return obj
+
+def move_item(items: tuple, item, direction: Literal[-1, 1]):
+    """Move an item within a tuple.
+
+    This function moves a specified item within a tuple forward or backward,
+    effectively changing its position in the tuple.
+    The movement is circular, meaning that moving an item past the
+    beginning or end of the tuple will wrap it around to the other side.
+    Args:
+        items (tuple): A tuple of ipywidgets widgets.
+        item (ipw.Widget): The widget to move.
+        direction (int): The direction to move the widget.
+            1: moves the widget forward.
+           -1: moves it backward.
+    Returns:
+        tuple: A new tuple with the item moved to its new position.
+    """
+    items_ = list(items)
+    idx = items_.index(item)
+    new_idx = idx + direction
+
+    if 0 <= new_idx < len(items_):
+        items_ = list(items_)  # Convert to list for mutability
+        items_.insert(new_idx, items_.pop(idx))
+    elif new_idx < 0:
+        items_.append(items_.pop(idx))
+    else:
+        items_.insert(0, items_.pop(idx))
+    return tuple(items_)
 
 
 def download_button(buffer, filename: str, button_description: str):

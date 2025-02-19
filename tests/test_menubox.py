@@ -107,6 +107,7 @@ async def test_menubox():
     assert m2.showbox is abox, "m2 should add itself to box_shuffle"
     assert m2.button_promote
     m2.set_trait("showbox", None)
+    assert abox.comm, "Removing showbox should not close the box"
     assert m2 not in abox.children, "should be removed"
     for i in range(3):
         utils.show_obj_in_box(ipw.HTML(f"{i}"), abox)
