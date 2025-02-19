@@ -67,7 +67,7 @@ def run_async(
 
     Also accepts a callables that return produces an awaitable.
 
-    A strong ref is kept for the task in either obj.mb_tasks
+    A strong ref is kept for the task in either obj.tasks
 
     **Important: A result is returned ONLY when `restart=True`**
 
@@ -133,8 +133,8 @@ def run_async(
     background_tasks[task] = tasktype
     task.add_done_callback(_background_task_complete)
     if isinstance(obj, mb.HasParent):
-        obj.mb_tasks.add(task)
-        task.add_done_callback(obj.mb_tasks.discard)
+        obj.tasks.add(task)
+        task.add_done_callback(obj.tasks.discard)
         if handle:
             if isinstance(set_ := getattr(obj, handle, None), set):
                 set_.add(task)
@@ -142,7 +142,7 @@ def run_async(
             else:
 
                 def on_done(task):
-                    if getattr(obj, handle, None) is task and isinstance(obj, mb.HasParent):
+                    if getattr(obj, handle, None) is task:
                         obj.set_trait(handle, None)
 
                 obj.set_trait(handle, task)

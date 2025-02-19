@@ -267,6 +267,16 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                     else:
                         kwgs[name] = utils.getattr_nested(obj, value, hastrait_value=False)
 
+            # set_children
+            if children := getattr(self, "children", None):
+                if getattr(self, "children_mode", "") == "monitor":
+                    from menubox.synchronise import ChildrenSetter
+
+                    home = getattr(obj, "home", "_child setter")
+                    ChildrenSetter(home=home, parent=obj, name=self.name, items=children)
+                else:
+                    kwgs["children"] = obj.get_widgets(children, skip_hidden=False, show=True)
+
             # Overrides - use via `HasParent.instanceHP_enable_disable`, `Menubox.enable_widget` or set directly with a dict.
             if override:
                 kwgs = kwgs | override
@@ -302,16 +312,6 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
     def _value_changed(self, owner: HasParent, old: T | None, new: T | None):
         # This is the main handler function for loading and configuration
         # providing consistent/predictable behaviour reducing boilerplate code.
-
-        # set_children
-        if isinstance(new, ipw.Widget) and (children := getattr(self, "children", None)):
-            if getattr(self, "children_mode", "") == "monitor":
-                from menubox.synchronise import ChildrenSetter
-
-                home = getattr(owner, "home", "_child setter")
-                ChildrenSetter(home=home, parent=owner, name=self.name, items=children)
-            else:
-                new.set_trait("children", owner.get_widgets(children, skip_hidden=False, show=True))
 
         # on_click
         if (

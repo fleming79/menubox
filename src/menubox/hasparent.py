@@ -269,7 +269,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
     log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent()
-    mb_tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
+    tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
     init_async: ClassVar[None | Coroutine] = None
 
     def setter(self, obj, name: str, value):
@@ -662,23 +662,24 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             await button_clicked(b)
 
     async def wait_update_tasks(self, timeout=None) -> Self:
-        if self.mb_tasks:
-            await self.wait_tasks(
-                mb_async.TaskType.update, mb_async.TaskType.init, mb_async.TaskType.click, timeout=timeout
-            )
+        await self.wait_tasks(
+            mb_async.TaskType.update, mb_async.TaskType.init, mb_async.TaskType.click, timeout=timeout
+        )
         return self
 
     async def wait_init_tasks(self, timeout=None) -> Self:
-        if self.mb_tasks:
+        "Will await init tasks once"
+        if not getattr(self, "_init_async_awaited", False):
             await self.wait_tasks(mb_async.TaskType.init, timeout=timeout)
+            self._init_async_awaited = True
         return self
 
     async def wait_tasks(self, *tasktypes, timeout=None) -> Self:
-        """Wait for those tasks in self.mb_tasks in self tasktypes, not including the
+        """Wait for those tasks in self.tasks in self tasktypes, not including the
         current task. Default is all tasks.
         TaskType.continuous are always omitted.
         """
-        if self.mb_tasks:
+        if self.tasks:
             tasktypes_ = []
             for tt in tasktypes or mb_async.TaskType:
                 if not isinstance(tt, mb_async.TaskType):
@@ -688,7 +689,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             current_task = asyncio.current_task()
             if tasks := [
                 t
-                for t in self.mb_tasks
+                for t in self.tasks
                 if t is not current_task and mb_async.background_tasks.get(t, mb_async.TaskType.general) in tasktypes_
             ]:
                 async with asyncio.timeout(timeout):

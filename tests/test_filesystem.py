@@ -24,7 +24,7 @@ async def test_filesystem():
     await fs.wait_tasks()
     assert fs.url.value == new_folder.as_posix()
     fs.button_add.click()
-    assert fs.mb_tasks
+    assert fs.tasks
     await fs.wait_tasks()
     assert new_folder.exists()
 
@@ -32,7 +32,7 @@ async def test_filesystem():
     fs.url.value += "/a second new folder/and a new file.txt"
     fname = fs.url.value
     fs.button_add.click()
-    assert fs.mb_tasks
+    assert fs.tasks
     await fs.wait_tasks()
     assert pathlib.Path(fname).is_file()
 

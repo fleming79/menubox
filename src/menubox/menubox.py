@@ -7,7 +7,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Callable, Iterable
-from typing import Any, ClassVar, Final
+from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal, overload
 
 import docstring_to_markdown
 import ipylab
@@ -18,7 +18,7 @@ from ipywidgets import widgets as ipw
 import menubox as mb
 from menubox import defaults, log, mb_async, utils
 from menubox import trait_factory as tf
-from menubox.defaults import H_FILL, V_FILL
+from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
 from menubox.trait_types import ChangeType, ProposalType, StrTuple
 
@@ -37,16 +37,22 @@ class Buttons(traitlets.TraitType[tuple[ipw.Button, ...], Iterable[ipw.Button]])
     def validate(self, obj: MenuBox, value):
         return tuple(v for v in value if isinstance(v, ipw.Button) and v._repr_keys)
 
+class HTMLNoClose(ipw.HTML):
+    def close(self):
+        return
+
+
+HTML_LOADING = HTMLNoClose("Loading ...")
+
 
 class MenuBox(HasParent, Panel):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
     _MINIMIZED: Final = "Minimized"
-    _FIRST: Final = "FIRST"
-    _view_loading = traitlets.Unicode(allow_none=True)
     _setting_view = False
-    _RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (_MINIMIZED, _FIRST, None)
-    DEFAULT_VIEW: ClassVar[str | None] = _FIRST
+    _loading_view: defaults.NO_DEFAULT_TYPE | str | None = NO_DEFAULT
+    _RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (_MINIMIZED,)
+    DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
     DEFAULT_BORDER = ""
     DEFAULT_LAYOUT: ClassVar[dict[str, str]] = {"max_width": "100%"}
     SHOWBOX_MARGIN: ClassVar[str] = "5px 5px 1px 5px"
@@ -54,19 +60,15 @@ class MenuBox(HasParent, Panel):
     TAB_BUTTON_KW: ClassVar[dict[str, Any]] = dict(defaults.bt_kwargs)
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__name__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
-    html_closed = tf.HTML("closed (closed)")
-    html_loading = tf.HTML("Loading ...")
     _MenuBox_init_complete = False
 
     # Traits
     _mb_configured = False
     show_help = traitlets.Bool()
-    _loaded_views = traitlets.Set()
     viewlist = StrTuple()
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
-    slow_loading_views = StrTuple()
     views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
     view = traitlets.Unicode(allow_none=True, default_value=None)
     view_previous = traitlets.Unicode(allow_none=True, default_value=None)
@@ -170,7 +172,7 @@ class MenuBox(HasParent, Panel):
     def _current_views(self):
         if not self.viewlist and self.views:
             self.viewlist = tuple(self.views)
-        return (*self.viewlist, *self._RESERVED_VIEWNAMES)
+        return (*self.viewlist, *self._RESERVED_VIEWNAMES, None)
 
     @property
     def view_active(self) -> bool:
@@ -179,7 +181,7 @@ class MenuBox(HasParent, Panel):
     def __init__(
         self,
         *,
-        view=defaults.NO_VALUE,
+        view=NO_DEFAULT,
         views: dict[str, str | Callable[[], ipw.Widget | str] | ipw.Widget | Iterable[ipw.Widget | str]] | None = None,
         viewlist: Iterable[str] | None = None,
         tabviews: Iterable[str] | None = None,
@@ -194,10 +196,10 @@ class MenuBox(HasParent, Panel):
                 self.enable_widget(name)
             if views is not None:
                 self.views = views
-            if view is defaults.NO_VALUE:
+            if view is NO_DEFAULT:
                 view = self.DEFAULT_VIEW
             if view:
-                kwargs["children"] = (self.html_loading,)
+                kwargs["children"] = (HTML_LOADING,)
             if self.DEFAULT_LAYOUT and "layout" not in kwargs:
                 layout = self.DEFAULT_LAYOUT
                 kwargs["layout"] = layout
@@ -221,6 +223,8 @@ class MenuBox(HasParent, Panel):
     def close(self, force=False):
         if self.closed or (self.KEEP_ALIVE and not force):
             return
+        if self.task_load_view:
+            self.task_load_view.cancel("Closing")
         self.set_trait("showbox", None)
         super().close(force)
 
@@ -252,7 +256,6 @@ class MenuBox(HasParent, Panel):
         return self.view
 
     @traitlets.validate("viewlist", "toggleviews", "tabviews", "menuviews")
-    @log.log_exceptions
     def _validate_viewlist_names(self, proposal: ProposalType):
         views = self.views if proposal["trait"].name == "viewlist" else self._current_views
         val = tuple(v for v in proposal["value"] if v and v in views)
@@ -273,11 +276,9 @@ class MenuBox(HasParent, Panel):
 
     def show(self, *, unhide=False) -> asyncio.Task | None:
         """A non-agressive means to provide an interactive interface."""
-        if not self.view and not self._view_loading:
-            self.load_view()
         if unhide:
             self.unhide()
-        return self.task_load_view
+        return self.load_view()
 
     def hide(self):
         utils.hide(self)
@@ -285,78 +286,74 @@ class MenuBox(HasParent, Panel):
     def unhide(self):
         utils.unhide(self)
 
-    @log.log_exceptions
-    def load_view(self, view: str | None = _FIRST, reload=False) -> asyncio.Task[None | str] | None:
-        """Load a view by name. By default the first view in  viewlist is loaded.
+    if TYPE_CHECKING:
 
-        The view may be one of the defined views or the always available views.
+        @overload
+        def load_view(self) -> asyncio.Task[str | None] | None: ...
+        @overload
+        def load_view(self, *, reload: Literal[True]) -> asyncio.Task[str | None]: ...
+        @overload
+        def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE) -> asyncio.Task[str | None] | None: ...
+        @overload
+        def load_view(
+            self, view: str | None | defaults.NO_DEFAULT_TYPE, *, reload: Literal[True]
+        ) -> asyncio.Task[str | None]: ...
 
-        Views are registered by overwriting the view dict which is a mapping of the
-        view name to the view. The view may be a widget, string rep of the path to
-        a method, or a callable. Async and non-async methods are allowed. The only
-        requirement is that the returned object must be of widget type.
-
-        ```
-        await mb.wait_for(obj.load_view(view))
-        ```
-        """
-        if view == self._FIRST:
-            if self._view_loading in self.viewlist:
-                view = self._view_loading
-            elif self.view in self.viewlist:
-                view = self.view
-        elif view not in self._current_views:
-            msg = f"{view=} not in {self._current_views}"
-            raise AttributeError(msg)
-        if reload or (view != (self._view_loading or self.view)):
-            self._view_loading = view
-            self._load_view(view)
-            if view in self.slow_loading_views or (
-                view not in self._RESERVED_VIEWNAMES and view not in self._loaded_views
-            ):
-                self.set_trait("children", (self.html_loading,))
-        return self.task_load_view
+    def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, *, reload=False):  # type: ignore
+        if reload and view is NO_DEFAULT and self.task_load_view:
+            return self.task_load_view
+        if view is not NO_DEFAULT:
+            if view not in self._current_views:
+                msg = f'{view=} not a current view! Available views = "{self._current_views}"'
+                raise RuntimeError(msg)
+        else:
+            view = (self._loading_view if self._loading_view is not NO_DEFAULT else self.view) or NO_DEFAULT
+            view = view if view in self._current_views else next(iter(self._current_views))
+        if not reload:
+            if self.task_load_view:
+                if self._loading_view is not NO_DEFAULT:
+                    self._loading_view = view
+                    return self.task_load_view
+            elif self.view == view:
+                return None
+        self._loading_view = view
+        self.mb_refresh()
+        return self._load_view()
 
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
-    async def _load_view(self, view: str | None):
+    async def _load_view(self):
         try:
-            if not self.viewlist:
-                if not self.views:
-                    self.views = {"no view": ipw.HTML(f"There is currently no view for {self!r}")}
-                self.set_trait("viewlist", self.views)
-            if view == self._FIRST or view not in self._current_views:
-                view = (self.toggleviews or self.viewlist)[0]  # type: ignore
-            self._view_loading = ""
-            view = await self.load_view_async(view)
+            view = await self.load_view_async(self._loading_view)
             self._setting_view = True
             self.view = view
-        finally:
             self._setting_view = False
-        for button in self._view_buttons:
-            border = "solid 1px blue" if button.description == view else ""
-            mb.utils.set_border(button, border)
-        self.log.debug("Loaded view: %s", view)
-        self.menu_close()
-        self.mb_refresh()
-        view = self.view
-        if self.button_menu:
-            self.button_menu.tooltip = f"Show menu for {self.__class__.__name__}\nCurrent view: {view}"
-        if self.button_toggleview and view in self.toggleviews:
-            i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
-            next_view = self.toggleviews[i]
-            self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
-        self._loaded_views.add(view)
-        return self.view
+            for button in self._view_buttons:
+                border = "solid 1px blue" if button.description == view else ""
+                mb.utils.set_border(button, border)
+            self.log.debug("Loaded view: %s", view)
+            self.menu_close()
+            if self.button_menu:
+                self.button_menu.tooltip = f"Show menu for {self.__class__.__name__}\nCurrent view: {view}"
+            if self.button_toggleview and view in self.toggleviews:
+                i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
+                next_view = self.toggleviews[i]
+                self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
+            return view
+        finally:
+            self._loading_view = NO_DEFAULT
 
-    async def load_view_async(self, view: str | None):
-        # provisioned to permit intersection by subclasses potentially changing the view
+    async def load_view_async(self, view: str | None) -> str | None:
+        """Load the `_centre` trait, the main items to load into the widget.
+
+        Tip: This function can be overload to load a different view, however
+            it is still recommended to call `return await super().load_view_async(view)`.
+        """
         if not view or self.closed:
             self.set_trait("_center", None)
             return None
         if not isinstance(view, str):
             msg = f"view must be a string or None not {type(view)}"
             raise TypeError(msg)
-
         if view in self._RESERVED_VIEWNAMES:
             match view:
                 case self._MINIMIZED:
@@ -379,32 +376,19 @@ class MenuBox(HasParent, Panel):
                 else:
                     vw = vw()
         self.set_trait("_center", vw)
-
         if self.view and self.view != self.view_previous:
             self.view_previous = self.view
         return view
 
-    def refresh_view(self):
-        """Reload the current view."""
-        if not self._MenuBox_init_complete or self.closed:
-            return
-        self.load_view(self._view_loading or self.view, reload=True)
-
-    @mb_async.debounce(0.02)
+    @mb_async.debounce(0.01)
     async def mb_refresh(self) -> None:
-        if self.closed or not self._MenuBox_init_complete:
+        if not self._MenuBox_init_complete:
             return
-        try:
-            if self.task_load_view:
-                await self.task_load_view
-                return  # Called again by _load_view.
-        except TimeoutError:
-            self.menuviews = self.viewlist
-            self.menu_open()
-            self.children = (
-                ipw.HTML('<b><font color="red">Load view timeout </font></b>'),
-                *tuple(self.get_button_loadview(v) for v in self.viewlist),
-            )
+        if self.task_load_view:
+            self.children = (HTML_LOADING,)
+            await self.task_load_view
+            self.mb_refresh()  # A trick to avoid running expensive code twice
+            return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.view is None:
@@ -443,6 +427,10 @@ class MenuBox(HasParent, Panel):
             else:
                 self.header.layout.border_bottom = self.layout.border_top
                 self.header.layout.margin = "0px 0px 6px 0px"
+
+    def refresh_view(self) -> asyncio.Task[str | None]:
+        """Reload the current view."""
+        return self.load_view(reload=True)  # type: ignore
 
     def get_menu_widgets(self):
         return tuple(self.get_button_loadview(v) for v in self.menuviews)
@@ -575,8 +563,8 @@ class MenuBox(HasParent, Panel):
             self.tabviews = tuple(v for v in self.tabviews if v in self._current_views)
         if self.menuviews:
             self.menuviews = tuple(v for v in self.menuviews if v in self._current_views)
-        if self._view_loading and self._view_loading not in self._current_views:
-            self.load_view(reload=True)
+        if self.task_load_view or self.view not in self._current_views:
+            self.load_view()
 
     def _update_tab_buttons(self):
         buttons = []
@@ -676,7 +664,6 @@ class MenuBox(HasParent, Panel):
         """
         return utils.obj_is_in_box(obj, self.box_shuffle)
 
-    @log.log_exceptions
     def load_shuffle_item(self, obj_or_name: ipw.Widget | MenuBox | str, **kwargs):
         """Load attribute 'name' into the shuffle box.
 

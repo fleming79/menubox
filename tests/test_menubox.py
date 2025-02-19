@@ -1,5 +1,4 @@
 import ipywidgets as ipw
-import pytest
 
 import menubox as mb
 from menubox import utils
@@ -12,16 +11,16 @@ async def test_menubox():
     assert m.task_load_view
     await m.task_load_view
     assert m.view == "a", "autoload selects first view"
-    await mb.mb_async.wait_for(m.load_view(None))
+    await m.load_view(None, reload=True)
     assert m.view is None, "load no view"
-    await mb.mb_async.wait_for(m.load_view())
+    m.load_view()
+    await m.wait_tasks()
     assert m.view == "a", "should load first view"
 
-    await mb.mb_async.wait_for(m.load_view(None))
+    await m.load_view(None, reload=True)
     assert m.view is None, "load no view"
     m.load_view("b")
-    assert m._view_loading == "b"
-    assert m.view is None, "loading is debounced"
+    m.load_view()
     await m.wait_tasks()
     assert m.view == "b", "loading first shouldn't override load in progress"
     assert not m._trait_values.get("button_toggleview")
@@ -30,7 +29,9 @@ async def test_menubox():
     await m.wait_tasks()
     assert m.button_toggleview in m.header.children, "Should be added"
     m.button_toggleview.click()
-    await m.wait_tasks()
+    assert not m.task_load_view
+    await m.wait_tasks()  # Button task
+    await m.wait_tasks()  # Load view task
     assert m.view == "a"
     assert not m._trait_values.get("button_menu")
     m.menuviews = ("b",)
@@ -48,22 +49,22 @@ async def test_menubox():
     await m.wait_tasks()
     m.refresh_view()
     m.mb_refresh()
-    await mb.mb_async.wait_for(m.load_view("Minimized"))
+    await m.load_view("Minimized", reload=True)
 
     assert m.view == m._MINIMIZED
     m.maximize()
     m.views = {"A tuple": (ipw.HTML("Item1"), ipw.HTML("Item2"))}
-    await mb.mb_async.wait_for(m.load_view("A tuple"))
+    await m.load_view("A tuple", reload=True)
 
     m.shuffle_button_views = {"d": lambda: ipw.HTML("new")}
     assert "_shuffle_buttons" not in m.header_children
-    await mb.mb_async.wait_for(m.load_view())
+    m.load_view()
     await m.wait_tasks()
     m.shuffle_buttons[0].click()  # type: ignore # shuffle button for views 'd'
     await m.wait_tasks()
     m2 = mb.MenuBox()
     m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-    await mb.mb_async.wait_for(m2.load_view("b"))
+    await m2.load_view("b", reload=True)
 
     assert m2.view == "b"
     # Can also load views by setting the trait. It will be scheduled to load
@@ -87,15 +88,8 @@ async def test_menubox():
     m3 = mb.MenuBox(title_description="m3", view=m2._MINIMIZED)
     await m3.wait_tasks()
     assert m3.view == m2._MINIMIZED
-
     await m3.wait_tasks()
-
-    with pytest.raises(Exception, match="An intentional exception"):
-        m3.load_view("An intentional exception")
-
-    await m3.wait_tasks()
-
-    await mb.mb_async.wait_for(m2.load_view(None))
+    await m2.load_view(None, reload=True)
     assert m2.view is None, "load no view"
     m3.enable_widget("box_shuffle")
     abox = m3.box_shuffle
@@ -123,7 +117,7 @@ async def test_menubox():
     assert utils.obj_is_in_box(b, abox) is wrapper
     assert wrapper is m3.obj_in_box_shuffle(b), "should be able to find it."
     assert m3.obj_in_box_shuffle(m3) is None
-    await mb.mb_async.wait_for(wrapper.load_view())
+    await wrapper.wait_tasks()
     assert b is wrapper._center, "b should be the loaded 'view'"
     assert abox.children.index(wrapper) == 0
     wrapper.button_demote.click()
