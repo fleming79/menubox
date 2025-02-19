@@ -17,7 +17,6 @@ __all__ = ["Home"]
 
 
 def to_safe_homename(name: str):
-
     n = pathlib.PurePath(utils.sanatise_filename(name)).name
     if not n:
         msg = f"Unable convert {name=} to a valid home"

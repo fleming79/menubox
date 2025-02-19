@@ -137,6 +137,7 @@ class TestSingularTaskDecorator:
         obj.close()
         await obj.wait_tasks()
 
+
 class TestToThread:
     async def test_to_thread_success(self):
         def sync_function(x, y=2):

@@ -21,29 +21,29 @@ class VT1(ValueTraits):
     nested = tf.InstanceHP(Nested).configure(allow_none=True)
     a = traitlets.Unicode()
     b = traitlets.Int()
-    c = Fixed(ipw.Dropdown, created=lambda info:info["obj"].set_trait('options', [1,2,3]))
+    c = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))
     change_owners = traitlets.Tuple()
     on_change_counts = traitlets.Int()
 
     value_traits_persist = NameTuple("a", "b")
     parent_dlink = NameTuple("linked_trait")
 
-    def on_change(self, change:menubox.ChangeType):
+    def on_change(self, change: menubox.ChangeType):
         self.log.info(f"{self} value updated {change['new']}")
         self.on_change_counts += 1
-        self.change_owners = (*self.change_owners,change['owner'])
+        self.change_owners = (*self.change_owners, change["owner"])
 
     @traitlets.observe("value")
     def _observe_value(self, change):
         assert change["new"]() == change["old"](), "Should return same result"
         self.value_change_count += 1
 
+
 class VT2(VT1):
     value_traits_persist = NameTuple("vt1")
     vt1 = traitlets.Instance(VT1, allow_none=True)
     update_counts = traitlets.Int()
     on_change_counts = traitlets.Int()
-
 
     @traitlets.default("vt1")
     def _defaualt_vt1(self):
@@ -54,9 +54,8 @@ class VT2(VT1):
         self.log.info(f"{self} value updated {change['new']}")
         self.update_counts += 1
 
-    def on_change(self, change:menubox.ChangeType):
+    def on_change(self, change: menubox.ChangeType):
         self.on_change_counts += 1
-
 
 
 async def test_value_traits():
@@ -188,10 +187,10 @@ async def test_value_traits():
     vt2.close()
     assert vt2vt1.closed, "Should close when parent closes"
 
-async def test_vt1_fixed_widget():
-    v  = VT1(home='default', value_traits_persist=['c'])
-    assert v.value() == {'c':None}
-    v.load_value ( {'c': 1})
-    assert v.value() == {'c':1  }
-    assert v.c in v.change_owners
 
+async def test_vt1_fixed_widget():
+    v = VT1(home="default", value_traits_persist=["c"])
+    assert v.value() == {"c": None}
+    v.load_value({"c": 1})
+    assert v.value() == {"c": 1}
+    assert v.c in v.change_owners

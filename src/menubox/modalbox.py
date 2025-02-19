@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 __all__ = ["ModalBox"]
 
+
 class ModalBox(HasParent, ipw.VBox):
     DEFAULT_LAYOUT: ClassVar[dict[str, str]] = {
         "border": "solid 1px LightGrey",

@@ -239,7 +239,6 @@ class Filesystem(MenuBoxVT):
                 url = None
             self.sw_main.value = url
 
-
     async def get_relative_path(self, title=""):
         "Obtain a relative path using a dialog."
 
@@ -289,4 +288,3 @@ class RelativePath(Filesystem):
             self.button_up.disabled = v == "."
         except ValueError:
             self.url.value = base
-

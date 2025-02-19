@@ -624,11 +624,11 @@ class MenuBox(HasParent, Panel):
                 view = self.toggleviews[i]
                 self.load_view(view)
             case self.button_promote:
-                if box:= self.showbox:
+                if box := self.showbox:
                     box.set_trait("children", utils.move_item(box.children, self, -1))
                     self.button_promote.focus()
             case self.button_demote:
-                if box:= self.showbox:
+                if box := self.showbox:
                     box.set_trait("children", utils.move_item(box.children, self, 1))
                     self.button_demote.focus()
             case self.button_menu_minimize:

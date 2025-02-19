@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from menubox.instance import InstanceHP
 
 
-
 class Link:
     """Link traits from different objects together so they remain in sync.
 
@@ -445,7 +444,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
             mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
 
-
     def get_log_name(self):
         "A representation for logging"
         return utils.limited_string(self, 40)
@@ -460,7 +458,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
 
         msg = "Make a subclass instead."
         raise NotImplementedError(msg)
-
 
     def on_error(self, error: Exception, msg: str, obj: Any = None):
         self.log.exception(msg, obj=obj, exc_info=error)

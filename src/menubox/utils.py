@@ -505,6 +505,7 @@ def show_obj_in_box(
     obj.show(unhide=True)
     return obj
 
+
 def move_item(items: tuple, item, direction: Literal[-1, 1]):
     """Move an item within a tuple.
 

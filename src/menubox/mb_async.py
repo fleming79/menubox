@@ -227,7 +227,7 @@ async def wait_for(fut, timeout: float | None = None, info=""):
 async def to_thread(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs):
     """Run a function in an executor.
 
-    This uses asyncio.to_thread, but catches excpetions re-raising them
+    This uses asyncio.to_thread, but catches exceptions re-raising them
     inside the calling
     """
 

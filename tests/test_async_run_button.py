@@ -18,6 +18,7 @@ class PMB(mb.MenuBox):
         self.data.update(kwgs)
         return kwgs
 
+
 def has_task(obj: HasParent):
     return bool(getattr(obj, "task", None))
 
@@ -80,6 +81,7 @@ async def test_async_run_button_link_button():
     await task
     assert not obj.ab_main.task
     assert obj.ab_nested_sub.disabled is False, "link_button"
+
 
 async def test_async_run_no_restart():
     # Passing restart=False should always return None

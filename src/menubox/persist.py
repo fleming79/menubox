@@ -166,7 +166,6 @@ class MenuBoxPersist(MenuBoxVT):
             box.children = [ipw.HTML('<font color="red">Not saved yet!</font>'), self.button_save_persistence_data]
         return box
 
-
     async def _button_save_persistence_data_async(self, version=None):
         """Use button_save.start to get an awaitable task."""
         repo = self.home.repository

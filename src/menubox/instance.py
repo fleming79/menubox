@@ -196,7 +196,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             value = self.default(obj, value)
         new_value = self._validate(obj, value)
         if isinstance(value, HasParent) and self.set_parent:
-            # Do this early incase the parent is invalid.
+            # Do this early in case the parent is invalid.
             value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
@@ -301,8 +301,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
 
     def _value_changed(self, owner: HasParent, old: T | None, new: T | None):
         # This is the main handler function for loading and configuration
-        # providing consitent/predictable behaviour reducing boilerplate code.
-
+        # providing consistent/predictable behaviour reducing boilerplate code.
 
         # set_children
         if isinstance(new, ipw.Widget) and (children := getattr(self, "children", None)):

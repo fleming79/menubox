@@ -640,13 +640,13 @@ class ValueTraits(HasParent):
             for i, n in enumerate(parts, 1):
                 if n in obj._traits:
                     yield (obj, n)
-                elif i==1 and (obj_:= getattr(obj, n, None)) and isinstance(obj_, HasTraits):
+                elif i == 1 and (obj_ := getattr(obj, n, None)) and isinstance(obj_, HasTraits):
                     # We tolerate first-level-non-traits assuming they are 'fixed' for the life of obj.
                     obj = obj_
                     if i < len(parts):
                         continue
-                    if cls._AUTO_VALUE and obj.has_trait('value'):
-                        yield (obj, 'value')
+                    if cls._AUTO_VALUE and obj.has_trait("value"):
+                        yield (obj, "value")
                         continue
                 else:
                     msg = (
