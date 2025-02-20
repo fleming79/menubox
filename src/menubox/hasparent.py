@@ -237,6 +237,26 @@ class Parent(traitlets.TraitType):
 
 
 class HasParent(HasTraits, metaclass=MetaHasParent):
+    """A base class for objects that have a parent-child relationship and enhanced trait management.
+
+    Key Features:
+    - Singleton Instance Management:  Optionally creates singleton instances based on specified attributes (SINGLETON_BY).
+    - Nested Attribute Loading:  Recursively loads attributes from dictionaries into the object and its children.
+    - Trait Linking:  Provides methods for linking and unlinking traits between objects (link, dlink).
+    - Error Handling:  Includes a robust error handling mechanism with logging (on_error).
+    - Asynchronous Task Management:  Supports asynchronous initialization and task management.
+    - Widget Retrieval:  Facilitates the retrieval of widgets associated with the object.
+    - Automatic parent closed handling.
+    Key Attributes:
+    - parent: A Parent trait representing the parent object.
+    - name: A Unicode trait for the object's name.
+    - log: An IpylabLoggerAdapter instance for logging.
+    - closed: A boolean trait indicating whether the object is closed.
+    Usage:
+    Inherit from this class to create objects that require parent-child relationships,
+    singleton instances, trait linking, and enhanced attribute management.
+    """
+
     RENAMEABLE = True
     KEEP_ALIVE = False
     SINGLETON_BY: ClassVar[tuple[str, ...] | None] = None
@@ -409,12 +429,11 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         self.close(force=True)
 
     def __init__(self, *, parent: HasParent | None = None, **kwargs):
-        """A HasTraits object that can have a parent and link to traits of the parent.
+        """Initialize the HasParent class.
 
-        parent_link : tuple
-        parent_dlink: tuple
-
-        It will close if the parent is closed.
+        Args:
+            parent: The parent object.
+            **kwargs: Keyword arguments to pass to the super class.
         """
         if self._HasParent_init_complete:
             return
