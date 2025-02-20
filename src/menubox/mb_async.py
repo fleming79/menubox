@@ -115,7 +115,7 @@ def run_async(
                     result = await aw_
             result = await aw_
         except Exception as e:
-            mb.log.on_error(aw_, obj, "run async", e)
+            mb.log.on_error_wrapped(aw_, obj, "run async", e)
             raise
         else:
             return result if restart else None
@@ -267,7 +267,7 @@ class _Periodic:
         except asyncio.CancelledError:
             return
         except Exception as e:
-            mb.log.on_error(self.wrapped, self.instance, self.mode, e)
+            mb.log.on_error_wrapped(self.wrapped, self.instance, self.mode, e)
             raise
 
 

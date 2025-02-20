@@ -432,12 +432,16 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             method(source, target, key=f"{mname}_{name}")
 
     def setter(self, obj, name: str, value):
-        """setattr with pre-processing.
+        """Sets an attribute on an object, handling special cases for ipywidgets and ValueTraits.
 
-        Called during load_nested_attrs .
-
-        Notably special handling is provisioned for ValueTraits subclasses where the
-        object can be specified.
+        This function provides a flexible way to set attributes on objects, with specific
+        handling for ipywidgets like Combobox and Selection widgets, as well as objects
+        that utilize ValueTraits. It also supports setting values on HasTraits instances.
+        Args:
+            obj: The object on which to set the attribute.
+            name (str): The name of the attribute to set.
+            value: The value to set the attribute to.  Can be of any type, but special
+                handling is provided for strings and ValueTraits.
         """
         from menubox import valuetraits as vt
 
@@ -470,46 +474,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             obj.set_trait(name, value)
         else:
             setattr(obj, name, value)
-
-    def load_nested_attrs(
-        self,
-        obj,
-        values: dict | Callable[[], dict],
-        raise_errors: bool = True,  # noqa: FBT001
-        default_setter: Callable[[Any, str, Any], None] = setattr,
-    ) -> dict[str, Any]:
-        """Recursively load a dict of nested attributes into obj.
-
-        values: dict
-
-        raise_errors:
-            Will raise setting errors if they occur.
-            If False - a warning will be issued.
-        default_setter:
-            override the setter. default is mb.utils.setter
-        Will return a dict of successfully set values.
-        """
-        while callable(values):
-            values = values()
-        if not isinstance(values, dict):
-            if raise_errors:
-                msg = f"values is not a dict {type(values)}="
-                raise AttributeError(msg)
-            return {}
-        kwn = {}
-        for attr, value in values.items():
-            try:
-                utils.setattr_nested(obj, attr, value, default_setter=default_setter)
-                kwn[attr] = value
-            except Exception as e:
-                self.on_error(
-                    error=e,
-                    msg=f"Could not set nested attribute:  {utils.fullname(obj)}.{attr} = {utils.limited_string(value)} --> {e}",
-                    obj=obj,
-                )
-                if raise_errors:
-                    raise
-        return kwn
 
     def check_equality(self, a, b) -> bool:
         """Check objects are equal. Special handling for DataFrame."""

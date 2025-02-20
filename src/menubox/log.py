@@ -3,6 +3,7 @@ import datetime
 import functools
 import logging
 import os
+from typing import Any
 
 import ipylab
 import ipylab.log
@@ -20,7 +21,7 @@ if _tz is None:
 TZ = _tz
 
 
-__all__ = ["START_DEBUG", "on_error", "log_exceptions"]
+__all__ = ["START_DEBUG", "on_error_wrapped", "log_exceptions"]
 
 
 def START_DEBUG(*, to_stdio=False):
@@ -40,7 +41,18 @@ def START_DEBUG(*, to_stdio=False):
         sys.excepthook = IPython.core.ultratb.VerboseTB(color_scheme="Linux")
 
 
-def on_error(wrapped, instance, msg, e):
+def on_error(error: Exception, msg: str, obj: Any = None):
+    """Logs an error message with exception information.
+
+    Args:
+        error (Exception): The exception that occurred.
+        msg (str): The error message to log.
+        obj (Any, optional): An optional object to include in the log message. Defaults to None.
+    """
+    ipylab.app.log.exception(msg, obj=obj, exc_info=error)
+
+
+def on_error_wrapped(wrapped, instance, msg, e: Exception):
     """Log an exception locating most appropriate log first.
 
     raise_exception: bool
@@ -54,7 +66,7 @@ def on_error(wrapped, instance, msg, e):
     if hasattr(instance, "on_error"):
         instance.on_error(e, msg, obj=wrapped)
     else:
-        ipylab.app.log.exception(msg, obj=wrapped or instance, exc_info=e)
+        on_error(e, msg, wrapped)
 
 
 def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
@@ -85,7 +97,7 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
         except Exception as e:
             if callcount > 1:
                 raise
-            on_error(wrapped, instance, loginfo, e)
+            on_error_wrapped(wrapped, instance, loginfo, e)
             raise
         finally:
             callcount -= 1

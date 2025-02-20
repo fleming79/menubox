@@ -983,7 +983,7 @@ class ValueTraits(HasParent):
                 msg = f"Expected a dict but got a {data.__class__}."
                 raise TypeError(msg)
 
-            self.load_nested_attrs(obj=self, values=data, raise_errors=False, default_setter=self.setter)
+            utils.load_nested_attrs(self, data, raise_errors=False, default_setter=self.setter, on_error=self.on_error)
 
     def get_value(self, dotname: str, default=None) -> Any:
         """Gets value by dotted name.

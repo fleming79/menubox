@@ -200,6 +200,48 @@ def setattr_nested(
             raise AttributeError(msg) from e
 
 
+def load_nested_attrs(
+    obj,
+    values: dict | Callable[[], dict],
+    raise_errors: bool = True,  # noqa: FBT001
+    default_setter: Callable[[Any, str, Any], None] = setattr,
+    on_error: Callable[[Exception, str, Any], None] | None = None,
+) -> dict[str, Any]:
+    """Recursively load a dict of nested attributes into obj.
+
+    values: dict
+
+    raise_errors:
+        Will raise setting errors if they occur.
+        If False - a warning will be issued.
+    default_setter:
+        override the setter. default is mb.utils.setter
+    Will return a dict of successfully set values.
+    """
+    while callable(values):
+        values = values()
+    if not isinstance(values, dict):
+        if raise_errors:
+            msg = f"values is not a dict {type(values)}="
+            raise AttributeError(msg)
+        return {}
+    kwn = {}
+    for attr, value in values.items():
+        try:
+            setattr_nested(obj, attr, value, default_setter=default_setter)
+            kwn[attr] = value
+        except Exception as e:
+            msg = f"Could not set nested attribute:  {fullname(obj)}.{attr} = {limited_string(value)} --> {e}"
+            if not on_error:
+                import menubox.log
+
+                on_error = menubox.log.on_error
+            on_error(e, msg, obj)
+            if raise_errors:
+                raise
+    return kwn
+
+
 def fullname(obj) -> str:
     if hasattr(obj, "__wrapped__"):
         return fullname(obj.__wrapped__)
