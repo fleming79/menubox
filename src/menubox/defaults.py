@@ -157,6 +157,7 @@ V_FILL = NoCloseBox(
 CLS_RESIZE_BOTH = "menubox-resize-both"
 CLS_RESIZE_HORIZONTAL = "menubox-resize-horizontal"
 CLS_RESIZE_VERTICAL = "menubox-resize-vertical"
+CLS_BUTTON_BUSY = "menubox-button-busy"
 
 
 # Custom stylesheet
@@ -172,7 +173,9 @@ class MenuBoxIpylabPlugins:
 .{CLS_RESIZE_BOTH} {{ resize: both;}}
 .{CLS_RESIZE_HORIZONTAL} {{ resize: horizontal;}}
 .{CLS_RESIZE_VERTICAL} {{ resize: vertical;}}
+.{CLS_BUTTON_BUSY} {{ border: var(--menubox-button-busy-border);}}
         """)
+        css_stylesheet.set_variables({"--menubox-button-busy-border": " solid 1px LightGrey"})
 
 
 ipylab.plugin_manager.register(MenuBoxIpylabPlugins(), name="Menubox")

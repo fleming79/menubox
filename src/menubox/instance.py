@@ -328,23 +328,19 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             taskname = f"button_clicked[{id(new)}] → {owner.__class__.__qualname__}.{self.name}"
 
             ref = weakref.ref(owner)
-            busy_border = owner.BUTTON_BUSY_BORDER
-
             def _on_click(b: ipw.Button):
                 obj: HasParent | None = ref()
                 if obj:
 
                     async def click_callback():
                         callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
-                        if busy_border:
-                            b.layout.border = busy_border
                         try:
+                            b.add_class(mb.defaults.CLS_BUTTON_BUSY)
                             result = callback(b)
                             if inspect.isawaitable(result):
                                 await result
                         finally:
-                            if busy_border:
-                                b.layout.border = ""
+                            b.remove_class(mb.defaults.CLS_BUTTON_BUSY)
 
                     mb_async.run_async(click_callback, name=taskname, obj=obj)
 

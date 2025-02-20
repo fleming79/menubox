@@ -224,7 +224,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
         if inst := self._find_update_item(obj, kw, index=index):
             return inst
         if not self._spawn_new_instances:
-            msg = f"Spawn new instance is prohibited for {utils.fullname(obj)}.{self.name}"
+            msg = f"Instance creation is disabled for items in the TypedInstanceTuple {utils.fullname(obj)}.{self.name}"
             raise RuntimeError(msg)
         factory = self._get_func(obj, "_factory")
         if not callable(factory):
