@@ -197,16 +197,16 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         "Same as start but returns a coroutine and uses the current task."
         return self._start(restart=restart, task=asyncio.current_task(), **kwargs)  # type: ignore
 
-    def cancel(self, force=False):
+    def cancel(self, force=False, message=""):
         """Schedule cancel if already running.
         force: if task is already being cancelled force will call cancel again.
         """
         if self.task and (force or not self.task.cancelling()):
-            self.task.cancel(f'Cancelled by call to cancel of :"{self}"')
+            self.task.cancel(message or f'Cancelled by call to cancel of :"{self}"')
 
-    async def cancel_wait(self, force=False):
+    async def cancel_wait(self, force=False, message=""):
         if self.task:
-            self.cancel(force)
+            self.cancel(force, message=message)
             await asyncio.sleep(0)
             if self.task:
                 # permit on cycle for cleanup
