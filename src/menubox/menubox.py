@@ -238,14 +238,6 @@ class MenuBox(HasParent, Panel):
         self.set_trait("showbox", None)
         super().close(force)
 
-    def enable_widget(self, name: str, overrides: dict | None = None) -> None:
-        "Load the widget."
-        self.instanceHP_enable_disable(name, overrides or True)
-
-    def disable_widget(self, name: str) -> None:
-        "Remove the widget."
-        self.instanceHP_enable_disable(name, False)
-
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType):
         views = proposal["value"]
@@ -276,6 +268,14 @@ class MenuBox(HasParent, Panel):
     @traitlets.default("viewlist")
     def _default_viewlist(self):
         return tuple(self.views)
+
+    def enable_widget(self, name: str, overrides: dict | None = None) -> None:
+        "Load the widget."
+        self.instanceHP_enable_disable(name, overrides or True)
+
+    def disable_widget(self, name: str) -> None:
+        "Remove the widget."
+        self.instanceHP_enable_disable(name, False)
 
     def maximize(self):
         if self.view_previous and self.view_previous not in self._RESERVED_VIEWNAMES:
@@ -510,17 +510,13 @@ class MenuBox(HasParent, Panel):
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
                 if self._MenuBox_init_complete:
-                    self.update_title()
-                return
+                    return self.update_title()
             case "views" | "viewlist":
-                self._update_views_onchange()
-                return
+                return self._update_views_onchange()
             case "tabviews":
-                self._update_tab_buttons()
-                return
+                return self._update_tab_buttons()
             case "showbox":
-                self._onchange_showbox(change)
-                return
+                return self._onchange_showbox(change)
             case "menuviews":
                 if self.menuviews:
                     self.enable_widget("button_menu")
@@ -547,6 +543,7 @@ class MenuBox(HasParent, Panel):
                     b.close()
         if self.view:
             self.mb_refresh()
+        return None
 
     def _get_help_widget(self):
         """

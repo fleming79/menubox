@@ -436,6 +436,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             self._close_observers[owner] = {"handler": _observe_closed, "names": names}
 
     # TODO: add overloads if allow_none is True/false
+    # TODO: switch to using pluggy hooks.
     def configure(self, **kwgs: Unpack[IHPSettings[T]]) -> Self:
         """Configure how the instance will be handled.
 

@@ -330,7 +330,7 @@ def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:
         except TypeError:
             yield iterable  # type: ignore
 
-GetWidgetsInputType = str | Callable | ipw.Widget | Iterable[str | Callable | ipw.Widget]
+GetWidgetsInputType = None | str | Callable | ipw.Widget | Iterable[str | Callable | ipw.Widget | None]
 
 def get_widgets(
     *items: GetWidgetsInputType,
