@@ -683,16 +683,13 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     async def button_clicked(self, b: ipw.Button):
         """Handles button click events.
 
-        When overriding this method, ensure to call:
+        When overriding this method, ensure to pass on click events by calling:
 
         ``` python
         await super().button_clicked(b)
         ```
-
-        to pass on click events.
-
-            Args:
-                b (ipw.Button): The button that was clicked.
+        Args:
+            b (ipw.Button): The button that was clicked.
         """
 
         button_clicked = getattr(super(), "button_clicked", None)
@@ -711,11 +708,22 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             await self.wait_tasks(mb_async.TaskType.init, timeout=timeout)
         return self
 
-    async def wait_tasks(self, *tasktypes, timeout=None) -> Self:
-        """Wait for those tasks in self.tasks in self tasktypes, not including the
-        current task. Default is all tasks.
-        TaskType.continuous are always omitted.
+    async def wait_tasks(self, *tasktypes: mb_async.TaskType, timeout=None) -> Self:
+        """Waits for tasks to complete belonging to this object, with an optional timeout.
+
+        Tasks are added to this objects `tasks` set automatically when using `mb_async.run_async`.
+        The tasktype is also specified when creating the task.
+
+        Args:
+            *tasktypes:  The TaskType wait for.
+            If none are provided, all non-continuous tasks are waited for.
+            timeout: Optional timeout in seconds. If exceeded, the waiting tasks are cancelled.
+        Returns:
+            Self: Returns the instance of the class.
+        Raises:
+            TypeError: If any of the provided tasktypes are not instances of TaskType.
         """
+
         if self.tasks:
             tasktypes_ = []
             for tt in tasktypes or mb_async.TaskType:
@@ -736,21 +744,20 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     def get_widgets(
         self: HasParent, *items: utils.GetWidgetsInputType, skip_disabled=False, skip_hidden=True, show=True
     ) -> Generator[ipw.Widget, None, None]:
-        """Collects widgets omitting duplicate side-by-side instances and self.
+        """Get widgets from a variety of input types ignoring invalid of closed items..
 
-        Accepts widgets, dotted name attributes and callables that returns one or
-        more widgets. Nested lists/tuples are flattened accordingly.
+        Args:
+            *items: A variable number of arguments, each of which can be:
+            - A single widget.
+            - A list of widgets.
+            - A dictionary where values are widgets.
+            - A callable that returns widgets or list of widgets.
+            skip_disabled: If True, disabled widgets are skipped.
+            skip_hidden: If True, hidden widgets are skipped.
+            show: If True, the widget (Menubox) is displayed.
 
-        Note: It doesn't instantiate widgets.
-
-        items: tuple str | Callable | ipw.Widget
-
-
-        * names of attributes eg. self.attribute.subwidget  as "attribute.subwidget"
-        * "H_FILL" & "V_FILL" are special names that provide a box configured according.
-        * callable that returns a widget or list of widgets
-        * widgets
-        * fstr style strings  starting with {  eg. "{self.__class__}"
+        Yields:
+            Each widget found in the input items.
         """
         yield from utils.get_widgets(
             *items, skip_disabled=skip_disabled, skip_hidden=skip_hidden, show=show, parent=self
