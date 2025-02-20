@@ -285,6 +285,152 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     _init_task: traitlets.Instance[asyncio.Task[None] | None] = traitlets.Instance(asyncio.Task, allow_none=True)  # type: ignore
     init_async: ClassVar[None | Coroutine] = None
 
+    def __new__(cls, *args, **kwargs):
+        def _make_key():
+            key = [cls.__qualname__]
+            if not isinstance(cls.SINGLETON_BY, tuple):
+                raise TypeError
+            for n in cls.SINGLETON_BY:
+                if n == "cls":
+                    val = n
+                else:
+                    val = kwargs.get(n) or getattr(cls, n, None)
+                    if val and isinstance(val, traitlets.TraitType):
+                        val = val.default_value
+                    if not val or val is traitlets.Undefined:
+                        msg = f"SINGLETON_BY key '{n}' value not provided or invalid for {cls=}."
+                        raise ValueError(msg)
+                key.append(val)
+            return tuple(key)
+
+        key = _make_key() if cls.SINGLETON_BY else None
+        if key and key in cls._singleton_instances:
+            return cls._singleton_instances[key]
+        # class definitions per
+        inst = super().__new__(cls, *args, **kwargs)
+        if key:
+            if not isinstance(cls.SINGLETON_BY, tuple):
+                raise TypeError
+            if "name" in cls.SINGLETON_BY:
+                inst.name = key[cls.SINGLETON_BY.index("name") + 1]
+            cls._singleton_instances[key] = inst
+            inst._singleton_instances_key = key
+        return inst
+
+    def __init__(self, *, parent: HasParent | None = None, **kwargs):
+        """Initialize the HasParent class.
+
+        Args:
+            parent: The parent object.
+            **kwargs: Keyword arguments to pass to the super class.
+        """
+        if self._HasParent_init_complete:
+            return
+        values = {}
+        for name in tuple(kwargs):
+            if name in self._InstanceHP:
+                values[name] = kwargs.pop(name)
+        super().__init__(**kwargs)
+        self.parent = parent
+        self._HasParent_init_complete = True
+        for name, v in values.items():
+            self.instanceHP_enable_disable(name, v)
+        if self.init_async:
+            assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
+            mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self, handle="_init_task")  # type: ignore
+            self.init_async = None  # type: ignore # This function is only intended to be called once here.
+
+    def __del__(self):
+        self.close(force=True)
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        if cls.SINGLETON_BY:
+            assert isinstance(cls.SINGLETON_BY, tuple)  # noqa: S101
+            if cls.SINGLETON_BY and "name" in cls.SINGLETON_BY:
+                cls.RENAMEABLE = False
+        cls._cls_update_InstanceHP_register()
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:
+        tn_ = dict(cls._InstanceHP)
+        for c in cls.mro():
+            if c is __class__:
+                break
+            if issubclass(c, HasParent) and c._InstanceHP:
+                # Need to copy other InstanceHP mappings in case of multiple subclassing
+                for name in c._InstanceHP:
+                    if name and name not in tn_:
+                        tn_[name] = c._InstanceHP[name]
+        cls._InstanceHP = tn_
+
+    @classmethod
+    def validate_name(cls, name: str) -> str:
+        return name
+
+    @traitlets.validate("name")
+    def _hp_validate_name(self, proposal: ProposalType) -> str:
+        if not self.RENAMEABLE and self.trait_has_value("name") and self.name:
+            return self.name
+        return self.validate_name(proposal["value"]).strip()
+
+    @traitlets.validate("parent_link", "parent_dlink")
+    def _parent_link_dlink_validate(self, proposal: ProposalType):
+        if prohibited := self._prohibited_parent_links.intersection(proposal["value"]):
+            msg = f"Prohibited links detected: {prohibited}"
+            raise NameError(msg)
+        links = []
+        for link in toolz.unique(proposal["value"]):
+            if not self.has_trait(link):
+                msg = f"{utils.fullname(self)} does not have the trait '{link}'"
+                raise AttributeError(msg)
+            links.append(link)
+        return tuple(links)
+
+    @traitlets.default("log")
+    def _default_log(self):
+        return IpylabLoggerAdapter(utils.fullname(self), owner=self)
+
+    @traitlets.observe("parent", "parent_link", "parent_dlink")
+    def _observe_parent(self, change: ChangeType):
+        if change["name"] == "parent":
+            if isinstance(change["old"], HasParent):
+                with contextlib.suppress(Exception):
+                    change["old"].unobserve(self._hp_parent_closed, "closed")
+            if isinstance(change["new"], HasParent):
+                change["new"].observe(self._hp_parent_closed, "closed")
+        p_link = set()
+        p_dlink = set()
+        if self.parent:
+            for n in self.parent_link:
+                if self.parent.has_trait(n):
+                    p_link.add((self.parent, n))
+            for n in self.parent_dlink:
+                if self.parent.has_trait(n):
+                    p_dlink.add((self.parent, n))
+        self._hp_reg_parent_link = p_link
+        self._hp_reg_parent_dlink = p_dlink
+
+    @traitlets.observe("_hp_reg_parent_link", "_hp_reg_parent_dlink")
+    def _observe__hp_reg_parent_link(self, change: ChangeType):
+        # Update links
+        old = change["old"] if isinstance(change["old"], set) else set()
+        mname = change["name"].rsplit("_", maxsplit=1)[1]
+        method = self.link if mname == "link" else self.dlink
+        # remove old links
+        for _, name in set(old).difference(change["new"]):
+            method((), (), key=f"{mname}_{name}", connect=False)  # type: ignore
+        # add new links
+        for parent, name in change["new"].difference(old):
+            v = getattr(self, name)
+            target = (v, "value") if isinstance(v, ipw.ValueWidget) and not isinstance(v, HasParent) else (self, name)
+            val = getattr(parent, name)
+            if isinstance(val, ipw.ValueWidget) and not isinstance(val, HasParent):
+                source = val, "value"
+            else:
+                source = parent, name
+            method(source, target, key=f"{mname}_{name}")
+
     def setter(self, obj, name: str, value):
         """setattr with pre-processing.
 
@@ -370,86 +516,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         if isinstance(a, pd.DataFrame):
             return a.equals(b)
         return a == b
-
-    def __init_subclass__(cls, **kwargs) -> None:
-        if cls.SINGLETON_BY:
-            assert isinstance(cls.SINGLETON_BY, tuple)  # noqa: S101
-            if cls.SINGLETON_BY and "name" in cls.SINGLETON_BY:
-                cls.RENAMEABLE = False
-        cls._cls_update_InstanceHP_register()
-        super().__init_subclass__(**kwargs)
-
-
-    @classmethod
-    def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:
-        tn_ = dict(cls._InstanceHP)
-        for c in cls.mro():
-            if c is __class__:
-                break
-            if issubclass(c, HasParent) and c._InstanceHP:
-                # Need to copy other InstanceHP mappings in case of multiple subclassing
-                for name in c._InstanceHP:
-                    if name and name not in tn_:
-                        tn_[name] = c._InstanceHP[name]
-        cls._InstanceHP = tn_
-
-    def __new__(cls, *args, **kwargs):
-        def _make_key():
-            key = [cls.__qualname__]
-            if not isinstance(cls.SINGLETON_BY, tuple):
-                raise TypeError
-            for n in cls.SINGLETON_BY:
-                if n == "cls":
-                    val = n
-                else:
-                    val = kwargs.get(n) or getattr(cls, n, None)
-                    if val and isinstance(val, traitlets.TraitType):
-                        val = val.default_value
-                    if not val or val is traitlets.Undefined:
-                        msg = f"SINGLETON_BY key '{n}' value not provided or invalid for {cls=}."
-                        raise ValueError(msg)
-                key.append(val)
-            return tuple(key)
-
-        key = _make_key() if cls.SINGLETON_BY else None
-        if key and key in cls._singleton_instances:
-            return cls._singleton_instances[key]
-        # class definitions per
-        inst = super().__new__(cls, *args, **kwargs)
-        if key:
-            if not isinstance(cls.SINGLETON_BY, tuple):
-                raise TypeError
-            if "name" in cls.SINGLETON_BY:
-                inst.name = key[cls.SINGLETON_BY.index("name") + 1]
-            cls._singleton_instances[key] = inst
-            inst._singleton_instances_key = key
-        return inst
-
-    def __del__(self):
-        self.close(force=True)
-
-    def __init__(self, *, parent: HasParent | None = None, **kwargs):
-        """Initialize the HasParent class.
-
-        Args:
-            parent: The parent object.
-            **kwargs: Keyword arguments to pass to the super class.
-        """
-        if self._HasParent_init_complete:
-            return
-        values = {}
-        for name in tuple(kwargs):
-            if name in self._InstanceHP:
-                values[name] = kwargs.pop(name)
-        super().__init__(**kwargs)
-        self.parent = parent
-        self._HasParent_init_complete = True
-        for name, v in values.items():
-            self.instanceHP_enable_disable(name, v)
-        if self.init_async:
-            assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
-            mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self, handle="_init_task")  # type: ignore
-            self.init_async = None  # type: ignore # This function is only intended to be called once here.
 
     def get_log_name(self):
         "A representation for logging"
@@ -543,73 +609,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             if isinstance(d, dict):
                 d.clear()
         self.closed = True  # Need to restore this trait to false.
-
-    @traitlets.default("log")
-    def _default_log(self):
-        return IpylabLoggerAdapter(utils.fullname(self), owner=self)
-
-    @traitlets.validate("name")
-    def _hp_validate_name(self, proposal: ProposalType) -> str:
-        if not self.RENAMEABLE and self.trait_has_value("name") and self.name:
-            return self.name
-        return self.validate_name(proposal["value"]).strip()
-
-    @classmethod
-    def validate_name(cls, name: str) -> str:
-        return name
-
-    @traitlets.validate("parent_link", "parent_dlink")
-    def _parent_link_dlink_validate(self, proposal: ProposalType):
-        if prohibited := self._prohibited_parent_links.intersection(proposal["value"]):
-            msg = f"Prohibited links detected: {prohibited}"
-            raise NameError(msg)
-        links = []
-        for link in toolz.unique(proposal["value"]):
-            if not self.has_trait(link):
-                msg = f"{utils.fullname(self)} does not have the trait '{link}'"
-                raise AttributeError(msg)
-            links.append(link)
-        return tuple(links)
-
-    @traitlets.observe("parent", "parent_link", "parent_dlink")
-    def _observe_parent(self, change: ChangeType):
-        if change["name"] == "parent":
-            if isinstance(change["old"], HasParent):
-                with contextlib.suppress(Exception):
-                    change["old"].unobserve(self._hp_parent_closed, "closed")
-            if isinstance(change["new"], HasParent):
-                change["new"].observe(self._hp_parent_closed, "closed")
-        p_link = set()
-        p_dlink = set()
-        if self.parent:
-            for n in self.parent_link:
-                if self.parent.has_trait(n):
-                    p_link.add((self.parent, n))
-            for n in self.parent_dlink:
-                if self.parent.has_trait(n):
-                    p_dlink.add((self.parent, n))
-        self._hp_reg_parent_link = p_link
-        self._hp_reg_parent_dlink = p_dlink
-
-    @traitlets.observe("_hp_reg_parent_link", "_hp_reg_parent_dlink")
-    def _observe__hp_reg_parent_link(self, change: ChangeType):
-        # Update links
-        old = change["old"] if isinstance(change["old"], set) else set()
-        mname = change["name"].rsplit("_", maxsplit=1)[1]
-        method = self.link if mname == "link" else self.dlink
-        # remove old links
-        for _, name in set(old).difference(change["new"]):
-            method((), (), key=f"{mname}_{name}", connect=False)  # type: ignore
-        # add new links
-        for parent, name in change["new"].difference(old):
-            v = getattr(self, name)
-            target = (v, "value") if isinstance(v, ipw.ValueWidget) and not isinstance(v, HasParent) else (self, name)
-            val = getattr(parent, name)
-            if isinstance(val, ipw.ValueWidget) and not isinstance(val, HasParent):
-                source = val, "value"
-            else:
-                source = parent, name
-            method(source, target, key=f"{mname}_{name}")
 
     def fstr(self, string: str, raise_errors=False, parameters: dict | None = None) -> str:
         """Formats string using fstr type notation.
