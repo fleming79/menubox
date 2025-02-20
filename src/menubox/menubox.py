@@ -356,7 +356,8 @@ class MenuBox(HasParent, Panel):
             self.set_trait("loading_view", NO_DEFAULT)
 
     async def load_center_widgets(self, view: str | None) -> str | None:
-        """Loads a widget into the center region of the MenuBox.
+        """Loads a widget, callable or generator into the center region of the MenuBox.
+
         The widget can be specified by a view name, which corresponds to either a
         reserved view or a user-defined view. If the view is a string, it can
         represent either a direct widget or a nested attribute of the MenuBox

@@ -70,7 +70,7 @@ class IHPSettings(Generic[T], TypedDict):
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
     on_click: NotRequired[str | Callable[[ipw.Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
-    children: NotRequired[ChildrenDict | tuple[str | ipw.Widget | Callable[[], str | ipw.Widget | Callable], ...]]
+    children: NotRequired[ChildrenDict | tuple[utils.GetWidgetsInputType, ...]]
 
 
 class IHPDlinkType(TypedDict):
@@ -279,7 +279,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                     home = getattr(obj, "home", "_child setter")
                     ChildrenSetter(home=home, parent=obj, name=self.name, items=children["dottednames"])
                 else:
-                    kwgs["children"] = obj.get_widgets(children, skip_hidden=False, show=True)
+                    kwgs["children"] = obj.get_widgets(*children, skip_hidden=False, show=True)
 
             # Overrides - use via `HasParent.instanceHP_enable_disable`, `Menubox.enable_widget` or set directly with a dict.
             if override:

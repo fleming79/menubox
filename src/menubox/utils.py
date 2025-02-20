@@ -4,6 +4,7 @@ import asyncio
 import functools
 import inspect
 import weakref
+from collections.abc import Callable, Generator, Iterable
 from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
 
 import ipylab
@@ -17,7 +18,6 @@ import menubox as mb
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable
 
     from menubox.hasparent import HasParent
     from menubox.trait_types import ChangeType
@@ -330,9 +330,10 @@ def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:
         except TypeError:
             yield iterable  # type: ignore
 
+GetWidgetsInputType = str | Callable | ipw.Widget | Iterable[str | Callable | ipw.Widget]
 
 def get_widgets(
-    *items,
+    *items: GetWidgetsInputType,
     skip_disabled=False,
     skip_hidden=True,
     show=True,

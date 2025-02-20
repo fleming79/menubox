@@ -719,7 +719,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         return self
 
     def get_widgets(
-        self: HasParent, *items, skip_disabled=False, skip_hidden=True, show=True
+        self: HasParent, *items: utils.GetWidgetsInputType, skip_disabled=False, skip_hidden=True, show=True
     ) -> Generator[ipw.Widget, None, None]:
         """Collects widgets omitting duplicate side-by-side instances and self.
 
@@ -738,7 +738,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         * fstr style strings  starting with {  eg. "{self.__class__}"
         """
         yield from utils.get_widgets(
-            items, skip_disabled=skip_disabled, skip_hidden=skip_hidden, show=show, parent=self
+            *items, skip_disabled=skip_disabled, skip_hidden=skip_hidden, show=show, parent=self
         )
 
     def get(self, name: str, default=None):
