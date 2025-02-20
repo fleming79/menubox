@@ -237,16 +237,8 @@ class Parent(traitlets.TraitType):
 
 
 class HasParent(HasTraits, metaclass=MetaHasParent):
-    """ """
-
-    _CLASS_DEFINITIONS: ClassVar[dict[str, type[HasParent]]] = {}
-    # Register for single definition of class by name meaning that
-    # Classes can be overridden by external definitions providing
-    # they are a subclass of the existing definition.
-
     RENAMEABLE = True
     KEEP_ALIVE = False
-    BUTTON_BUSY_BORDER = "solid 1px LightGrey"
     SINGLETON_BY: ClassVar[tuple[str, ...] | None] = None
     _singleton_instances: ClassVar[weakref.WeakValueDictionary[tuple, Any]] = weakref.WeakValueDictionary()
     _singleton_instances_key: tuple | None = None
@@ -364,11 +356,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             assert isinstance(cls.SINGLETON_BY, tuple)  # noqa: S101
             if cls.SINGLETON_BY and "name" in cls.SINGLETON_BY:
                 cls.RENAMEABLE = False
-        if (existing := cls._CLASS_DEFINITIONS.get(cls.__qualname__)) and not issubclass(cls, existing):
-            msg = f"{cls=} must be a subclass of {existing}. Use another Class name or make {cls} a subclass {existing}"
-            raise ValueError(msg)
         cls._cls_update_InstanceHP_register()
-        cls._CLASS_DEFINITIONS[cls.__qualname__] = cls
         super().__init_subclass__(**kwargs)
 
 
@@ -386,18 +374,15 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         cls._InstanceHP = tn_
 
     def __new__(cls, *args, **kwargs):
-        # Permit overloading of class by name.
-        cls_ = cls._CLASS_DEFINITIONS[cls.__qualname__]  # type: type[HasParent]
-
         def _make_key():
-            key = [cls_.__qualname__]
-            if not isinstance(cls_.SINGLETON_BY, tuple):
+            key = [cls.__qualname__]
+            if not isinstance(cls.SINGLETON_BY, tuple):
                 raise TypeError
-            for n in cls_.SINGLETON_BY:
+            for n in cls.SINGLETON_BY:
                 if n == "cls":
                     val = n
                 else:
-                    val = kwargs.get(n) or getattr(cls_, n, None)
+                    val = kwargs.get(n) or getattr(cls, n, None)
                     if val and isinstance(val, traitlets.TraitType):
                         val = val.default_value
                     if not val or val is traitlets.Undefined:
@@ -406,22 +391,22 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
                 key.append(val)
             return tuple(key)
 
-        key = _make_key() if cls_.SINGLETON_BY else None
-        if key and key in cls_._singleton_instances:
-            return cls_._singleton_instances[key]
+        key = _make_key() if cls.SINGLETON_BY else None
+        if key and key in cls._singleton_instances:
+            return cls._singleton_instances[key]
         # class definitions per
-        inst = super().__new__(cls_, *args, **kwargs)
+        inst = super().__new__(cls, *args, **kwargs)
         if key:
-            if not isinstance(cls_.SINGLETON_BY, tuple):
+            if not isinstance(cls.SINGLETON_BY, tuple):
                 raise TypeError
-            if "name" in cls_.SINGLETON_BY:
-                inst.name = key[cls_.SINGLETON_BY.index("name") + 1]
-            cls_._singleton_instances[key] = inst
+            if "name" in cls.SINGLETON_BY:
+                inst.name = key[cls.SINGLETON_BY.index("name") + 1]
+            cls._singleton_instances[key] = inst
             inst._singleton_instances_key = key
         return inst
 
     def __del__(self):
-        self.close()
+        self.close(force=True)
 
     def __init__(self, *, parent: HasParent | None = None, **kwargs):
         """A HasTraits object that can have a parent and link to traits of the parent.
@@ -463,6 +448,16 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         raise NotImplementedError(msg)
 
     def on_error(self, error: Exception, msg: str, obj: Any = None):
+        """Logs an error message with exception information.
+
+        Note: When overloading, do not raise the error, it should by the callee after this function returns.
+            It may be useful to add a note to the exception if applicable.
+
+        Args:
+            error (Exception): The exception that occurred.
+            msg (str): The error message to log.
+            obj (Any, optional): An object associated with the error. Defaults to None.
+        """
         self.log.exception(msg, obj=obj, exc_info=error)
 
     def _hp_parent_closed(self, _: ChangeType):
