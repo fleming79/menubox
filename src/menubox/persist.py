@@ -54,13 +54,13 @@ class MenuBoxPersist(MenuBoxVT):
     """
 
     SINGLETON_BY = ("home", "name")
-    _PERSIST_TEMPLATE = "settings/{cls.__name__}/{name}_v{version}"
+    _PERSIST_TEMPLATE = "settings/{cls.__qualname__}/{name}_v{version}"
     _AUTOLOAD = True
     SINGLE_VERSION = True
     SHOW_TEMPLATE_CONTROLS = True
     DEFAULT_VIEW = None
     title_description = traitlets.Unicode(
-        "<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;"
+        "<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;"
         "{self.name.replace('_',' ').capitalize()}"
         "{'' if self.SINGLE_VERSION else f' V{self.version}'}</b>"
     )
@@ -247,7 +247,7 @@ class MenuBoxPersist(MenuBoxVT):
             version: An integer or string representing the version of the data structure. Must be >= 1.
 
         Returns:
-            A string formatted as '{cls.__name__}.{name}.v{version}', all lowercased.
+            A string formatted as '{cls.__qualname__}.{name}.v{version}', all lowercased.
 
         Raises:
             ValueError: If the version is None, empty, or less than 1.

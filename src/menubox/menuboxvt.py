@@ -42,7 +42,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
     FANCY_NAME = ""
     _RESERVED_VIEWNAMES = (*MenuBox._RESERVED_VIEWNAMES, _CONFIGURE_VIEW)
     repository: traitlets.Instance[Repository] = traitlets.Instance("menubox.repository.Repository")
-    title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name}</b>")
+    title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *MenuBox.header_right_children)
     _templates = traitlets.Dict(traitlets.Unicode(), traitlets.Unicode())
@@ -58,7 +58,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
         "box_template_controls",
         title="Copy and load settings",
         button_expand_description="📜",
-        button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__name__}.",
+        button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
         on_expand="_on_template_controls_expand",
     ).configure(
         allow_none=True,
@@ -114,7 +114,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
         if mb.DEBUG_ENABLED:
             mro = cls.mro()
             if mro.index(ValueTraits) < mro.index(__class__):
-                smo = "\n\t".join(o.__name__ for o in cls.mro())
+                smo = "\n\t".join(o.__qualname__ for o in cls.mro())
                 msg = (
                     f"{cls} is a subclass of {__class__} and {ValueTraits}."
                     f"\nHowever the mro reports that {__class__} is lower in the list"
@@ -138,7 +138,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
         if self._MenuBox_init_complete:
             name = self.name if self.trait_has_value("name") else ""
             cs = "closed: " if self.closed else ""
-            return f"<{cs}{self.__class__.__name__} home='{self.home}' {name=}>"
+            return f"<{cs}{self.__class__.__qualname__} home='{self.home}' {name=}>"
         return super().__repr__()
 
     def _get_template_controls(self):
@@ -183,7 +183,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
     def update_templates(cls):
         cls._templates = {}
         for root in _template_folders:
-            folder = root.joinpath(cls.__name__)
+            folder = root.joinpath(cls.__qualname__)
             if folder.exists():
                 for f in folder.glob("*"):
                     if f.is_file() and f.suffix in [".yaml", ".json"]:

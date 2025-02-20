@@ -105,13 +105,13 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             cls._InstanceHP[name] = self  # type: ignore # Register
         else:
             msg = (
-                f"Setting {cls.__name__}.{name} = InstanceHP(...) is invalid "
+                f"Setting {cls.__qualname__}.{name} = InstanceHP(...) is invalid "
                 f"because {cls} is not a subclass of HasParent."
             )
             raise TypeError(msg)
         return super().class_init(cls, name)
 
-    def __init__(self, klass: type[T], *args, **kwgs: Any) -> None:
+    def __init__(self, klass: type[T] | str, *args, **kwgs: Any) -> None:
         """InstanceHP is an Instance type class  to spawn the instance of
         `klass(*args, **kwargs)` in the `HasParent` (parent) object.
 
@@ -142,12 +142,17 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
 
         """
         if isinstance(klass, str):
+            if "." not in klass:
+                msg = f"{klass=} must be passed with the full path to the class inside the module"
+                raise ValueError(msg)
             self.klass_name = klass
         elif inspect.isclass(klass):
             self._klass = klass
-            self.klass_name = klass.__name__
+            self.klass_name = f"{klass.__module__}.{klass.__qualname__}"
+        elif (args_ := getattr(klass, "__args__", None)) and "." in args_[0]:
+            self.klass_name = args_[0]
         else:
-            msg = f"{klass} is not a class or string!"
+            msg = f"{klass=} must be either a class, type['full.name.to.Class'] or the full path to the class!"
             raise TypeError(msg)
         if "parent" in kwgs:
             msg = "`parent`is an invalid argument. Use the `set_parent` tag instead."
@@ -161,19 +166,9 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
     @property
     def klass(self) -> type[T]:
         if not self._klass:
-            self._klass = self.get_class(self.klass_name)
+            self._klass = utils.import_item(self.klass_name)
+            assert self._klass  # noqa: S101
         return self._klass
-
-    @classmethod
-    def get_class(cls, name: str) -> type[T]:
-        """get the class for name or fully qualified name"""
-        try:
-            return HasParent._CLASS_DEFINITIONS[name.split(".")[-1]]  # type: ignore
-        except KeyError as e:
-            if "." in name:
-                return traitlets.import_item(name)
-            msg = f"'{name}' is not a registered class.\nValid options are {list(HasParent._CLASS_DEFINITIONS)}"
-            raise ValueError(msg) from e
 
     @property
     def allow_none(self):  # type: ignore
@@ -253,7 +248,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             if not self.load_default and override is None:
                 if self.allow_none:
                     return None
-                msg = f'Both `load_default` and `allow_none` are False for "{obj.__class__.__name__}.{self.name}".'
+                msg = f'Both `load_default` and `allow_none` are False for "{obj.__class__.__qualname__}.{self.name}".'
                 raise RuntimeError(msg)  # noqa: TRY301
             kwgs = dict(self.kwgs)
             if issubclass(self.klass, HasParent) and self.set_parent:
@@ -299,7 +294,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             if self.allow_none:
                 return value
             msg = (
-                f"None is not allowed for the InstanceHP trait `{obj.__class__.__name__}.{self.name}`. "
+                f"None is not allowed for the InstanceHP trait `{obj.__class__.__qualname__}.{self.name}`. "
                 f"Use `.configure(allow_none=True)` "
                 "to permit it."
             )
@@ -330,7 +325,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                 if on_click == "button_clicked" and not asyncio.iscoroutinefunction(owner.button_clicked):
                     msg = f"By convention `{utils.fullname(new)}.button_clicked` must be a coroutine function!"
                     raise TypeError(msg)
-            taskname = f"button_clicked[{id(new)}] → {owner.__class__.__name__}.{self.name}"
+            taskname = f"button_clicked[{id(new)}] → {owner.__class__.__qualname__}.{self.name}"
 
             ref = weakref.ref(owner)
             busy_border = owner.BUTTON_BUSY_BORDER
@@ -375,7 +370,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                 src_name, src_trait = dlink["source"]
                 src_obj = owner if src_name == "self" else utils.getattr_nested(owner, src_name, hastrait_value=False)
                 tgt_trait = dlink["target"]
-                key = f"{id(owner)} {owner.__class__.__name__}.{self.name}.{tgt_trait}"
+                key = f"{id(owner)} {owner.__class__.__qualname__}.{self.name}.{tgt_trait}"
                 if "." in tgt_trait:
                     class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
                     target_obj = utils.getattr_nested(new, class_name, hastrait_value=False)
@@ -527,7 +522,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
 
 
 def instanceHP_wrapper(
-    klass: type[T],
+    klass: type[T] | str,
     /,
     *,
     defaults: None | dict[str, Any] = None,

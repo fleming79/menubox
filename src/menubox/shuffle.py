@@ -46,7 +46,7 @@ class ObjShuffle(MenuBoxVT):
         close_on_remove=False,
     )
 
-    title_description = traitlets.Unicode("<b>{self.obj_cls.__name__.replace('_','').capitalize()} set</b>")
+    title_description = traitlets.Unicode("<b>{self.obj_cls.__qualname__.replace('_','').capitalize()} set</b>")
     html_info = tf.HTML()
     info_html_title = ipw.HTML(layout={"margin": "0px 20px 0px 40px"})
     yaml_data = ipw.Textarea(layout={"width": "auto"})

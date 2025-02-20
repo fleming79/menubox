@@ -264,7 +264,8 @@ SimpleOutput = IHP(ipylab.SimpleOutput)
 
 # menubox
 
-MenuBox = IHP(cast(type["menubox.menubox.MenuBox"], "MenuBox"))
+MenuBox = IHP(type["menubox.menubox.MenuBox"])
+MenuBoxVT = IHP(type["menubox.menuboxvt.MenuBoxVT"])
 
 AsyncRunButton = IHP(
     menubox.async_run_button.AsyncRunButton,

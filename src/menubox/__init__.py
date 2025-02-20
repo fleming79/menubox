@@ -10,6 +10,7 @@ from menubox import (
     instance,
     log,
     mb_async,
+    menuboxvt,  # noqa: F401
     pack,
     trait_types,
     utils,

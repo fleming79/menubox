@@ -476,7 +476,7 @@ class ValueTraits(HasParent):
     def __repr__(self):
         cs = "closed: " if self.closed else ""
         home = f"home:{self.home}" if self._vt_init_complete else ""
-        return f"<{cs}{self.__class__.__name__} name='{self.name}' {home}>"
+        return f"<{cs}{self.__class__.__qualname__} name='{self.name}' {home}>"
 
     def __init_subclass__(cls, **kwargs) -> None:
         tn_ = dict(cls._vt_tit_names)
@@ -816,7 +816,7 @@ class ValueTraits(HasParent):
             self.log.debug(
                 "\tCHANGE "  # noqa: G003
                 + (f"ignored (context={self._ignore_change_cnt})" if self._ignore_change_cnt else "")
-                + f"\t{change['owner'].__class__.__name__}.{change['name']}\t"
+                + f"\t{change['owner'].__class__.__qualname__}.{change['name']}\t"
                 f"{utils.fullname(change['old'])} →{utils.fullname(change['new'])}"
             )
         if self._ignore_change_cnt:

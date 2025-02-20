@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import importlib
 import inspect
 import weakref
 from collections.abc import Callable, Generator, Iterable
@@ -210,14 +211,14 @@ def fullname(obj) -> str:
         if inspect.isawaitable(obj):
             return funcname(obj)
         if isinstance(obj, traitlets.MetaHasTraits):
-            return f"{obj.__module__}.{obj.__name__}"
+            return f"{obj.__module__}.{obj.__qualname__}"
         module = obj.__class__.__module__
         if module is None or module == str.__class__.__module__:
-            return obj.__class__.__name__
+            return obj.__class__.__qualname__
     except Exception:
         return str(obj)
     else:
-        return f"{module}.{obj.__class__.__name__}"
+        return f"{module}.{obj.__class__.__qualname__}"
 
 
 def funcname(obj: Any) -> str:
@@ -565,3 +566,13 @@ def download_button(buffer, filename: str, button_description: str):
     </html>
     """
     return ipw.HTML(html_button)
+
+
+def import_item(dottedname: str):
+    """Import an item from a module, given its dotted name.
+
+    For example:
+    >>> import_item("os.path.join")
+    """
+    modulename, objname = dottedname.rsplit(".", maxsplit=1)
+    return getattr(importlib.import_module(modulename), objname)

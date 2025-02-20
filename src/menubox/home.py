@@ -74,7 +74,9 @@ class Home(HasParent):
         return self.name
 
     async def get_repository(self, repository_name: str) -> Repository:
-        repo: Repository = self._CLASS_DEFINITIONS["Repository"](name=repository_name, home=self)  # type: ignore
+        from menubox.repository import Repository
+
+        repo: Repository = Repository(name=repository_name, home=self)  # type: ignore
         await repo.wait_update_tasks()
         return repo
 

@@ -58,8 +58,8 @@ class Link:
 
     def __repr__(self) -> str:
         return (
-            f"Link source={self.source[0].__class__.__name__}.{self.source[1]} "
-            f" target={self.target[0].__class__.__name__}.{self.target[1]}"
+            f"Link source={self.source[0].__class__.__qualname__}.{self.source[1]} "
+            f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
         )
 
     @contextlib.contextmanager
@@ -163,8 +163,8 @@ class Dlink:
 
     def __repr__(self) -> str:
         return (
-            f"Dlink source={self.source[0].__class__.__name__}.{self.source[1]} "
-            f" target={self.target[0].__class__.__name__}.{self.target[1]}"
+            f"Dlink source={self.source[0].__class__.__qualname__}.{self.source[1]} "
+            f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
         )
 
     @contextlib.contextmanager
@@ -364,12 +364,13 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             assert isinstance(cls.SINGLETON_BY, tuple)  # noqa: S101
             if cls.SINGLETON_BY and "name" in cls.SINGLETON_BY:
                 cls.RENAMEABLE = False
-        if (existing := cls._CLASS_DEFINITIONS.get(cls.__name__)) and not issubclass(cls, existing):
+        if (existing := cls._CLASS_DEFINITIONS.get(cls.__qualname__)) and not issubclass(cls, existing):
             msg = f"{cls=} must be a subclass of {existing}. Use another Class name or make {cls} a subclass {existing}"
             raise ValueError(msg)
         cls._cls_update_InstanceHP_register()
-        cls._CLASS_DEFINITIONS[cls.__name__] = cls
+        cls._CLASS_DEFINITIONS[cls.__qualname__] = cls
         super().__init_subclass__(**kwargs)
+
 
     @classmethod
     def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:
@@ -386,10 +387,10 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
 
     def __new__(cls, *args, **kwargs):
         # Permit overloading of class by name.
-        cls_ = cls._CLASS_DEFINITIONS[cls.__name__]  # type: type[HasParent]
+        cls_ = cls._CLASS_DEFINITIONS[cls.__qualname__]  # type: type[HasParent]
 
         def _make_key():
-            key = [cls_.__name__]
+            key = [cls_.__qualname__]
             if not isinstance(cls_.SINGLETON_BY, tuple):
                 raise TypeError
             for n in cls_.SINGLETON_BY:

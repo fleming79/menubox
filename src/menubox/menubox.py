@@ -61,7 +61,7 @@ class MenuBox(HasParent, Panel):
     SHOWBOX_MARGIN: ClassVar[str] = "5px 5px 1px 5px"
     SHOWBOX_APPEND_START = False
     TAB_BUTTON_KW: ClassVar[dict[str, Any]] = dict(defaults.bt_kwargs)
-    HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__name__}</h3>\n\n"  # noqa: RUF001
+    HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
     _MenuBox_init_complete = False
 
@@ -163,7 +163,7 @@ class MenuBox(HasParent, Panel):
 
     def __repr__(self):
         cs = "closed: " if self.closed else ""
-        return f"<{cs}{self.__class__.__name__} name:'{self.name if self.trait_has_value('name') else ''}'>"
+        return f"<{cs}{self.__class__.__qualname__} name:'{self.name if self.trait_has_value('name') else ''}'>"
 
     @override
     def get_log_name(self):
@@ -346,7 +346,7 @@ class MenuBox(HasParent, Panel):
             self.log.debug("Loaded view: %s", view)
             self.menu_close()
             if self.button_menu:
-                self.button_menu.tooltip = f"Show menu for {self.__class__.__name__}\nCurrent view: {view}"
+                self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
             if self.button_toggleview and view in self.toggleviews:
                 i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
                 next_view = self.toggleviews[i]

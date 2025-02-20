@@ -18,8 +18,10 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.MenuBox):
-    a = InstanceHP(cast(type["HPI"], "HPI"), name="a").configure(allow_none=True)
-    b = InstanceHP(cast(type["HPI"], "HPI"), name="b").configure(load_default=False, allow_none=False)
+    a = InstanceHP(cast(type["HPI"], "tests.test_instance.HPI"), name="a").configure(allow_none=True)
+    b = InstanceHP(cast(type["HPI"], "tests.test_instance.HPI"), name="b").configure(
+        load_default=False, allow_none=False
+    )
     my_button = tf.Button(description="A button")
     box = tf.HBox().configure(children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
