@@ -164,6 +164,7 @@ class MenuBox(HasParent, Panel):
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name:'{self.name if self.trait_has_value('name') else ''}'>"
 
+    @override
     def get_log_name(self):
         return f"{utils.limited_string(self, 40)} model_id='{self.model_id}'"
 
@@ -178,6 +179,11 @@ class MenuBox(HasParent, Panel):
 
     @property
     def view_active(self) -> bool:
+        """Check if the view is currently active (not minimized).
+
+        Returns:
+            bool: True if the view is active, False otherwise.
+        """
         return bool(self.view and self.view != self._MINIMIZED)
 
     def __init__(
@@ -222,6 +228,7 @@ class MenuBox(HasParent, Panel):
         if view is not None:
             self.load_view(view)
 
+    @override
     def close(self, force=False):
         if self.closed or (self.KEEP_ALIVE and not force):
             return

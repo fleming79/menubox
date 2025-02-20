@@ -501,6 +501,13 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self._trait_values.pop(name)
 
     def close(self, force=False):
+        """Closes the object, disconnecting it from its parent and cleaning up resources.
+
+        Designed to be compatible with `Widget.close`.
+
+        Args:
+            force (bool, optional): If True, forces the object to close even if KEEP_ALIVE is set. Defaults to False.
+        """
         if self.closed or (self.KEEP_ALIVE and not force):
             return
         self.closed = True

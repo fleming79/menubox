@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, override
 
 import ipywidgets as ipw
 import pytest
@@ -40,6 +40,7 @@ class HP(mhp.HasParent):
             raise ValueError(match)
         return True
 
+    @override
     def on_error(self, error: Exception, msg: str, obj: Any = None):
         self.caught_errors += 1
 
