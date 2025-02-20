@@ -178,10 +178,19 @@ def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=
 def setattr_nested(
     obj: Any, name: str, value: Any, default_setter: Callable[[Any, str, Any], None] | None = None
 ) -> None:
-    """Set a nested attribute using dotted notation in the name.
-
-    default_setter: callable
-        set the attribute. If the object doesn't have its own setter
+    """Sets a nested attribute of an object.
+    The attribute is specified as a string with dot notation, e.g. "foo.bar.baz".
+    Args:
+        obj: The object to set the attribute on.
+        name: The name of the attribute to set, with dot notation for nested attributes.
+        value: The value to set the attribute to.
+        default_setter: A callable that takes the object, name, and value as arguments and sets the attribute.
+            If not specified, the built-in `setattr` function is used.  If the object has a `setter` attribute,
+            that is used in preference to `default_setter`.
+    Raises:
+        AttributeError: If the attribute cannot be set and DEBUG_ENABLED is False.
+            The original exception is included in the AttributeError as the cause.
+            If DEBUG_ENABLED is True, the original exception is raised.
     """
     bits = name.split(".")
     if len(bits) > 1:
@@ -207,17 +216,22 @@ def load_nested_attrs(
     default_setter: Callable[[Any, str, Any], None] = setattr,
     on_error: Callable[[Exception, str, Any], None] | None = None,
 ) -> dict[str, Any]:
-    """Recursively load a dict of nested attributes into obj.
+    """Loads nested attributes into an object using `setattr_nested` from a dictionary or a callable that returns a dictionary.
 
-    values: dict
-
-    raise_errors:
-        Will raise setting errors if they occur.
-        If False - a warning will be issued.
-    default_setter:
-        override the setter. default is mb.utils.setter
-    Will return a dict of successfully set values.
+    Args:
+        obj: The object to load attributes into.
+        values: A dictionary containing attribute-value pairs, or a callable that returns such a dictionary.
+        raise_errors: If True, raise an exception if an error occurs while setting an attribute.
+        default_setter: The function to use for setting attributes. Defaults to `setattr`.
+        on_error: An optional callback function to handle errors.  It receives the exception,
+            a message, and the object as arguments. If not provided, `mb.log.on_error` is used.
+    Returns:
+        A dictionary containing the attributes that were successfully set.
+    Raises:
+        AttributeError: If `values` is not a dictionary and not callable, and `raise_errors` is True.
+        Any exception raised by `setattr_nested` if setting an attribute fails and `raise_errors` is True.
     """
+
     while callable(values):
         values = values()
     if not isinstance(values, dict):
@@ -233,9 +247,7 @@ def load_nested_attrs(
         except Exception as e:
             msg = f"Could not set nested attribute:  {fullname(obj)}.{attr} = {limited_string(value)} --> {e}"
             if not on_error:
-                import menubox.log
-
-                on_error = menubox.log.on_error
+                on_error = mb.log.on_error
             on_error(e, msg, obj)
             if raise_errors:
                 raise
@@ -243,6 +255,7 @@ def load_nested_attrs(
 
 
 def fullname(obj) -> str:
+    """Return the full name (module + class name) of an object."""
     if hasattr(obj, "__wrapped__"):
         return fullname(obj.__wrapped__)
     try:
@@ -290,9 +303,9 @@ def funcname(obj: Any) -> str:
 
 
 def fstr(template: str, raise_errors=False, **globals) -> str:  # noqa: A002
-    """Eval template with the mapped globals.
+    """Evaluate the fstring template with the mapped globals.
 
-    template must not contain triple quote '''
+    The template must not contain triple quote `'''`.
     """
     try:
         return eval(f"f''' {template} '''", globals)[1:-1]  # noqa: S307
@@ -307,9 +320,18 @@ def fstr(template: str, raise_errors=False, **globals) -> str:  # noqa: A002
 
 
 def sanatise_name(name: str, allow=" _", strip=" ", lstrip="012345679-", replace="", allow_space=True) -> str:
-    """
-    replace: str
-        replace each invalid symbol
+    """Sanatises a string to be used as a name.
+
+    Args:
+        name (str): The string to sanatise.
+        allow (str, optional): Additional characters to allow in the name. Defaults to " _".
+        strip (str, optional): Characters to strip from the beginning and end of the name. Defaults to " ".
+        lstrip (str, optional): Characters to strip from the beginning of the name. Defaults to "0123456789-".
+        replace (str, optional): Character to replace disallowed characters with. Defaults to "".
+        allow_space (bool, optional): Whether to allow spaces in the name. Defaults to True.
+
+    Returns:
+        str: The sanatised name.
     """
     return (
         "".join(
@@ -352,12 +374,6 @@ def joinpaths(*parts):
 
 
 sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_")
-
-
-def close_obj(obj: ipw.Widget | HasParent | Any) -> None:
-    """Close widgets and close Hasparent and clear children from ipywidget box."""
-    if hasattr(obj, "close"):
-        obj.close()
 
 
 def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:

@@ -389,8 +389,8 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         if old is not None and old is not traitlets.Undefined:
             if isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
                 old.parent = None
-            if self.settings.get("on_replace_close"):
-                mb.utils.close_obj(old)
+            if self.settings.get("on_replace_close") and callable(close := getattr(old, "close", None)):
+                close()
 
         # change_new & change_old
         for obj, key in [(old, "change_old"), (new, "change_new")]:
