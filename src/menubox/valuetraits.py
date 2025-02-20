@@ -480,22 +480,21 @@ class ValueTraits(HasParent):
 
     def __init_subclass__(cls, **kwargs) -> None:
         tn_ = dict(cls._vt_tit_names)
-        if "pytest" in sys.modules:
-            for c in cls.mro():
-                if c is __class__:
-                    break
-                if issubclass(c, ValueTraits) and c._vt_tit_names:
-                    # Need to copy across other unregistered TypedInstanceTuple mappings
-                    for name in c._vt_tit_names:
-                        if name not in tn_:
-                            tn_[name] = c._vt_tit_names[name]
-                if c is HasTraits:
-                    msg = (
-                        "This class has invalid MRO please ensure ValueTraits is higher "
-                        "up the MRO. This can be done by changing the inheritance order"
-                        "in the class definition."
-                    )
-                    raise RuntimeError(msg)
+        for c in cls.mro():
+            if c is __class__:
+                break
+            if issubclass(c, ValueTraits) and c._vt_tit_names:
+                # Need to copy across other unregistered TypedInstanceTuple mappings
+                for name in c._vt_tit_names:
+                    if name not in tn_:
+                        tn_[name] = c._vt_tit_names[name]
+            if c is HasTraits:
+                msg = (
+                    "This class has invalid MRO please ensure ValueTraits is higher "
+                    "up the MRO. This can be done by changing the inheritance order"
+                    "in the class definition."
+                )
+                raise RuntimeError(msg)
         cls._vt_tit_names = tn_
         super().__init_subclass__(**kwargs)
 
