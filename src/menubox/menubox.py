@@ -37,6 +37,7 @@ class Buttons(traitlets.TraitType[tuple[ipw.Button, ...], Iterable[ipw.Button]])
     def validate(self, obj: MenuBox, value):
         return tuple(v for v in value if isinstance(v, ipw.Button) and v._repr_keys)
 
+
 class HTMLNoClose(ipw.HTML):
     def close(self):
         return

@@ -29,7 +29,7 @@ async def test_shuffle():
     shuffle = ObjNumberShuffle(home=home)
     assert shuffle.obj_cls
 
-    await mb.mb_async.wait_for(shuffle.load_view())
+    await shuffle.load_view(reload=True)
     name = "my object"
     shuffle.sw_obj.value = name
     obj = await shuffle.button_show_obj.start()

@@ -87,6 +87,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
       behavior of the tuple, such as whether to spawn new instances, how to
       update existing instances, and whether to set the parent of new instances.
     """
+
     name: str
     default_value = ()
     info_text = "A tuple that can spawn new instances"

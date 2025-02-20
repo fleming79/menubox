@@ -24,16 +24,7 @@ R = TypeVar("R")
 P = ParamSpec("P")
 
 
-__all__ = [
-    "run_async",
-    "run_async_singular",
-    "singular_task",
-    "call_later",
-    "wait_for",
-    "debounce",
-    "periodic",
-    "throttle",
-]
+__all__ = ["run_async", "run_async_singular", "singular_task", "call_later", "debounce", "periodic", "throttle"]
 
 
 background_tasks: weakref.WeakKeyDictionary[asyncio.Task, TaskType] = weakref.WeakKeyDictionary()
@@ -206,22 +197,6 @@ def call_later(delay, callback, *args, **kwargs):
     """Run callback after a delay."""
     callit = functools.partial(callback, *args, **kwargs)
     asyncio.get_running_loop().call_later(delay, callit)
-
-
-# TODO: get rid of this - Menubox load_view needs re-writing.
-async def wait_for(fut, timeout: float | None = None, info=""):
-    """If coro is awaitable, wait for and return the result.
-
-    fut name and info are used in a timeout message.
-    """
-    if asyncio.isfuture(fut) or asyncio.iscoroutine(fut):
-        try:
-            return await asyncio.wait_for(fut, timeout=timeout)
-        except TimeoutError:
-            info = f" {info=}." if info else "."
-            msg = f"Timeout after {timeout=}s waiting for {funcname(fut)}(){info}"
-            raise TimeoutError(msg) from None
-    return fut
 
 
 async def to_thread(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs):

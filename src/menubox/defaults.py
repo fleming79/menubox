@@ -66,6 +66,7 @@ class _NoValue(float, enum.Enum):
                 raise
             return None
 
+
 class _Index(enum.StrEnum):
     token = "--INDEX--"  # noqa: S105
 
