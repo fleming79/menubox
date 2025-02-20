@@ -6,7 +6,6 @@ import enum
 import inspect
 import json
 import pathlib
-import sys
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeVar, overload
 
@@ -413,25 +412,58 @@ EXTERNAL = CallbackMode.external
 
 
 class ValueTraits(HasParent):
-    """Provides for monitoring and setting of nested traits.
-
-    The value is the method `to_dict`, which 'changes' when items registered
-    in the tuple (attributes) `value_traits`, `value_traits_persist` and
-    TypedInstanceTuples. The value change notification is emitted once after internal
-    notificates propagate, preventing 'noisy' changes to be emitted.
-
-    The `to_jason` method provides for round tripping of values and can
-    restored by setting the attribute `value` (supported during init).
-
-    The persist traits are updated whenever the value changes so the value
-    trait can be observed.
-
-    value: A dictionary containing key values for the current value_traits or
-        value_traits_persist. The value may also be a callable that returns a
-        dict or a yaml/json dict.
-
-    value_traits:  a NameTuple of traits to monitor
-    value_traits_persist: a NameTuple of traits to persist.
+    """A class that provides a framework for managing and observing changes to
+    a dictionary of values (the "value") and nested attributes within a
+    HasTraits object.
+    This class extends HasParent and introduces several features:
+    - **Value Traits**: Allows specifying traits (attributes) whose changes
+      should be observed.  Changes to these traits trigger the `on_change`
+      method.  Supports dotted paths for observing nested attributes.
+    - **Persistent Value Traits**: Similar to value traits, but intended for
+      attributes that should be persisted (e.g., saved to a file).
+    - **Typed Instance Tuples**: Integrates with TypedInstanceTuple traits,
+      allowing observation of changes within the items of these tuples.
+    - **Change Management**: Provides a context manager (`ignore_change`) to
+      temporarily ignore changes, preventing them from triggering `on_change`.
+    - **Initialization**:  Handles initialization of the value dictionary,
+      including extracting values from keyword arguments.
+    - **Loading and Saving**: Provides methods for loading values from a
+      dictionary, YAML file, or other sources, and saving values to a
+      dictionary, JSON, or YAML file.
+    - **Error Handling**: Includes basic error handling and logging.
+    Attributes:
+        _STASH_DEFAULTS (bool): Whether to stash the default values of the
+            object's traits.
+        _AUTO_VALUE (bool): Whether to automatically connect the 'value' trait
+            if it is found.
+        _ignore_change_cnt (int): A counter for the number of times changes
+            should be ignored.
+        _vt_reg_value_traits_persist (set[tuple[HasTraits, str]]): A set of
+            (object, trait_name) tuples for persistent value traits.
+        _vt_reg_value_traits (set[tuple[HasTraits, str]]): A set of
+            (object, trait_name) tuples for value traits.
+        _vt_tuple_reg (Dict[str, _TypedTupleRegister]): A dictionary of
+            _TypedTupleRegister objects, keyed by tuple name.
+        _vt_tit_names (ClassVar[dict]): A dictionary of TypedInstanceTuple
+            names and their configurations.
+        _vt_busy_updating_count (int): A counter for the number of times the
+            object is currently updating.
+        _vt_init_complete (bool): Whether the object has been completely
+            initialized.
+        dtype (str): The data type of the value dictionary (default: "dict").
+        home (InstanceHome): An instance of the InstanceHome class, used for
+            managing the object's home directory.
+        value (_ValueTraitsValueTrait): A trait for the value dictionary.
+        parent_dlink (NameTuple): A named tuple for parent links.
+        value_traits (NameTuple): A named tuple for value traits.
+        value_traits_persist (NameTuple): A named tuple for persistent value
+            traits.
+        _prohibited_parent_links (ClassVar[set[str]]): A set of prohibited
+            parent links.
+        _prohibited_value_traits (ClassVar[set[str]]): A set of prohibited
+            value traits.
+        _value (Callable): A callable for the value dictionary (only present
+            during type checking).
     """
 
     _STASH_DEFAULTS = False
@@ -456,14 +488,13 @@ class ValueTraits(HasParent):
 
     @contextlib.contextmanager
     def ignore_change(self):
-        """Ignore all changes whilst in this context.
+        """Context manager to temporarily ignore changes.
 
-        Applies to any changes obsevered using the change registers associated with
-        value_traits, value_traits_persist, and any TypedInstanceTuple traits.
-
-        Changes observed by other means such as direct observation, link or dlink
-        are not affected.
+        Increments the ignore change counter before entering the context and
+        decrements it after leaving the context. This is useful when you want
+        to temporarily disable change notifications in `on_change`.
         """
+
         self._ignore_change_cnt = self._ignore_change_cnt + 1
         try:
             yield
