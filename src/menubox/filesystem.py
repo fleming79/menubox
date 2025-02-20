@@ -84,9 +84,12 @@ class Filesystem(MenuBoxVT):
         disabled=True,
         link_button=True,
     )
-    box_settings = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).set_children("protocol", "kw")
-    control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).set_children(
-        "button_home", "button_up", "drive", "url", "button_add", "button_update_sw_main", mode="monitor"
+    box_settings = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).configure(children=("protocol", "kw"))
+    control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).configure(
+        children={
+            "dottednames": ("button_home", "button_up", "drive", "url", "button_add", "button_update_sw_main"),
+            "mode": "monitor",
+        }
     )
     views = traitlets.Dict({"Main": "view_main_get"})
     value_traits = NameTuple(*MenuBoxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
@@ -259,7 +262,7 @@ class RelativePath(Filesystem):
 
     DEFAULT_BORDER = "solid 1px LightGrey"
     folders_only = traitlets.Bool(False)
-    box_settings = tf.HBox(layout={"overflow": "hidden", "flex": "0 0 auto"}).set_children("relative_path")
+    box_settings = tf.HBox(layout={"overflow": "hidden", "flex": "0 0 auto"}).configure(children=("relative_path",))
     relative_path = tf.Text(".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()

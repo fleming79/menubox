@@ -21,7 +21,7 @@ class HPI(mb.MenuBox):
     a = InstanceHP(cast(type["HPI"], "HPI"), name="a").configure(allow_none=True)
     b = InstanceHP(cast(type["HPI"], "HPI"), name="b").configure(load_default=False, allow_none=False)
     my_button = tf.Button(description="A button")
-    box = tf.HBox().set_children("my_button", mode="monitor")
+    box = tf.HBox().configure(children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
 
     async def button_clicked(self, b: ipw.Button):

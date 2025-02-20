@@ -52,6 +52,9 @@ class IHPChange(Generic[T], TypedDict):
     parent: HasParent
     obj: T
 
+class ChildrenDict(TypedDict):
+    dottednames: tuple[str, ...]
+    mode: Literal["monitor"]
 
 class IHPSettings(Generic[T], TypedDict):
     load_default: NotRequired[bool]
@@ -67,6 +70,7 @@ class IHPSettings(Generic[T], TypedDict):
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
     on_click: NotRequired[str | Callable[[ipw.Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
+    children: NotRequired[ChildrenDict | tuple[str | ipw.Widget | Callable[[], str | ipw.Widget | Callable], ...]]
 
 
 class IHPDlinkType(TypedDict):
@@ -267,13 +271,13 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                     else:
                         kwgs[name] = utils.getattr_nested(obj, value, hastrait_value=False)
 
-            # set_children
-            if children := getattr(self, "children", None):
-                if getattr(self, "children_mode", "") == "monitor":
+            # children
+            if children := self.settings.get("children"):
+                if isinstance(children, dict):
                     from menubox.synchronise import ChildrenSetter
 
                     home = getattr(obj, "home", "_child setter")
-                    ChildrenSetter(home=home, parent=obj, name=self.name, items=children)
+                    ChildrenSetter(home=home, parent=obj, name=self.name, items=children["dottednames"])
                 else:
                     kwgs["children"] = obj.get_widgets(children, skip_hidden=False, show=True)
 
@@ -479,6 +483,13 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             'target: str
             transform: Callable[Any, Any]
                 A function to convert the source value to the target value.
+        children: ChildrenDict | tuple[str | ipw.Widget | Callable[[], str | ipw.Widget | Callable], ...] <Boxes and Panels only>
+            Children are collected from the parent using 'parent.get_widgets'.
+            and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
+
+            Additionally, if mode is 'monitor', the children will be updated as the state
+            of the children is changed (including hide/show).
+
         add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
         on_click: Str | Tuple[str, ...] <Button **ONLY**>
