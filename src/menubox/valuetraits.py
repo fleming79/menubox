@@ -34,7 +34,14 @@ T = TypeVar("T")
 
 
 class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[str, Any]]):
-    """Trait ValueTraits.value Will notify every time a value is validated."""
+    """A trait type for handling values within a ValueTraits object.
+
+    This trait type is responsible for setting, validating, and storing
+    values associated with a specific trait name in a ValueTraits instance.
+    It ensures that the value is validated through the `_load_value` method
+    of the ValueTraits object before being stored.  It also handles
+    notifications when the value changes.
+    """
 
     info_text = "ValueTraits value"
     default_value = defaults.NO_VALUE
@@ -47,9 +54,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             # Ignore pre-init changes
             return
         new_value = self._validate(obj, value)
-        if not self.name:
-            msg = "Name must be set"
-            raise RuntimeError(msg)
+        assert self.name  # noqa: S101
         obj._trait_values[self.name] = new_value
         obj._notify_trait(self.name, obj._value, new_value)
 
@@ -563,6 +568,17 @@ class ValueTraits(HasParent):
         value: dict | Callable[[], dict] | None | str = None,
         **kwargs,
     ):
+        """Initializes the ValueTraits object.
+
+        Args:
+            home (Home | str | None, optional): The home directory. Defaults to None.
+            parent (HasParent | None, optional): The parent object. Defaults to None.
+            value_traits (Collection[str] | None, optional): A collection of value trait names. Defaults to None.
+            value_traits_persist (Collection[str] | None, optional): A collection of value trait names that persist. Defaults to None.
+            value (dict | Callable[[], dict] | None | str, optional): The initial value, which can be a dictionary, a callable that returns a dictionary, a YAML string, or None (defaults to an empty dictionary).
+            **kwargs: Additional keyword arguments.
+        """
+
         if value is None:
             value = {}
         if self._vt_init_complete:
@@ -614,7 +630,6 @@ class ValueTraits(HasParent):
         )
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
-        # super().__init__(parent=parent, _ptname=_ptname, **kwargs)
         # Parent must be set prior to setting value because HasParent
         # may load data from a parent which is need to load values
         if self._STASH_DEFAULTS:
@@ -652,19 +667,24 @@ class ValueTraits(HasParent):
     @observe("_vt_reg_value_traits", "_vt_reg_value_traits_persist")
     @log_exceptions
     def _vt_observe_vt_reg_value(self, change: ChangeType):
-        """Update observers as they are changed.
+        """Reacts to changes in the registered value traits.
 
-        The register is a set of mappings of the HasTrait object to the name
-        of the value to observe for change. The items that are monitored
-        belong to various registers:
-        * _vt_reg_value_traits
-        * _vt_reg_value_traits_persist
-
-        All pairs in the register monitor for changes and notify to the
-        method _tw_reg_on_<REG NAME>_change, which may update the register
-        and then pass the notification to `_vt_on_change` and then `on_change`
-        which is available for overloading by subclasss definitions.
+        This method observes changes in the `_vt_reg_value_traits` and
+        `_vt_reg_value_traits_persist` attributes, as well as changes originating
+        from a `_TypedTupleRegister`. It then appropriately observes or unobserves
+        the relevant objects based on the changes.
+        Args:
+            change (ChangeType): A dictionary describing the change that occurred.
+                It should contain keys like 'name' (the name of the attribute that
+                changed), 'old' (the old value of the attribute), 'new' (the new
+                value of the attribute), and 'owner' (the object that owns the
+                attribute).
+        Raises:
+            NotImplementedError: If the change event does not originate from
+                `_vt_reg_value_traits`, `_vt_reg_value_traits_persist`, or a
+                `_TypedTupleRegister`.
         """
+
         if change["name"] == "_vt_reg_value_traits":
             handler = self._vt_on_reg_value_traits_change
         elif change["name"] == "_vt_reg_value_traits_persist":
@@ -684,7 +704,27 @@ class ValueTraits(HasParent):
 
     @classmethod
     def _get_observer_pairs(cls, obj: HasTraits, dotname: str) -> Iterator[tuple[HasTraits, str]]:
-        """Generator to find all (obj,name) pairs."""
+        """Generates pairs of (object, trait_name) for observing a dotted trait name.
+
+        This method traverses a dotted trait name, yielding tuples of (object, trait_name)
+        for each trait encountered along the path. It handles special cases like the
+        'value' trait and tolerates first-level non-trait attributes.
+
+        Args:
+            cls: The class that this method is bound to (used for accessing class-level attributes like _AUTO_VALUE).
+            obj: The starting HasTraits object.
+            dotname: The dotted trait name to observe (e.g., "a.b.c").
+
+        Yields:
+            tuple[HasTraits, str]: Pairs of (object, trait_name) to observe.  The object is a
+            HasTraits instance, and the trait_name is a string representing the name of a trait
+            on that object.
+
+        Raises:
+            TypeError: If a non-trait attribute is encountered in the dotname (except for the
+            first level) or if the attribute is not a HasTraits instance.
+            AttributeError: If an attribute in the dotname does not exist and the object is not a Bunched instance.
+        """
         parts = dotname.split(".")
         segments = len(parts)
         try:
@@ -727,8 +767,17 @@ class ValueTraits(HasParent):
 
     @classmethod
     def _tuple_register(cls, tuplename: str):
-        """Get the dict for the registered TypedInstanceTuple (trait) for the current
-        class."""
+        """Return the typed_instance_tuple class associated with tuplename.
+
+        Args:
+            tuplename: Name of a typed_instance_tuple registered in the class.
+
+        Returns:
+            The typed_instance_tuple class associated with tuplename.
+
+        Raises:
+            KeyError: If tuplename is not a registered typed_instance_tuple.
+        """
         if tuplename not in cls._vt_tit_names:
             msg = (
                 f"{tuplename=} is not a registered typed_instance_tuple "
@@ -782,6 +831,25 @@ class ValueTraits(HasParent):
         _tuple_on_add: Callable,
         _tuple_on_remove: Callable,
     ):
+        """Handles changes to tuples within ValueTraits, triggering callbacks.
+
+        This method is called when a tuple (`TypedInstanceTuple`) associated with a ValueTraits instance
+        is modified (elements added or removed). It identifies the changes,
+        executes registered callbacks, and propagates the change notification.
+
+        Args:
+            change: A dictionary describing the change event, including the
+                'new' and 'old' values, and the 'owner' (ValueTraits instance).
+            tuplename: The name of the tuple that was changed.
+            on_add: An optional callback function to be executed when elements
+                are added to the tuple.  This is considered an EXTERNAL callback.
+            on_remove: An optional callback function to be executed when elements
+                are removed from the tuple. This is considered an EXTERNAL callback.
+            _tuple_on_add: An optional callback function to be executed when elements
+                are added to the tuple. This is considered an INTERNAL callback.
+            _tuple_on_remove: An optional callback function to be executed when elements
+                are removed from the tuple. This is considered an INTERNAL callback.
+        """
         # Collect pairs and update register
         if self.closed:
             return
@@ -842,7 +910,17 @@ class ValueTraits(HasParent):
         self._vt_on_change(change)
 
     def _vt_on_change(self, change: ChangeType):
-        """Emits changes."""
+        """Handles changes to the observed trait values.
+
+        This method is called when a change occurs in one of the observed traits.
+        It updates the internal state, calls the user-defined `on_change` method,
+        and handles any exceptions that occur during the change event.  It also
+        manages a counter to prevent re-entrant calls to `on_change` and resets
+        the trait value after the update is complete.
+
+        Args:
+            change (ChangeType): A traitlets *change*.
+        """
         if mb.DEBUG_ENABLED:
             self.log.debug(
                 "\tCHANGE "  # noqa: G003
@@ -959,17 +1037,15 @@ class ValueTraits(HasParent):
         option: int = orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_INDENT_2,
         decode=True,
     ) -> str | bytes:
-        """Convert this object to json using orjson.dumps. names are the dotted names
-        belonging to the object that are to be serialized.
+        """Convert the object to a JSON string.
 
-        The default value traits are those set in the named tuple
-        `value_traits_persist`.
+        Args:
+            names (Optional[Iterable[str]]): An optional list of dottednames to include in the JSON instead of thosed listed in the property `value_traits_persist`.
+            option (int): orjson options.
+            decode (bool): If True, decode the JSON string to a string. Defaults to True.
 
-        option: see: https://github.com/ijl/orjson for options
-
-            eg: orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_INDENT_2
-
-        decode: Decode the return value to a string instead of bytes
+        Returns:
+            str | bytes: A JSON string representation of the object.
         """
         try:
             data = self.to_dict(names, hastrait_value=True)
@@ -992,8 +1068,10 @@ class ValueTraits(HasParent):
         self, names: None | Iterable[str] = (), fs: AbstractFileSystem | None = None, path: str | None = None
     ) -> str:
         """Convert settings to yaml.
-        path:
-            if provided will write the the file using self.fs.
+        Args:
+            names (Optional[Iterable[str]]): An optional list of dottednames to include in the JSON instead of thosed listed in `value_traits_persist`.
+            fs: fsspec filesystem
+            path: When fs and path are provided the yaml is written to the file in the fs at path.
         """
         return to_yaml(self.to_dict(names=names), walkstring=True, path=path, fs=fs)  # type: ignore
 
@@ -1040,10 +1118,21 @@ class ValueTraits(HasParent):
         return cls._tuple_register(tuplename)["SINGLETON_BY"]() or ()
 
     def get_tuple_obj(self, tuplename: str, add=True, **kwds):
-        """Get an existing or create a new instance (if permitted) of the trait
-        registered in the tuple for the current instance.
-        tuplename: The attribute name of the TypedInstanceTuple.
-        add: Whether to add new instances to the tuple.
+        """Retrieves or creates an object associated with a `TypedInstaneTuple` tuple trait.
+
+        This method retrieves an existing object associated with a tuple trait
+        or creates a new one if it doesn't exist. It also adds the new object
+        to the tuple trait if specified.
+
+        Args:
+            tuplename (str): The name of the tuple trait.
+            add (bool, optional): Whether to add the new object to the tuple.
+            Defaults to True.
+            **kwds: Keyword arguments to pass to the object's constructor.
+            Can include 'index' to specify the index of the object.
+
+        Returns:
+            The object associated with the `TypedInstaneTuple` tuple trait.
         """
         new_update_inst = self._tuple_register(tuplename)["new_update_inst"]
         index = kwds.pop("index", None)
