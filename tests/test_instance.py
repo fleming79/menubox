@@ -182,7 +182,12 @@ async def test_instance_gc(trait, weakref_enabled):  # noqa: ARG001
 
     **Requires weakref_enabled.**
     """
+    # ------------- WARNING --- -------------
+    # DEBUGGING THIS TEST WILL LIKELY NOT WORK
+    # Tip: pause at the assert to access the remaining referrers.
+
     hpi3 = HPI3()
+
     deleted = False
 
     def on_delete():
@@ -199,4 +204,4 @@ async def test_instance_gc(trait, weakref_enabled):  # noqa: ARG001
         if deleted:
             break
         # Some objects schedule tasks against functions that may take a while to exit.
-    assert deleted, f"'{trait}' should be deleted after it is replaced. Referrers={gc.get_referrers(ref())}"
+    assert deleted, f"'{trait}' should be garbage collected after it is replaced. Referrers={gc.get_referrers(ref())}"

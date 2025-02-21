@@ -400,6 +400,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             if isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
                 old.parent = None
             if self.settings.get("on_replace_close") and callable(close := getattr(old, "close", None)):
+                owner.log.debug("Closing %s", old)
                 close()
 
         # change_new & change_old

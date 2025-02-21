@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
+import ipylab.log
 import ipywidgets as ipw
 import pytest
 
@@ -13,6 +15,9 @@ if TYPE_CHECKING:
 
 @pytest.fixture(scope="session")
 def anyio_backend():
+    mb.log.START_DEBUG(to_stdio=True)
+    if "debugpy" not in sys.modules:
+        ipylab.app.log_level = ipylab.log.LogLevel.WARNING
     return "asyncio"
 
 
@@ -21,7 +26,7 @@ async def anyio_backend_autouse(anyio_backend):
     return anyio_backend
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def weakref_enabled():
     ipw.enable_weakreference()
     yield None

@@ -35,10 +35,15 @@ def START_DEBUG(*, to_stdio=False):
     if to_stdio:
         import sys
 
-        import IPython.core.ultratb
+        ipylab.app.log_level = ipylab.log.LogLevel.DEBUG
+        ipylab.app.shell.log_viewer.buffer_size.value = 0
 
-        # Also ColorTB, FormattedTB, ListTB, SyntaxTB
-        sys.excepthook = IPython.core.ultratb.VerboseTB(color_scheme="Linux")
+        def record_to_stdout(record):
+            sys.stdout.write(record.output["text"])
+
+        assert ipylab.app.logging_handler  # noqa: S101
+        ipylab.app.logging_handler.register_callback(record_to_stdout)
+        ipylab.app.log.info("Debugging enabled")
 
 
 def on_error(error: Exception, msg: str, obj: Any = None):
