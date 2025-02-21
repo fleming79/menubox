@@ -163,6 +163,11 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         self.kwgs = kwgs
         self._close_observers: weakref.WeakKeyDictionary[HasParent, dict] = weakref.WeakKeyDictionary()
 
+    def instance_init(self, obj: HasParent):
+        """Init an instance of TypedInstanceTuple."""
+        super().instance_init(obj)
+        utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)  # type: ignore #TODO: see weak_observe
+
     @property
     def klass(self) -> type[T]:
         if not self._klass:
@@ -269,10 +274,10 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             # children
             if children := self.settings.get("children"):
                 if isinstance(children, dict):
-                    from menubox.synchronise import ChildrenSetter
+                    from menubox.children_setter import ChildrenSetter
 
                     home = getattr(obj, "home", "_child setter")
-                    ChildrenSetter(home=home, parent=obj, name=self.name, items=children["dottednames"])
+                    ChildrenSetter(home=home, parent=obj, name=self.name, dottednames=children["dottednames"])
                 else:
                     kwgs["children"] = obj.get_widgets(*children, skip_hidden=False, show=True)
 
@@ -311,79 +316,84 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
     def _value_changed(self, owner: HasParent, old: T | None, new: T | None):
         # This is the main handler function for loading and configuration
         # providing consistent/predictable behaviour reducing boilerplate code.
+        if new is not None:
+            # on_click
+            if (
+                isinstance(new, ipw.Button)
+                and not isinstance(new, mb.async_run_button.AsyncRunButton)
+                and (on_click := self.settings.get("on_click"))
+            ):
+                if mb.DEBUG_ENABLED:
+                    if not callable(utils.getattr_nested(owner, on_click) if isinstance(on_click, str) else on_click):
+                        msg = f"`{on_click=}` is not callable!"
+                        raise TypeError(msg)
+                    if on_click == "button_clicked" and not asyncio.iscoroutinefunction(owner.button_clicked):
+                        msg = f"By convention `{utils.fullname(new)}.button_clicked` must be a coroutine function!"
+                        raise TypeError(msg)
+                taskname = f"button_clicked[{id(new)}] → {owner.__class__.__qualname__}.{self.name}"
 
-        # on_click
-        if (
-            isinstance(new, ipw.Button)
-            and not isinstance(new, mb.async_run_button.AsyncRunButton)
-            and (on_click := self.settings.get("on_click"))
-        ):
-            if mb.DEBUG_ENABLED:
-                if not callable(utils.getattr_nested(owner, on_click) if isinstance(on_click, str) else on_click):
-                    msg = f"`{on_click=}` is not callable!"
-                    raise TypeError(msg)
-                if on_click == "button_clicked" and not asyncio.iscoroutinefunction(owner.button_clicked):
-                    msg = f"By convention `{utils.fullname(new)}.button_clicked` must be a coroutine function!"
-                    raise TypeError(msg)
-            taskname = f"button_clicked[{id(new)}] → {owner.__class__.__qualname__}.{self.name}"
+                ref = weakref.ref(owner)
 
-            ref = weakref.ref(owner)
-            def _on_click(b: ipw.Button):
-                obj: HasParent | None = ref()
-                if obj:
+                def _on_click(b: ipw.Button):
+                    obj: HasParent | None = ref()
+                    if obj:
 
-                    async def click_callback():
-                        callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
-                        try:
-                            b.add_class(mb.defaults.CLS_BUTTON_BUSY)
-                            result = callback(b)
-                            if inspect.isawaitable(result):
-                                await result
-                        finally:
-                            b.remove_class(mb.defaults.CLS_BUTTON_BUSY)
+                        async def click_callback():
+                            callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
+                            try:
+                                b.add_class(mb.defaults.CLS_BUTTON_BUSY)
+                                result = callback(b)
+                                if inspect.isawaitable(result):
+                                    await result
+                            finally:
+                                b.remove_class(mb.defaults.CLS_BUTTON_BUSY)
 
-                    mb_async.run_async(click_callback, name=taskname, obj=obj)
+                        mb_async.run_async(click_callback, name=taskname, obj=obj)
 
-            new.on_click(_on_click)
+                new.on_click(_on_click)
 
-        # set_attrs
-        if set_attrs := self.settings.get("set_attrs"):
-            for k, v in set_attrs.items():
-                val = v
-                if isinstance(val, str) and val.startswith("."):
-                    val = val[1:]
-                    val = owner if val == "self" else utils.getattr_nested(owner, val)
-                elif callable(val):
-                    config = IHPCreate(parent=owner, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs)
-                    val = val(config)
-                utils.setattr_nested(new, k, val, setattr)
+            # set_attrs
+            if set_attrs := self.settings.get("set_attrs"):
+                for k, v in set_attrs.items():
+                    val = v
+                    if isinstance(val, str) and val.startswith("."):
+                        val = val[1:]
+                        val = owner if val == "self" else utils.getattr_nested(owner, val)
+                    elif callable(val):
+                        config = IHPCreate(
+                            parent=owner, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs
+                        )
+                        val = val(config)
+                    utils.setattr_nested(new, k, val, setattr)
 
-        # dlink
-        if dlink := self.settings.get("dlink"):
-            dlinks = (dlink,) if isinstance(dlink, dict) else dlink
-            target_obj = new
-            for dlink in dlinks:
-                src_name, src_trait = dlink["source"]
-                src_obj = owner if src_name == "self" else utils.getattr_nested(owner, src_name, hastrait_value=False)
-                tgt_trait = dlink["target"]
-                key = f"{id(owner)} {owner.__class__.__qualname__}.{self.name}.{tgt_trait}"
-                if "." in tgt_trait:
-                    class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
-                    target_obj = utils.getattr_nested(new, class_name, hastrait_value=False)
-                transform = dlink.get("transform")
-                if isinstance(transform, str):
-                    transform = utils.getattr_nested(owner, transform, hastrait_value=False)
-                if transform and not callable(transform):
-                    msg = f"Transform must be callable but got {transform:!r}"
-                    raise TypeError(msg)
-                owner.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
-                if isinstance(target_obj, traitlets.HasTraits):
-                    owner.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
+            # dlink
+            if dlink := self.settings.get("dlink"):
+                dlinks = (dlink,) if isinstance(dlink, dict) else dlink
+                target_obj = new
+                for dlink in dlinks:
+                    src_name, src_trait = dlink["source"]
+                    src_obj = (
+                        owner if src_name == "self" else utils.getattr_nested(owner, src_name, hastrait_value=False)
+                    )
+                    tgt_trait = dlink["target"]
+                    key = f"{id(owner)} {owner.__class__.__qualname__}.{self.name}.{tgt_trait}"
+                    if "." in tgt_trait:
+                        class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
+                        target_obj = utils.getattr_nested(new, class_name, hastrait_value=False)
+                    transform = dlink.get("transform")
+                    if isinstance(transform, str):
+                        transform = utils.getattr_nested(owner, transform, hastrait_value=False)
+                    if transform and not callable(transform):
+                        msg = f"Transform must be callable but got {transform:!r}"
+                        raise TypeError(msg)
+                    owner.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
+                    if isinstance(target_obj, traitlets.HasTraits):
+                        owner.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
 
-        # add_css_class
-        if isinstance(new, ipw.DOMWidget) and (css_class_names := self.settings.get("add_css_class")):
-            for class_name in utils.iterflatten(css_class_names):
-                new.add_class(class_name)
+            # add_css_class
+            if isinstance(new, ipw.DOMWidget) and (css_class_names := self.settings.get("add_css_class")):
+                for class_name in utils.iterflatten(css_class_names):
+                    new.add_class(class_name)
 
         # on_replace_close
         if old is not None and old is not traitlets.Undefined:
@@ -401,30 +411,34 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
 
         # value closed
         if (old_observer := self._close_observers.pop(owner, None)) and isinstance(old, HasParent | ipw.Widget):
-            with contextlib.suppress(KeyError):
+            with contextlib.suppress(ValueError):
                 old.unobserve(**old_observer)
 
         if isinstance(new, HasParent | ipw.Widget):
             owner_ref = weakref.ref(owner)
-            traitname = self.name
 
             def _observe_closed(change: mb.ChangeType):
-                # Check if the change owner has closed, if remove it from parent if appropriate.
-                owner_ = owner_ref()
+                # If the owner has closed, remove it from parent if appropriate.
+                parent = owner_ref()
                 cname, value = change["name"], change["new"]
                 if (
-                    owner_
+                    parent
                     and ((cname == "closed" and value) or (cname == "comm" and not value))
-                    and owner_._trait_values.get(traitname) is change["owner"]
+                    and parent._trait_values.get(self.name) is change["owner"]
                 ):
-                    if self.allow_none and not owner_.closed:
-                        owner_.set_trait(traitname, None)
-                    else:
-                        owner_._reset_trait(traitname)
+                    if self.allow_none and not parent.closed:
+                        parent.set_trait(self.name, None)
+                    elif old := parent._trait_values.pop(self.name, None):
+                        self._value_changed(parent, old, None)
 
             names = "closed" if isinstance(new, HasParent) else "comm"
             new.observe(_observe_closed, names)
             self._close_observers[owner] = {"handler": _observe_closed, "names": names}
+
+    def _on_obj_close(self, change: mb.ChangeType):
+        obj: HasParent = change["owner"]  # type: ignore
+        if old := obj._trait_values.pop(self.name, None):
+            self._value_changed(obj, old, None)
 
     # TODO: add overloads if allow_none is True/false
     # TODO: switch to using pluggy hooks.

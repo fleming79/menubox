@@ -89,7 +89,7 @@ def trait_tuple_discard(*values, owner: traitlets.HasTraits, name: str):
         if new != current:
             owner.set_trait(name, new)
 
-
+# TODO: concat the callable when pass_change is True.
 def weak_observe(
     obj: traitlets.HasTraits, method: Callable[P, R], names="value", pass_change=False, *args: P.args, **kwgs: P.kwargs
 ) -> Callable[[ChangeType], R]:
@@ -436,6 +436,7 @@ def get_widgets(
                 if isinstance(widget, ipw.Widget):
                     if (
                         getattr(widget, "_repr_mimebundle_", None)  # Not closed
+                        and widget.comm  # closed
                         and widget is not parent  # Would likely causes browser to crash with recursion.
                         and last_widget is not widget  # Skip side-by-side
                         and not (skip_hidden and hasattr(widget, "layout") and widget.layout.visibility == "hidden")  # type: ignore
