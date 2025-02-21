@@ -125,12 +125,14 @@ async def test_instance2(home: mb.Home):
     await hp1.wait_tasks()
     assert hp1.clicked == 1, "Should have connected the button"
     assert hp1.box, "Loading children is debounced"
-    assert hp1.my_button in hp1.box.children, 'children for HBox_C added with "get_widgets"'
+    await asyncio.sleep(0.1)  # ChildSetter.update is debounced
+    assert hp1.my_button in hp1.box.children, "children for HBox_C should be added by a ChildSetter"
     b2 = ipw.Button()
     hp1.set_trait("my_button", b2)
     b2.click()
     await hp1.wait_tasks()
     assert hp1.clicked == 2, "Should have connected b2"
+    await asyncio.sleep(0.1)
     assert b2 in hp1.box.children, "'set_children' with mode='monitor' should update box.children"
 
     # Test can regenerate

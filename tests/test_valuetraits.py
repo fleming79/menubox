@@ -198,3 +198,13 @@ async def test_vt1_fixed_widget():
     v.load_value({"c": 1})
     assert v.value() == {"c": 1}
     assert v.c in v.change_owners
+
+async def test_vt1_nested_fixed_widget():
+    parent = VT1(home="default")
+    v = VT1(parent=parent, value_traits_persist=["parent.c"])
+    assert v.value() == {"parent.c": None}
+    v.load_value({"parent.c": 1})
+    assert v.value() == {"parent.c": 1}
+    assert parent.c in v.change_owners
+    v.set_trait("parent", None)
+    assert v.value() == {"parent.c": None}

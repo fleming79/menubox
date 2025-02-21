@@ -708,7 +708,7 @@ class ValueTraits(HasParent):
 
         This method traverses a dotted trait name, yielding tuples of (object, trait_name)
         for each trait encountered along the path. It handles special cases like the
-        'value' trait and tolerates first-level non-trait attributes.
+        'value' trait and tolerates nested first-level non-trait attributes (fixed attributes of HasTrait objects).
 
         Args:
             cls: The class that this method is bound to (used for accessing class-level attributes like _AUTO_VALUE).
@@ -731,8 +731,8 @@ class ValueTraits(HasParent):
             for i, n in enumerate(parts, 1):
                 if n in obj._traits:
                     yield (obj, n)
-                elif i == 1 and (obj_ := getattr(obj, n, None)) and isinstance(obj_, HasTraits):
-                    # We tolerate first-level-non-traits assuming they are 'fixed' for the life of obj.
+                elif (obj_ := getattr(obj, n, None)) and isinstance(obj_, HasTraits):
+                    # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
                     obj = obj_
                     if i < len(parts):
                         continue
@@ -1004,16 +1004,20 @@ class ValueTraits(HasParent):
         return val
 
     def to_dict(self, names: None | Iterable[str] = None, hastrait_value=True) -> dict[str, Any]:
-        """A dict of dotted attribute names to the attribute.
+        """Converts the object's value traits to a dictionary.
 
-        names:
-        `dotted_attribute_name` to any current attribute.
-        If None self.value_traits_persit is used.
+        Args:
+            names: An optional iterable of attribute names to include in the dictionary.
+            If None, the attributes in `self.value_traits_persist` are used.
+            hastrait_value: If True, only include attributes that have a trait value.
 
-        hastrait_value: Bool
-            If True, will retrieve the values of HasTrait instances.
-            False will pass the instance.
+        Returns:
+            A dictionary where keys are attribute names and values are the corresponding
+            attribute values.
         """
+        if self.closed:
+            self.log.warning("This object is closed")
+            return {}
         if names is None:
             names = self.value_traits_persist
         return {n: utils.getattr_nested(self, n, hastrait_value=hastrait_value) for n in names}

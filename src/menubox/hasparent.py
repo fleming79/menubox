@@ -555,10 +555,10 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         """
         if self.closed or (self.KEEP_ALIVE and not force):
             return
-        self.closed = True
         close = getattr(super(), "close", None)
         if callable(close):
             close()
+        self.closed = True
         self.log.debug("Closed")
         if self._singleton_instances_key:
             self._singleton_instances.pop(self._singleton_instances_key, None)
