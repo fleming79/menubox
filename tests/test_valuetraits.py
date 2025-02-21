@@ -199,6 +199,7 @@ async def test_vt1_fixed_widget():
     assert v.value() == {"c": 1}
     assert v.c in v.change_owners
 
+
 async def test_vt1_nested_fixed_widget():
     parent = VT1(home="default")
     v = VT1(parent=parent, value_traits_persist=["parent.c"])

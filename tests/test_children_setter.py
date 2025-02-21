@@ -12,16 +12,18 @@ from menubox.children_setter import ChildrenSetter
 
 
 class ChildrenSetterTesterNestedObj(mb.MenuBoxVT):
-    views = traitlets.Dict({
-        "view a": lambda: (ipw.Button(description="Button"), ipw.HTML("HTML")),
-        "view b": ("button", 'dropdown'),
-    })
+    views = traitlets.Dict(
+        {
+            "view a": lambda: (ipw.Button(description="Button"), ipw.HTML("HTML")),
+            "view b": ("button", "dropdown"),
+        }
+    )
     button = tf.Button(description="nested button")
     dropdown = tf.Dropdown(description="nested dropdown").configure(allow_none=True)
 
 
 class ChildrenSetterTester(mb.MenuBoxVT):
-    dropdown = tf.Dropdown(description='dropdown')
+    dropdown = tf.Dropdown(description="dropdown")
     label = tf.Label("Label")
     label_no_default = tf.Label("Label no default").configure(load_default=False)
     nested = tf.InstanceHP(ChildrenSetterTesterNestedObj).configure(allow_none=True)
@@ -32,6 +34,7 @@ class ChildrenSetterTester(mb.MenuBoxVT):
         },
     )
     plain_box = tf.Box()
+
 
 @pytest.fixture
 async def cto(home: mb.Home):
@@ -94,5 +97,3 @@ async def test_children_setter_hide(cto: ChildrenSetterTester):
     mb.utils.hide(cto.dropdown)
     await asyncio.sleep(0.1)
     assert cto.dynamic_box.children == (cto.nested.dropdown, cto.nested.button)
-
-

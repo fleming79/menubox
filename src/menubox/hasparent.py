@@ -389,7 +389,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
 
     @traitlets.default("log")
     def _default_log(self):
-        return IpylabLoggerAdapter(utils.fullname(self), owner=self)
+        return IpylabLoggerAdapter(self.__module__, owner=self)
 
     @traitlets.observe("parent", "parent_link", "parent_dlink")
     def _observe_parent(self, change: ChangeType):
@@ -481,7 +481,8 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             return a.equals(b)
         return a == b
 
-    def get_log_name(self):
+    @property
+    def repr_log(self):
         "A representation for logging"
         return utils.limited_string(self, 40)
 

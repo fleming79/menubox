@@ -52,9 +52,11 @@ class IHPChange(Generic[T], TypedDict):
     parent: HasParent
     obj: T
 
+
 class ChildrenDict(TypedDict):
     dottednames: tuple[str, ...]
     mode: Literal["monitor"]
+
 
 class IHPSettings(Generic[T], TypedDict):
     load_default: NotRequired[bool]
@@ -400,7 +402,8 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             if isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
                 old.parent = None
             if self.settings.get("on_replace_close") and callable(close := getattr(old, "close", None)):
-                owner.log.debug("Closing %s", old)
+                if mb.DEBUG_ENABLED:
+                    owner.log.debug(f"Closing replaced item `{owner.__class__.__name__}.{self.name}` {old.__class__}")
                 close()
 
         # change_new & change_old

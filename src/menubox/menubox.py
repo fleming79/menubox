@@ -165,10 +165,6 @@ class MenuBox(HasParent, Panel):
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__qualname__} name:'{self.name if self.trait_has_value('name') else ''}'>"
 
-    @override
-    def get_log_name(self):
-        return f"{utils.limited_string(self, 40)} model_id='{self.model_id}'"
-
     def __str__(self):
         return self.__repr__()
 

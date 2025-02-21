@@ -19,7 +19,6 @@ import menubox as mb
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
-
     from menubox.hasparent import HasParent
     from menubox.trait_types import ChangeType
 
@@ -88,6 +87,7 @@ def trait_tuple_discard(*values, owner: traitlets.HasTraits, name: str):
         new = tuple_discard(current, *values)
         if new != current:
             owner.set_trait(name, new)
+
 
 # TODO: concat the callable when pass_change is True.
 def weak_observe(
@@ -389,7 +389,9 @@ def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:
         except TypeError:
             yield iterable  # type: ignore
 
+
 GetWidgetsInputType = None | str | Callable | ipw.Widget | Iterable[str | Callable | ipw.Widget | None]
+
 
 def get_widgets(
     *items: GetWidgetsInputType,

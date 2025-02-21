@@ -7,7 +7,7 @@ import inspect
 import json
 import pathlib
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeVar, overload, override
 
 import orjson
 import ruamel.yaml
@@ -741,9 +741,8 @@ class ValueTraits(HasParent):
                         continue
                 else:
                     msg = (
-                        f'"{n}" is not a trait of {utils.fullname(obj)}\n '
-                        "It must be defined as a trait if you want to observe it with "
-                        f'value_traits. value_traits item = "{dotname}".'
+                        f"`{n}` is not a trait of {utils.fullname(obj)} and {utils.fullname(obj)} "
+                        f"is not an instance of HasTraits so is an invalid part of {dotname}."
                     )
                     raise TypeError(msg)
                 if n in obj._trait_values:
@@ -818,9 +817,21 @@ class ValueTraits(HasParent):
             msg = f"A prohibited value trait has been detected: {self._prohibited_value_traits.intersection(change['new'])}"
             raise RuntimeError(msg)
         if change["name"] == "value_traits":
-            self._vt_update_reg_value_traits()
+            try:
+                self._vt_update_reg_value_traits()
+            except Exception as e:
+                e.add_note(f"This is a `value_trait` of {self:!r}")
+                self.on_error(e, "Invalid `value_trait` item found.")
+                if mb.DEBUG_ENABLED:
+                    raise
         if change["name"] == "value_traits_persist":
-            self._vt_update_reg_value_traits_persist()
+            try:
+                self._vt_update_reg_value_traits_persist()
+            except Exception as e:
+                e.add_note(f"This is a `value_trait_persist` of {self:!r}")
+                self.on_error(e, "Invalid `value_trait_persist` item found.")
+                if mb.DEBUG_ENABLED:
+                    raise
 
     def _vt_tuple_on_change(
         self,
@@ -923,10 +934,9 @@ class ValueTraits(HasParent):
         """
         if mb.DEBUG_ENABLED:
             self.log.debug(
-                "\tCHANGE "  # noqa: G003
-                + (f"ignored (context={self._ignore_change_cnt})" if self._ignore_change_cnt else "")
-                + f"\t{change['owner'].__class__.__qualname__}.{change['name']}\t"
-                f"{utils.fullname(change['old'])} →{utils.fullname(change['new'])}"
+                f"  CHANGE: [{change['owner'].__class__.__qualname__}.{change['name']}] "
+                f"{utils.limited_string(repr(change['old']))} ➮ {utils.limited_string(repr(change['new']))}  "
+                f"{f'ignored (context={self._ignore_change_cnt})' if self._ignore_change_cnt else ''}"
             )
         if self._ignore_change_cnt:
             return
@@ -954,6 +964,13 @@ class ValueTraits(HasParent):
         except Exception as e:
             self.on_error(e, "Error loading data", data)
             raise
+
+    @property
+    @override
+    def repr_log(self):
+        name = self.name
+        name = f" {name=}" if name else ""
+        return f"<{self.__class__.__name__}{name}> [{self.home}]"
 
     def add_value_traits(self, *names: str, delay: float | None = None):
         """Append names to value_traits.
