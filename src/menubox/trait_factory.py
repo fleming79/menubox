@@ -264,8 +264,8 @@ SimpleOutput = IHP(ipylab.SimpleOutput)
 
 # menubox
 
-MenuBox = IHP(type["menubox.menubox.MenuBox"])
-MenuBoxVT = IHP(type["menubox.menuboxvt.MenuBoxVT"])
+MenuBox = IHP(cast(type["menubox.menubox.MenuBox"], "menubox.menubox.MenuBox"))
+MenuBoxVT = IHP(cast(type["menubox.menuboxvt.MenuBoxVT"], "menubox.menubox.MenuBoxVT"))
 
 AsyncRunButton = IHP(
     menubox.async_run_button.AsyncRunButton,
@@ -282,12 +282,7 @@ Repositories = IHP(
     set_parent=False,
     dynamic_kwgs={"home": "home"},
 )
-SelectRepository = IHP(
-    cast(
-        type["menubox.repository.SelectRepository"],
-        "menubox.repository.SelectRepository",
-    )
-)
+SelectRepository = IHP(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))
 
 # other
 Task: Callable[..., InstanceHP[asyncio.Task | None]] = IHP(asyncio.Task, allow_none=True, load_default=False)

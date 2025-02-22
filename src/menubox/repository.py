@@ -35,9 +35,9 @@ class Repository(Filesystem, MenuBoxPersist):
     def __init__(self, name: str, **kwargs):
         if self._HasParent_init_complete:
             return
-        super().__init__(name=name, **kwargs)
         if name == "default":
             self._configure_as_default_repo()
+        super().__init__(name=name, **kwargs)
         if not self.url.value:
             self.url.value = self.home_url = self.home.repository.url.value
 

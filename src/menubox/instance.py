@@ -7,7 +7,6 @@ import weakref
 from typing import (
     TYPE_CHECKING,
     Any,
-    ClassVar,
     Generic,
     Literal,
     NotRequired,
@@ -83,17 +82,9 @@ class IHPDlinkType(TypedDict):
     transform: NotRequired[Callable[[Any], Any]]
 
 
-class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
+class InstanceHP(traitlets.TraitType, Generic[T]):
     default_value: None = None
-    _klass: type[T] | None = None
-    _default_settings: ClassVar[IHPSettings] = {
-        "load_default": True,
-        "allow_none": False,
-        "read_only": True,
-        "set_parent": True,
-        "on_click": "button_clicked",
-        "on_replace_close": True,
-    }
+    klass: type[T]
 
     if TYPE_CHECKING:
         name: str  # type: ignore
@@ -143,23 +134,21 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         See also .configure for further detail.
 
         """
+        self.settings = {}
+        inspect.isclass(klass)
         if isinstance(klass, str):
             if "." not in klass:
                 msg = f"{klass=} must be passed with the full path to the class inside the module"
                 raise ValueError(msg)
-            self.klass_name = klass
+            self._klass = klass
         elif inspect.isclass(klass):
             self._klass = klass
-            self.klass_name = f"{klass.__module__}.{klass.__qualname__}"
-        elif (args_ := getattr(klass, "__args__", None)) and "." in args_[0]:
-            self.klass_name = args_[0]
         else:
-            msg = f"{klass=} must be either a class, type['full.name.to.Class'] or the full path to the class!"
+            msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
         if "parent" in kwgs:
             msg = "`parent`is an invalid argument. Use the `set_parent` tag instead."
             raise ValueError(msg)
-        self.settings = self._default_settings.copy()
         super().__init__()
         self.args = args
         self.kwgs = kwgs
@@ -170,38 +159,51 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         super().instance_init(obj)
         utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)  # type: ignore #TODO: see weak_observe
 
-    @property
-    def klass(self) -> type[T]:
-        if not self._klass:
-            self._klass = utils.import_item(self.klass_name)
-            assert self._klass  # noqa: S101
-        return self._klass
+    def finalize(self):
+        """Finalizes the menubox instance by:
 
-    @property
-    def allow_none(self):  # type: ignore
-        return self.settings["allow_none"]  # type: ignore
-
-    @property
-    def read_only(self):  # type: ignore
-        return self.settings["read_only"]  # type: ignore
+        - Resolving the class of the instance.
+        - Setting default settings based on the class.
+        - Handling specific cases for different widget types (e.g., Button, HasParent, DOMWidget).
+        - Removing unnecessary settings.
+        - Setting flags for loading defaults, allowing None values, and read-only mode.
+        """
+        if hasattr(self, "klass"):
+            return
+        klass = self._klass if inspect.isclass(self._klass) else utils.import_item(self._klass)
+        assert inspect.isclass(klass)  # noqa: S101
+        self.klass = klass  # type: ignore
+        ss = self.settings
+        if getattr(klass, "KEEP_ALIVE", False):
+            ss["on_replace_close"] = False
+        if "on_replace_close" not in ss:
+            if issubclass(klass, HasParent):
+                ss["on_replace_close"] = not klass.SINGLETON_BY
+            elif issubclass(klass, ipw.Widget) and "on_replace_close":
+                ss["on_replace_close"] = True
+        if issubclass(klass, ipw.Button) and not issubclass(klass, mb.async_run_button.AsyncRunButton):
+            if "on_click" not in ss:
+                ss["on_click"] = "button_clicked"
+            else:
+                ss.pop("on_click", None)
+        if not issubclass(klass, ipw.DOMWidget) or not ss.get("add_css_class"):
+            ss.pop("add_css_class", None)
+        if issubclass(klass, HasParent) and "set_parent" not in ss:
+            ss["set_parent"] = True
+        self.load_default = ss.pop("load_default", True)
+        self.allow_none = ss.pop("allow_none", not self.load_default)
+        self.read_only = ss.pop("read_only", True)
 
     @property
     def info_text(self):  # type: ignore
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
-    @property
-    def load_default(self):
-        return self.settings["load_default"]  # type: ignore
-
-    @property
-    def set_parent(self):
-        return self.settings["set_parent"]  # type: ignore
-
     def set(self, obj: HasParent, value) -> None:  # type: ignore
-        if isinstance(value, dict) and self.klass_name:
+        self.finalize()
+        if isinstance(value, dict):
             value = self.default(obj, value)
         new_value = self._validate(obj, value)
-        if isinstance(value, HasParent) and self.set_parent:
+        if isinstance(value, HasParent) and self.settings.get("set_parent"):
             # Do this early in case the parent is invalid.
             value.parent = obj
         try:
@@ -228,6 +230,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         try:
             value: T | None = obj._trait_values[self.name]  # type: ignore
         except KeyError:
+            self.finalize()
             # Obtain the default.
             default = self.default(obj)
 
@@ -251,6 +254,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             return value  # type: ignore
 
     def default(self, obj: HasParent, override: None | dict = None) -> T | None:  # type: ignore
+        settings = self.settings
         try:
             if not self.load_default and override is None:
                 if self.allow_none:
@@ -258,12 +262,14 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                 msg = f'Both `load_default` and `allow_none` are False for "{obj.__class__.__qualname__}.{self.name}".'
                 raise RuntimeError(msg)  # noqa: TRY301
             kwgs = dict(self.kwgs)
-            if issubclass(self.klass, HasParent) and self.set_parent:
+            if issubclass(self.klass, HasParent) and self.settings.get("set_parent"):
                 kwgs["parent"] = obj
 
+            settings = self.settings
+
             # dynamic_kwgs
-            if dynamic_kwgs := self.settings.get("dynamic_kwgs"):
-                for name, value in dynamic_kwgs.items():
+            if "dynamic_kwgs" in settings:
+                for name, value in settings["dynamic_kwgs"].items():
                     if callable(value):
                         kwgs[name] = value(
                             IHPCreate(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs)
@@ -274,7 +280,8 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                         kwgs[name] = utils.getattr_nested(obj, value, hastrait_value=False)
 
             # children
-            if children := self.settings.get("children"):
+            if "children" in settings:
+                children = settings["children"]
                 if isinstance(children, dict):
                     from menubox.children_setter import ChildrenSetter
 
@@ -287,9 +294,9 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
             if override:
                 kwgs = kwgs | override
             # create
-            if create := self.settings.get("create"):
-                if isinstance(create, str):
-                    create = getattr(obj, create)
+            if "create" in settings:
+                create = settings["create"]
+                create = getattr(obj, create) if isinstance(create, str) else create
                 return create(IHPCreate(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs))
             return self.klass(*(self.args), **kwgs)
         except Exception as e:
@@ -302,13 +309,9 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                 return value
             msg = (
                 f"None is not allowed for the InstanceHP trait `{obj.__class__.__qualname__}.{self.name}`. "
-                f"Use `.configure(allow_none=True)` "
-                "to permit it."
+                "Use `.configure(allow_none=True)` to permit it."
             )
-            raise RuntimeError(msg)
-        if not self.klass:
-            msg = f"klass has not been set for the InstanceHP object: {obj.__class__}.{self.name}"
-            raise RuntimeError(msg)
+            raise traitlets.TraitError(msg)
         if isinstance(value, self.klass):  # type:ignore[arg-type]
             if obj._cross_validation_lock is False:
                 value = self._cross_validate(obj, value)
@@ -318,13 +321,14 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
     def _value_changed(self, owner: HasParent, old: T | None, new: T | None):
         # This is the main handler function for loading and configuration
         # providing consistent/predictable behaviour reducing boilerplate code.
+        # Note: settings are pre-processed in `set_klass`
+        settings = self.settings
+
         if new is not None:
+            #
             # on_click
-            if (
-                isinstance(new, ipw.Button)
-                and not isinstance(new, mb.async_run_button.AsyncRunButton)
-                and (on_click := self.settings.get("on_click"))
-            ):
+            if "on_click" in settings and isinstance(new, ipw.Button):
+                on_click = settings["on_click"]
                 if mb.DEBUG_ENABLED:
                     if not callable(utils.getattr_nested(owner, on_click) if isinstance(on_click, str) else on_click):
                         msg = f"`{on_click=}` is not callable!"
@@ -355,8 +359,8 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                 new.on_click(_on_click)
 
             # set_attrs
-            if set_attrs := self.settings.get("set_attrs"):
-                for k, v in set_attrs.items():
+            if "set_attrs" in settings:
+                for k, v in settings["set_attrs"].items():
                     val = v
                     if isinstance(val, str) and val.startswith("."):
                         val = val[1:]
@@ -369,7 +373,8 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                     utils.setattr_nested(new, k, val, setattr)
 
             # dlink
-            if dlink := self.settings.get("dlink"):
+            if "dlink" in settings:
+                dlink = settings["dlink"]
                 dlinks = (dlink,) if isinstance(dlink, dict) else dlink
                 target_obj = new
                 for dlink in dlinks:
@@ -393,22 +398,23 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
                         owner.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
 
             # add_css_class
-            if isinstance(new, ipw.DOMWidget) and (css_class_names := self.settings.get("add_css_class")):
-                for class_name in utils.iterflatten(css_class_names):
+            if "css_class_names" in settings and isinstance(new, ipw.DOMWidget):
+                for class_name in utils.iterflatten(settings["css_class_names"]):
                     new.add_class(class_name)
 
-        # on_replace_close
-        if old is not None and old is not traitlets.Undefined:
-            if isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
+        if old is not None:
+            # set_parent
+            if "set_parent" in settings and isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
                 old.parent = None
-            if self.settings.get("on_replace_close") and callable(close := getattr(old, "close", None)):
+            # on_replace_close
+            if settings.get("on_replace_close") and isinstance(old, ipw.Widget | HasParent):
                 if mb.DEBUG_ENABLED:
                     owner.log.debug(f"Closing replaced item `{owner.__class__.__name__}.{self.name}` {old.__class__}")
-                close()
+                old.close()
 
         # change_new & change_old
         for obj, key in [(old, "change_old"), (new, "change_new")]:
-            if obj is not None and (changed := self.settings.get(key)):
+            if obj is not None and (changed := settings.get(key)):
                 if isinstance(changed, str):
                     changed = getattr(owner, changed)
                 changed(IHPChange(name=self.name, parent=owner, obj=obj))
@@ -465,6 +471,8 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         on_replace_close: Bool
             close/close the previous instance if it is replaced.
             Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
+            Also, If not configured, default is True except for HasParent items that
+            specify SINGLETON_BY = False.
         allow_none :  bool
             Allow the value to be None. Note: If load_default is passed,
         set_parent: Bool [True]
@@ -499,7 +507,6 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
 
             Additionally, if mode is 'monitor', the children will be updated as the state
             of the children is changed (including hide/show).
-
         add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
         on_click: Str | Tuple[str, ...] <Button **ONLY**>
@@ -507,8 +514,7 @@ class InstanceHP(traitlets.ClassBasedTraitType, Generic[T]):
         """
         if "load_default" in kwgs and "allow_none" not in kwgs:
             kwgs["allow_none"] = not kwgs["load_default"]
-        if kwgs:
-            merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
+        merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
 
     def set_children(
