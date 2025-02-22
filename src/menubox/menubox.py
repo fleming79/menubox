@@ -201,10 +201,6 @@ class MenuBox(HasParent, Panel):
                 self.enable_widget(name)
             if views is not None:
                 self.views = views
-            if view is NO_DEFAULT:
-                view = self.DEFAULT_VIEW
-            if view:
-                kwargs["children"] = (HTML_LOADING,)
             if self.DEFAULT_LAYOUT and "layout" not in kwargs:
                 layout = self.DEFAULT_LAYOUT
                 kwargs["layout"] = layout
@@ -219,11 +215,12 @@ class MenuBox(HasParent, Panel):
             self.set_trait("viewlist", viewlist)
         if tabviews is not None:
             self.set_trait("tabviews", tabviews)
-        self._MenuBox_init_complete = True
         if showbox:
             self.set_trait("showbox", showbox)
+        view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
         if view is not None:
             self.load_view(view)
+        self._MenuBox_init_complete = True
 
     @override
     def close(self, force=False):
@@ -305,51 +302,67 @@ class MenuBox(HasParent, Panel):
             self, view: str | None | defaults.NO_DEFAULT_TYPE, *, reload: Literal[True]
         ) -> asyncio.Task[str | None]: ...
 
-    def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, *, reload=False):  # type: ignore
-        if reload and view is NO_DEFAULT and self.task_load_view:
-            return self.task_load_view
-        if view is not NO_DEFAULT:
-            if view not in self._current_views:
-                msg = f'{view=} not a current view! Available views = "{self._current_views}"'
-                raise RuntimeError(msg)
-        else:
-            view = (self.loading_view if self.loading_view is not NO_DEFAULT else self.view) or NO_DEFAULT
-            view = view if view in self._current_views else next(iter(self._current_views))
+    def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False):
+        """Loads a specified view, handling defaults, reloads, and preventing redundant loads.
+
+        Args:
+            view (str | None | defaults.NO_DEFAULT_TYPE, optional): The name of the view to load.
+            If NO_DEFAULT or None, defaults to the current view or the first available view.
+            Defaults to NO_DEFAULT.
+            reload (bool, optional): If True, forces a reload of the view even if it's already loaded.
+            Defaults to False.
+
+        Returns:
+            Task | None: Returns a Task object if a new view loading task is started.
+            Returns None if the view is already loaded and reload is False.
+
+        Raises:
+            RuntimeError: If the specified view is not in the set of current views.
+        """
+        if view is NO_DEFAULT:
+            view = self.view or next(iter(self._current_views))
+        elif view not in self._current_views:
+            msg = f'{view=} not a current view! Available views = "{self._current_views}"'
+            raise RuntimeError(msg)
         if not reload:
             if self.task_load_view:
-                if self.loading_view is not NO_DEFAULT:
-                    self.set_trait("loading_view", view)
+                if self.loading_view == view:
                     return self.task_load_view
-            elif self.view == view:
+            elif view == self.view:
                 return None
-        self.set_trait("loading_view", view)
-        self.mb_refresh()
-        return self._load_view()
+        return self._load_view(view)
 
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
-    async def _load_view(self):
+    async def _load_view(self, view: str | None):
+        if view not in self._current_views:
+            msg = f'{view=} not a current view! Available views = "{self._current_views}"'
+            raise RuntimeError(msg)
+        self.set_trait("loading_view", view)
+        if not self._MenuBox_init_complete:
+            await asyncio.sleep(0)
+        self.mb_refresh()
+        self.set_trait("loading_view", view)
         try:
-            view = await self.load_center_widgets(self.loading_view)
-            # Set the view using `_setting_view` gates
+            view = await self.load_center_widgets(view)
             self._setting_view = True
             self.view = view
             self._setting_view = False
-            if view and view != self.view_previous:
-                self.view_previous = view
-            for button in self._view_buttons:
-                border = "solid 1px blue" if button.description == view else ""
-                mb.utils.set_border(button, border)
             self.log.debug("Loaded view: %s", view)
-            self.menu_close()
-            if self.button_menu:
-                self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
-            if self.button_toggleview and view in self.toggleviews:
-                i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
-                next_view = self.toggleviews[i]
-                self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
-            return view
         finally:
             self.set_trait("loading_view", NO_DEFAULT)
+        if view and view != self.view_previous:
+            self.view_previous = view
+        for button in self._view_buttons:
+            border = "solid 1px blue" if button.description == view else ""
+            mb.utils.set_border(button, border)
+        self.menu_close()
+        if self.button_menu:
+            self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
+        if self.button_toggleview and view in self.toggleviews:
+            i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
+            next_view = self.toggleviews[i]
+            self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
+        return view
 
     async def load_center_widgets(self, view: str | None) -> str | None:
         """Loads a widget, callable or generator into the center region of the MenuBox.
@@ -402,7 +415,7 @@ class MenuBox(HasParent, Panel):
         self.set_trait("_center", vw)
         return view
 
-    @mb_async.debounce(0.01)
+    @mb_async.throttle(0.05)
     async def mb_refresh(self) -> None:
         """Refreshes the MenuBox's display based on its current state.
 
@@ -416,10 +429,15 @@ class MenuBox(HasParent, Panel):
         if not self._MenuBox_init_complete:
             return
         if self.task_load_view:
-            self.children = (HTML_LOADING,)
-            await self.task_load_view
-            self.mb_refresh()  # A trick to avoid running expensive code twice
-            return
+            try:
+                async with asyncio.timeout(0.05):
+                    await asyncio.shield(self.task_load_view)
+            except TimeoutError:
+                await asyncio.sleep(0)
+                if self.task_load_view:
+                    self.children = (HTML_LOADING,)
+                    self.mb_refresh()
+                    return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.view is None:
@@ -450,7 +468,6 @@ class MenuBox(HasParent, Panel):
                 self.header.children = widgets
             else:
                 self.disable_widget("header")
-
         if self.header:
             if self.layout.flex_flow and self.layout.flex_flow.startswith("row"):
                 self.header.layout.border_bottom = ""

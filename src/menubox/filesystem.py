@@ -41,6 +41,7 @@ class Filesystem(MenuBoxVT):
     read_only = traitlets.Bool()
     disabled = traitlets.Bool()
     minimized_children = StrTuple("url")
+    button_update_task = tf.Task()
     protocol = tf.Dropdown(
         description="protocol",
         value="file",
@@ -73,21 +74,24 @@ class Filesystem(MenuBoxVT):
     )
     button_home = tf.Button(description="🏠")
     button_up = tf.Button(description="↑", tooltip="Navigate up one folder")
-    button_update_sw_main = tf.AsyncRunButton(
-        cfunc="_button_update_sw_main_async", description="↻", cancel_description="✗", tasktype=mb_async.TaskType.update
+    button_update = tf.AsyncRunButton(
+        cfunc="_button_update_async",
+        description="↻",
+        cancel_description="✗",
+        tasktype=mb_async.TaskType.update,
+        handle="button_update_task",
     )
     button_add = tf.AsyncRunButton(
-        cfunc="button_update_sw_main",
+        cfunc="button_update",
         kw={"create": True},
         description="✚",
         tooltip="Create new file or folder",
         disabled=True,
-        link_button=True,
     )
     box_settings = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).configure(children=("protocol", "kw"))
     control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).configure(
         children={
-            "dottednames": ("button_home", "button_up", "drive", "url", "button_add", "button_update_sw_main"),
+            "dottednames": ("button_home", "button_up", "drive", "url", "button_add", "button_update"),
             "mode": "monitor",
         }
     )
@@ -140,7 +144,7 @@ class Filesystem(MenuBoxVT):
                 self.dlink((self, "disabled"), (w, "disabled"))
         self.update_widget_locks()
         await super().mb_configure()
-        self.button_update_sw_main.start()
+        self.button_update.start()
 
     def view_main_get(self):
         if self.read_only:
@@ -153,37 +157,29 @@ class Filesystem(MenuBoxVT):
         super().on_change(change)
         match change["owner"]:
             case self.protocol:
+                if self.button_update_task:
+                    self.button_update_task.cancel("Protocol change")
                 self._fs = None
                 self.sw_main.options = []
                 self.url.value = ""
                 if self.protocol.value == "file":
                     self.drive.options = list_drives()
-            case self.url:
-                if not self.read_only:
-                    self.button_add.disabled = exists = self.fs.exists(self.url.value)
-                    if not exists:
-                        return
             case self.drive:
                 if self.drive.value:
                     self.url.value = self.drive.value
                     self.drive.value = None
-            case self.sw_main:
-                if self.sw_main.value is None or self.urlpath is None:
-                    return
-                if self.fs.isdir(self.urlpath):
-                    self.url.value = self.fs._strip_protocol(self.urlpath)  # type: ignore
         if change["owner"] is self:
             match change["name"]:
                 case "read_only":
                     self.update_widget_locks()
                     if self.view:
                         self.refresh_view()
-                case "view":
-                    self.button_update_sw_main.start()
+                case "view" if self.view_active:
+                    self.button_update.start()
         else:
             match change["owner"]:
                 case self.url | self.sw_main if self.view_active:
-                    self.button_update_sw_main.start()
+                    self.button_update.start()
 
     async def button_clicked(self, b: Button):
         if self.read_only:
@@ -191,57 +187,69 @@ class Filesystem(MenuBoxVT):
         await super().button_clicked(b)
         match b:
             case self.button_home:
-                self.url.value = self.home_url
-                self.sw_main.value = None
+                await self.button_update.start_wait(url=self.home_url)
             case self.button_up:
-                self.url.value = self.fs._parent(self.url.value)
+                await self.button_update.start_wait(url=self.fs._parent(self.url.value))
 
     def update_widget_locks(self):
         for widget in (self.url, self.button_up, self.button_home, self.button_add):
             widget.disabled = self.read_only
 
-    async def _button_update_sw_main_async(self, create=False):
+    # TODO: Consider making this a singular task
+    async def _button_update_async(self, create=False, url: str | None = None):
         if self.prev_protocol != self.protocol.value or self.prev_kwargs != self.storage_options:
             self._fs = None  # causes fs to be recreated
             self.prev_protocol = self.protocol.value
             self.prev_kwargs = self.storage_options
-        if create and not self.fs.exists(self.url.value):
-            root, name = utils.splitname(self.url.value)
-            self.fs.mkdirs(root, exist_ok=True)
-            if "." in name:
-                self.fs.touch(self.url.value)
-                self.log.info("Created file %s", self.url.value)
-                self.url.value = root
-                return
-            self.fs.mkdirs(self.url.value, exist_ok=True)
-            self.log.info("Created folder %s", self.url.value)
+        if url is None:
+            url = self.url.value
+        self.button_add.disabled = True
+        fs = self.fs
+        exists = await mb_async.to_thread(fs.exists, url)
         try:
-            items = self.fs.ls(self.url.value, detail=True)
-        except (NotADirectoryError, FileNotFoundError):
-            if not self.read_only and self.view not in self._RESERVED_VIEWNAMES:
-                self.url.value = utils.splitname(self.url.value)[0]
-            return
-        listing = sorted(items, key=lambda x: x["name"])
-        listing = [n for n in listing if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self.ignore)]
-        folders = {}
-        files = {}
-        if self.fs.isdir(self.url.value):
-            folders["📁 ."] = self.url.value
-        for o in listing:
-            if o["type"] == "directory":
-                folders["📁 " + o["name"].rsplit("/", 1)[-1]] = o["name"]
-        if not self.folders_only:
+            if create and not exists:
+                root, name = utils.splitname(url)
+                fs.mkdirs(root, exist_ok=True)
+                if "." in name:
+                    fs.touch(url)
+                    self.log.info("Created file %s", url)
+                    self.url.value = root
+                    return
+                fs.mkdirs(url, exist_ok=True)
+                self.log.info("Created folder %s", url)
+            if not exists:
+                return
+            try:
+                items = await mb_async.to_thread(fs.ls, url, detail=True)
+            except (NotADirectoryError, FileNotFoundError):
+                if not self.read_only and self.view not in self._RESERVED_VIEWNAMES:
+                    self.url.value = utils.splitname(url)[0]
+                return
+            listing = sorted(items, key=lambda x: x["name"])
+            listing = [n for n in listing if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self.ignore)]
+            folders = {}
+            files = {}
+            if await mb_async.to_thread(fs.isdir, url):
+                folders["📁 ."] = url
             for o in listing:
-                if o["type"] == "file":
-                    if self.filters and not any(o["name"].endswith(ext) for ext in self.filters):
-                        continue
-                    files["📄 " + o["name"].rsplit("/", 1)[-1]] = o["name"]
-        url = self.sw_main.value
-        with self.ignore_change():
-            self.sw_main.options = options = folders | files
-            if not url or url not in options.values():
-                url = None
-            self.sw_main.value = url
+                if o["type"] == "directory":
+                    folders["📁 " + o["name"].rsplit("/", 1)[-1]] = o["name"]
+            if not self.folders_only:
+                for o in listing:
+                    if o["type"] == "file":
+                        if self.filters and not any(o["name"].endswith(ext) for ext in self.filters):
+                            continue
+                        files["📄 " + o["name"].rsplit("/", 1)[-1]] = o["name"]
+            url = self.sw_main.value
+            with self.ignore_change():
+                self.sw_main.options = options = folders | files
+                if not url or url not in options.values():
+                    url = None
+                self.sw_main.value = url
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.button_add.disabled = exists or self.read_only
 
     async def get_relative_path(self, title=""):
         "Obtain a relative path using a dialog."
@@ -283,12 +291,12 @@ class RelativePath(Filesystem):
     def home_url(self, value):
         pass
 
-    async def _button_update_sw_main_async(self, create=False):
-        await super()._button_update_sw_main_async(create=create)
-        url = pathlib.PurePath(self.sw_main.value or self.url.value)
+    async def _button_update_async(self, create=False, url: str | None = None):
+        await super()._button_update_async(create=create, url=url)
+        url_ = pathlib.PurePath(self.sw_main.value or self.url.value or "")
         base = self.home_url
         try:
-            self.relative_path.value = v = utils.joinpaths(url.relative_to(base))
+            self.relative_path.value = v = utils.joinpaths(url_.relative_to(base))
             self.button_up.disabled = v == "."
         except ValueError:
             self.url.value = base

@@ -174,12 +174,13 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             task = mb_async.run_async_singular(
                 aw, obj=self, tasktype=self._tasktype, name=self._taskname, restart=restart
             )
-        if task is not self.task:
-            self.set_trait("task", task)
-            task.add_done_callback(self._done_callback)
-        if self.parent and task not in self.parent.tasks:
-            self.parent.tasks.add(task)
-            task.add_done_callback(self.parent.tasks.discard)
+        if not task.done():
+            if task is not self.task:
+                self.set_trait("task", task)
+                task.add_done_callback(self._done_callback)
+            if self.parent and task not in self.parent.tasks:
+                self.parent.tasks.add(task)
+                task.add_done_callback(self.parent.tasks.discard)
         return (aw() if callable(aw) else aw) if coro_mode else task
 
     def start(self, restart=True, **kwargs) -> asyncio.Task:

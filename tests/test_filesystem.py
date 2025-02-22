@@ -11,12 +11,10 @@ async def test_filesystem():
 
     fs = Filesystem(home=home, url=root)
     await fs.load_view(reload=True)
-    fs.button_update_sw_main.start()
-    await fs.wait_tasks()
 
     # Test root
     fs.url.value = "C:/"
-    await fs.button_update_sw_main.start()
+    await fs.wait_tasks()
     # create a folder
     await fs.wait_tasks()
     new_folder = pathlib.Path(root, "a new folder")
@@ -31,6 +29,7 @@ async def test_filesystem():
     # create a file
     fs.url.value += "/a second new folder/and a new file.txt"
     fname = fs.url.value
+    await fs.wait_tasks()
     fs.button_add.click()
     assert fs.tasks
     await fs.wait_tasks()

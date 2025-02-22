@@ -64,7 +64,7 @@ async def test_menuboxvt():
     # Check that the values are registered and observed
     m.a.value = 12
     assert m.a_has_changed
-    assert not m.b_has_changed, "Registered for observation once widgets created"
+    assert m.b_has_changed, "m.a sets m.b.value in `on_change`."
     await m.wait_tasks()
     m.a.value = 2
     assert m.b_has_changed

@@ -120,27 +120,29 @@ def run_async(
         else:
             return result if restart else None
 
-    task = asyncio.create_task(_run_async_wrapper(), name=name)
-    background_tasks[task] = tasktype
-    task.add_done_callback(_background_task_complete)
-    if isinstance(obj, mb.HasParent):
-        obj.tasks.add(task)
-        task.add_done_callback(obj.tasks.discard)
-        if handle:
-            if isinstance(set_ := getattr(obj, handle, None), set):
-                set_.add(task)
-                task.add_done_callback(set_.discard)
-            else:
+    task = asyncio.eager_task_factory(asyncio.get_running_loop(), _run_async_wrapper(), name=name)
+    # task = asyncio.create_task(_run_async_wrapper(), name=name)
+    if not task.done():
+        background_tasks[task] = tasktype
+        task.add_done_callback(_background_task_complete)
+        if isinstance(obj, mb.HasParent):
+            obj.tasks.add(task)
+            task.add_done_callback(obj.tasks.discard)
+            if handle:
+                if isinstance(set_ := getattr(obj, handle, None), set):
+                    set_.add(task)
+                    task.add_done_callback(set_.discard)
+                else:
 
-                def on_done(task):
-                    if getattr(obj, handle, None) is task:
-                        obj.set_trait(handle, None)
+                    def on_done(task):
+                        if getattr(obj, handle, None) is task:
+                            obj.set_trait(handle, None)
 
-                obj.set_trait(handle, task)
+                    obj.set_trait(handle, task)
 
-                task.add_done_callback(on_done)
-    else:
-        _background_tasks.add(task)
+                    task.add_done_callback(on_done)
+        else:
+            _background_tasks.add(task)
     return task
 
 
