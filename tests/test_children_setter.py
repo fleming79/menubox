@@ -58,25 +58,28 @@ async def test_children_setter_manual(cto: ChildrenSetterTester, dottednames: tu
 
 async def test_children_setter_nested_enable_disable(cto: ChildrenSetterTester):
     dottednames = ("dropdown", "nested.button", "nested.dropdown")
-    children_setter = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
-    await children_setter.wait_tasks()
+    cs = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
+    await cs.wait_tasks()
     widgets = tuple(cto.get_widgets(dottednames))
     assert cto.plain_box.children == widgets
 
     # check disable nested
     cto.set_trait("nested", None)
     assert all(b.comm is None for b in widgets[1:]), "Nested widgets should be closed"
-    assert children_setter.tasks, "Update debounced should be scheduled"
-    await children_setter.wait_tasks()
+    assert cs.tasks, "Update debounced should be scheduled"
+    await cs.wait_tasks()
     assert cto.plain_box.children == (cto.dropdown,)
 
     # Check enable nested
     cto.enable_widget("nested", {"dropdown": None})
     assert cto.nested.dropdown is None
-    assert children_setter.tasks, "Update debounced should be scheduled"
-    await children_setter.wait_tasks()
+    assert cs.tasks, "Update debounced should be scheduled"
+    await cs.wait_tasks()
     widgets = tuple(cto.get_widgets(dottednames))
     assert cto.plain_box.children == widgets
+
+    cto.close()
+    assert cs.closed, "Closing the parent should close it."
 
 
 async def test_children_setter_builtin(cto: ChildrenSetterTester):
