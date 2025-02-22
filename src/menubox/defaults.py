@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 
 import ipylab
 import pandas as pd
+import pluggy
 from ipywidgets import widgets as ipw
+
+hookimpl = pluggy.HookimplMarker("menubox")  # Used for plugins
 
 if TYPE_CHECKING:
 

@@ -19,6 +19,7 @@ from menubox import (
     widgets,
 )
 from menubox.__about__ import __version__
+from menubox.defaults import hookimpl
 from menubox.hasparent import HasParent
 from menubox.home import Home
 from menubox.mb_async import TaskType, debounce, throttle
@@ -61,4 +62,22 @@ __all__ = [
     "TypedInstanceTuple",
     "TypedTuple",
     "ValueTraits",
+    "hookimpl",
 ]
+
+
+def _get_plugin_manager():
+    # Only to be run once here
+    import pluggy
+
+    from menubox import hookspecs, lib
+
+    pm = pluggy.PluginManager("menubox")
+    pm.add_hookspecs(hookspecs)
+    pm.register(lib)
+    pm.load_setuptools_entrypoints("menubox")
+    return pm
+
+
+plugin_manager = _get_plugin_manager()
+del _get_plugin_manager

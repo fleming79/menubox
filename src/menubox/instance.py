@@ -85,6 +85,7 @@ class IHPDlinkType(TypedDict):
 class InstanceHP(traitlets.TraitType, Generic[T]):
     default_value: None = None
     klass: type[T]
+    load_default = True
 
     if TYPE_CHECKING:
         name: str  # type: ignore
@@ -161,38 +162,15 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
 
     def finalize(self):
         """Finalizes the menubox instance by:
-
         - Resolving the class of the instance.
-        - Setting default settings based on the class.
-        - Handling specific cases for different widget types (e.g., Button, HasParent, DOMWidget).
-        - Removing unnecessary settings.
-        - Setting flags for loading defaults, allowing None values, and read-only mode.
+        - Calling `plugin_manager.hook.instancehp_finalize_settings`.
         """
         if hasattr(self, "klass"):
             return
         klass = self._klass if inspect.isclass(self._klass) else utils.import_item(self._klass)
         assert inspect.isclass(klass)  # noqa: S101
         self.klass = klass  # type: ignore
-        ss = self.settings
-        if getattr(klass, "KEEP_ALIVE", False):
-            ss["on_replace_close"] = False
-        if "on_replace_close" not in ss:
-            if issubclass(klass, HasParent):
-                ss["on_replace_close"] = not klass.SINGLETON_BY
-            elif issubclass(klass, ipw.Widget) and "on_replace_close":
-                ss["on_replace_close"] = True
-        if issubclass(klass, ipw.Button) and not issubclass(klass, mb.async_run_button.AsyncRunButton):
-            if "on_click" not in ss:
-                ss["on_click"] = "button_clicked"
-            else:
-                ss.pop("on_click", None)
-        if not issubclass(klass, ipw.DOMWidget) or not ss.get("add_css_class"):
-            ss.pop("add_css_class", None)
-        if issubclass(klass, HasParent) and "set_parent" not in ss:
-            ss["set_parent"] = True
-        self.load_default = ss.pop("load_default", True)
-        self.allow_none = ss.pop("allow_none", not self.load_default)
-        self.read_only = ss.pop("read_only", True)
+        mb.plugin_manager.hook.instancehp_finalize_settings(inst=self, klass=klass, settings=self.settings)
 
     @property
     def info_text(self):  # type: ignore
