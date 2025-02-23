@@ -320,6 +320,8 @@ class MenuBox(HasParent, Panel):
         Raises:
             RuntimeError: If the specified view is not in the set of current views.
         """
+        if self.closed:
+            return
         if view is NO_DEFAULT:
             view = self.view or next(iter(self._current_views))
         elif view not in self._current_views:
@@ -336,8 +338,9 @@ class MenuBox(HasParent, Panel):
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
         if view not in self._current_views:
-            msg = f'{view=} not a current view! Available views = "{self._current_views}"'
-            raise RuntimeError(msg)
+            self.log.warning(f'{view=} not a current view! Available views = "{self._current_views}"')
+            if not self.view:
+                view = next(iter(self.views))
         self.set_trait("loading_view", view)
         if not self._MenuBox_init_complete:
             await asyncio.sleep(0)
