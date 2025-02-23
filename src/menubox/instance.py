@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import copy
 import inspect
 import weakref
 from typing import (
@@ -231,54 +232,41 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         else:
             return value  # type: ignore
 
-    def default(self, obj: HasParent, override: None | dict = None) -> T | None:  # type: ignore
-        settings = self.settings
+    def default(self, parent: HasParent, override: None | dict = None) -> T | None:  # type: ignore
+        """Creates an instance of the managed class.
+        This method is responsible for instantiating the class managed by this
+        instance, applying settings, handling dynamic keyword arguments,
+        managing children, applying overrides, and handling instance creation.
+        Args:
+            obj (HasParent): The parent object for the instance being created.
+            override (None | dict, optional): A dictionary of keyword arguments to
+                override the default keyword arguments. Defaults to None.
+        Returns:
+            T | None: An instance of the managed class, or None if `allow_none` is
+                True and `load_default` is False and no override is provided.
+        Raises:
+            RuntimeError: If both `load_default` and `allow_none` are False and no
+                override is provided.
+            Exception: If any error occurs during instance creation. The error is
+                caught, and `obj.on_error` is called before re-raising the exception.
+        """
         try:
             if not self.load_default and override is None:
                 if self.allow_none:
                     return None
-                msg = f'Both `load_default` and `allow_none` are False for "{obj.__class__.__qualname__}.{self.name}".'
+                msg = (
+                    f"Both `load_default` and `allow_none` are `None` for {parent.__class__.__qualname__}."
+                    f"{self.name}:InstanceHP[{self.klass.__name__}] and it has not been set!"
+                )
                 raise RuntimeError(msg)  # noqa: TRY301
-            kwgs = dict(self.kwgs)
-            if issubclass(self.klass, HasParent) and self.settings.get("set_parent"):
-                kwgs["parent"] = obj
-
-            settings = self.settings
-
-            # dynamic_kwgs
-            if "dynamic_kwgs" in settings:
-                for name, value in settings["dynamic_kwgs"].items():
-                    if callable(value):
-                        kwgs[name] = value(
-                            IHPCreate(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs)
-                        )
-                    elif value == "self":
-                        kwgs[name] = obj
-                    else:
-                        kwgs[name] = utils.getattr_nested(obj, value, hastrait_value=False)
-
-            # children
-            if "children" in settings:
-                children = settings["children"]
-                if isinstance(children, dict):
-                    from menubox.children_setter import ChildrenSetter
-
-                    home = getattr(obj, "home", "_child setter")
-                    ChildrenSetter(home=home, parent=obj, name=self.name, dottednames=children["dottednames"])
-                else:
-                    kwgs["children"] = obj.get_widgets(*children, skip_hidden=False, show=True)
-
-            # Overrides - use via `HasParent.instanceHP_enable_disable`, `Menubox.enable_widget` or set directly with a dict.
+            kwgs = copy.deepcopy(self.kwgs)
+            if self.settings:
+                mb.plugin_manager.hook.instancehp_default_kwgs(inst=self, parent=parent, kwgs=kwgs)
             if override:
                 kwgs = kwgs | override
-            # create
-            if "create" in settings:
-                create = settings["create"]
-                create = getattr(obj, create) if isinstance(create, str) else create
-                return create(IHPCreate(parent=obj, name=self.name, klass=self.klass, args=self.args, kwgs=kwgs))
-            return self.klass(*(self.args), **kwgs)
+            return mb.plugin_manager.hook.instancehp_default_create(inst=self, parent=parent, args=self.args, kwgs=kwgs)
         except Exception as e:
-            obj.on_error(e, f'Instance creation failed for "{utils.fullname(obj)}.{self.name}"', self)
+            parent.on_error(e, f'Instance creation failed for "{utils.fullname(parent)}.{self.name}"', self)
             raise
 
     def _validate(self, obj: HasParent, value) -> T | None:
