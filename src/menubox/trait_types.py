@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar
 
 import toolz
 import traitlets
@@ -16,7 +16,7 @@ class ChangeType(TypedDict):
     old: Any
     name: str
     owner: traitlets.HasTraits
-    type: str
+    type: Literal["change"]
 
 
 class ProposalType(TypedDict):

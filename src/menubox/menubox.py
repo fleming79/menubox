@@ -228,7 +228,8 @@ class MenuBox(HasParent, Panel):
             return
         if self.task_load_view:
             self.task_load_view.cancel("Closing")
-        self.set_trait("showbox", None)
+        if self.trait_has_value("showbox"):
+            self.set_trait("showbox", None)
         super().close(force)
 
     @traitlets.validate("views")

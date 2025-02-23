@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import asyncio
-import contextlib
 import copy
 import inspect
-import weakref
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,17 +16,18 @@ from typing import (
     overload,
 )
 
-import ipywidgets as ipw
 import traitlets
 from mergedeep import Strategy, merge
 
 import menubox as mb
-from menubox import mb_async, utils
+from menubox import utils
 from menubox.hasparent import HasParent
 from menubox.trait_types import Bunched
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Iterable
+    from collections.abc import Awaitable, Callable
+
+    from ipywidgets import Button
 
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
@@ -50,7 +48,8 @@ class IHPCreate(Generic[T], TypedDict):
 class IHPChange(Generic[T], TypedDict):
     name: str
     parent: HasParent
-    obj: T
+    old: T | None
+    new: T | None
 
 
 class ChildrenDict(TypedDict):
@@ -65,13 +64,13 @@ class IHPSettings(Generic[T], TypedDict):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str, ...]]
     create: NotRequired[str | Callable[[IHPCreate[T]], T]]
-    change_new: NotRequired[str | Callable[[IHPChange[T]], None]]
-    change_old: NotRequired[str | Callable[[IHPChange[T]], None]]
+    value_changed: NotRequired[str | Callable[[IHPChange[T]], None]]
     dynamic_kwgs: NotRequired[dict[str, Any]]
     set_attrs: NotRequired[dict[str, Any]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
-    on_click: NotRequired[str | Callable[[ipw.Button], Awaitable | None]]
+    on_click: NotRequired[str | Callable[[Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
+    remove_on_close: NotRequired[bool]
     children: NotRequired[ChildrenDict | tuple[utils.GetWidgetsInputType, ...]]
 
 
@@ -148,30 +147,13 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         else:
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
-        if "parent" in kwgs:
-            msg = "`parent`is an invalid argument. Use the `set_parent` tag instead."
-            raise ValueError(msg)
-        super().__init__()
         self.args = args
         self.kwgs = kwgs
-        self._close_observers: weakref.WeakKeyDictionary[HasParent, dict] = weakref.WeakKeyDictionary()
 
     def instance_init(self, obj: HasParent):
         """Init an instance of TypedInstanceTuple."""
         super().instance_init(obj)
         utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)  # type: ignore #TODO: see weak_observe
-
-    def finalize(self):
-        """Finalizes the menubox instance by:
-        - Resolving the class of the instance.
-        - Calling `plugin_manager.hook.instancehp_finalize_settings`.
-        """
-        if hasattr(self, "klass"):
-            return
-        klass = self._klass if inspect.isclass(self._klass) else utils.import_item(self._klass)
-        assert inspect.isclass(klass)  # noqa: S101
-        self.klass = klass  # type: ignore
-        mb.plugin_manager.hook.instancehp_finalize_settings(inst=self, klass=klass, settings=self.settings)
 
     @property
     def info_text(self):  # type: ignore
@@ -232,23 +214,42 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         else:
             return value  # type: ignore
 
+    def finalize(self):
+        """Finalizes the menubox instance by resolving the class and calling the initialization hook.
+
+        If the class is already resolved, this method does nothing. Otherwise, it imports the class if necessary,
+        verifies that it is a class, stores it in the instance, and calls the 'instancehp_finalize' hook.
+        """
+        if hasattr(self, "klass"):
+            return
+        klass = self._klass if inspect.isclass(self._klass) else utils.import_item(self._klass)
+        assert inspect.isclass(klass)  # noqa: S101
+        self.klass = klass  # type: ignore
+        mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, settings=self.settings)
+
     def default(self, parent: HasParent, override: None | dict = None) -> T | None:  # type: ignore
-        """Creates an instance of the managed class.
-        This method is responsible for instantiating the class managed by this
-        instance, applying settings, handling dynamic keyword arguments,
-        managing children, applying overrides, and handling instance creation.
+        """Create a default instance of the managed class.
+
+        This method attempts to create an instance of the class managed by this
+        `InstanceHP`. It handles cases where a default instance is not explicitly
+        loaded, allows for overriding default keyword arguments, and utilizes
+        plugin hooks for customization.
+
         Args:
-            obj (HasParent): The parent object for the instance being created.
-            override (None | dict, optional): A dictionary of keyword arguments to
-                override the default keyword arguments. Defaults to None.
+            parent: The parent object that "owns" this instance.  Used for
+            error reporting and plugin hooks.
+            override: An optional dictionary of keyword arguments to override
+            the default keyword arguments.
+
         Returns:
-            T | None: An instance of the managed class, or None if `allow_none` is
-                True and `load_default` is False and no override is provided.
+            An instance of the managed class `T`, or `None` if `allow_none` is
+            True and no default is loaded.
+
         Raises:
-            RuntimeError: If both `load_default` and `allow_none` are False and no
-                override is provided.
-            Exception: If any error occurs during instance creation. The error is
-                caught, and `obj.on_error` is called before re-raising the exception.
+            RuntimeError: If both `load_default` and `allow_none` are False and
+            no default has been set.
+            Exception: Any exception raised during instance creation is caught,
+            reported to the parent's `on_error` method, and then re-raised.
         """
         try:
             if not self.load_default and override is None:
@@ -284,137 +285,16 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             return value
         self.error(obj, value)  # noqa: RET503
 
-    def _value_changed(self, owner: HasParent, old: T | None, new: T | None):
-        # This is the main handler function for loading and configuration
-        # providing consistent/predictable behaviour reducing boilerplate code.
-        # Note: settings are pre-processed in `set_klass`
+    def _value_changed(self, parent: HasParent, old: T | None, new: T | None):
         settings = self.settings
-
-        if new is not None:
-            #
-            # on_click
-            if "on_click" in settings and isinstance(new, ipw.Button):
-                on_click = settings["on_click"]
-                if mb.DEBUG_ENABLED:
-                    if not callable(utils.getattr_nested(owner, on_click) if isinstance(on_click, str) else on_click):
-                        msg = f"`{on_click=}` is not callable!"
-                        raise TypeError(msg)
-                    if on_click == "button_clicked" and not asyncio.iscoroutinefunction(owner.button_clicked):
-                        msg = f"By convention `{utils.fullname(new)}.button_clicked` must be a coroutine function!"
-                        raise TypeError(msg)
-                taskname = f"button_clicked[{id(new)}] → {owner.__class__.__qualname__}.{self.name}"
-
-                ref = weakref.ref(owner)
-
-                def _on_click(b: ipw.Button):
-                    obj: HasParent | None = ref()
-                    if obj:
-
-                        async def click_callback():
-                            callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
-                            try:
-                                b.add_class(mb.defaults.CLS_BUTTON_BUSY)
-                                result = callback(b)
-                                if inspect.isawaitable(result):
-                                    await result
-                            finally:
-                                b.remove_class(mb.defaults.CLS_BUTTON_BUSY)
-
-                        mb_async.run_async(click_callback, name=taskname, obj=obj)
-
-                new.on_click(_on_click)
-
-            # set_attrs
-            if "set_attrs" in settings:
-                for k, v in settings["set_attrs"].items():
-                    val = v
-                    if isinstance(val, str) and val.startswith("."):
-                        val = val[1:]
-                        val = owner if val == "self" else utils.getattr_nested(owner, val)
-                    elif callable(val):
-                        config = IHPCreate(
-                            parent=owner, name=self.name, klass=self.klass, args=self.args, kwgs=self.kwgs
-                        )
-                        val = val(config)
-                    utils.setattr_nested(new, k, val, setattr)
-
-            # dlink
-            if "dlink" in settings:
-                dlink = settings["dlink"]
-                dlinks = (dlink,) if isinstance(dlink, dict) else dlink
-                target_obj = new
-                for dlink in dlinks:
-                    src_name, src_trait = dlink["source"]
-                    src_obj = (
-                        owner if src_name == "self" else utils.getattr_nested(owner, src_name, hastrait_value=False)
-                    )
-                    tgt_trait = dlink["target"]
-                    key = f"{id(owner)} {owner.__class__.__qualname__}.{self.name}.{tgt_trait}"
-                    if "." in tgt_trait:
-                        class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
-                        target_obj = utils.getattr_nested(new, class_name, hastrait_value=False)
-                    transform = dlink.get("transform")
-                    if isinstance(transform, str):
-                        transform = utils.getattr_nested(owner, transform, hastrait_value=False)
-                    if transform and not callable(transform):
-                        msg = f"Transform must be callable but got {transform:!r}"
-                        raise TypeError(msg)
-                    owner.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
-                    if isinstance(target_obj, traitlets.HasTraits):
-                        owner.dlink((src_obj, src_trait), target=(target_obj, tgt_trait), transform=transform, key=key)
-
-            # add_css_class
-            if "css_class_names" in settings and isinstance(new, ipw.DOMWidget):
-                for class_name in utils.iterflatten(settings["css_class_names"]):
-                    new.add_class(class_name)
-
-        if old is not None:
-            # set_parent
-            if "set_parent" in settings and isinstance(old, HasParent) and getattr(old, "parent", None) is owner:
-                old.parent = None
-            # on_replace_close
-            if settings.get("on_replace_close") and isinstance(old, ipw.Widget | HasParent):
-                if mb.DEBUG_ENABLED:
-                    owner.log.debug(f"Closing replaced item `{owner.__class__.__name__}.{self.name}` {old.__class__}")
-                old.close()
-
-        # change_new & change_old
-        for obj, key in [(old, "change_old"), (new, "change_new")]:
-            if obj is not None and (changed := settings.get(key)):
-                if isinstance(changed, str):
-                    changed = getattr(owner, changed)
-                changed(IHPChange(name=self.name, parent=owner, obj=obj))
-
-        # value closed
-        if (old_observer := self._close_observers.pop(owner, None)) and isinstance(old, HasParent | ipw.Widget):
-            with contextlib.suppress(ValueError):
-                old.unobserve(**old_observer)
-
-        if isinstance(new, HasParent | ipw.Widget):
-            owner_ref = weakref.ref(owner)
-
-            def _observe_closed(change: mb.ChangeType):
-                # If the owner has closed, remove it from parent if appropriate.
-                parent = owner_ref()
-                cname, value = change["name"], change["new"]
-                if (
-                    parent
-                    and ((cname == "closed" and value) or (cname == "comm" and not value))
-                    and parent._trait_values.get(self.name) is change["owner"]
-                ):
-                    if self.allow_none and not parent.closed:
-                        parent.set_trait(self.name, None)
-                    elif old := parent._trait_values.pop(self.name, None):
-                        self._value_changed(parent, old, None)
-
-            names = "closed" if isinstance(new, HasParent) else "comm"
-            new.observe(_observe_closed, names)
-            self._close_observers[owner] = {"handler": _observe_closed, "names": names}
+        if settings:
+            change = IHPChange(name=self.name, parent=parent, old=old, new=new)
+            mb.plugin_manager.hook.instancehp_on_change(inst=self, change=change)
 
     def _on_obj_close(self, change: mb.ChangeType):
-        obj: HasParent = change["owner"]  # type: ignore
+        obj = change["owner"]
         if old := obj._trait_values.pop(self.name, None):
-            self._value_changed(obj, old, None)
+            self._value_changed(obj, old, None)  # type: ignore
 
     # TODO: add overloads if allow_none is True/false
     # TODO: switch to using pluggy hooks.
@@ -442,7 +322,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         allow_none :  bool
             Allow the value to be None. Note: If load_default is passed,
         set_parent: Bool [True]
-            Set the parent to the owner of the trait (HasParent).
+            Set the parent to the parent of the trait (HasParent).
         dynamic_kwgs: dict
             mapping of dynamic kwargs to use during instantiation.
             values can be a mapping of dotted name to an attribute on the parent
@@ -467,7 +347,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             'target: str
             transform: Callable[Any, Any]
                 A function to convert the source value to the target value.
-        children: ChildrenDict | tuple[str | ipw.Widget | Callable[[], str | ipw.Widget | Callable], ...] <Boxes and Panels only>
+        children: ChildrenDict | tuple[str | Widget | Callable[[], str | Widget | Callable], ...] <Boxes and Panels only>
             Children are collected from the parent using 'parent.get_widgets'.
             and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
 
@@ -481,29 +361,6 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         if "load_default" in kwgs and "allow_none" not in kwgs:
             kwgs["allow_none"] = not kwgs["load_default"]
         merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
-        return self
-
-    def set_children(
-        self,
-        *children: str | ipw.Widget | Callable[[], Iterable[ipw.Widget | str]],
-        mode: Literal["on default", "monitor"] = "on default",
-    ) -> Self:
-        """The dotted names of widgets relative parent to use during instantiation.
-
-        Children are collected from the parent using 'parent.get_widgets'.
-        and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
-
-        Additionally, if mode is 'monitor', the children will be updated as the state
-        of the children is changed (including hide/show).
-
-        mode: 'on default' | 'monitor'
-            'on default': Load the children only when creating from default.
-            'monitor' : Same as 'on default' plus monitor children and their visibility and
-            reload on demand. The list of children must contain string names of traits
-            (dotted paths accepted). When a widget is removed or replaced the children will be updated.
-        """
-        self.children = children
-        self.children_mode = mode
         return self
 
 
@@ -542,7 +399,7 @@ def instanceHP_wrapper(
     -----
 
     ```
-    Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": (1, 2, 3)})
+    Dropdown = instanceHP_wrapper(Dropdown, defaults={"options": (1, 2, 3)})
 
 
     class Widget_Box(MenuBox):

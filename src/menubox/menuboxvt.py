@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     import ipywidgets as ipw
 
     from menubox.modalbox import ModalBox
-    from menubox.repository import Repository
 
 __all__ = ["MenuBoxVT"]
 
@@ -41,7 +40,6 @@ class MenuBoxVT(MenuBox, ValueTraits):
     )
     FANCY_NAME = ""
     _RESERVED_VIEWNAMES = (*MenuBox._RESERVED_VIEWNAMES, _CONFIGURE_VIEW)
-    repository: traitlets.Instance[Repository] = traitlets.Instance("menubox.repository.Repository")
     title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *MenuBox.header_right_children)
@@ -50,10 +48,11 @@ class MenuBoxVT(MenuBox, ValueTraits):
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )
+    _mb_refresh_traitnames = (*MenuBox._mb_refresh_traitnames, "button_configure")
     box_template_controls = tf.HBox(layout={"width": "max-content"}).configure(
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
-    _mb_refresh_traitnames = (*MenuBox._mb_refresh_traitnames, "button_configure")
+    repository = tf.Repository()
     template_controls = tf.ModalBox(
         "box_template_controls",
         title="Copy and load settings",
@@ -125,10 +124,6 @@ class MenuBoxVT(MenuBox, ValueTraits):
                 )
                 raise TypeError(msg)
         super().__init_subclass__(**kwargs)
-
-    @traitlets.default("repository")
-    def _default_repository(self):
-        return self.home.repository
 
     @property
     def fs_root(self):

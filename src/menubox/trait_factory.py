@@ -277,10 +277,18 @@ AsyncRunButton_U = IHP(
 )
 ModalBox = IHP(cast(type["menubox.modalbox.ModalBox"], "menubox.modalbox.ModalBox"))
 
+Repository = IHP(
+    cast(type["menubox.repository.Repository"], "menubox.repository.Repository"),
+    create=lambda config: config["parent"].home.repository,  # type: ignore
+    on_replace_close=False,
+    set_parent=False,
+    read_only=False,
+)
 Repositories = IHP(
     cast(type["menubox.repository.Repositories"], "menubox.repository.Repositories"),
     set_parent=False,
     dynamic_kwgs={"home": "home"},
+    on_replace_close=False,
 )
 SelectRepository = IHP(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))
 

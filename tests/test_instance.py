@@ -60,17 +60,12 @@ class HPI3(mb.MenuBox):
 class HPI4(HasParent):
     hpi = tf.InstanceHP(HPI).configure(
         allow_none=True,
-        change_new=lambda change: change["parent"].set_trait("change_new", change),
-        change_old=lambda change: change["parent"].set_trait("change_old", change),
+        value_changed=lambda change: change["parent"].set_trait("value_changed", change),
     )
-    change_new = Dict()
-    change_old = Dict()
+    value_changed = Dict()
 
 
 async def test_instance(home: mb.Home):
-    with pytest.raises(ValueError, match="`parent`is an invalid argument. Use the `set_parent` tag instead."):
-        InstanceHP(HPI, parent=None)
-
     hp1 = HPI(name="hp1")
     assert hp1.my_button
     assert hp1.a.name
@@ -147,9 +142,9 @@ async def test_instance2(home: mb.Home):
     assert hp1_a is hp1.a
     hp2b = HPI2(home=home)
     # Test can load a more complex object & and close
+    sr = hp2b.select_repository
     assert hp2b.select_repository.repository.root
     assert hp2b.select_repository.parent is hp2b
-    sr = hp2b.select_repository
     sr.close()
     assert sr.closed
     assert not hp2b.trait_has_value("select_repository")
@@ -165,15 +160,14 @@ async def test_instance_invalid_value():
         hpi3.set_trait("hpi2", 0)
 
 
-async def test_instance_change():
+async def test_instance_value_changed():
     hpi4 = HPI4()
     assert hpi4.hpi
-    assert hpi4.change_new == IHPChange(name="hpi", parent=hpi4, obj=hpi4.hpi)
+    assert hpi4.value_changed == IHPChange(name="hpi", parent=hpi4, old=None, new=hpi4.hpi)
     old = hpi4.hpi
     new = HPI()
     hpi4.set_trait("hpi", new)
-    assert str(hpi4.change_new) == str(IHPChange(name="hpi", parent=hpi4, obj=new))
-    assert str(hpi4.change_old) == str(IHPChange(name="hpi", parent=hpi4, obj=old))
+    assert hpi4.value_changed == IHPChange(name="hpi", parent=hpi4, old=old, new=new)
 
 
 @pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])
