@@ -201,11 +201,23 @@ async def test_vt1_fixed_widget():
 
 
 async def test_vt1_nested_fixed_widget():
-    parent = VT1(home="default")
-    v = VT1(parent=parent, value_traits_persist=["parent.c"])
+    parent1 = VT1(home="default", name="parent 1")
+    parent2 = VT1(home="default", name="parent 2")
+
+    # Start with parent1
+    v = VT1(parent=parent1, value_traits_persist=["parent.c"])
+    assert v._vt_reg_value_traits_persist == {(v, "parent"), (parent1.c, "value")}
     assert v.value() == {"parent.c": None}
     v.load_value({"parent.c": 1})
     assert v.value() == {"parent.c": 1}
-    assert parent.c in v.change_owners
+    assert parent1.c in v.change_owners
+
+    # Remove the parent
     v.set_trait("parent", None)
+    assert v._vt_reg_value_traits_persist == {(v, "parent")}
     assert v.value() == {"parent.c": None}
+
+    # Set parent2 as the parent
+    v.set_trait("parent", parent2)
+    parent2.c.value = 3
+    assert v._vt_reg_value_traits_persist == {(v, "parent"), (parent2.c, "value")}

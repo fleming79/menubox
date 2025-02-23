@@ -28,8 +28,8 @@ def instancehp_default_create(inst: InstanceHP, parent: HasParent, args: tuple, 
 
 @hookspec
 def instancehp_on_change(inst: InstanceHP, change: IHPChange):
-    """Perform actions when the value is changed (including the default).
+    """Perform actions when the value is changed (including when the default is loaded).
 
     This is intended for implementing consistent behaviour based on the type of
-    the instance. This hook is called prior to emission of the trait change.
+    the instance, and custom handling of when the default is loaded.
     """
