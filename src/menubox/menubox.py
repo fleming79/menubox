@@ -74,6 +74,7 @@ class MenuBox(HasParent, Panel):
     tabviews = StrTuple()
     views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
     view = traitlets.Unicode(allow_none=True, default_value=None)
+    shuffle_button_views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
     view_previous = traitlets.Unicode(allow_none=True, default_value=None)
     title_description = traitlets.Unicode()
     title_description_tooltip = traitlets.Unicode()
@@ -90,11 +91,7 @@ class MenuBox(HasParent, Panel):
     )
     box_menu_open_children = StrTuple("button_menu_minimize", "get_menu_widgets")
     minimized_children = StrTuple("html_title", "header_right_children")
-    shuffle_button_views = traitlets.Dict(
-        default_value={},
-        value_trait=traitlets.Union([traitlets.Callable(), traitlets.Unicode(), traitlets.Instance(ipw.Widget)]),
-        key_trait=traitlets.Unicode(),
-    )
+
     # Trait instances
     _center = traitlets.Any(read_only=True, allow_none=True)
     tab_buttons = Buttons()
