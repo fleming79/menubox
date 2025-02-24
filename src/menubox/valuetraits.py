@@ -18,7 +18,6 @@ import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent
 from menubox.home import Home, InstanceHome
-from menubox.log import log_exceptions
 from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType
 
@@ -579,8 +578,7 @@ class ValueTraits(HasParent):
             **kwargs: Additional keyword arguments.
         """
 
-        if value is None:
-            value = {}
+        value = {} if value is None else value
         if self._vt_init_complete:
             return
         if hasattr(self, "vt_validating"):
@@ -665,7 +663,6 @@ class ValueTraits(HasParent):
         raise NotImplementedError(msg)
 
     @observe("_vt_reg_value_traits", "_vt_reg_value_traits_persist")
-    @log_exceptions
     def _vt_observe_vt_reg_value(self, change: ChangeType):
         """Reacts to changes in the registered value traits.
 
@@ -684,7 +681,6 @@ class ValueTraits(HasParent):
                 `_vt_reg_value_traits`, `_vt_reg_value_traits_persist`, or a
                 `_TypedTupleRegister`.
         """
-
         if change["name"] == "_vt_reg_value_traits":
             handler = self._vt_on_reg_value_traits_change
         elif change["name"] == "_vt_reg_value_traits_persist":
@@ -708,7 +704,7 @@ class ValueTraits(HasParent):
 
         This method traverses a dotted trait name, yielding tuples of (object, trait_name)
         for each trait encountered along the path. It handles special cases like the
-        'value' trait and tolerates nested first-level non-trait attributes (fixed attributes of HasTrait objects).
+        'value' trait and ignores first-level-non-traits assuming they will not be changed.
 
         Args:
             cls: The class that this method is bound to (used for accessing class-level attributes like _AUTO_VALUE).
@@ -811,7 +807,6 @@ class ValueTraits(HasParent):
                     pairs.add((owner, n))
         self._vt_tuple_reg[tuplename].reg = pairs
 
-    @log_exceptions
     def _vt_value_traits_observe(self, change: ChangeType):
         if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(change["new"]):
             msg = f"A prohibited value trait has been detected: {self._prohibited_value_traits.intersection(change['new'])}"

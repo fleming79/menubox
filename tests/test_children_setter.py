@@ -8,7 +8,9 @@ import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
+from menubox import utils
 from menubox.children_setter import ChildrenSetter
+from menubox.trait_types import NameTuple
 
 
 class ChildrenSetterTesterNestedObj(mb.MenuBoxVT):
@@ -31,6 +33,13 @@ class ChildrenSetterTester(mb.MenuBoxVT):
         children={
             "mode": "monitor",
             "dottednames": ("label_no_default", "dropdown", "nested.dropdown", "nested.button"),
+        },
+    )
+    dynamic_box_nametuple_children = NameTuple("label")
+    dynamic_box_nametuple = tf.Box().configure(
+        children={
+            "mode": "monitor_nametuple",
+            "nametuple_name": "dynamic_box_nametuple_children",
         },
     )
     plain_box = tf.Box()
@@ -100,3 +109,19 @@ async def test_children_setter_hide(cto: ChildrenSetterTester):
     mb.utils.hide(cto.dropdown)
     await asyncio.sleep(0.1)
     assert cto.dynamic_box.children == (cto.nested.dropdown, cto.nested.button)
+
+
+async def test_children_setter_nametuple(cto: ChildrenSetterTester):
+    assert cto.dynamic_box_nametuple
+    await asyncio.sleep(0.1)
+    assert cto.dynamic_box_nametuple.children == (cto.label,)
+
+    # Check we can dynamically adjust the children
+    cto.dynamic_box_nametuple_children = ("label", "dropdown", "nested.dropdown", "nested.button")
+    await asyncio.sleep(0.1)
+    assert cto.dynamic_box_nametuple.children == (cto.label, cto.dropdown, cto.nested.dropdown, cto.nested.button)
+
+    # Check still dynamically updates
+    utils.hide(cto.dropdown)
+    await asyncio.sleep(0.1)
+    assert cto.dynamic_box_nametuple.children == (cto.label, cto.nested.dropdown, cto.nested.button)

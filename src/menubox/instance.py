@@ -52,9 +52,14 @@ class IHPChange(Generic[T], TypedDict):
     new: T | None
 
 
-class ChildrenDict(TypedDict):
-    dottednames: tuple[str, ...]
+class ChildrenDottedNames(TypedDict):
     mode: Literal["monitor"]
+    dottednames: tuple[str, ...]
+
+
+class ChildrenNameTuple(TypedDict):
+    mode: Literal["monitor_nametuple"]
+    nametuple_name: str
 
 
 class IHPSettings(Generic[T], TypedDict):
@@ -71,7 +76,7 @@ class IHPSettings(Generic[T], TypedDict):
     on_click: NotRequired[str | Callable[[Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    children: NotRequired[ChildrenDict | tuple[utils.GetWidgetsInputType, ...]]
+    children: NotRequired[ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...]]
 
 
 class IHPDlinkType(TypedDict):

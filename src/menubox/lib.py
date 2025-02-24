@@ -69,7 +69,9 @@ def instancehp_default_kwgs(inst: InstanceHP, parent: HasParent, kwgs: dict):
     if children := inst.settings.get("children"):
         if isinstance(children, dict):
             home = getattr(parent, "home", "_child setter")
-            ChildrenSetter(home=home, parent=parent, name=inst.name, dottednames=children["dottednames"])
+            val = {} | children
+            val.pop("mode")
+            ChildrenSetter(home=home, parent=parent, name=inst.name, value=val)
         else:
             kwgs["children"] = parent.get_widgets(*children, skip_hidden=False, show=True)
 
