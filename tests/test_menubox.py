@@ -8,10 +8,8 @@ async def test_menubox():
     # ruff: noqa: PLR2004
     wa, wb = ipw.HTML("A"), ipw.HTML("B")
     m = mb.MenuBox(views={"a": wa, "b": wb})
-    assert m.task_load_view
-    await m.task_load_view
     assert m.view == "a", "autoload selects first view"
-    await m.load_view(None, reload=True)
+    m.load_view(None)
     assert m.view is None, "load no view"
     m.load_view()
     await m.wait_tasks()
@@ -107,10 +105,8 @@ async def test_menubox():
         utils.show_obj_in_box(ipw.HTML(f"{i}"), abox)
     b = ipw.Button(description="Not a MenuBox")
     wrapper = utils.show_obj_in_box(b, abox)
-    assert wrapper.task_load_view
-    await wrapper.task_load_view
     assert wrapper.view == "WRAPPED"
-    assert wrapper._center is b
+    assert wrapper.center is b
     assert b not in abox.children, "should be added with wrapper"
     assert wrapper in abox.children
     assert wrapper is next(iter(abox.children)), "Show in box should add to top of list."
@@ -118,7 +114,7 @@ async def test_menubox():
     assert wrapper is m3.obj_in_box_shuffle(b), "should be able to find it."
     assert m3.obj_in_box_shuffle(m3) is None
     await wrapper.wait_tasks()
-    assert b is wrapper._center, "b should be the loaded 'view'"
+    assert b is wrapper.center, "b should be the loaded 'view'"
     assert abox.children.index(wrapper) == 0
     wrapper.button_demote.click()
     await wrapper.wait_tasks()

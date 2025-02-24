@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
-import inspect
 import re
 import textwrap
 import weakref
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal, overload, override
 
 import docstring_to_markdown
@@ -21,6 +19,9 @@ from menubox import trait_factory as tf
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
 from menubox.trait_types import ChangeType, ProposalType, StrTuple
+
+if TYPE_CHECKING:
+    import asyncio
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
@@ -51,6 +52,7 @@ class MenuBox(HasParent, Panel):
 
     _MINIMIZED: Final = "Minimized"
     _setting_view = False
+    _mb_configured = False
     loading_view: traitlets.Instance[defaults.NO_DEFAULT_TYPE | str | None] = traitlets.Any(
         default_value=NO_DEFAULT, read_only=True
     )  # type: ignore
@@ -66,13 +68,14 @@ class MenuBox(HasParent, Panel):
     _MenuBox_init_complete = False
 
     # Traits
-    _mb_configured = False
     show_help = traitlets.Bool()
     viewlist = StrTuple()
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
-    views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
+    views: ClassVar[traitlets.Dict[str, utils.GetWidgetsInputType]] = traitlets.Dict(
+        default_value={}, key_trait=traitlets.Unicode()
+    )  # type: ignore
     view = traitlets.Unicode(allow_none=True, default_value=None)
     shuffle_button_views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
     view_previous = traitlets.Unicode(allow_none=True, default_value=None)
@@ -93,7 +96,7 @@ class MenuBox(HasParent, Panel):
     minimized_children = StrTuple("html_title", "header_right_children")
 
     # Trait instances
-    _center = traitlets.Any(read_only=True, allow_none=True)
+    center: traitlets.Container[utils.GetWidgetsInputType] = traitlets.Any(read_only=True, allow_none=True)  # type: ignore
     tab_buttons = Buttons()
     shuffle_buttons = Buttons()
 
@@ -149,7 +152,7 @@ class MenuBox(HasParent, Panel):
         "button_exit",
         "button_help",
         "button_close",
-        "_center",
+        "center",
         "remover",
         "showbox",
         "tab_buttons",
@@ -184,7 +187,7 @@ class MenuBox(HasParent, Panel):
         self,
         *,
         view=NO_DEFAULT,
-        views: dict[str, str | Callable[[], ipw.Widget | str] | ipw.Widget | Iterable[ipw.Widget | str]] | None = None,
+        views: dict[str, utils.GetWidgetsInputType] | None = None,
         viewlist: Iterable[str] | None = None,
         tabviews: Iterable[str] | None = None,
         showbox: ipw.Box | None = None,
@@ -203,21 +206,21 @@ class MenuBox(HasParent, Panel):
                 kwargs["layout"] = layout
             if not self.DEFAULT_BORDER and "border" in kwargs.get("layout", {}):
                 self.DEFAULT_BORDER = kwargs["layout"]["border"]
-            super().__init__(**kwargs)
+            if viewlist is not None:
+                self.set_trait("viewlist", viewlist)
+            if tabviews is not None:
+                self.set_trait("tabviews", tabviews)
+            if showbox:
+                self.set_trait("showbox", showbox)
+            view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
+            super().__init__(children=(HTML_LOADING,) if view in self.viewlist else (), **kwargs)
         except Exception as e:
             self.on_error(e, "__init__ failed")
             super(HasParent, self).__init__()
             raise
-        if viewlist is not None:
-            self.set_trait("viewlist", viewlist)
-        if tabviews is not None:
-            self.set_trait("tabviews", tabviews)
-        if showbox:
-            self.set_trait("showbox", showbox)
-        view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
+        self._MenuBox_init_complete = True
         if view is not None:
             self.load_view(view)
-        self._MenuBox_init_complete = True
 
     @override
     def close(self, force=False):
@@ -319,12 +322,15 @@ class MenuBox(HasParent, Panel):
         """
         if self.closed:
             return
+        current = self._current_views
         if view is NO_DEFAULT:
-            view = self.loading_view
-            if view is NO_DEFAULT or view not in self._current_views:
-                view = self.view or self._current_views[0]
+            view = self.view
+            if not view or view not in current:
+                view = self.loading_view
+                if view not in current:
+                    view = self._current_views[0]
         elif view not in self._current_views:
-            msg = f'{view=} not a current view! Available views = "{self._current_views}"'
+            msg = f'{view=} is not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
         if not reload:
             if self.task_load_view:
@@ -336,17 +342,13 @@ class MenuBox(HasParent, Panel):
 
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
-        if view not in self._current_views:
-            self.log.warning(f'{view=} not a current view! Available views = "{self._current_views}"')
-            if not self.view:
-                view = self._current_views[0]
         self.set_trait("loading_view", view)
         self.mb_refresh()
-        if not self.view:
-            await asyncio.sleep(0)
-        self.set_trait("loading_view", view)
+        if view and not self._mb_configured:
+            await self._mb_configure()
         try:
-            view = await self.load_center_widgets(view)
+            view, center = await self.get_center(view)
+            self.set_trait("center", center)
             self._setting_view = True
             self.view = view
             self._setting_view = False
@@ -367,7 +369,7 @@ class MenuBox(HasParent, Panel):
             self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
         return view
 
-    async def load_center_widgets(self, view: str | None) -> str | None:
+    async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
         """Loads a widget, callable or generator into the center region of the MenuBox.
 
         The widget can be specified by a view name, which corresponds to either a
@@ -389,36 +391,22 @@ class MenuBox(HasParent, Panel):
         """
 
         if not view or self.closed:
-            self.set_trait("_center", None)
-            return None
+            return None, None
         if not isinstance(view, str):
             msg = f"view must be a string or None not {type(view)}"
             raise TypeError(msg)
         if view in self._RESERVED_VIEWNAMES:
             match view:
                 case self._MINIMIZED:
-                    vw = None
+                    center = None
                 case _:
                     name = f"_view_{view}_get".lower().replace(" ", "_")
-                    vw = getattr(self, name)
+                    center = getattr(self, name)
         else:
-            vw = self.views[view]
-            if not self._mb_configured:
-                await self._configure()
-        if isinstance(vw, str):
-            vw = utils.getattr_nested(self, vw, None, hastrait_value=False)
-            if vw is None:
-                msg = f"For {view=} '{self.views[view]}' is not an attribute of {self.__class__}."
-                raise ValueError(msg)
-            if callable(vw):
-                if asyncio.iscoroutinefunction(vw):
-                    vw = await vw()
-                else:
-                    vw = vw()
-        self.set_trait("_center", vw)
-        return view
+            center = self.views[view]
+        return view, center
 
-    @mb_async.debounce(0.05)
+    @mb_async.debounce(0.01)
     async def mb_refresh(self) -> None:
         """Refreshes the MenuBox's display based on its current state.
 
@@ -431,21 +419,20 @@ class MenuBox(HasParent, Panel):
         """
         if not self._MenuBox_init_complete:
             return
-        if self.task_load_view:
-            self.children = (HTML_LOADING,)
-            self.mb_refresh()
-            return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.view is None:
             self.children = ()
             return
+        if self.task_load_view:
+            self.children = (HTML_LOADING,)
+            await self.task_load_view
         self.update_title()
         self._update_header()
         if self.view == self._MINIMIZED:
             self.children = (self.header,)
         else:
-            center = tuple(self.get_widgets(self._get_help_widget() if self.show_help else None, self._center))
+            center = tuple(self.get_widgets(self._get_help_widget() if self.show_help else None, self.center))
             if mb.DEBUG_ENABLED and not self.header:
                 center = (*center, self.button_activate)
             if self.box_center:
@@ -493,16 +480,7 @@ class MenuBox(HasParent, Panel):
         if self.box_menu:
             self.box_menu.children = (self.button_menu,) if self.button_menu else ()
 
-    async def _configure(self) -> None:
-        if self._mb_configured or self.closed:
-            return
-        if not self._MenuBox_init_complete or not self._HasParent_init_complete:
-            raise RuntimeError
-        # inspect.getmembers_static maybe an alternative
-        # https://docs.python.org/3/library/inspect.html#inspect.getmembers_static
-        # Notably traitlets calls dir(obj) during init anyway.
-        await self.mb_configure()
-        self._mb_configured = True
+    async def _mb_configure(self) -> None:
         self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self._MINIMIZED)
         if self._has_maximize_button:
             self.enable_widget("button_minimize")
@@ -514,6 +492,7 @@ class MenuBox(HasParent, Panel):
             self.enable_widget("button_toggleview")
         self._update_tab_buttons()
         self._update_shuffle_buttons()
+        self._mb_configured = True
 
     def _observe_mb_refresh(self, change: ChangeType):
         if self.closed:
@@ -769,26 +748,6 @@ class MenuBox(HasParent, Panel):
         self.layout.border = border
         if self.trait_has_value("header") and self.header:
             self.header.layout.border_bottom = border
-
-    async def mb_configure(self):
-        """Overload me.
-
-        This function is called when first loading a registered view.
-
-        Use this function to perform actions that are relevant to viewing the
-        subclass such as enabling widgets.
-
-        In the subclass include the following:
-
-        ```
-        await super().mb_configure()
-        ```
-        """
-        cl = getattr(super(), "mb_configure", None)
-        if callable(cl):
-            cl = cl()
-            if inspect.isawaitable(cl):
-                await cl
 
     def deactivate(self):
         "Remove from shell hide and load view None."

@@ -136,12 +136,12 @@ class Filesystem(MenuBoxVT):
         """URL of currently selected item"""
         return ((self.protocol.value or "") + "://" + self.sw_main.value) if self.sw_main.value else None
 
-    async def mb_configure(self):
+    async def init_async(self):
         for w in (self.protocol, self.url, self.sw_main, self.kw):
             if w:
                 self.dlink((self, "disabled"), (w, "disabled"))
         self.update_widget_locks()
-        await super().mb_configure()
+        await super().init_async()
         self.button_update.start()
 
     def view_main_get(self):

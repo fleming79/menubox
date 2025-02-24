@@ -327,10 +327,10 @@ class MenuBoxPersist(MenuBoxVT):
             return ()
 
     @override
-    async def load_center_widgets(self, view: str | None):
+    async def get_center(self, view: str | None):
         if not self.name:
             view = self._CONFIGURE_VIEW
-        return await super().load_center_widgets(view)
+        return await super().get_center(view)
 
     @mb_async.singular_task(tasktype=mb_async.TaskType.update, handle="task_loading_persistence_data")
     async def load_persistence_data(self, version=None, quiet=False, data: dict | None = None, set_version=False):
