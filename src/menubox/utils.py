@@ -533,11 +533,33 @@ def show_obj_in_box(
     top=True,
     alt_name="",
     border="solid 1px LightGrey",
+    ensure_wrapped=False,
 ) -> mb.MenuBox:
-    """Add obj to box.children, if it isn't a menubox, wrap it in one first.
+    """Display a widget or MenuBox within a specified Box.
 
-    If obj is in the box already it will be moved to top (or bottom).
+    This function adds a widget or MenuBox to a given ipywidgets Box,
+    optionally wrapping it in a MenuBox for enhanced control and display.
+    It handles cases where the object is already in the box, ensures proper
+    display, and configures the MenuBox's appearance and behavior.
+    Args:
+        obj (ipw.Widget | mb.MenuBox): The widget or MenuBox to display.
+        box (ipw.Box): The ipywidgets Box to add the object to.
+        button_exit (bool, optional): Whether to enable the exit button. Defaults to True.
+        button_promote (bool, optional): Whether to enable the promote button. Defaults to True.
+        button_demote (bool, optional): Whether to enable the demote button. Defaults to True.
+        top (bool, optional): Whether to add the object to the top of the box's children. Defaults to True.
+        alt_name (str, optional): An alternative name to use for the MenuBox title. Defaults to "".
+        border (str, optional): The border style to apply to the MenuBox. Defaults to "solid 1px LightGrey".
+        ensure_wrapped (bool, optional): Whether to ensure the object is wrapped in a MenuBox. Defaults to False.
+    Returns:
+        mb.MenuBox: The MenuBox containing the displayed object.  This will be the original
+            object if it was already a MenuBox and `ensure_wrapped` is False, or a new
+            MenuBox wrapping the object otherwise.
+    Raises:
+        RuntimeError: If the provided MenuBox is closed or if an unexpected condition occurs.
+        TypeError: If the provided object is not an ipywidgets Widget.
     """
+
     if isinstance(obj, mb.MenuBox) and obj.closed:
         msg = f"The instance of {fullname(obj)} is closed!"
         raise RuntimeError(msg)
@@ -551,7 +573,7 @@ def show_obj_in_box(
             msg = "Bug above"
             raise RuntimeError(msg)
         obj = exists
-    if not isinstance(obj, mb.MenuBox):
+    if not isinstance(obj, mb.MenuBox) or ensure_wrapped and "WRAPPED" not in obj.views:
         obj = mb.MenuBox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
         if alt_name:
             obj.title_description = "<b>{self.name}<b>"
