@@ -220,10 +220,13 @@ class MenuBoxVT(MenuBox, ValueTraits):
                 mime_type = "text/json" if path.suffix == "json" else "text/yaml"
                 ipylab.app.dialog.show_dialog(title=path.name, body=ipylab.CodeEditor(value=data, mime_type=mime_type))
 
-    def _view_configure_get(self):
-        if self.RENAMEABLE:
-            return self.button_configure, self.text_name, self._box_edit_description
-        return self.button_configure, self._box_edit_description
+    @override
+    async def get_center(self, view: str | None):
+        if view == self._CONFIGURE_VIEW:
+            if self.RENAMEABLE:
+                return view, (self.button_configure, self.text_name, self._box_edit_description)
+            return view, (self.button_configure, self._box_edit_description)
+        return await super().get_center(view)
 
     def from_clipboard(self):
         from pandas.io.clipboard import clipboard_get  # type: ignore

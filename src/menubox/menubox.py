@@ -370,41 +370,17 @@ class MenuBox(HasParent, Panel):
         return view
 
     async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
-        """Loads a widget, callable or generator into the center region of the MenuBox.
+        """Gets the center view and its widgets.
 
-        The widget can be specified by a view name, which corresponds to either a
-        reserved view or a user-defined view. If the view is a string, it can
-        represent either a direct widget or a nested attribute of the MenuBox
-        instance including callables.
-
-        Tip: This function can be overload to conditionally specify a different view.
+        Override this function to dynamically load the view.
 
         Args:
-            view (str | None): The name of the view to load. If None or the MenuBox
-            is closed, the center widget is cleared.
+            view (str | None): The name of the view to get the center of.
         Returns:
-            str | None: The name of the loaded view, or None if no view was loaded.
-        Raises:
-            TypeError: If view is not a string or None.
-            ValueError: If the view name corresponds to a string that is not a valid
-            attribute of the MenuBox instance.
+            tuple[str | None, utils.GetWidgetsInputType]: A tuple containing the name of the view and the widgets for that view.
+            Returns (None, None) if the view is not found or if the menubox is closed.
         """
-
-        if not view or self.closed:
-            return None, None
-        if not isinstance(view, str):
-            msg = f"view must be a string or None not {type(view)}"
-            raise TypeError(msg)
-        if view in self._RESERVED_VIEWNAMES:
-            match view:
-                case self._MINIMIZED:
-                    center = None
-                case _:
-                    name = f"_view_{view}_get".lower().replace(" ", "_")
-                    center = getattr(self, name)
-        else:
-            center = self.views[view]
-        return view, center
+        return view, self.views.get(view, None) if view else (None, None)
 
     @mb_async.debounce(0.01)
     async def mb_refresh(self) -> None:
@@ -421,9 +397,6 @@ class MenuBox(HasParent, Panel):
             return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
-        if self.view is None:
-            self.children = ()
-            return
         if self.task_load_view:
             self.children = (HTML_LOADING,)
             await self.task_load_view
