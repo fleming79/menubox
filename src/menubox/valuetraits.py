@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import enum
 import inspect
@@ -622,10 +621,7 @@ class ValueTraits(HasParent):
         self._init_tuple_reg()
         self._vt_update_reg_value_traits()
         self._vt_update_reg_value_traits_persist()
-        self.observe(
-            self._vt_value_traits_observe,
-            names=("value_traits", "value_traits_persist"),
-        )
+        self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
         # Parent must be set prior to setting value because HasParent
@@ -634,14 +630,6 @@ class ValueTraits(HasParent):
             self._DEFAULTS = self.to_dict()
         if value:
             self.set_trait("value", value)
-
-    async def init_async(self):  # type: ignore
-        corofunc = super().init_async
-        if corofunc:
-            if not asyncio.iscoroutinefunction(corofunc):
-                msg = f"{corofunc=} is not a coroutine function! {type(corofunc)}"
-                raise TypeError(msg)
-            await corofunc()
 
     @observe("closed")
     def _vt_observe_closed(self, change: ChangeType):

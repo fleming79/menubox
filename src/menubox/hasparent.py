@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import weakref
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, override
 
@@ -22,7 +23,7 @@ __all__ = ["HasParent", "Link", "Dlink"]
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine, Generator
+    from collections.abc import Callable, Generator
 
     from menubox.instance import InstanceHP
 
@@ -239,6 +240,8 @@ class Parent(traitlets.TraitType):
 class HasParent(HasTraits, metaclass=MetaHasParent):
     """A base class for objects that have a parent-child relationship and enhanced trait management.
 
+    NOTE: This class will only instantiate when there is a running event loop.
+
     Key Features:
     - Singleton Instance Management:  Optionally creates singleton instances based on specified attributes (SINGLETON_BY).
     - Nested Attribute Loading:  Recursively loads attributes from dictionaries into the object and its children.
@@ -282,8 +285,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent()
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
-    _init_task: traitlets.Instance[asyncio.Task[None] | None] = traitlets.Instance(asyncio.Task, allow_none=True)  # type: ignore
-    init_async: ClassVar[None | Coroutine] = None
 
     def __new__(cls, *args, **kwargs):
         def _make_key():
@@ -337,8 +338,8 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             self.instanceHP_enable_disable(name, v)
         if self.init_async:
             assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
-            mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self, handle="_init_task")  # type: ignore
-            self.init_async = None  # type: ignore # This function is only intended to be called once here.
+        # Requires a running event loop.
+        self.init_async = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
 
     def __del__(self):
         self.close(force=True)
@@ -644,6 +645,26 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             link = Dlink(src, target, transform=transform, obj=self)
             self._hasparent_all_links[key] = link
 
+    async def init_async(self):
+        """Perform additional initialisation tasks.
+
+        Override this task by calling:
+        ``` python
+        await super().init_async()
+        ```
+        """
+        if corofunc := getattr(super(), "init_async", None):
+            await corofunc()
+
+    async def wait_init_async(self) -> Self:
+        try:
+            await self.init_async  # type: ignore
+        except Exception as e:
+            if inspect.iscoroutinefunction(self.init_async):
+                e.add_note("It looks like wait_init_async is being awaited somewhere which could cause a deadlock")
+            raise
+        return self
+
     async def button_clicked(self, b: ipw.Button):
         """Handles button click events.
 
@@ -664,12 +685,6 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         await self.wait_tasks(
             mb_async.TaskType.update, mb_async.TaskType.init, mb_async.TaskType.click, timeout=timeout
         )
-        return self
-
-    async def wait_init_tasks(self, timeout=None) -> Self:
-        "Will await init tasks once"
-        if self._init_task:
-            await self.wait_tasks(mb_async.TaskType.init, timeout=timeout)
         return self
 
     async def wait_tasks(self, *tasktypes: mb_async.TaskType, timeout=None) -> Self:

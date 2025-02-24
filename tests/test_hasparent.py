@@ -45,7 +45,7 @@ class HP(mhp.HasParent):
         self.caught_errors += 1
 
 
-def test_has_parent():
+async def test_has_parent():
     hp = HP()
     assert hash(hp)
     assert hp.classproperty == 1, "Should only call after HasParent is setup"
@@ -55,7 +55,7 @@ def test_has_parent():
     assert hp.classproperty == 3, "The property is shared"
 
 
-def test_has_parent2():
+async def test_has_parent2():
     hp = HP()
     hp.somelist = (ipw.Text(description="in list", value="some value"),)
 

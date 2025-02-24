@@ -241,7 +241,7 @@ class MenuBox(HasParent, Panel):
     @traitlets.validate("view")
     def _vaidate_view(self, proposal: ProposalType):
         if proposal["value"] not in self._current_views:
-            msg = f"View{proposal['value']} not in {self._current_views}"
+            msg = f"View {proposal['value']!r} not in {self._current_views}"
             raise IndexError(msg)
         if self._setting_view:
             return proposal["value"]
@@ -321,8 +321,8 @@ class MenuBox(HasParent, Panel):
             return
         if view is NO_DEFAULT:
             view = self.loading_view
-            if view is NO_DEFAULT:
-                view = self.view or next(iter(self._current_views))
+            if view is NO_DEFAULT or view not in self._current_views:
+                view = self.view or self._current_views[0]
         elif view not in self._current_views:
             msg = f'{view=} not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
@@ -339,7 +339,7 @@ class MenuBox(HasParent, Panel):
         if view not in self._current_views:
             self.log.warning(f'{view=} not a current view! Available views = "{self._current_views}"')
             if not self.view:
-                view = next(iter(self.views))
+                view = self._current_views[0]
         self.set_trait("loading_view", view)
         self.mb_refresh()
         if not self.view:
@@ -634,8 +634,11 @@ class MenuBox(HasParent, Panel):
             self.tabviews = tuple(v for v in self.tabviews if v in self._current_views)
         if self.menuviews:
             self.menuviews = tuple(v for v in self.menuviews if v in self._current_views)
-        if self.task_load_view or self.view not in self._current_views:
-            self.load_view()
+        if self.view and (
+            (self.task_load_view and self.loading_view not in self._current_views)
+            or (self.view not in self._current_views)
+        ):
+            self.load_view(reload=True)
 
     def _update_tab_buttons(self):
         buttons = []

@@ -152,6 +152,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         else:
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
+        super().__init__(default_value=None, allow_none=True, read_only=True)
         self.args = args
         self.kwgs = kwgs
 
