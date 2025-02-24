@@ -116,8 +116,8 @@ class MenuBox(HasParent, Panel):
     button_help = tf.Button_O(description="❔").configure(load_default=False)
     button_promote = tf.Button_O(description="⇖", tooltip="Shift up / left").configure(load_default=False)
     button_demote = tf.Button_O(description="⇘", tooltip="Shift down / right").configure(load_default=False)
-    button_menu_minimize = tf.Button_M(description="↤", tooltip="Hide menu").configure()
-    button_activate = tf.Button_M(description="🐑", tooltip="Add to shell").configure(load_default=False)
+    button_menu_minimize = tf.Button_M(description="↤", tooltip="Hide menu").configure(load_default=False)
+    button_activate = tf.Button_O(description="🐑", tooltip="Add to shell").configure(load_default=False)
 
     # Boxes
     box_shuffle = tf.BoxShuffle().configure(allow_none=True)
@@ -320,7 +320,9 @@ class MenuBox(HasParent, Panel):
         if self.closed:
             return
         if view is NO_DEFAULT:
-            view = self.view or next(iter(self._current_views))
+            view = self.loading_view
+            if view is NO_DEFAULT:
+                view = self.view or next(iter(self._current_views))
         elif view not in self._current_views:
             msg = f'{view=} not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
@@ -339,9 +341,9 @@ class MenuBox(HasParent, Panel):
             if not self.view:
                 view = next(iter(self.views))
         self.set_trait("loading_view", view)
-        if not self._MenuBox_init_complete:
-            await asyncio.sleep(0)
         self.mb_refresh()
+        if not self.view:
+            await asyncio.sleep(0)
         self.set_trait("loading_view", view)
         try:
             view = await self.load_center_widgets(view)
@@ -416,7 +418,7 @@ class MenuBox(HasParent, Panel):
         self.set_trait("_center", vw)
         return view
 
-    @mb_async.throttle(0.05)
+    @mb_async.debounce(0.05)
     async def mb_refresh(self) -> None:
         """Refreshes the MenuBox's display based on its current state.
 
@@ -430,15 +432,9 @@ class MenuBox(HasParent, Panel):
         if not self._MenuBox_init_complete:
             return
         if self.task_load_view:
-            try:
-                async with asyncio.timeout(0.05):
-                    await asyncio.shield(self.task_load_view)
-            except TimeoutError:
-                await asyncio.sleep(0)
-                if self.task_load_view:
-                    self.children = (HTML_LOADING,)
-                    self.mb_refresh()
-                    return
+            self.children = (HTML_LOADING,)
+            self.mb_refresh()
+            return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.view is None:
@@ -490,6 +486,7 @@ class MenuBox(HasParent, Panel):
         return tuple(self.get_button_loadview(v) for v in self.menuviews)
 
     def menu_open(self):
+        self.enable_widget("button_menu_minimize")
         self.box_menu.children = tuple(self.get_widgets(*self.box_menu_open_children))
 
     def menu_close(self):
