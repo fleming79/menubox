@@ -5,7 +5,6 @@ import enum
 import functools
 import inspect
 import weakref
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, ParamSpec, TypeVar, cast
 
 import wrapt
@@ -14,7 +13,7 @@ import menubox as mb
 from menubox.utils import funcname, limited_string
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
+    from collections.abc import Awaitable, Callable, Coroutine
 
     from menubox.hasparent import HasParent
 
@@ -171,18 +170,20 @@ def singular_task(restart=True, **kw) -> Callable[..., Callable[..., asyncio.Tas
     obj is as the instance.
     kw are passed to run_async_singular such as 'handle'.
     """
+    tasknames = weakref.WeakKeyDictionary()
 
     @wrapt.decorator
-    def _run_as_singular(wrapped: Awaitable[T], instance, args, kwargs: dict):
-        if not inspect.iscoroutinefunction(wrapped):
-            msg = "The wrapped function must be coroutine function."
-            raise TypeError(msg)
+    def _run_as_singular(wrapped, instance, args, kwargs: dict):
         # use partial to avoid creating coroutines that may never be awaited
         restart_ = restart
         if "restart" in kwargs:
             restart_ = kwargs.pop("restart")
         func = functools.partial(wrapped, *args, **kwargs)
-        return run_async_singular(cast(Awaitable[T], func), **{"obj": instance, "restart": restart_} | kw)
+        name = tasknames.get(instance or wrapped)
+        if not name:
+            name = f"{funcname(wrapped)} [singular_task id: {id(instance)}]"
+            tasknames[instance or wrapped] = name
+        return run_async_singular(func, name=name, **{"obj": instance, "restart": restart_} | kw)
 
     return _run_as_singular  # type: ignore
 
