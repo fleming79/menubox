@@ -23,14 +23,11 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
     control the button action. The active task is added as the attribute `task`.
 
     parent: HasParent | None
-        Parent is passed as obj to run_async_singular along with 'handle' so is where
-        the handle is attached.
+        Parent is passed as obj to run_async_singular.
     c_func: async | AsyncRunButton | str
         This is the function or AsyncRunButton to call with kw. Noting that the tasks
         are linked, so cancelling one will cancel the other. Strings are also accepted
         with dotted name access relative to parent.
-    handle:
-        The name of either a set or attribute as used by run_async.
     link_button:
         Disable the button while the other button is running (if not called )
     kw : dict | callable

@@ -41,7 +41,6 @@ class Filesystem(MenuBoxVT):
     read_only = traitlets.Bool()
     disabled = traitlets.Bool()
     minimized_children = StrTuple("url")
-    button_update_task = tf.Task()
     protocol = tf.Dropdown(
         description="protocol",
         value="file",
@@ -79,7 +78,6 @@ class Filesystem(MenuBoxVT):
         description="↻",
         cancel_description="✗",
         tasktype=mb_async.TaskType.update,
-        handle="button_update_task",
     )
     button_add = tf.AsyncRunButton(
         cfunc="button_update",
@@ -157,8 +155,8 @@ class Filesystem(MenuBoxVT):
         super().on_change(change)
         match change["owner"]:
             case self.protocol:
-                if self.button_update_task:
-                    self.button_update_task.cancel("Protocol change")
+                if self.button_update.task:
+                    self.button_update.task.cancel("Protocol change")
                 self._fs = None
                 self.sw_main.options = []
                 self.url.value = ""
