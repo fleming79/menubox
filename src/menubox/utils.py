@@ -58,12 +58,21 @@ def limited_string(obj, max_len=100, suffix=" …", mode="start"):
 def weak_observe(
     obj: traitlets.HasTraits, method: Callable[P, R], names="value", pass_change=False, *args: P.args, **kwgs: P.kwargs
 ) -> Callable[[ChangeType], R]:
-    """Observer trait names of obj using a weak method ref to method like a partial.
+    """Observes a traitlet of an object using a weak reference to the callback method.
 
-    pass_change: bool [False]
-        The change provided in the method call.
-    args & kwgs are passed to the method like a partial.
+    This allows the observed object to be garbage collected even if the callback
+    method is still referenced by the traitlet.
+    Args:
+        obj: The traitlets.HasTraits object to observe.
+        method: The callback method to be called when the traitlet changes.
+        names: The name(s) of the traitlet(s) to observe. Defaults to "value".
+        pass_change: Whether to pass the change dictionary to the callback method. Defaults to False.
+        *args: Positional arguments to be passed to the callback method.
+        **kwgs: Keyword arguments to be passed to the callback method.
+    Returns:
+        The handle function that was registered as an observer, which can be used to unobserve.
     """
+
     ref = weakref.WeakMethod(method)
 
     def handle(change: ChangeType) -> R:
@@ -81,13 +90,24 @@ def weak_observe(
 
 
 def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
-    """Get a nested attribute using dotted notation in the name.
+    """Retrieve a nested attribute from an object.
 
-    Callable values will be evaluated recursively until a non-callable is returned.
-
-    hastrait_value: bool
-        If name is an instance of of HasTraits and it has a trait 'value'
-        return obj.name.value
+    This function allows accessing attributes of attributes, specified by a string
+    with dot notation.  It also handles the special case of traitlets objects
+    with a 'value' trait, automatically returning the value of the trait.
+    Args:
+        obj: The object from which to retrieve the attribute.
+        name: A string representing the attribute to retrieve, possibly with dot
+            notation for nested attributes (e.g., 'a.b.c').
+        default: If the attribute is not found, return this value. If not provided,
+            an AttributeError is raised.
+        hastrait_value: If True, and the attribute is a traitlets.HasTraits object
+            with a 'value' trait, return the value of the trait. Defaults to True.
+    Returns:
+        The value of the attribute, or the default value if the attribute is not found
+        and a default is provided.
+    Raises:
+        AttributeError: If the attribute is not found and no default is provided.
     """
 
     if "." in name:
