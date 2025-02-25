@@ -21,6 +21,7 @@ from mergedeep import Strategy, merge
 
 import menubox as mb
 from menubox import utils
+from menubox.defaults import NO_DEFAULT
 from menubox.hasparent import HasParent
 from menubox.trait_types import Bunched
 
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from ipywidgets import Button
+
+    from menubox.defaults import NO_DEFAULT_TYPE
 
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
@@ -63,9 +66,6 @@ class ChildrenNameTuple(TypedDict):
 
 
 class IHPSettings(Generic[T], TypedDict):
-    load_default: NotRequired[bool]
-    allow_none: NotRequired[bool]
-    read_only: NotRequired[bool]
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str, ...]]
     create: NotRequired[str | Callable[[IHPCreate[T]], T]]
@@ -303,7 +303,13 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             self._value_changed(obj, old, None)  # type: ignore
 
     # TODO: add overloads if allow_none is True/false
-    def configure(self, **kwgs: Unpack[IHPSettings[T]]) -> Self:
+    def configure(
+        self,
+        read_only=True,
+        allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
+        load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
+        **kwgs: Unpack[IHPSettings[T]],
+    ) -> Self:
         """Configure how the instance will be handled.
 
         Configuration changes are merged using a nested replace strategy except as explained below.
@@ -313,11 +319,11 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         Defaults
         --------
         * load_default: True
-        * allow_none: True
-        * set_parent: True
+        * allow_none: not load_default
         * read_only: True
-        * on_replace_close: True
-        * on_click: "button_clicked" (Only relevant to buttons)
+        * set_parent: True [HasParent]
+        * on_replace_close: True [HasParent | Widget]
+        * on_click: "button_clicked" [Button]
 
         Parameters
         ----------
@@ -371,9 +377,11 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         remove_on_close: bool
             If True, the instance will be removed from the parent when the instance is closed.
         """
-        if "load_default" in kwgs and "allow_none" not in kwgs:
-            kwgs["allow_none"] = not kwgs["load_default"]
-        merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
+        self.load_default = load_default if load_default is not NO_DEFAULT else self.load_default
+        self.allow_none = allow_none if allow_none is not NO_DEFAULT else not load_default
+        self.read_only = read_only
+        if kwgs:
+            merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
 
 
@@ -384,6 +392,9 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
+    load_default=True,
+    read_only=True,
+    allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
     **kwargs: Unpack[IHPSettings],
 ):
     """
@@ -443,8 +454,7 @@ def instanceHP_wrapper(
         """
         kw = merge({}, defaults_, kwgs, strategy=strategy) if defaults_ else kwgs
         instance = InstanceHP(klass, *args, **kw)
-        if kwargs:
-            instance.configure(**kwargs)
+        instance.configure(load_default=load_default, read_only=read_only, allow_none=allow_none, **kwargs)
         if tags:
             instance.tag(**tags)
         return instance

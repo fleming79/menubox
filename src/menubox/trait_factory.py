@@ -268,11 +268,11 @@ MenuBox = IHP(cast(type["menubox.menubox.MenuBox"], "menubox.menubox.MenuBox"))
 MenuBoxVT = IHP(cast(type["menubox.menuboxvt.MenuBoxVT"], "menubox.menubox.MenuBoxVT"))
 
 AsyncRunButton = IHP(
-    menubox.async_run_button.AsyncRunButton,
+    cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults=dv.b_kwargs | {"tasktype": mb_async.TaskType.general},
 )
 AsyncRunButton_U = IHP(
-    menubox.async_run_button.AsyncRunButton,
+    cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults=dv.b_kwargs | {"tasktype": mb_async.TaskType.update},
 )
 ModalBox = IHP(cast(type["menubox.modalbox.ModalBox"], "menubox.modalbox.ModalBox"))

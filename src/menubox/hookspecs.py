@@ -6,13 +6,13 @@ import pluggy
 
 if TYPE_CHECKING:
     from menubox import HasParent
-    from menubox.instance import IHPChange, InstanceHP
+    from menubox.instance import IHPChange, IHPSettings, InstanceHP
 
 hookspec = pluggy.HookspecMarker("menubox")
 
 
 @hookspec
-def instancehp_finalize(inst: InstanceHP, klass: type) -> None:
+def instancehp_finalize(inst: InstanceHP, settings: IHPSettings, klass: type):
     """Finalize the settings for the InstanceHP instance."""
 
 

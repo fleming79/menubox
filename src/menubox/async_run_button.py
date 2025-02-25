@@ -8,7 +8,7 @@ import ipywidgets as ipw
 import traitlets
 
 from menubox import hasparent, mb_async, utils
-from menubox.instance import InstanceHP
+from menubox import trait_factory as tf
 from menubox.log import log_exceptions
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
 
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
-    task = InstanceHP(asyncio.Task).configure(load_default=False)
+    task = tf.Task()
     _corofunc_or_button = traitlets.Union(
         [traitlets.Callable(), traitlets.ForwardDeclaredInstance("AsyncRunButton"), traitlets.Unicode()], read_only=True
     )

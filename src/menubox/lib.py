@@ -17,7 +17,7 @@ from menubox.defaults import hookimpl
 from menubox.instance import IHPChange, IHPCreate
 
 if TYPE_CHECKING:
-    from menubox.instance import InstanceHP
+    from menubox.instance import IHPSettings, InstanceHP
 
 
 _on_click_register = weakref.WeakKeyDictionary()
@@ -25,29 +25,25 @@ inst_close_observers: dict[InstanceHP, weakref.WeakKeyDictionary[HasParent | Wid
 
 
 @hookimpl
-def instancehp_finalize(inst: InstanceHP, klass: type):
-    s = inst.settings
+def instancehp_finalize(inst: InstanceHP, settings: IHPSettings, klass: type):  # noqa: ARG001
     if getattr(klass, "KEEP_ALIVE", False):
-        s["on_replace_close"] = False
-    if "on_replace_close" not in s:
+        settings["on_replace_close"] = False
+    if "on_replace_close" not in settings:
         if issubclass(klass, HasParent):
-            s["on_replace_close"] = not klass.SINGLETON_BY
+            settings["on_replace_close"] = not klass.SINGLETON_BY
         elif issubclass(klass, Widget) and "on_replace_close":
-            s["on_replace_close"] = True
+            settings["on_replace_close"] = True
     if issubclass(klass, ipw.Button) and not issubclass(klass, mb.async_run_button.AsyncRunButton):
-        if "on_click" not in s:
-            s["on_click"] = "button_clicked"
+        if "on_click" not in settings:
+            settings["on_click"] = "button_clicked"
         else:
-            s.pop("on_click", None)
-    if not issubclass(klass, ipw.DOMWidget):
-        s.pop("add_css_class", None)
-    if issubclass(klass, HasParent) and "set_parent" not in s:
-        s["set_parent"] = True
-    if "remove_on_close" not in s and issubclass(klass, HasParent | Widget):
-        s["remove_on_close"] = True
-    inst.load_default = s.pop("load_default", inst.load_default)
-    inst.allow_none = s.pop("allow_none", not inst.load_default)
-    inst.read_only = s.pop("read_only", True)
+            settings.pop("on_click", None)
+    if "add_css_class" in settings and not issubclass(klass, ipw.DOMWidget):
+        settings.pop("add_css_class", None)
+    if issubclass(klass, HasParent) and "set_parent" not in settings:
+        settings["set_parent"] = True
+    if "remove_on_close" not in settings and issubclass(klass, HasParent | Widget):
+        settings["remove_on_close"] = True
 
 
 @hookimpl
