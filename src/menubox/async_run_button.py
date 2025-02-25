@@ -178,6 +178,9 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             if self.parent and task not in self.parent.tasks:
                 self.parent.tasks.add(task)
                 task.add_done_callback(self.parent.tasks.discard)
+        if task not in self.tasks:
+            self.tasks.add(task)
+            task.add_done_callback(self.tasks.discard)
         return (aw() if callable(aw) else aw) if coro_mode else task
 
     def start(self, restart=True, **kwargs) -> asyncio.Task:
