@@ -65,7 +65,7 @@ class Home(HasParent):
         super().__init__(**kwargs)
 
         if not private and not self.name.startswith("_"):
-            utils.trait_tuple_add(self, owner=self._HREG, name="homes")
+            self._HREG.set_trait("homes", (*self._HREG.homes, self))
 
     def __repr__(self):
         return f"<Home: {self.name}>"

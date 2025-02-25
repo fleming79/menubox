@@ -12,7 +12,6 @@ import ipylab
 import ipylab.log
 import ipywidgets as ipw
 import pandas as pd
-import toolz
 import traitlets
 
 import menubox as mb
@@ -29,15 +28,11 @@ R = TypeVar("R")
 P = ParamSpec("P")
 
 __all__ = [
-    "add_remove_prefix",
-    "add_remove_suffix",
     "getattr_nested",
     "setattr_nested",
     "fullname",
     "fstr",
     "limited_string",
-    "tuple_discard",
-    "tuple_add",
     "funcname",
     "sanatise_name",
     "sanatise_filename",
@@ -57,36 +52,6 @@ def limited_string(obj, max_len=100, suffix=" …", mode="start"):
         msg = f"{mode=}"
         raise NotImplementedError(msg)
     return s
-
-
-def tuple_discard(items, *values):
-    "Return a tuple of items not containing values."
-    return tuple(v for v in items if v not in values)
-
-
-def tuple_add(items, *values, top=True):
-    """Return a tuple of unique items plus values with values placed at the front or
-    behind.
-    """
-    return tuple(toolz.unique((*values, *items)) if top else toolz.unique((*items, *values)))
-
-
-def trait_tuple_add(*values, owner: traitlets.HasTraits, name: str, top=False):
-    """Set like functionality for the tuple `owner.name`."""
-    if isinstance(owner, traitlets.HasTraits) and name:
-        current = getattr(owner, name)
-        new = tuple_add(current, *values, top=top)
-        if new != current:
-            owner.set_trait(name, new)
-
-
-def trait_tuple_discard(*values, owner: traitlets.HasTraits, name: str):
-    """Set like functionality for the tuple `owner.name`."""
-    if isinstance(owner, traitlets.HasTraits) and name:
-        current = getattr(owner, name)
-        new = tuple_discard(current, *values)
-        if new != current:
-            owner.set_trait(name, new)
 
 
 # TODO: concat the callable when pass_change is True.
@@ -113,34 +78,6 @@ def weak_observe(
 
     obj.observe(handle, names=names)
     return handle
-
-
-def add_remove_prefix(prefix: str, items: list, add=True):
-    """Add or remove the prefix from the list of items."""
-    items_new = []
-    for i in items:
-        item = i
-        if add:
-            if not item.startswith(prefix):
-                item = prefix + item
-        else:
-            item = item.removeprefix(prefix)
-        items_new.append(item)
-    return items_new
-
-
-def add_remove_suffix(suffix: str, items: list, add=True):
-    """Add or remove the prefix from the list of items."""
-    items_new = []
-    for i in items:
-        item = i
-        if add:
-            if not item.endswith(suffix):
-                item = item + suffix
-        else:
-            item = item.removesuffix(suffix)
-        items_new.append(item)
-    return items_new
 
 
 def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
@@ -507,88 +444,6 @@ def to_visibility(f, invert=False):
 def to_hidden(f):
     """to_visibility inverted."""
     return to_visibility(f, invert=True)
-
-
-def obj_is_in_box(obj, box: ipw.Box | None) -> ipw.Widget | None:
-    """Complements show_obj_in_box.
-
-    Returns either the obj, its wrapper or None if it wasn't put in the box using
-    the function show_obj_in box.
-    """
-    if not box:
-        return None
-    for c in box.children:
-        if c is obj or isinstance(c, mb.MenuBox) and c.views.get("WRAPPED") is obj:
-            return c
-    return None
-
-
-def show_obj_in_box(
-    obj: ipw.Widget | mb.MenuBox,
-    box: ipw.Box,
-    *,
-    button_exit=True,
-    button_promote=True,
-    button_demote=True,
-    top=True,
-    alt_name="",
-    border="solid 1px LightGrey",
-    ensure_wrapped=False,
-) -> mb.MenuBox:
-    """Display a widget or MenuBox within a specified Box.
-
-    This function adds a widget or MenuBox to a given ipywidgets Box,
-    optionally wrapping it in a MenuBox for enhanced control and display.
-    It handles cases where the object is already in the box, ensures proper
-    display, and configures the MenuBox's appearance and behavior.
-    Args:
-        obj (ipw.Widget | mb.MenuBox): The widget or MenuBox to display.
-        box (ipw.Box): The ipywidgets Box to add the object to.
-        button_exit (bool, optional): Whether to enable the exit button. Defaults to True.
-        button_promote (bool, optional): Whether to enable the promote button. Defaults to True.
-        button_demote (bool, optional): Whether to enable the demote button. Defaults to True.
-        top (bool, optional): Whether to add the object to the top of the box's children. Defaults to True.
-        alt_name (str, optional): An alternative name to use for the MenuBox title. Defaults to "".
-        border (str, optional): The border style to apply to the MenuBox. Defaults to "solid 1px LightGrey".
-        ensure_wrapped (bool, optional): Whether to ensure the object is wrapped in a MenuBox. Defaults to False.
-    Returns:
-        mb.MenuBox: The MenuBox containing the displayed object.  This will be the original
-            object if it was already a MenuBox and `ensure_wrapped` is False, or a new
-            MenuBox wrapping the object otherwise.
-    Raises:
-        RuntimeError: If the provided MenuBox is closed or if an unexpected condition occurs.
-        TypeError: If the provided object is not an ipywidgets Widget.
-    """
-
-    if isinstance(obj, mb.MenuBox) and obj.closed:
-        msg = f"The instance of {fullname(obj)} is closed!"
-        raise RuntimeError(msg)
-    if not isinstance(obj, ipw.Widget):
-        msg = f"obj of type={type(obj)} is not a widget!"
-        raise TypeError(msg)
-    # Check if obj is already in the box or wrapped in a box
-    exists = obj_is_in_box(obj, box)
-    if exists:
-        if not isinstance(exists, mb.MenuBox):
-            msg = "Bug above"
-            raise RuntimeError(msg)
-        obj = exists
-    if not isinstance(obj, mb.MenuBox) or ensure_wrapped and "WRAPPED" not in obj.views:
-        obj = mb.MenuBox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
-        if alt_name:
-            obj.title_description = "<b>{self.name}<b>"
-    children = tuple_add(box.children, obj, top=top)
-    box.children = tuple(c for c in children if getattr(c, "_repr_mimebundle_", None))
-    if obj.showbox is not box:
-        obj.set_trait("showbox", None)
-    obj.set_trait("showbox", box)
-    obj.instanceHP_enable_disable("button_exit", button_exit)
-    obj.instanceHP_enable_disable("button_promote", button_promote)
-    obj.instanceHP_enable_disable("button_demote", button_demote)
-    if not obj.layout.border and not getattr(obj, "DEFAULT_BORDER", ""):
-        obj.set_border(border)
-    obj.show(unhide=True)
-    return obj
 
 
 def move_item(items: tuple, item, direction: Literal[-1, 1]):

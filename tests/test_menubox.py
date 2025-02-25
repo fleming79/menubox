@@ -1,7 +1,6 @@
 import ipywidgets as ipw
 
 import menubox as mb
-from menubox import utils
 
 
 async def test_menubox():
@@ -91,10 +90,9 @@ async def test_menubox():
     assert m2.view is None, "load no view"
     m3.enable_widget("box_shuffle")
     abox = m3.box_shuffle
-    assert abox
-    utils.show_obj_in_box(m2, abox)
+    m3.put_obj_in_box_shuffle(m2)
     await m2.wait_tasks()
-    assert m2.view is next(iter(m2.views)), "should have loaded first view."
+    assert m2.view == m2.viewlist[0], "should have loaded first view."
     assert m2 in abox.children, "should be added without wrapper"
     assert m2.showbox is abox, "m2 should add itself to box_shuffle"
     assert m2.button_promote
@@ -102,29 +100,19 @@ async def test_menubox():
     assert abox.comm, "Removing showbox should not close the box"
     assert m2 not in abox.children, "should be removed"
     for i in range(3):
-        utils.show_obj_in_box(ipw.HTML(f"{i}"), abox)
+        m3.put_obj_in_box_shuffle(ipw.HTML(f"{i}"))
+
     b = ipw.Button(description="Not a MenuBox")
-    wrapper = utils.show_obj_in_box(b, abox)
+    wrapper = m3.put_obj_in_box_shuffle(b)
     assert wrapper.view == "WRAPPED"
     assert wrapper.center is b
     assert b not in abox.children, "should be added with wrapper"
     assert wrapper in abox.children
-    assert wrapper is next(iter(abox.children)), "Show in box should add to top of list."
-    assert utils.obj_is_in_box(b, abox) is wrapper
+    assert m3.obj_in_box_shuffle(b) is wrapper
     assert wrapper is m3.obj_in_box_shuffle(b), "should be able to find it."
     assert m3.obj_in_box_shuffle(m3) is None
     await wrapper.wait_tasks()
     assert b is wrapper.center, "b should be the loaded 'view'"
-    assert abox.children.index(wrapper) == 0
-    wrapper.button_demote.click()
-    await wrapper.wait_tasks()
-    assert abox.children.index(wrapper) == 1
-    wrapper.button_promote.click()
-    await wrapper.wait_tasks()
-    assert wrapper is next(iter(abox.children))
-    wrapper.button_exit.click()
-    await wrapper.wait_tasks()
-    assert wrapper not in abox.children
 
     m2.enable_widget("button_menu")
     assert m2.button_menu

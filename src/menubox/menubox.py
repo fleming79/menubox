@@ -23,6 +23,7 @@ from menubox.trait_types import ChangeType, ProposalType, StrTuple
 if TYPE_CHECKING:
     import asyncio
 
+    InsertPosition = Literal["start", "end"]
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
 
@@ -60,8 +61,6 @@ class MenuBox(HasParent, Panel):
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
     DEFAULT_BORDER = ""
     DEFAULT_LAYOUT: ClassVar[dict[str, str]] = {"max_width": "100%"}
-    SHOWBOX_MARGIN: ClassVar[str] = "5px 5px 1px 5px"
-    SHOWBOX_APPEND_START = False
     TAB_BUTTON_KW: ClassVar[dict[str, Any]] = dict(defaults.bt_kwargs)
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
@@ -190,7 +189,6 @@ class MenuBox(HasParent, Panel):
         views: dict[str, utils.GetWidgetsInputType] | None = None,
         viewlist: Iterable[str] | None = None,
         tabviews: Iterable[str] | None = None,
-        showbox: ipw.Box | None = None,
         **kwargs,
     ):
         if self._MenuBox_init_complete:
@@ -210,8 +208,6 @@ class MenuBox(HasParent, Panel):
                 self.set_trait("viewlist", viewlist)
             if tabviews is not None:
                 self.set_trait("tabviews", tabviews)
-            if showbox:
-                self.set_trait("showbox", showbox)
             view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
             super().__init__(children=(HTML_LOADING,) if view in self.viewlist else (), **kwargs)
         except Exception as e:
@@ -348,10 +344,10 @@ class MenuBox(HasParent, Panel):
             await self._mb_configure()
         try:
             view, center = await self.get_center(view)
-            self.set_trait("center", center)
             self._setting_view = True
             self.view = view
             self._setting_view = False
+            self.set_trait("center", center)
             self.log.debug("Loaded view: %s", view)
         finally:
             self.set_trait("loading_view", NO_DEFAULT)
@@ -370,17 +366,17 @@ class MenuBox(HasParent, Panel):
         return view
 
     async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
-        """Gets the center view and its widgets.
+        """Override this function to make view loading dynamic.
 
-        Override this function to dynamically load the view.
+        **DO NOT CALL DIRECTLY**
 
         Args:
-            view (str | None): The name of the view to get the center of.
+            view: The name of the view to get the center widget for.
+
         Returns:
-            tuple[str | None, utils.GetWidgetsInputType]: A tuple containing the name of the view and the widgets for that view.
-            Returns (None, None) if the view is not found or if the menubox is closed.
+            A tuple containing the name of the view and the center.
         """
-        return view, self.views.get(view, None) if view else (None, None)
+        return view, self.views.get(view, None)  # type: ignore
 
     @mb_async.debounce(0.01)
     async def mb_refresh(self) -> None:
@@ -609,23 +605,16 @@ class MenuBox(HasParent, Panel):
 
     def _onchange_showbox(self, change):
         if isinstance(change["old"], ipw.Box):
-            utils.trait_tuple_discard(self, owner=change["old"], name="children")
+            change["old"].children = (c for c in change["old"].children if c is not self)
         if self.showbox:
             if not self._MenuBox_init_complete:
                 msg = "Cannot set showbox until __init__ is complete!"
                 raise RuntimeError(msg)
-            if isinstance(self.showbox, ipw.Box):
-                if self not in self.showbox.children:
-                    if self.SHOWBOX_APPEND_START:
-                        self.showbox.children = (self, *self.showbox.children)
-                    else:
-                        self.showbox.children = (*self.showbox.children, self)
-                if self.SHOWBOX_MARGIN:
-                    self._previous_margin = self.layout.margin
-                    self.layout.margin = self.SHOWBOX_MARGIN
-        elif change["old"] is None:
-            if hasattr(self, "_previous_margin"):
-                self.layout.margin = self._previous_margin
+            if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
+                self.showbox.children = (*self.showbox.children, self)
+            self.show(unhide=True)
+        for name in ("button_exit", "button_promote", "button_promote"):
+            self.instanceHP_enable_disable(name, bool(self.showbox))
 
     @override
     async def button_clicked(self, b: ipw.Button):
@@ -685,13 +674,20 @@ class MenuBox(HasParent, Panel):
         return b
 
     def obj_in_box_shuffle(self, obj: ipw.Widget) -> ipw.Widget | None:
-        """Check if obj is in box_shuffle using the function obj_is_in_box.
+        if not self.box_shuffle:
+            return None
+        for c in self.box_shuffle.children:
+            if c is obj or isinstance(c, mb.MenuBox) and c.views.get("WRAPPED") is obj:
+                return c
+        return None
 
-        Returns either the object, it's wrapper or None.
-        """
-        return utils.obj_is_in_box(obj, self.box_shuffle)
-
-    def load_shuffle_item(self, obj_or_name: ipw.Widget | MenuBox | str, **kwargs):
+    def load_shuffle_item(
+        self,
+        obj_or_name: ipw.Widget | MenuBox | str,
+        position: InsertPosition = "end",
+        alt_name="",
+        ensure_wrapped=False,
+    ):
         """Load attribute 'name' into the shuffle box.
 
         obj_or_name: ipw.Widget | callable | attribute name (nested attribute permitted)
@@ -713,8 +709,54 @@ class MenuBox(HasParent, Panel):
         while callable(obj):
             obj = obj()
         if isinstance(obj, ipw.Widget):
-            return utils.show_obj_in_box(obj, box=self.box_shuffle, **kwargs)
+            return self.put_obj_in_box_shuffle(obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped)
         return None
+
+    def put_obj_in_box_shuffle(
+        self, obj: ipw.Widget | mb.MenuBox, *, position: InsertPosition = "end", alt_name="", ensure_wrapped=False
+    ) -> mb.MenuBox:
+        """Puts an object into the box shuffle container.
+
+        If the object is already in the box shuffle, it will be moved to the end or beginning
+        depending on the `position` argument. If the object is not a MenuBox, it will be wrapped
+        in a MenuBox.
+
+        Note: `box_shuffle` is **NOT** added to a view automatically. Specify it in a view.
+
+        Args:
+            obj: The object to put in the box shuffle.
+            position: The position to insert the object. Can be "end" or "start".
+            alt_name: An alternative name for the object.
+            ensure_wrapped: If True, ensures that the object is wrapped in a MenuBox.
+
+        Returns:
+            The MenuBox that contains the object.
+
+        Raises:
+            RuntimeError: If the object is a closed MenuBox.
+            TypeError: If the object is not a widget.
+            RuntimeError: If the object is already in the box shuffle but is not a MenuBox.
+        """
+        if isinstance(obj, mb.MenuBox) and obj.closed:
+            msg = f"The instance of {utils.fullname(obj)} is closed!"
+            raise RuntimeError(msg)
+        if not isinstance(obj, ipw.Widget):
+            msg = f"obj of type={type(obj)} is not a widget!"
+            raise TypeError(msg)
+        if exists := self.obj_in_box_shuffle(obj):
+            if not isinstance(exists, mb.MenuBox):
+                msg = "Bug above"
+                raise RuntimeError(msg)
+            obj = exists
+        self.enable_widget("box_shuffle")
+        if not isinstance(obj, mb.MenuBox) or ensure_wrapped and "WRAPPED" not in obj.views:
+            obj = mb.MenuBox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
+            if alt_name:
+                obj.title_description = "<b>{self.name}<b>"
+        children = (c for c in self.box_shuffle.children if c is not obj)
+        self.box_shuffle.children = (*children, obj) if position == "end" else (*children, obj)
+        obj.set_trait("showbox", self.box_shuffle)
+        return obj
 
     def set_border(self, border: str | None = None):
         border = self.DEFAULT_BORDER if border is None else border

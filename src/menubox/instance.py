@@ -303,7 +303,6 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             self._value_changed(obj, old, None)  # type: ignore
 
     # TODO: add overloads if allow_none is True/false
-    # TODO: switch to using pluggy hooks.
     def configure(self, **kwgs: Unpack[IHPSettings[T]]) -> Self:
         """Configure how the instance will be handled.
 
