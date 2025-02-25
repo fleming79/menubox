@@ -9,7 +9,6 @@ from typing import (
     Literal,
     NotRequired,
     ParamSpec,
-    Self,
     TypedDict,
     TypeVar,
     Unpack,
@@ -302,15 +301,64 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         if old := obj._trait_values.pop(self.name, None):
             self._value_changed(obj, old, None)  # type: ignore
 
-    # TODO: add overloads if allow_none is True/false
+    if TYPE_CHECKING:
+
+        @overload
+        def configure(
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[True],
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            **kwgs: Unpack[IHPSettings[T]],
+        ) -> InstanceHP[T | None]: ...
+        @overload
+        def configure(
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: bool | NO_DEFAULT_TYPE = ...,
+            load_default: Literal[False],
+            **kwgs: Unpack[IHPSettings[T]],
+        ) -> InstanceHP[T | None]: ...
+
+        @overload
+        def configure(
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[False],
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            **kwgs: Unpack[IHPSettings[T]],
+        ) -> InstanceHP[T]: ...
+        @overload
+        def configure(
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[True] = ...,
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            **kwgs: Unpack[IHPSettings[T]],
+        ) -> InstanceHP[T]: ...
+        @overload
+        def configure(
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[True] | NO_DEFAULT_TYPE = ...,
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            **kwgs: Unpack[IHPSettings[T]],
+        ) -> InstanceHP[T]: ...
+
     def configure(
         self,
+        *,
         read_only=True,
         allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
         load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
         **kwgs: Unpack[IHPSettings[T]],
-    ) -> Self:
-        """Configure how the instance will be handled.
+    ) -> InstanceHP[T] | InstanceHP[T | None]:
+        """Configure how the instance will be handled..con
 
         Configuration changes are merged using a nested replace strategy except as explained below.
 
@@ -382,7 +430,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         self.read_only = read_only
         if kwgs:
             merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
-        return self
+        return self  # type: ignore
 
 
 def instanceHP_wrapper(
@@ -392,9 +440,9 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    load_default=True,
     read_only=True,
     allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
+    load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
     **kwargs: Unpack[IHPSettings],
 ):
     """
