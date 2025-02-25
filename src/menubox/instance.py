@@ -69,14 +69,14 @@ class IHPSettings(Generic[T], TypedDict):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str, ...]]
     create: NotRequired[str | Callable[[IHPCreate[T]], T]]
-    value_changed: NotRequired[str | Callable[[IHPChange[T]], None]]
-    dynamic_kwgs: NotRequired[dict[str, Any]]
+    dynamic_kwgs: NotRequired[dict[str, str | Callable[[IHPCreate[T]], Any]]]
     set_attrs: NotRequired[dict[str, Any]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
     on_click: NotRequired[str | Callable[[Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     children: NotRequired[ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...]]
+    value_changed: NotRequired[str | Callable[[IHPChange[T]], None]]
 
 
 class IHPDlinkType(TypedDict):
@@ -308,6 +308,8 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
 
         Configuration changes are merged using a nested replace strategy except as explained below.
 
+        Additional custom hooks are also possible
+
         Defaults
         --------
         * load_default: True
@@ -320,22 +322,21 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         Parameters
         ----------
         on_replace_close: Bool
-            close/close the previous instance if it is replaced.
+            Close the previous instance if it is replaced.
             Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
             Also, If not configured, default is True except for HasParent items that
             specify SINGLETON_BY = False.
         allow_none :  bool
-            Allow the value to be None. Note: If load_default is passed,
+            Allow the value to be None.
         set_parent: Bool [True]
             Set the parent to the parent of the trait (HasParent).
-        dynamic_kwgs: dict
-            mapping of dynamic kwargs to use during instantiation.
-            values can be a mapping of dotted name to an attribute on the parent
-            or a callable.
-        create: str | callable
-            The name of the create function in the parent to generate the default.
-            create function is passed bunched settings:
-                `Bunched(name:str, klass:type, args:tuple, kwgs:dict)`
+        dynamic_kwgs: dict[str, str | Callable[[IHPChange[T]], Any]]
+            A mapping of dynamic kwargs to use during instantiation.
+            values can be a mapping of dotted name  to an attribute on the parent
+            or a function that accepts a dict (IHPCreate) and returns the value to substitute.
+        create: str | Callable[[IHPChange[T]], T]
+            The name of the create function in the parent to generate the default or a
+            callabled function that accepts a dict (IHPCreate) and returns the instance.
         set_attrs: dict[str,any]
             Set the attributes of the instance during validation (after instantiation).
             Accepts dotted name keys. Uses `setattr` as the `default_setter`.
@@ -352,16 +353,23 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             'target: str
             transform: Callable[Any, Any]
                 A function to convert the source value to the target value.
-        children: ChildrenDict | tuple[str | Widget | Callable[[], str | Widget | Callable], ...] <Boxes and Panels only>
-            Children are collected from the parent using 'parent.get_widgets'.
+        set_children: ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...] <Boxes and Panels only>
+            Children are collected from the parent using `parent.get_widgets`.
             and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
 
             Additionally, if mode is 'monitor', the children will be updated as the state
-            of the children is changed (including hide/show).
+            of the children is changed (including add/remove hide/show).
+            If mode is 'replace', the children will be replaced when the instance is replaced.
+            If mode is 'monitor_nametuple', the children will be updated as the state
+            of the children is changed (including add/remove hide/show).
+            The children will be passed as a named tuple with the name specified in the
+            `nametuple_name` field.
         add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
         on_click: Str | Tuple[str, ...] <Button **ONLY**>
             Dotted name access to the on_click callbacks.
+        remove_on_close: bool
+            If True, the instance will be removed from the parent when the instance is closed.
         """
         if "load_default" in kwgs and "allow_none" not in kwgs:
             kwgs["allow_none"] = not kwgs["load_default"]
