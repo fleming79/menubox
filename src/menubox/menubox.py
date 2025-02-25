@@ -606,15 +606,13 @@ class MenuBox(HasParent, Panel):
     def _onchange_showbox(self, change):
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
+        for name in ("button_exit", "button_promote", "button_promote"):
+            self.instanceHP_enable_disable(name, bool(self.showbox))
         if self.showbox:
-            if not self._MenuBox_init_complete:
-                msg = "Cannot set showbox until __init__ is complete!"
-                raise RuntimeError(msg)
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
                 self.showbox.children = (*self.showbox.children, self)
             self.show(unhide=True)
-        for name in ("button_exit", "button_promote", "button_promote"):
-            self.instanceHP_enable_disable(name, bool(self.showbox))
+            self.button_exit.focus()
 
     @override
     async def button_clicked(self, b: ipw.Button):
@@ -684,7 +682,7 @@ class MenuBox(HasParent, Panel):
     def load_shuffle_item(
         self,
         obj_or_name: ipw.Widget | MenuBox | str,
-        position: InsertPosition = "end",
+        position: InsertPosition = "start",
         alt_name="",
         ensure_wrapped=False,
     ):
