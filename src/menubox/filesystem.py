@@ -35,11 +35,15 @@ class Filesystem(MenuBoxVT):
     prev_protocol = "file"
     prev_kwargs: dict | None = None
     folders_only = traitlets.Bool()
-    title_description = traitlets.Unicode()
-    filters = StrTuple()
     read_only = traitlets.Bool()
     disabled = traitlets.Bool()
+    title_description = traitlets.Unicode()
+    filters = StrTuple()
     minimized_children = StrTuple("url")
+    value_traits = NameTuple(*MenuBoxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
+    value_traits_persist = NameTuple("protocol", "url", "kw")
+    views = traitlets.Dict({"Main": ()})
+
     protocol = tf.Dropdown(
         description="protocol",
         value="file",
@@ -61,7 +65,9 @@ class Filesystem(MenuBoxVT):
             "transform": lambda protocol: utils.to_visibility(protocol == "file"),
         },
     )
-    sw_main = tf.Select(layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"})
+    sw_main = tf.Select(
+        layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
+    )
     kw = tf.TextareaValidate(
         value="{}",
         description="kw",
@@ -92,9 +98,6 @@ class Filesystem(MenuBoxVT):
             "mode": "monitor",
         }
     )
-    views = traitlets.Dict({"Main": "view_main_get"})
-    value_traits = NameTuple(*MenuBoxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
-    value_traits_persist = NameTuple("protocol", "url", "kw")
 
     def __init__(self, url="", filters: Iterable[str] = (), ignore: Iterable[str] = (), **kwargs):
         """
@@ -143,11 +146,14 @@ class Filesystem(MenuBoxVT):
         await super().init_async()
         self.button_update.start()
 
-    def view_main_get(self):
-        if self.read_only:
-            self.tooltip = f'Configuration of this filesystem "{self.home}→{self.name}") is disabled.'
-            return self.sw_main
-        return (self.control_widgets, self.box_settings, self.sw_main)
+    @override
+    async def get_center(self, view: str | None):
+        if view == "Main":
+            if self.read_only:
+                self.tooltip = f'Configuration of this filesystem "{self.home}→{self.name}") is disabled.'
+                return view, self.sw_main
+            return view, (self.control_widgets, self.box_settings, self.sw_main)
+        return await super().get_center(view)
 
     @override
     def on_change(self, change: ChangeType):
