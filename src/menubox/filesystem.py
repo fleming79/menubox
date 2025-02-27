@@ -29,7 +29,6 @@ def list_drives() -> list[str]:
 class Filesystem(MenuBoxVT):
     """Graphical file selector widget copying the `Panel` based gui defined in fsspec.gui."""
 
-    border = traitlets.Unicode("solid 1px LightGrey")
     box_center = None
     _fs = None
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}

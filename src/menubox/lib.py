@@ -18,7 +18,7 @@ from menubox.instance import IHPChange, IHPCreate
 from menubox.stylesheet import CSScls, MenuboxStylesheet
 
 if TYPE_CHECKING:
-    import ipylab
+    from ipylab.css_stylesheet import CSSStyleSheet
 
     from menubox.instance import IHPSettings, InstanceHP
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 _on_click_register = weakref.WeakKeyDictionary()
 inst_close_observers: dict[InstanceHP, weakref.WeakKeyDictionary[HasParent | Widget, dict]] = {}
 
-stylesheet: ipylab.CSSStyleSheet | None = None
+stylesheet: CSSStyleSheet | None = None
 
 
 @hookimpl
