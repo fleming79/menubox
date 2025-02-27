@@ -12,6 +12,7 @@ from menubox import trait_factory as tf
 from menubox import utils
 from menubox.menubox import MenuBox
 from menubox.pack import load_yaml, to_yaml
+from menubox.stylesheet import CSScls
 from menubox.trait_types import ChangeType, NameTuple, StrTuple, classproperty
 from menubox.valuetraits import ValueTraits
 
@@ -43,6 +44,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
     title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *MenuBox.header_right_children)
+    view_css_classes = StrTuple(CSScls.MenuBox, CSScls.MenuBoxVT)
     _templates = traitlets.Dict(traitlets.Unicode(), traitlets.Unicode())
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
     _sw_template = tf.Dropdown(
@@ -82,7 +84,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
     description_viewer = tf.MarkdownViewer(layout={"margin": "0px 0px 0px 10px"}).configure(
         dlink={"source": ("description", "value"), "target": "value"},
         set_attrs={"converter": "._convert_description"},
-        add_css_class=(mb.defaults.CLS_RESIZE_VERTICAL,),
+        add_css_class=(CSScls.resize_vertical,),
     )
     button_configure = tf.Button_O(tooltip="Configure").configure(
         load_default=False,
@@ -192,7 +194,8 @@ class MenuBoxVT(MenuBox, ValueTraits):
             case self._button_load_template:
                 if self._sw_template.value:
                     self.set_trait("value", self._sw_template.value)
-                    self.template_controls.collapse()
+                    if self.template_controls:
+                        self.template_controls.collapse()
             case self._button_template_info:
                 self._show_template_info()
             case self.button_clip_put:

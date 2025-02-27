@@ -29,7 +29,7 @@ def list_drives() -> list[str]:
 class Filesystem(MenuBoxVT):
     """Graphical file selector widget copying the `Panel` based gui defined in fsspec.gui."""
 
-    DEFAULT_LAYOUT: ClassVar = {"flex": "1 0 auto"}
+    border = traitlets.Unicode("solid 1px LightGrey")
     box_center = None
     _fs = None
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
@@ -160,7 +160,7 @@ class Filesystem(MenuBoxVT):
                 self._fs = None
                 self.sw_main.options = []
                 self.url.value = ""
-                if self.protocol.value == "file":
+                if self.protocol.value == "file" and self.drive:
                     self.drive.options = list_drives()
             case self.drive:
                 if self.drive.value:
@@ -266,7 +266,6 @@ class Filesystem(MenuBoxVT):
 class RelativePath(Filesystem):
     """A relative filesystem"""
 
-    DEFAULT_BORDER = "solid 1px LightGrey"
     folders_only = traitlets.Bool(False)
     box_settings = tf.HBox(layout={"overflow": "hidden", "flex": "0 0 auto"}).configure(children=("relative_path",))
     relative_path = tf.Text(".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
@@ -278,8 +277,8 @@ class RelativePath(Filesystem):
         return super().__new__(cls, home=parent.home, parent=parent, **kwargs)
 
     def __init__(self, parent: Filesystem, **kwargs):
-        utils.hide(self.drive)
-        super().__init__(parent=parent, **parent.to_dict(), **kwargs)
+        self.disable_widget("drive")
+        super().__init__(parent=parent, value=parent.to_dict(), **kwargs)
 
     @property
     def home_url(self):

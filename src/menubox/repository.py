@@ -20,8 +20,6 @@ class Repository(Filesystem, MenuBoxPersist):
     SINGLETON_BY = ("home", "name")
     KEEP_ALIVE = True
     FANCY_NAME = "Repository"
-    DEFAULT_BORDER = "solid 1px grey"
-    DEFAULT_LAYOUT: ClassVar[dict[str, str]] = {"margin": "10px 10px 10px 10px"}
     folders_only = traitlets.Bool(True)
     disabled = traitlets.Bool(False, read_only=True)
     value_traits_persist = NameTuple("protocol", "url", "kw")

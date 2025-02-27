@@ -35,6 +35,7 @@ async def test_shuffle():
     obj = await shuffle.button_show_obj.start()
     assert isinstance(obj, MenuBoxPersist)
     assert len(shuffle.pool) == 1
+    assert shuffle.box_shuffle
     assert obj in shuffle.box_shuffle.children
     assert obj.name == name
     assert shuffle.get_obj(name) is obj

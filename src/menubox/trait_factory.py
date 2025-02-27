@@ -15,12 +15,13 @@ import ipylab
 import ipywidgets as ipw
 
 import menubox.async_run_button
-import menubox.defaults as dv
 import menubox.widgets
 from menubox import mb_async
+from menubox.defaults import NO_VALUE
 from menubox.instance import IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as IHP
+from menubox.stylesheet import CSScls
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -33,10 +34,10 @@ __all__ = [
     "BoundedFloatText",
     "BoundedIntText",
     "Box",
-    "BoxHeader",
-    "BoxCenter",
-    "BoxMenu",
-    "BoxShuffle",
+    "MenuBoxHeader",
+    "MenuBoxCenter",
+    "MenuBoxMenu",
+    "MenuBoxShuffle",
     "Button",
     "Button_E",
     "Button_M",
@@ -137,14 +138,14 @@ ToggleButton = IHP(ipw.ToggleButton)
 Valid = IHP(ipw.Valid)
 
 # Ipywidget Button
-Button = IHP(ipw.Button, defaults=dv.b_kwargs)
-Button_O = IHP(ipw.Button, defaults=dv.bo_kwargs)
-Button_W = IHP(ipw.Button, defaults=dv.bw_kwargs)
-Button_E = IHP(ipw.Button, defaults=dv.be_kwargs)
-Button_MB = IHP(ipw.Button, defaults=dv.bmb_kwargs)
-Button_M = IHP(ipw.Button, defaults=dv.bm_kwargs)
-Button_T = IHP(ipw.Button, defaults=dv.bt_kwargs)
-Button_S = IHP(ipw.Button, defaults=dv.bs_kwargs)
+Button = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_main))
+Button_O = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_open))
+Button_W = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_warning))
+Button_E = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_dangerous))
+Button_MB = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_modal))
+Button_M = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_menu))
+Button_T = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_toggle))
+Button_S = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_shuffle))
 
 # Ipywidget Box
 Box = IHP(ipw.Box)
@@ -152,12 +153,14 @@ VBox = IHP(ipw.VBox)
 HBox = IHP(ipw.HBox)
 GridBox = IHP(ipw.GridBox)
 
-BoxHeader = IHP(  # Hbox configured so it can't be squashed
-    ipw.HBox, defaults={"layout": {"flex": "0 0 auto", "flex_flow": "row wrap", "height": "max-content"}}
+MenuBoxHeader = IHP(
+    ipw.HBox,
+    dlink={"source": ("self", "border"), "target": "layout.border_bottom"},
+    add_css_class=CSScls.MenuBoxHeader,
 )
-BoxCenter = IHP(ipw.VBox)
-BoxMenu = IHP(ipw.HBox, defaults={"layout": {"flex_flow": "row wrap"}})
-BoxShuffle = IHP(ipw.HBox, defaults={"layout": {"flex_flow": "row wrap"}})
+MenuBoxCenter = IHP(ipw.VBox, add_css_class=CSScls.MenuBoxCenter)
+MenuBoxMenu = IHP(ipw.HBox, add_css_class=CSScls.MenuBoxMenu)
+MenuBoxShuffle = IHP(ipw.HBox, add_css_class=CSScls.MenuBoxShuffle)
 
 
 # Ipywidget Float
@@ -197,7 +200,7 @@ RadioButtons = IHP(ipw.RadioButtons)
 ToggleButtons = IHP(ipw.ToggleButtons)
 Dropdown = IHP(ipw.Dropdown)
 Select = IHP(ipw.Select)
-SelectionSlider = IHP(ipw.SelectionSlider, defaults={"options": (dv.NO_VALUE,)})
+SelectionSlider = IHP(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
 SelectMultiple = IHP(ipw.SelectMultiple)
 SelectionRangeSlider = IHP(ipw.SelectionRangeSlider)
 SelectMultiple = IHP(ipw.SelectMultiple)
@@ -234,7 +237,7 @@ Combobox = IHP(ipw.Combobox)
 Controller = IHP(ipw.Controller)
 
 # Ipywidget Upload
-FileUpload = IHP(ipw.FileUpload)
+FileUpload = IHP(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main))
 
 # Ipywidget Media
 Image = IHP(ipw.Image)
@@ -269,11 +272,13 @@ MenuBoxVT = IHP(cast(type["menubox.menuboxvt.MenuBoxVT"], "menubox.menubox.MenuB
 
 AsyncRunButton = IHP(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
-    defaults=dv.b_kwargs | {"tasktype": mb_async.TaskType.general},
+    defaults={"tasktype": mb_async.TaskType.general},
+    add_css_class=CSScls.button_main,
 )
 AsyncRunButton_U = IHP(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
-    defaults=dv.b_kwargs | {"tasktype": mb_async.TaskType.update},
+    defaults={"tasktype": mb_async.TaskType.update},
+    add_css_class=CSScls.button_main,
 )
 ModalBox = IHP(cast(type["menubox.modalbox.ModalBox"], "menubox.modalbox.ModalBox"))
 

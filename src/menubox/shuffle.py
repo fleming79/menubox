@@ -35,7 +35,6 @@ class ObjShuffle(MenuBoxVT):
     """
 
     SINGLETON_BY = ("home", "name")
-    DEFAULT_BORDER = "solid 1px MediumSeaGreen"
     RENAMEABLE = False
     name = traitlets.Unicode("default")
     obj_cls = traitlets.Type(MenuBoxPersist)
@@ -75,7 +74,7 @@ class ObjShuffle(MenuBoxVT):
         "button_show_obj",
         "modal_info",
     )
-    box_shuffle_controls = tf.BoxHeader().configure(
+    box_shuffle_controls = tf.MenuBoxHeader().configure(
         children=("sw_obj", "button_scan_obj", "button_show_obj", "modal_info", "_get_template_controls")
     )
     box_center = None

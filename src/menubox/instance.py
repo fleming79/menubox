@@ -164,6 +164,12 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
     def info_text(self):  # type: ignore
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
+    def __repr__(self):
+        return f"InstanHP<klass={self.klass.__name__}>"
+
+    def __str__(self):
+        return self.name
+
     def set(self, obj: HasParent, value) -> None:  # type: ignore
         self.finalize()
         if isinstance(value, dict):
@@ -358,7 +364,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
         **kwgs: Unpack[IHPSettings[T]],
     ) -> InstanceHP[T] | InstanceHP[T | None]:
-        """Configure how the instance will be handled..con
+        """Configure how the instance is loaded and what hooks to use when it is changed.
 
         Configuration changes are merged using a nested replace strategy except as explained below.
 

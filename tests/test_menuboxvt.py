@@ -1,8 +1,9 @@
 import pathlib
 import tempfile
-from typing import ClassVar, override
+from typing import override
 
 import ipywidgets as ipw
+import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
@@ -24,7 +25,7 @@ class MyNewObj(mb.MenuBoxVT):
     a = tf.FloatText()
     b = tf.FloatText()
     c = tf.FloatText()
-    views: ClassVar = {"Main": ("description_viewer", "a", "b", "c")}
+    views = traitlets.Dict({"Main": ("description_viewer", "a", "b", "c")})
     value_traits_persist = mb.NameTuple(*mb.MenuBoxVT.value_traits, "a", "c")
 
     async def init_async(self):
@@ -111,6 +112,7 @@ async def test_menuboxvt():
 
     await m.load_view("Main", reload=True)
 
+    assert m.box_center
     assert m.description_viewer in m.box_center.children, 'From view "Main"'
 
     # Test for RENAMEABLE == False

@@ -5,7 +5,6 @@ import enum
 from math import nan
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-import ipylab
 import pandas as pd
 import pluggy
 from ipywidgets import widgets as ipw
@@ -92,53 +91,6 @@ if TYPE_CHECKING:
     NO_VALUE_TYPE = Literal[NO_VALUE]
     NO_DEFAULT_TYPE = Literal[NO_DEFAULT]
 
-unicode_icons = """
-💾→↶-✚↻🗘→←↑↓⇇⇆⇄⇵⇉⇊⇶⇣⇡✂📝🔭✂️📌⎘📋☷‒‾…❔❓👀📜📋📂📁📂📃📄📅📆📡⁞│🔍📖
-🔭✎✏✗✘🗙 ✓↩✔ ↩↪	◀► 	▲▽▼ &emsp;➮🐿📉📈🗠🗟📊⚿☯⛔⛖⛗⛴⛵⚙ 🔧⚖️🛠️⚡️🔌📏↤🔨💎
-❬❭🔓🔐🔏📪📮📭📬📦📍📎 📐📑📒📓📔📕 📱📷📸📹📺📻🔙🔚🗏🖖🗢🗲🗱🗝🗑🗴🗶💼🎌🌈🌀🌋🌡🏁👥
-👽👯🔀🕂🔁🔂💀👿👾👷🐑🗆🗔 🗕🗖◪🗗📥📤🖫🖬🔝ℹ️🚧👋
-
-More here: https://www.unicode.org/charts/PDF/U1F300.pdf
-arrows: https://www.unicode.org/charts/PDF/U2190.pdf
-box drawing: https://www.w3schools.com/charsets/ref_utf_box.asp
-"""  # noqa: RUF001
-
-bmb_kwargs: dict[str, Any] = {  # Modal button
-    "layout": {"width": "max-content", "flex": "0 0 auto"},
-    "style": {"button_color": "LightGoldenrodYellow"},
-}
-
-b_kwargs: dict[str, Any] = {  # Main / primary
-    "layout": {"width": "max-content", "flex": "0 0 auto"},
-    # "style": {"button_color": "steelblue"},
-    "button_style": "primary",
-}
-bo_kwargs: dict[str, Any] = {  # Open
-    "layout": {"width": "max-content", "flex": "0 0 auto"},
-    "style": {"button_color": "Ivory"},
-}
-
-bw_kwargs: dict[str, Any] = {  # Warning
-    "layout": {"width": "max-content", "flex": "0 0 auto"},
-    "style": {"button_color": "Orange"},
-}
-be_kwargs: dict[str, Any] = {  # Error
-    "layout": {"width": "max-content", "flex": "0 0 auto"},
-    "style": {"button_color": "OrangeRed"},
-}
-bm_kwargs: dict[str, Any] = {  # Menu
-    "layout": {"width": "max-content", "flex": "0 0 auto"},
-    "style": {"button_color": "Gainsboro"},
-}
-bt_kwargs: dict[str, Any] = {  # Toggle
-    "layout": {"flex": "0 0 auto", "width": "max-content", "min_width": "30px"},
-    "style": {"button_color": "Gainsboro"},
-}
-bs_kwargs: dict[str, Any] = {  # Shuffle
-    "layout": {"flex": "0 0 auto", "width": "max-content", "min_width": "30px"},
-    "style": {"button_color": "Bisque"},
-}
-
 
 class NoCloseBox(ipw.Box):
     def close(self, force=False):
@@ -155,30 +107,3 @@ V_FILL = NoCloseBox(
         "overflow": "hidden",
     }
 )
-
-
-CLS_RESIZE_BOTH = "menubox-resize-both"
-CLS_RESIZE_HORIZONTAL = "menubox-resize-horizontal"
-CLS_RESIZE_VERTICAL = "menubox-resize-vertical"
-CLS_BUTTON_BUSY = "menubox-button-busy"
-
-
-# Custom stylesheet
-
-
-css_stylesheet = ipylab.CSSStyleSheet()
-
-
-class MenuBoxIpylabPlugins:
-    @ipylab.hookimpl
-    def autostart(self, app: ipylab.App):
-        css_stylesheet.replace(f"""
-.{CLS_RESIZE_BOTH} {{ resize: both;}}
-.{CLS_RESIZE_HORIZONTAL} {{ resize: horizontal;}}
-.{CLS_RESIZE_VERTICAL} {{ resize: vertical;}}
-.{CLS_BUTTON_BUSY} {{ border: var(--menubox-button-busy-border);}}
-        """)
-        css_stylesheet.set_variables({"--menubox-button-busy-border": " solid 1px LightGrey"})
-
-
-ipylab.plugin_manager.register(MenuBoxIpylabPlugins(), name="Menubox")

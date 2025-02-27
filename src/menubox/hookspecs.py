@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 hookspec = pluggy.HookspecMarker("menubox")
 
 
+@hookspec(firstresult=True)
+def default_css_stylesheet():
+    """Provide the css stylesheet to use for menubox in this kernel."""
+
+
 @hookspec
 def instancehp_finalize(inst: InstanceHP, settings: IHPSettings, klass: type):
     """Finalize the settings for the InstanceHP instance."""

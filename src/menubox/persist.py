@@ -7,7 +7,6 @@ import ipywidgets as ipw
 import pandas as pd
 import traitlets
 
-import menubox.defaults as dv
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.home import Home
@@ -87,7 +86,6 @@ class MenuBoxPersist(MenuBoxVT):
         description="💾",
         tooltip="Save persistence data for current version",
         tasktype=mb_async.TaskType.update,
-        **dv.b_kwargs,
     )
     version_widget = tf.BoundedIntText(
         min=1,

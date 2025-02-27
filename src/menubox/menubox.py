@@ -5,7 +5,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal, overload, override
+from typing import TYPE_CHECKING, ClassVar, Final, Literal, overload, override
 
 import docstring_to_markdown
 import ipylab
@@ -18,13 +18,14 @@ from menubox import defaults, log, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
+from menubox.stylesheet import CSScls
 from menubox.trait_types import ChangeType, ProposalType, StrTuple
 
 if TYPE_CHECKING:
     import asyncio
 
     InsertPosition = Literal["start", "end"]
-# as per recommendation from @freylis, compile once only
+
 CLEANR = re.compile("<.*?>")
 
 
@@ -59,9 +60,6 @@ class MenuBox(HasParent, Panel):
     )  # type: ignore
     _RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (_MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
-    DEFAULT_BORDER = ""
-    DEFAULT_LAYOUT: ClassVar[dict[str, str]] = {"max_width": "100%"}
-    TAB_BUTTON_KW: ClassVar[dict[str, Any]] = dict(defaults.bt_kwargs)
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
     _MenuBox_init_complete = False
@@ -72,9 +70,11 @@ class MenuBox(HasParent, Panel):
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
+    view_css_classes = StrTuple(CSScls.MenuBox, help="Class names to add when the view is not None.")
     views: ClassVar[traitlets.Dict[str, utils.GetWidgetsInputType]] = traitlets.Dict(
         default_value={}, key_trait=traitlets.Unicode()
     )  # type: ignore
+    border = traitlets.Unicode(default_value=None, allow_none=True)
     view = traitlets.Unicode(allow_none=True, default_value=None)
     shuffle_button_views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
     view_previous = traitlets.Unicode(allow_none=True, default_value=None)
@@ -106,7 +106,7 @@ class MenuBox(HasParent, Panel):
     html_title = tf.HTML_Title().configure(load_default=False)
     out_help = tf.MarkdownViewer(
         layout={"border": "solid 1px LightGrey", "margin": "5px " * 4, "padding": "5px " * 4}
-    ).configure(add_css_class=(defaults.CLS_RESIZE_BOTH,))
+    ).configure(add_css_class=CSScls.resize_both)
 
     # Buttons
     button_menu = tf.Button_M(description="☰").configure(load_default=False)
@@ -122,14 +122,15 @@ class MenuBox(HasParent, Panel):
     button_activate = tf.Button_O(description="🐑", tooltip="Add to shell").configure(load_default=False)
 
     # Boxes
-    box_shuffle = tf.BoxShuffle().configure(allow_none=True)
-    box_menu = tf.BoxMenu().configure(allow_none=True)
+    box_shuffle = tf.MenuBoxShuffle().configure(allow_none=True)
+    box_menu = tf.MenuBoxMenu().configure(allow_none=True)
     showbox = tf.Box().configure(allow_none=True, load_default=False, on_replace_close=False)
-    header = tf.BoxHeader().configure(allow_none=True)
-    box_center = tf.BoxCenter().configure(allow_none=True)
+    header = tf.MenuBoxHeader().configure(allow_none=True)
+    box_center = tf.MenuBoxCenter().configure(allow_none=True)
     _mb_refresh_traitnames = (
         "show_help",
         "html_title",
+        "border",
         "name",
         "title_description",
         "title_description_tooltip",
@@ -199,11 +200,6 @@ class MenuBox(HasParent, Panel):
                 self.enable_widget(name)
             if views is not None:
                 self.views = views
-            if self.DEFAULT_LAYOUT and "layout" not in kwargs:
-                layout = self.DEFAULT_LAYOUT
-                kwargs["layout"] = layout
-            if not self.DEFAULT_BORDER and "border" in kwargs.get("layout", {}):
-                self.DEFAULT_BORDER = kwargs["layout"]["border"]
             if viewlist is not None:
                 self.set_trait("viewlist", viewlist)
             if tabviews is not None:
@@ -217,6 +213,9 @@ class MenuBox(HasParent, Panel):
         self._MenuBox_init_complete = True
         if view is not None:
             self.load_view(view)
+
+    async def init_async(self):
+        return await super().init_async()
 
     @override
     def close(self, force=False):
@@ -268,23 +267,22 @@ class MenuBox(HasParent, Panel):
         self.instanceHP_enable_disable(name, False)
 
     def maximize(self):
-        if self.view_previous and self.view_previous not in self._RESERVED_VIEWNAMES:
+        if self.view_previous and self.view_previous not in (None, self._MINIMIZED):
             view = self.view_previous
         else:
-            view = next(v for v in (self.toggleviews or self.viewlist or self.views))
+            view = next(v for v in (self._current_views))
         self.load_view(view)
 
-    def show(self, *, unhide=False) -> asyncio.Task | None:
+    def show(self) -> None:
         """A non-agressive means to provide an interactive interface."""
-        if unhide:
-            self.unhide()
-        return self.load_view()
+        if self.view is None:
+            self.maximize()
 
     def hide(self):
-        utils.hide(self)
+        self.load_view(None)
 
     def unhide(self):
-        utils.unhide(self)
+        self.show()
 
     if TYPE_CHECKING:
 
@@ -351,11 +349,18 @@ class MenuBox(HasParent, Panel):
             self.log.debug("Loaded view: %s", view)
         finally:
             self.set_trait("loading_view", NO_DEFAULT)
+        if view:
+            mb.stylesheet.add_class(self, *self.view_css_classes)
+        else:
+            mb.stylesheet.remove_class(self, *self.view_css_classes)
         if view and view != self.view_previous:
             self.view_previous = view
         for button in self._view_buttons:
-            border = "solid 1px blue" if button.description == view else ""
-            mb.utils.set_border(button, border)
+            if button.description == view:
+                mb.stylesheet.add_class(button, CSScls.button_active_view)
+            else:
+                mb.stylesheet.remove_class(button, CSScls.button_active_view)
+
         self.menu_close()
         if self.button_menu:
             self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
@@ -403,21 +408,25 @@ class MenuBox(HasParent, Panel):
         else:
             center = tuple(self.get_widgets(self._get_help_widget() if self.show_help else None, self.center))
             if mb.DEBUG_ENABLED and not self.header:
-                center = (*center, self.button_activate)
+                center = self.get_widgets(*center, self.button_activate)
             if self.box_center:
                 self.box_center.children = center
                 center = self.box_center
             self.children = tuple(self.get_widgets(self.header, center))
+        if self.border is not None:
+            self.layout.border = self.border if self.view else ""
 
     def _update_header(self):
         if self.view == self._MINIMIZED:
             self.enable_widget("header")
             self.enable_widget("button_maximize")
+            assert self.header  # noqa: S101
             self.header.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
         else:
             widgets = tuple(self.get_widgets(*self.header_children))
             if set(widgets).difference((H_FILL, V_FILL)):
                 self.enable_widget("header")
+                assert self.header  # noqa: S101
                 self.header.children = widgets
             else:
                 self.disable_widget("header")
@@ -443,6 +452,7 @@ class MenuBox(HasParent, Panel):
 
     def menu_open(self):
         self.enable_widget("button_menu_minimize")
+        assert self.box_menu  # noqa: S101
         self.box_menu.children = tuple(self.get_widgets(*self.box_menu_open_children))
 
     def menu_close(self):
@@ -453,8 +463,6 @@ class MenuBox(HasParent, Panel):
         self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self._MINIMIZED)
         if self._has_maximize_button:
             self.enable_widget("button_minimize")
-        if self.DEFAULT_BORDER and not self.layout.border:
-            self.set_border(self.DEFAULT_BORDER)
         if self.menuviews:
             self.enable_widget("button_menu")
         if len(self.toggleviews):
@@ -469,13 +477,17 @@ class MenuBox(HasParent, Panel):
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
                 if self._MenuBox_init_complete:
-                    return self.update_title()
+                    self.update_title()
+                return
             case "views" | "viewlist":
-                return self._update_views_onchange()
+                self._update_views_onchange()
+                return
             case "tabviews":
-                return self._update_tab_buttons()
+                self._update_tab_buttons()
+                return
             case "showbox":
-                return self._onchange_showbox(change)
+                self._onchange_showbox(change)
+                return
             case "menuviews":
                 if self.menuviews:
                     self.enable_widget("button_menu")
@@ -502,7 +514,6 @@ class MenuBox(HasParent, Panel):
                     b.close()
         if self.view:
             self.mb_refresh()
-        return None
 
     def _get_help_widget(self):
         """
@@ -544,13 +555,12 @@ class MenuBox(HasParent, Panel):
         self.title.label = cleanhtml(description)
         self.title.caption = tooltip
 
-    def get_button_loadview(self, view, *, description="", disabled=False, b_kwargs=defaults.bm_kwargs):
+    def get_button_loadview(self, view, *, description="", disabled=False):
         """Creates a button that, when clicked, loads a specified view.
         Args:
             view: The name of the view to load when the button is clicked. Must be a key in `self._current_views`.
             description: The text to display on the button. If not provided, defaults to the view name.
             disabled: Whether the button is initially disabled.
-            b_kwargs: Keyword arguments to pass to the ipywidgets.Button constructor. Defaults to `defaults.bm_kwargs`.
         Returns:
             An ipywidgets.Button instance that, when clicked, loads the specified view.
         Raises:
@@ -563,7 +573,8 @@ class MenuBox(HasParent, Panel):
         if view not in self._current_views:
             msg = f"{view=} not in {self._current_views}"
             raise KeyError(msg)
-        b = ipw.Button(description=str(description or view), disabled=disabled, **b_kwargs)
+        b = ipw.Button(description=str(description or view), disabled=disabled)
+        mb.stylesheet.add_class(b, CSScls.button_open)
         ref = weakref.ref(self)
 
         def button_clicked(_: ipw.Button):
@@ -595,7 +606,7 @@ class MenuBox(HasParent, Panel):
             if view in existing:
                 b = existing[view]
             else:
-                b = self.get_button_loadview(view, b_kwargs=self.TAB_BUTTON_KW)
+                b = self.get_button_loadview(view)
                 self._tab_buttons.add(b)
             buttons.append(b)
         self.tab_buttons = buttons
@@ -611,8 +622,9 @@ class MenuBox(HasParent, Panel):
         if self.showbox:
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
                 self.showbox.children = (*self.showbox.children, self)
-            self.show(unhide=True)
-            self.button_exit.focus()
+            self.show()
+            if self.button_exit:
+                self.button_exit.focus()
 
     @override
     async def button_clicked(self, b: ipw.Button):
@@ -625,11 +637,11 @@ class MenuBox(HasParent, Panel):
                 i = (tvs.index(self.view) + 1) % len(tvs) if self.view in tvs else 0
                 view = self.toggleviews[i]
                 self.load_view(view)
-            case self.button_promote:
+            case self.button_promote if self.button_promote:
                 if box := self.showbox:
                     box.set_trait("children", utils.move_item(box.children, self, -1))
                     self.button_promote.focus()
-            case self.button_demote:
+            case self.button_demote if self.button_demote:
                 if box := self.showbox:
                     box.set_trait("children", utils.move_item(box.children, self, 1))
                     self.button_demote.focus()
@@ -646,6 +658,7 @@ class MenuBox(HasParent, Panel):
             case self.button_help:
                 self.show_help = not self.show_help
                 self.enable_widget("button_help")
+                assert self.button_help  # noqa: S101
                 self.button_help.description = "❓" if self.show_help else "❔"
             case self.button_activate:
                 self.activate()
@@ -664,10 +677,11 @@ class MenuBox(HasParent, Panel):
                     self.mb_refresh()
                 break
 
-    def get_shuffle_button(self, name: str, kw=defaults.bs_kwargs) -> ipw.Button:
+    def get_shuffle_button(self, name: str) -> ipw.Button:
         """Get an existing shuffle button"""
         self.shuffle_button_views[name]  # Test
-        b = ipw.Button(description=name, **kw)
+        b = ipw.Button(description=name)
+        b.add_class(CSScls.button_shuffle)
         b.on_click(self._shuffle_button_on_click)
         return b
 
@@ -747,6 +761,7 @@ class MenuBox(HasParent, Panel):
                 raise RuntimeError(msg)
             obj = exists
         self.enable_widget("box_shuffle")
+        assert self.box_shuffle  # noqa: S101
         if not isinstance(obj, mb.MenuBox) or ensure_wrapped and "WRAPPED" not in obj.views:
             obj = mb.MenuBox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
             if alt_name:
@@ -756,22 +771,15 @@ class MenuBox(HasParent, Panel):
         obj.set_trait("showbox", self.box_shuffle)
         return obj
 
-    def set_border(self, border: str | None = None):
-        border = self.DEFAULT_BORDER if border is None else border
-        self.layout.border = border
-        if self.trait_has_value("header") and self.header:
-            self.header.layout.border_bottom = border
-
     def deactivate(self):
         "Remove from shell hide and load view None."
-        self.load_view(None)
         self.hide()
         for sc in self.connections:
             sc.close()
 
     def activate(self, *, add_to_shell=True):
         "Show and to the shell."
-        self.show(unhide=True)
+        self.show()
         if add_to_shell:
             return self.add_to_shell()
         return None

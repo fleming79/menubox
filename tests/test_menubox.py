@@ -24,6 +24,7 @@ async def test_menubox():
     m.toggleviews = ("a", "b")
     assert m.button_toggleview, "Enabled automatically"
     await m.wait_tasks()
+    assert m.header
     assert m.button_toggleview in m.header.children, "Should be added"
     m.button_toggleview.click()
     assert not m.task_load_view
@@ -35,6 +36,7 @@ async def test_menubox():
     assert m.button_menu, "Setting menuviews should enable the button"
     m.button_menu.click()
     await m.wait_tasks()
+    assert m.box_menu
     assert m.button_menu_minimize in m.box_menu.children
     assert len(m.box_menu.children) == 2, "expected:button_menu_minimize, button_load_view"
     assert isinstance(m.box_menu.children[1], ipw.Button)
@@ -90,6 +92,7 @@ async def test_menubox():
     assert m2.view is None, "load no view"
     m3.enable_widget("box_shuffle")
     abox = m3.box_shuffle
+    assert abox
     m3.put_obj_in_box_shuffle(m2)
     await m2.wait_tasks()
     assert m2.view == m2.viewlist[0], "should have loaded first view."

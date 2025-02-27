@@ -26,6 +26,7 @@ from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import MenuBox
 from menubox.menuboxvt import MenuBoxVT
 from menubox.modalbox import ModalBox
+from menubox.stylesheet import MenuboxStylesheet
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, StrTuple, TypedTuple
 from menubox.valuetraits import TypedInstanceTuple, ValueTraits
 
@@ -80,4 +81,5 @@ def _get_plugin_manager():
 
 
 plugin_manager = _get_plugin_manager()
+stylesheet: MenuboxStylesheet = plugin_manager.hook.default_css_stylesheet()
 del _get_plugin_manager

@@ -64,8 +64,8 @@ def run_async(
     Parameters
     ----------
 
-    name: The name of the task. If a task with the same name already exists it will
-    be cancelled. See run_async_singular as an easier option to prevent accidental
+    name: The name of the task. If a task with the same name already exists for the object
+    it will be cancelled. See run_async_singular as an easier option to prevent accidental
     task cancellation.
     obj:
         `obj` may be a subclass from HasParent
@@ -97,7 +97,7 @@ def run_async(
     if not restart and not name:
         msg = "A name must be provided if `restart=False`!"
         raise TypeError(msg)
-    current = _get_task(name) if name else None
+    current = _get_task(name, obj) if name else None
     if current:
         if not restart and not current.cancelling() and not current.done():
             return current
@@ -188,9 +188,13 @@ def singular_task(restart=True, **kw) -> Callable[..., Callable[..., asyncio.Tas
     return _run_as_singular  # type: ignore
 
 
-def _get_task(name: str):
-    """Return the task if it exists."""
-    for task in background_tasks:
+def _get_task(name: str, obj: HasParent | None):
+    """Return the task if it exists.
+
+    If obj is provided, obj tasks will be searched, otherwise the background
+    tasks will be searched.
+    """
+    for task in getattr(obj, "tasks", _background_tasks):
         if task.get_name() == name:
             return task
     return None

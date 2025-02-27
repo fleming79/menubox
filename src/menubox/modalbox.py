@@ -9,6 +9,7 @@ from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
+from menubox.stylesheet import CSScls
 from menubox.trait_types import ChangeType, StrTuple
 
 if TYPE_CHECKING:
@@ -31,7 +32,7 @@ class ModalBox(HasParent, ipw.VBox):
     header_children = StrTuple("H_FILL")
     expanded = traitlets.Bool(False, read_only=True)
     html_title = tf.HTML_Title().configure(allow_none=True, load_default=False)
-    header = tf.BoxHeader()
+    header = tf.HBox().configure(allow_none=True, add_css_class=CSScls.ModalBoxHeader)
     _box_children = traitlets.Tuple()
 
     @log_exceptions
