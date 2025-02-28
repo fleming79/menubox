@@ -5,7 +5,7 @@ import menubox as mb
 from menubox.pack import deep_copy, to_dict, to_yaml, to_yaml_dict
 
 
-class DemoObj(mb.MenuBoxVT):
+class DemoObj(mb.MenuboxVT):
     _STASH_DEFAULTS = True
     value_traits_persist = mb.NameTuple("a", "b")
     a = traitlets.Tuple((1, 2, 3, 4))

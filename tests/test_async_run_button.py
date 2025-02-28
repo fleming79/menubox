@@ -7,7 +7,7 @@ from menubox import trait_factory as tf
 from menubox.hasparent import HasParent
 
 
-class PMB(mb.MenuBox):
+class PMB(mb.Menubox):
     ab_main = tf.AsyncRunButton(cfunc="_button_async", description="Button")
     ab_nested = tf.AsyncRunButton(cfunc="ab_main", description="Nested button")
     ab_nested_sub = tf.AsyncRunButton(cfunc="ab_main", description="Sub button", link_button=True)

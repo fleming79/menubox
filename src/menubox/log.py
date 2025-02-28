@@ -112,8 +112,8 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
 
 def observe_ipylab_log_level(_):
     def refresh_all_menuboxes():
-        for inst in mb.MenuBox._instances.values():
-            if isinstance(inst, mb.MenuBox) and not inst.closed and inst.view:
+        for inst in mb.Menubox._instances.values():
+            if isinstance(inst, mb.Menubox) and not inst.closed and inst.view:
                 inst.mb_refresh()
 
     if ipylab.app.log_level == ipylab.log.LogLevel.DEBUG:

@@ -5,10 +5,10 @@ import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
-from menubox.persist import MenuBoxPersist
+from menubox.persist import MenuboxPersist
 
 
-class MBP(MenuBoxPersist):
+class MBP(MenuboxPersist):
     _STASH_DEFAULTS = True
     SINGLE_VERSION = False
     new = traitlets.Unicode()

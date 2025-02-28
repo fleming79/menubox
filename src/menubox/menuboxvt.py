@@ -10,9 +10,9 @@ import traitlets
 import menubox as mb
 from menubox import trait_factory as tf
 from menubox import utils
-from menubox.menubox import MenuBox
+from menubox.css import CSScls
+from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.stylesheet import CSScls
 from menubox.trait_types import ChangeType, NameTuple, StrTuple, classproperty
 from menubox.valuetraits import ValueTraits
 
@@ -23,12 +23,12 @@ if TYPE_CHECKING:
 
     from menubox.modalbox import ModalBox
 
-__all__ = ["MenuBoxVT"]
+__all__ = ["MenuboxVT"]
 
 
-class MenuBoxVT(MenuBox, ValueTraits):
+class MenuboxVT(Menubox, ValueTraits):
     """
-    MenuBoxVT Combines Menubox with ValueTraits and provides additional features such as templates,
+    MenuboxVT Combines Menubox with ValueTraits and provides additional features such as templates,
     copy/paste settings, configuration view and description rendering.
 
     Create subclasses from this class.
@@ -40,17 +40,17 @@ class MenuBoxVT(MenuBox, ValueTraits):
         "<details {details_open}><summary><b>Description</b></summary>\n\n{description}\n</details>"
     )
     FANCY_NAME = ""
-    _RESERVED_VIEWNAMES = (*MenuBox._RESERVED_VIEWNAMES, _CONFIGURE_VIEW)
+    _RESERVED_VIEWNAMES = (*Menubox._RESERVED_VIEWNAMES, _CONFIGURE_VIEW)
     title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
-    header_right_children = StrTuple("_get_template_controls", "button_configure", *MenuBox.header_right_children)
-    view_css_classes = StrTuple(CSScls.MenuBox, CSScls.MenuBoxVT)
+    header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
+    view_css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _templates = traitlets.Dict(traitlets.Unicode(), traitlets.Unicode())
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )
-    _mb_refresh_traitnames = (*MenuBox._mb_refresh_traitnames, "button_configure")
+    _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = tf.HBox(layout={"width": "max-content"}).configure(
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
@@ -86,21 +86,23 @@ class MenuBoxVT(MenuBox, ValueTraits):
         set_attrs={"converter": "._convert_description"},
         add_css_class=(CSScls.resize_vertical,),
     )
-    button_configure = tf.Button_O(tooltip="Configure").configure(
+    button_configure = tf.Button_open(tooltip="Configure").configure(
         load_default=False,
         dlink={
             "source": ("self", "view"),
             "target": "description",
-            "transform": lambda view: "End configure" if view == MenuBoxVT._CONFIGURE_VIEW else "🔧",
+            "transform": lambda view: "End configure" if view == MenuboxVT._CONFIGURE_VIEW else "🔧",
         },
     )
-    button_clip_put = tf.Button_O(description="📎", tooltip="Copy settings to clipboard")
-    button_paste = tf.Button_O(description="📋", tooltip="Paste settings from clipboard\n")
-    _button_load_template = tf.Button(
+    button_clip_put = tf.Button_open(description="📎", tooltip="Copy settings to clipboard")
+    button_paste = tf.Button_open(description="📋", tooltip="Paste settings from clipboard\n")
+    _button_load_template = tf.Button_main(
         description="Load",
         tooltip="Overwrite existing settings with template.\nExisting settings will be overwritten without warning.",
     )
-    _button_template_info = tf.Button(description="Info", tooltip="Show template details in a read only text editor.")
+    _button_template_info = tf.Button_main(
+        description="Info", tooltip="Show template details in a read only text editor."
+    )
     subpath = tf.TextValidate(
         validate=utils.sanatise_filename,
         description="Subpath",
@@ -132,7 +134,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
         return self.repository.to_path(self.get_value("subpath"))
 
     def __repr__(self):
-        if self._MenuBox_init_complete:
+        if self._Menubox_init_complete:
             name = self.name if self.trait_has_value("name") else ""
             cs = "closed: " if self.closed else ""
             return f"<{cs}{self.__class__.__qualname__} home='{self.home}' {name=}>"
@@ -150,7 +152,7 @@ class MenuBoxVT(MenuBox, ValueTraits):
 
     @staticmethod
     def register_template_root_folder(folder: pathlib.Path):
-        """Register a root folder that contains folders of yaml templates by MenuBoxVT
+        """Register a root folder that contains folders of yaml templates by MenuboxVT
         subclass names.
 
         |templates root folder

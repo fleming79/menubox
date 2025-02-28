@@ -6,7 +6,7 @@ import menubox as mb
 async def test_menubox():
     # ruff: noqa: PLR2004
     wa, wb = ipw.HTML("A"), ipw.HTML("B")
-    m = mb.MenuBox(views={"a": wa, "b": wb})
+    m = mb.Menubox(views={"a": wa, "b": wb})
     assert m.view == "a", "autoload selects first view"
     m.load_view(None)
     assert m.view is None, "load no view"
@@ -61,7 +61,7 @@ async def test_menubox():
     await m.wait_tasks()
     m.shuffle_buttons[0].click()  # type: ignore # shuffle button for views 'd'
     await m.wait_tasks()
-    m2 = mb.MenuBox()
+    m2 = mb.Menubox()
     m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
     await m2.load_view("b", reload=True)
 
@@ -81,10 +81,10 @@ async def test_menubox():
     await m2.wait_tasks()
 
     # See we can create and GC a menubox
-    mbox = mb.MenuBox()
+    mbox = mb.Menubox()
     del mbox
 
-    m3 = mb.MenuBox(title_description="m3", view=m2._MINIMIZED)
+    m3 = mb.Menubox(title_description="m3", view=m2._MINIMIZED)
     await m3.wait_tasks()
     assert m3.view == m2._MINIMIZED
     await m3.wait_tasks()
@@ -105,7 +105,7 @@ async def test_menubox():
     for i in range(3):
         m3.put_obj_in_box_shuffle(ipw.HTML(f"{i}"))
 
-    b = ipw.Button(description="Not a MenuBox")
+    b = ipw.Button(description="Not a Menubox")
     wrapper = m3.put_obj_in_box_shuffle(b)
     assert wrapper.view == "WRAPPED"
     assert wrapper.center is b

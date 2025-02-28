@@ -12,7 +12,7 @@ hookspec = pluggy.HookspecMarker("menubox")
 
 
 @hookspec(firstresult=True)
-def default_css_stylesheet():
+def get_css_stylesheet_and_variables():
     """Provide the css stylesheet to use for menubox in this kernel."""
 
 

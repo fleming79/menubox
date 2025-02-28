@@ -13,18 +13,18 @@ from menubox.children_setter import ChildrenSetter
 from menubox.trait_types import NameTuple
 
 
-class ChildrenSetterTesterNestedObj(mb.MenuBoxVT):
+class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
     views = traitlets.Dict(
         {
             "view a": lambda: (ipw.Button(description="Button"), ipw.HTML("HTML")),
             "view b": ("button", "dropdown"),
         }
     )
-    button = tf.Button(description="nested button")
+    button = tf.Button_main(description="nested button")
     dropdown = tf.Dropdown(description="nested dropdown").configure(allow_none=True)
 
 
-class ChildrenSetterTester(mb.MenuBoxVT):
+class ChildrenSetterTester(mb.MenuboxVT):
     dropdown = tf.Dropdown(description="dropdown")
     label = tf.Label("Label")
     label_no_default = tf.Label("Label no default").configure(load_default=False)

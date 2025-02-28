@@ -6,30 +6,30 @@ from pandas.io import clipboards
 
 from menubox import mb_async
 from menubox import trait_factory as tf
-from menubox.menuboxvt import MenuBoxVT
+from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_yaml
-from menubox.persist import MenuBoxPersist
+from menubox.persist import MenuboxPersist
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 from menubox.valuetraits import TypedInstanceTuple
 
 
-class ObjShuffle(MenuBoxVT):
+class ObjShuffle(MenuboxVT):
     """Provides a shuffle box that that can load objects with persistence into a shuffle
     environment.
 
-    Persistence is via MenuBoxPersist.
+    Persistence is via MenuboxPersist.
     required attributes:
-    obj_cls: must be subclass of MenuBoxPersist
+    obj_cls: must be subclass of MenuboxPersist
 
     ## Usage
 
     ```
-    Shuffler(ObjShuffle, obj_cls=MenuBoxPersistSubclass):
+    Shuffler(ObjShuffle, obj_cls=MenuboxPersistSubclass):
         pass
 
     s = Shuffler(home='my_home')
 
-    obj1 = s.get_obj('obj1') # type:MenuBoxPersistSubclass
+    obj1 = s.get_obj('obj1') # type:MenuboxPersistSubclass
 
     ```
     """
@@ -37,8 +37,8 @@ class ObjShuffle(MenuBoxVT):
     SINGLETON_BY = ("home", "name")
     RENAMEABLE = False
     name = traitlets.Unicode("default")
-    obj_cls = traitlets.Type(MenuBoxPersist)
-    pool = TypedInstanceTuple(traitlets.Instance(MenuBoxPersist)).configure(
+    obj_cls = traitlets.Type(MenuboxPersist)
+    pool = TypedInstanceTuple(traitlets.Instance(MenuboxPersist)).configure(
         factory="factory_pool",
         update_item_names=("name", "versions"),
         set_parent=True,
@@ -62,8 +62,8 @@ class ObjShuffle(MenuBoxVT):
         tooltip="Show selected item.",
         disabled=True,
     )
-    button_scan_obj = tf.Button(description="↻", tooltip="Update options")
-    button_clip_put = tf.Button(description="⎘", tooltip="Copy data to clipboard")
+    button_scan_obj = tf.Button_main(description="↻", tooltip="Update options")
+    button_clip_put = tf.Button_main(description="⎘", tooltip="Copy data to clipboard")
     box_info = tf.VBox()
     box_info_header = tf.HBox().configure(children=("html_title", "sw_version", "button_clip_put", "html_info"))
     box_details = tf.VBox()
@@ -74,12 +74,12 @@ class ObjShuffle(MenuBoxVT):
         "button_show_obj",
         "modal_info",
     )
-    box_shuffle_controls = tf.MenuBoxHeader().configure(
+    box_shuffle_controls = tf.MenuboxHeader().configure(
         children=("sw_obj", "button_scan_obj", "button_show_obj", "modal_info", "_get_template_controls")
     )
     box_center = None
     views = traitlets.Dict({"Main": ("box_shuffle_controls", "box_details", "box_shuffle")})
-    value_traits = NameTuple(*MenuBoxVT.value_traits, "sw_obj", "sw_version")
+    value_traits = NameTuple(*MenuboxVT.value_traits, "sw_obj", "sw_version")
 
     def factory_pool(self, **kwargs):
         return self.obj_cls(**kwargs)

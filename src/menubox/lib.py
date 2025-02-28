@@ -13,9 +13,9 @@ from traitlets import HasTraits
 import menubox as mb
 from menubox import HasParent, utils
 from menubox.children_setter import ChildrenSetter
+from menubox.css import STYLESHEET, CSScls
 from menubox.defaults import hookimpl
 from menubox.instance import IHPChange, IHPCreate
-from menubox.stylesheet import CSScls, MenuboxStylesheet
 
 if TYPE_CHECKING:
     from ipylab.css_stylesheet import CSSStyleSheet
@@ -30,8 +30,8 @@ stylesheet: CSSStyleSheet | None = None
 
 
 @hookimpl
-def default_css_stylesheet():
-    return MenuboxStylesheet()
+def get_css_stylesheet_and_variables():
+    return STYLESHEET, {}
 
 
 @hookimpl
@@ -171,12 +171,12 @@ def on_click(inst: InstanceHP, parent: HasParent, old: object | None, new: objec
                     async def click_callback():
                         callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
                         try:
-                            mb.stylesheet.add_class(b, CSScls.button_is_busy)
+                            b.add_class(CSScls.button_is_busy)
                             result = callback(b)
                             if inspect.isawaitable(result):
                                 await result
                         finally:
-                            mb.stylesheet.remove_class(b, CSScls.button_is_busy)
+                            b.remove_class(CSScls.button_is_busy)
 
                     mb.mb_async.run_async(click_callback, name=taskname, obj=obj)
 
@@ -251,11 +251,11 @@ def dlink(inst: InstanceHP, parent: HasParent, old: object | None, new: object |
 
 def add_css_class(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):  # noqa: ARG001
     if add_css_class := inst.settings.get("add_css_class"):
-        names = tuple(utils.iterflatten(add_css_class))
-        if isinstance(new, ipw.DOMWidget):
-            mb.stylesheet.add_class(new, *names)
-        if isinstance(old, ipw.DOMWidget) and old.comm:
-            mb.stylesheet.remove_class(old, *names)
+        for cn in utils.iterflatten(add_css_class):
+            if isinstance(new, ipw.DOMWidget):
+                new.add_class(cn)
+            if isinstance(old, ipw.DOMWidget):
+                old.remove_class(cn)
 
 
 def set_parent(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):

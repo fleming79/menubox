@@ -16,9 +16,9 @@ from ipywidgets import widgets as ipw
 import menubox as mb
 from menubox import defaults, log, mb_async, utils
 from menubox import trait_factory as tf
+from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
-from menubox.stylesheet import CSScls
 from menubox.trait_types import ChangeType, ProposalType, StrTuple
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ def cleanhtml(raw_html):
 class Buttons(traitlets.TraitType[tuple[ipw.Button, ...], Iterable[ipw.Button]]):
     default_value = ()
 
-    def validate(self, obj: MenuBox, value):
+    def validate(self, obj: Menubox, value):
         return tuple(v for v in value if isinstance(v, ipw.Button) and v._repr_keys)
 
 
@@ -49,7 +49,7 @@ class HTMLNoClose(ipw.HTML):
 HTML_LOADING = HTMLNoClose("Loading ...")
 
 
-class MenuBox(HasParent, Panel):
+class Menubox(HasParent, Panel):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
     _MINIMIZED: Final = "Minimized"
@@ -62,7 +62,7 @@ class MenuBox(HasParent, Panel):
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
     ENABLE_WIDGETS: ClassVar = ()
-    _MenuBox_init_complete = False
+    _Menubox_init_complete = False
 
     # Traits
     show_help = traitlets.Bool()
@@ -70,7 +70,7 @@ class MenuBox(HasParent, Panel):
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
-    view_css_classes = StrTuple(CSScls.MenuBox, help="Class names to add when the view is not None.")
+    view_css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
     views: ClassVar[traitlets.Dict[str, utils.GetWidgetsInputType]] = traitlets.Dict(
         default_value={}, key_trait=traitlets.Unicode()
     )  # type: ignore
@@ -109,24 +109,24 @@ class MenuBox(HasParent, Panel):
     ).configure(add_css_class=CSScls.resize_both)
 
     # Buttons
-    button_menu = tf.Button_M(description="☰").configure(load_default=False)
-    button_toggleview = tf.Button_M(description="➱").configure(load_default=False)
-    button_close = tf.Button_E(description="✗", tooltip="Close").configure(load_default=False)
-    button_exit = tf.Button_O(description="⇡", tooltip="Leave showbox").configure(load_default=False)
-    button_minimize = tf.Button_O(description="🗕", tooltip="Minimize").configure(load_default=False)
-    button_maximize = tf.Button_O(description="🗖", tooltip="Restore").configure(load_default=False)
-    button_help = tf.Button_O(description="❔").configure(load_default=False)
-    button_promote = tf.Button_O(description="⇖", tooltip="Shift up / left").configure(load_default=False)
-    button_demote = tf.Button_O(description="⇘", tooltip="Shift down / right").configure(load_default=False)
-    button_menu_minimize = tf.Button_M(description="↤", tooltip="Hide menu").configure(load_default=False)
-    button_activate = tf.Button_O(description="🐑", tooltip="Add to shell").configure(load_default=False)
+    button_menu = tf.Button_menu(description="☰").configure(load_default=False)
+    button_toggleview = tf.Button_menu(description="➱").configure(load_default=False)
+    button_close = tf.Button_dangerous(description="✗", tooltip="Close").configure(load_default=False)
+    button_exit = tf.Button_open(description="⇡", tooltip="Leave showbox").configure(load_default=False)
+    button_minimize = tf.Button_open(description="🗕", tooltip="Minimize").configure(load_default=False)
+    button_maximize = tf.Button_open(description="🗖", tooltip="Restore").configure(load_default=False)
+    button_help = tf.Button_open(description="❔").configure(load_default=False)
+    button_promote = tf.Button_open(description="⇖", tooltip="Shift up / left").configure(load_default=False)
+    button_demote = tf.Button_open(description="⇘", tooltip="Shift down / right").configure(load_default=False)
+    button_menu_minimize = tf.Button_menu(description="↤", tooltip="Hide menu").configure(load_default=False)
+    button_activate = tf.Button_open(description="🐑", tooltip="Add to shell").configure(load_default=False)
 
     # Boxes
-    box_shuffle = tf.MenuBoxShuffle().configure(allow_none=True)
-    box_menu = tf.MenuBoxMenu().configure(allow_none=True)
+    box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
+    box_menu = tf.MenuboxMenu().configure(allow_none=True)
     showbox = tf.Box().configure(allow_none=True, load_default=False, on_replace_close=False)
-    header = tf.MenuBoxHeader().configure(allow_none=True)
-    box_center = tf.MenuBoxCenter().configure(allow_none=True)
+    header = tf.MenuboxHeader().configure(allow_none=True)
+    box_center = tf.MenuboxCenter().configure(allow_none=True)
     _mb_refresh_traitnames = (
         "show_help",
         "html_title",
@@ -192,7 +192,7 @@ class MenuBox(HasParent, Panel):
         tabviews: Iterable[str] | None = None,
         **kwargs,
     ):
-        if self._MenuBox_init_complete:
+        if self._Menubox_init_complete:
             return
         self.observe(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
         try:
@@ -210,7 +210,7 @@ class MenuBox(HasParent, Panel):
             self.on_error(e, "__init__ failed")
             super(HasParent, self).__init__()
             raise
-        self._MenuBox_init_complete = True
+        self._Menubox_init_complete = True
         if view is not None:
             self.load_view(view)
 
@@ -350,16 +350,19 @@ class MenuBox(HasParent, Panel):
         finally:
             self.set_trait("loading_view", NO_DEFAULT)
         if view:
-            mb.stylesheet.add_class(self, *self.view_css_classes)
+            # TODO: write these to be single transaction.
+            for clsname in self.view_css_classes:
+                self.add_class(clsname)
         else:
-            mb.stylesheet.remove_class(self, *self.view_css_classes)
+            for clsname in self.view_css_classes:
+                self.remove_class(clsname)
         if view and view != self.view_previous:
             self.view_previous = view
         for button in self._view_buttons:
             if button.description == view:
-                mb.stylesheet.add_class(button, CSScls.button_active_view)
+                self.add_class(CSScls.button_active_view)
             else:
-                mb.stylesheet.remove_class(button, CSScls.button_active_view)
+                self.remove_class(CSScls.button_active_view)
 
         self.menu_close()
         if self.button_menu:
@@ -385,16 +388,16 @@ class MenuBox(HasParent, Panel):
 
     @mb_async.debounce(0.01)
     async def mb_refresh(self) -> None:
-        """Refreshes the MenuBox's display based on its current state.
+        """Refreshes the Menubox's display based on its current state.
 
-        This method updates the MenuBox's children widgets to reflect changes
+        This method updates the Menubox's children widgets to reflect changes
         in the view, title, and header. It handles loading states, minimized
         views, and debug mode configurations.
 
         Returns:
             None
         """
-        if not self._MenuBox_init_complete:
+        if not self._Menubox_init_complete:
             return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
@@ -476,7 +479,7 @@ class MenuBox(HasParent, Panel):
             return
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
-                if self._MenuBox_init_complete:
+                if self._Menubox_init_complete:
                     self.update_title()
                 return
             case "views" | "viewlist":
@@ -574,7 +577,7 @@ class MenuBox(HasParent, Panel):
             msg = f"{view=} not in {self._current_views}"
             raise KeyError(msg)
         b = ipw.Button(description=str(description or view), disabled=disabled)
-        mb.stylesheet.add_class(b, CSScls.button_open)
+        b.add_class(CSScls.button_open)
         ref = weakref.ref(self)
 
         def button_clicked(_: ipw.Button):
@@ -681,6 +684,7 @@ class MenuBox(HasParent, Panel):
         """Get an existing shuffle button"""
         self.shuffle_button_views[name]  # Test
         b = ipw.Button(description=name)
+        b.add_class(CSScls.button)
         b.add_class(CSScls.button_shuffle)
         b.on_click(self._shuffle_button_on_click)
         return b
@@ -689,13 +693,13 @@ class MenuBox(HasParent, Panel):
         if not self.box_shuffle:
             return None
         for c in self.box_shuffle.children:
-            if c is obj or isinstance(c, mb.MenuBox) and c.views.get("WRAPPED") is obj:
+            if c is obj or isinstance(c, mb.Menubox) and c.views.get("WRAPPED") is obj:
                 return c
         return None
 
     def load_shuffle_item(
         self,
-        obj_or_name: ipw.Widget | MenuBox | str,
+        obj_or_name: ipw.Widget | Menubox | str,
         position: InsertPosition = "start",
         alt_name="",
         ensure_wrapped=False,
@@ -725,13 +729,13 @@ class MenuBox(HasParent, Panel):
         return None
 
     def put_obj_in_box_shuffle(
-        self, obj: ipw.Widget | mb.MenuBox, *, position: InsertPosition = "end", alt_name="", ensure_wrapped=False
-    ) -> mb.MenuBox:
+        self, obj: ipw.Widget | mb.Menubox, *, position: InsertPosition = "end", alt_name="", ensure_wrapped=False
+    ) -> mb.Menubox:
         """Puts an object into the box shuffle container.
 
         If the object is already in the box shuffle, it will be moved to the end or beginning
-        depending on the `position` argument. If the object is not a MenuBox, it will be wrapped
-        in a MenuBox.
+        depending on the `position` argument. If the object is not a Menubox, it will be wrapped
+        in a Menubox.
 
         Note: `box_shuffle` is **NOT** added to a view automatically. Specify it in a view.
 
@@ -739,31 +743,31 @@ class MenuBox(HasParent, Panel):
             obj: The object to put in the box shuffle.
             position: The position to insert the object. Can be "end" or "start".
             alt_name: An alternative name for the object.
-            ensure_wrapped: If True, ensures that the object is wrapped in a MenuBox.
+            ensure_wrapped: If True, ensures that the object is wrapped in a Menubox.
 
         Returns:
-            The MenuBox that contains the object.
+            The Menubox that contains the object.
 
         Raises:
-            RuntimeError: If the object is a closed MenuBox.
+            RuntimeError: If the object is a closed Menubox.
             TypeError: If the object is not a widget.
-            RuntimeError: If the object is already in the box shuffle but is not a MenuBox.
+            RuntimeError: If the object is already in the box shuffle but is not a Menubox.
         """
-        if isinstance(obj, mb.MenuBox) and obj.closed:
+        if isinstance(obj, mb.Menubox) and obj.closed:
             msg = f"The instance of {utils.fullname(obj)} is closed!"
             raise RuntimeError(msg)
         if not isinstance(obj, ipw.Widget):
             msg = f"obj of type={type(obj)} is not a widget!"
             raise TypeError(msg)
         if exists := self.obj_in_box_shuffle(obj):
-            if not isinstance(exists, mb.MenuBox):
+            if not isinstance(exists, mb.Menubox):
                 msg = "Bug above"
                 raise RuntimeError(msg)
             obj = exists
         self.enable_widget("box_shuffle")
         assert self.box_shuffle  # noqa: S101
-        if not isinstance(obj, mb.MenuBox) or ensure_wrapped and "WRAPPED" not in obj.views:
-            obj = mb.MenuBox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
+        if not isinstance(obj, mb.Menubox) or ensure_wrapped and "WRAPPED" not in obj.views:
+            obj = mb.Menubox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
             if alt_name:
                 obj.title_description = "<b>{self.name}<b>"
         children = (c for c in self.box_shuffle.children if c is not obj)

@@ -6,7 +6,7 @@ from menubox import trait_factory as tf
 from menubox.modalbox import ModalBox
 
 
-class PMBB(mb.MenuBoxVT):
+class PMBB(mb.MenuboxVT):
     task_button_run = tf.Task()
     task_update = tf.Task()
     count = tf.FloatText()

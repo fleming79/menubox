@@ -17,35 +17,35 @@ import ipywidgets as ipw
 import menubox.async_run_button
 import menubox.widgets
 from menubox import mb_async
+from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as IHP
-from menubox.stylesheet import CSScls
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 __all__ = [
     "AsyncRunButton",
-    "AsyncRunButton_U",
+    "AsyncRunButton_update",
     "Accordion",
     "Audio",
     "BoundedFloatText",
     "BoundedIntText",
     "Box",
-    "MenuBoxHeader",
-    "MenuBoxCenter",
-    "MenuBoxMenu",
-    "MenuBoxShuffle",
-    "Button",
-    "Button_E",
-    "Button_M",
-    "Button_MB",
-    "Button_O",
-    "Button_S",
-    "Button_T",
-    "Button_W",
+    "MenuboxHeader",
+    "MenuboxCenter",
+    "MenuboxMenu",
+    "MenuboxShuffle",
+    "Button_main",
+    "Button_dangerous",
+    "Button_menu",
+    "Button_modal",
+    "Button_open",
+    "Button_shuffle",
+    "Button_toggle",
+    "Button_cancel",
     "Checkbox",
     "Checkbox_A",
     "ColorPicker",
@@ -83,7 +83,7 @@ __all__ = [
     "IntTextValidate",
     "SelectMultipleValidate",
     "Label",
-    "MenuBox",
+    "Menubox",
     "ModalBox",
     "NaiveDatetimePicker",
     "Output",
@@ -134,18 +134,18 @@ Checkbox_A = IHP(
         "style": {"description_width": "initial"},
     },
 )
-ToggleButton = IHP(ipw.ToggleButton)
+ToggleButton = IHP(ipw.ToggleButton, add_css_class=(CSScls.button, CSScls.button_toggle))
 Valid = IHP(ipw.Valid)
 
 # Ipywidget Button
-Button = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_main))
-Button_O = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_open))
-Button_W = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_warning))
-Button_E = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_dangerous))
-Button_MB = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_modal))
-Button_M = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_menu))
-Button_T = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_toggle))
-Button_S = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_shuffle))
+Button_main = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_main))
+Button_open = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_open))
+Button_cancel = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_cancel))
+Button_dangerous = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_dangerous))
+Button_modal = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_modal))
+Button_menu = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_menu))
+Button_toggle = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_toggle))
+Button_shuffle = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_shuffle))
 
 # Ipywidget Box
 Box = IHP(ipw.Box)
@@ -153,14 +153,14 @@ VBox = IHP(ipw.VBox)
 HBox = IHP(ipw.HBox)
 GridBox = IHP(ipw.GridBox)
 
-MenuBoxHeader = IHP(
+MenuboxHeader = IHP(
     ipw.HBox,
     dlink={"source": ("self", "border"), "target": "layout.border_bottom"},
-    add_css_class=CSScls.MenuBoxHeader,
+    add_css_class=CSScls.MenuboxHeader,
 )
-MenuBoxCenter = IHP(ipw.VBox, add_css_class=CSScls.MenuBoxCenter)
-MenuBoxMenu = IHP(ipw.HBox, add_css_class=CSScls.MenuBoxMenu)
-MenuBoxShuffle = IHP(ipw.HBox, add_css_class=CSScls.MenuBoxShuffle)
+MenuboxCenter = IHP(ipw.VBox, add_css_class=CSScls.MenuboxCenter)
+MenuboxMenu = IHP(ipw.HBox, add_css_class=CSScls.MenuboxMenu)
+MenuboxShuffle = IHP(ipw.HBox, add_css_class=CSScls.MenuboxShuffle)
 
 
 # Ipywidget Float
@@ -267,15 +267,15 @@ SimpleOutput = IHP(ipylab.SimpleOutput)
 
 # menubox
 
-MenuBox = IHP(cast(type["menubox.menubox.MenuBox"], "menubox.menubox.MenuBox"))
-MenuBoxVT = IHP(cast(type["menubox.menuboxvt.MenuBoxVT"], "menubox.menubox.MenuBoxVT"))
+Menubox = IHP(cast(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox"))
+MenuboxVT = IHP(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT"))
 
 AsyncRunButton = IHP(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults={"tasktype": mb_async.TaskType.general},
     add_css_class=CSScls.button_main,
 )
-AsyncRunButton_U = IHP(
+AsyncRunButton_update = IHP(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults={"tasktype": mb_async.TaskType.update},
     add_css_class=CSScls.button_main,

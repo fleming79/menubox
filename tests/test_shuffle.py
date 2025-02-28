@@ -7,11 +7,11 @@ import ipywidgets as ipw
 import traitlets
 
 import menubox as mb
-from menubox.persist import MenuBoxPersist
+from menubox.persist import MenuboxPersist
 from menubox.shuffle import ObjShuffle
 
 
-class Numbers(MenuBoxPersist):
+class Numbers(MenuboxPersist):
     a = mb.TypedTuple(traitlets.CFloat(), default_value=range(100))
     value_traits_persist = mb.NameTuple("a")
 
@@ -33,7 +33,7 @@ async def test_shuffle():
     name = "my object"
     shuffle.sw_obj.value = name
     obj = await shuffle.button_show_obj.start()
-    assert isinstance(obj, MenuBoxPersist)
+    assert isinstance(obj, MenuboxPersist)
     assert len(shuffle.pool) == 1
     assert shuffle.box_shuffle
     assert obj in shuffle.box_shuffle.children

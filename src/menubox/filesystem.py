@@ -11,7 +11,7 @@ from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox.menuboxvt import MenuBoxVT
+from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
@@ -26,7 +26,7 @@ def list_drives() -> list[str]:
     return [p.mountpoint.strip("\\ ") for p in psutil.disk_partitions()]
 
 
-class Filesystem(MenuBoxVT):
+class Filesystem(MenuboxVT):
     """Graphical file selector widget copying the `Panel` based gui defined in fsspec.gui."""
 
     box_center = None
@@ -40,7 +40,7 @@ class Filesystem(MenuBoxVT):
     title_description = traitlets.Unicode()
     filters = StrTuple()
     minimized_children = StrTuple("url")
-    value_traits = NameTuple(*MenuBoxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
+    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw")
     views = traitlets.Dict({"Main": ()})
 
@@ -76,8 +76,8 @@ class Filesystem(MenuBoxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     )
-    button_home = tf.Button(description="🏠")
-    button_up = tf.Button(description="↑", tooltip="Navigate up one folder")
+    button_home = tf.Button_main(description="🏠")
+    button_up = tf.Button_main(description="↑", tooltip="Navigate up one folder")
     button_update = tf.AsyncRunButton(
         cfunc="_button_update_async",
         description="↻",

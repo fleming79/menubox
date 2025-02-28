@@ -7,9 +7,9 @@ import traitlets
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
+from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
-from menubox.stylesheet import CSScls
 from menubox.trait_types import ChangeType, StrTuple
 
 if TYPE_CHECKING:
@@ -26,8 +26,8 @@ class ModalBox(HasParent, ipw.VBox):
         "flex": "0 0 auto",
     }
     obj = traitlets.Any(read_only=True)
-    button_expand = tf.Button_MB()
-    button_collapse = tf.Button_MB(disabled=True)
+    button_expand = tf.Button_modal()
+    button_collapse = tf.Button_modal(disabled=True)
     box = tf.Box().configure(allow_none=True, load_default=False, set_parent=False)
     header_children = StrTuple("H_FILL")
     expanded = traitlets.Bool(False, read_only=True)

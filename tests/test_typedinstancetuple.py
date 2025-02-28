@@ -11,7 +11,7 @@ import menubox.trait_types as tt
 # ruff: noqa: PLR2004
 
 
-class MenuboxSingleton(mb.MenuBoxVT):
+class MenuboxSingleton(mb.MenuboxVT):
     SINGLETON_BY = ("cls", "name")
 
 
@@ -28,8 +28,8 @@ class VTT(mb.ValueTraits):
         on_add="on_add",
         on_remove="on_remove",
     )
-    menuboxvts: mb.TypedInstanceTuple[mb.MenuBoxVT | MenuboxSingleton] = mb.TypedInstanceTuple(
-        traitlets.Union((Instance(mb.MenuBoxVT), Instance(MenuboxSingleton))),
+    menuboxvts: mb.TypedInstanceTuple[mb.MenuboxVT | MenuboxSingleton] = mb.TypedInstanceTuple(
+        traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
     ).configure(
         update_by="name",
         update_item_names=("value",),
@@ -57,7 +57,7 @@ class VTT(mb.ValueTraits):
         self.removed_count += 1
 
     def _new_menubox(self, **kwargs):
-        return mb.MenuBoxVT(**kwargs)
+        return mb.MenuboxVT(**kwargs)
 
 
 class VTT1(VTT):
@@ -133,7 +133,7 @@ async def test_value_traits(home: mb.Home):
     assert vt.change_count == 5
     assert vt2.change_count == 2
 
-    mb1: mb.MenuBoxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1", home=vt2.home)
+    mb1: mb.MenuboxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1", home=vt2.home)
     assert mb1 not in vt2.menuboxvts, "Should not have added to tuple."
     vt2.menuboxvts = (mb1,)
     assert mb1 in vt2.menuboxvts, "Should have been added to tuple."

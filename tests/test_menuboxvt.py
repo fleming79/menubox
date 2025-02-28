@@ -10,12 +10,12 @@ from menubox import trait_factory as tf
 
 templates_folder = pathlib.Path(__file__).parent.joinpath("templates")
 assert templates_folder.exists()
-mb.MenuBoxVT.register_template_root_folder(templates_folder)
+mb.MenuboxVT.register_template_root_folder(templates_folder)
 
 # ruff: noqa: PLR2004
 
 
-class MyNewObj(mb.MenuBoxVT):
+class MyNewObj(mb.MenuboxVT):
     SHOW_TEMPLATE_CONTROLS = True
     select_repository = tf.SelectRepository()
     a_has_changed = False
@@ -26,7 +26,7 @@ class MyNewObj(mb.MenuBoxVT):
     b = tf.FloatText()
     c = tf.FloatText()
     views = traitlets.Dict({"Main": ("description_viewer", "a", "b", "c")})
-    value_traits_persist = mb.NameTuple(*mb.MenuBoxVT.value_traits, "a", "c")
+    value_traits_persist = mb.NameTuple(*mb.MenuboxVT.value_traits, "a", "c")
 
     async def init_async(self):
         await super().init_async()
@@ -52,7 +52,7 @@ class MyNewObj(mb.MenuBoxVT):
                             self.c.value = change["old"].value
 
 
-class MyNewObjSingleInstanceByName(mb.MenuBoxVT):
+class MyNewObjSingleInstanceByName(mb.MenuboxVT):
     SINGLETON_BY = ("name",)
 
 

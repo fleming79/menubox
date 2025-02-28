@@ -480,7 +480,7 @@ def instanceHP_wrapper(
     Dropdown = instanceHP_wrapper(Dropdown, defaults={"options": (1, 2, 3)})
 
 
-    class Widget_Box(MenuBox):
+    class Widget_Box(Menubox):
         a = Dropdown(description="a")
         b = Dropdown(description="b").configure(load_default=False)
 

@@ -3,12 +3,12 @@ import pathlib
 import traitlets
 
 import menubox as mb
-from menubox import MenuBoxVT
+from menubox import MenuboxVT
 from menubox import trait_factory as tf
 from menubox.repository import Repositories, Repository
 
 
-class SelectRepositoryWidget(MenuBoxVT):
+class SelectRepositoryWidget(MenuboxVT):
     select_repository = tf.SelectRepository()
     views = traitlets.Dict({"Widgets": "select_repository"})
 

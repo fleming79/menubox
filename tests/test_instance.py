@@ -17,12 +17,12 @@ from menubox.instance import IHPChange, InstanceHP, instanceHP_wrapper
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
-class HPI(mb.MenuBox):
+class HPI(mb.Menubox):
     a = InstanceHP(cast(type["HPI"], "tests.test_instance.HPI"), name="a").configure(allow_none=True)
     b = InstanceHP(cast(type["HPI"], "tests.test_instance.HPI"), name="b").configure(
         load_default=False, allow_none=False
     )
-    my_button = tf.Button(description="A button")
+    my_button = tf.Button_main(description="A button")
     box = tf.HBox().configure(children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
 
@@ -34,7 +34,7 @@ class HPI(mb.MenuBox):
                 await super().button_clicked(b)
 
 
-class HPI2(HPI, mb.MenuBoxVT):
+class HPI2(HPI, mb.MenuboxVT):
     b = InstanceHP(HPI, name="b").configure(set_attrs={"name": lambda config: config["parent"].get_name(config)})
     c = InstanceHP(HPI, name="C has value").configure(set_parent=False)
     d = InstanceHP(ipw.Dropdown).configure(dynamic_kwgs={"description": "c.name"}, allow_none=True)
@@ -51,9 +51,9 @@ class HPI2(HPI, mb.MenuBoxVT):
         return True
 
 
-class HPI3(mb.MenuBox):
+class HPI3(mb.Menubox):
     box = tf.Box().configure(allow_none=True)
-    menubox = tf.MenuBox(views={"main": None}).configure(allow_none=True)
+    menubox = tf.Menubox(views={"main": None}).configure(allow_none=True)
     hpi2 = tf.InstanceHP(HPI2).configure(allow_none=True)
 
 

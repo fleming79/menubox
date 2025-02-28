@@ -11,7 +11,7 @@ from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.home import Home
 from menubox.log import TZ
-from menubox.menuboxvt import MenuBoxVT
+from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
 from menubox.trait_types import ChangeType, StrTuple, TypedTuple
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from fsspec import AbstractFileSystem
 
 
-class MenuBoxPersist(MenuBoxVT):
+class MenuboxPersist(MenuboxVT):
     """Persistence of nested settings in yaml files plus persistence of dataframes
     in home.repository.
 
@@ -44,7 +44,7 @@ class MenuBoxPersist(MenuBoxVT):
     `my_widget.options` is necessary.
 
     Settings of nested objects are stored in the same settings file by name. For
-    ValueTrait objects (including MenuBoxVT), settings defined in `value_traits_persist`
+    ValueTrait objects (including MenuboxVT), settings defined in `value_traits_persist`
     are the `value` so are stored by default.
 
     Persistence of DataFrames in `value_traits_persist` is not permitted. The tuple
@@ -101,10 +101,10 @@ class MenuBoxPersist(MenuBoxVT):
         dynamic_kwgs={"disabled": "SINGLE_VERSION"},
     )
     box_version = tf.Box()
-    header_right_children = StrTuple("menu_load_index", *MenuBoxVT.header_right_children)
+    header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
 
     task_loading_persistence_data = tf.Task()
-    value_traits = StrTuple(*MenuBoxVT.value_traits, "version", "sw_version_load")
+    value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load")
     value_traits_persist = StrTuple("saved_timestamp", "name", "description")
     dataframe_persist = StrTuple()
 
@@ -129,7 +129,7 @@ class MenuBoxPersist(MenuBoxVT):
     @override
     def on_change(self, change: ChangeType) -> None:
         super().on_change(change)
-        if not self._MenuBox_init_complete:
+        if not self._Menubox_init_complete:
             return
         if not self.SINGLE_VERSION:
             self.version_widget.max = max(self.versions or (0,)) + 1

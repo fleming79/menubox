@@ -440,7 +440,7 @@ def unhide(widget):
 def set_border(widget, border: str = "solid 1px black"):
     """Set the layout of the widget."""
 
-    if isinstance(widget, mb.MenuBox):
+    if isinstance(widget, mb.Menubox):
         widget.border = border
     else:
         widget.layout.border = border

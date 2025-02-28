@@ -23,10 +23,9 @@ from menubox.defaults import hookimpl
 from menubox.hasparent import HasParent
 from menubox.home import Home
 from menubox.mb_async import TaskType, debounce, throttle
-from menubox.menubox import MenuBox
-from menubox.menuboxvt import MenuBoxVT
+from menubox.menubox import Menubox
+from menubox.menuboxvt import MenuboxVT
 from menubox.modalbox import ModalBox
-from menubox.stylesheet import MenuboxStylesheet
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, StrTuple, TypedTuple
 from menubox.valuetraits import TypedInstanceTuple, ValueTraits
 
@@ -53,8 +52,8 @@ __all__ = [
     "ChangeType",
     "HasParent",
     "Home",
-    "MenuBox",
-    "MenuBoxVT",
+    "Menubox",
+    "MenuboxVT",
     "ModalBox",
     "NameTuple",
     "ProposalType",
@@ -76,10 +75,8 @@ def _get_plugin_manager():
     pm = pluggy.PluginManager("menubox")
     pm.add_hookspecs(hookspecs)
     pm.register(lib)
-    pm.load_setuptools_entrypoints("menubox")
     return pm
 
 
 plugin_manager = _get_plugin_manager()
-stylesheet: MenuboxStylesheet = plugin_manager.hook.default_css_stylesheet()
 del _get_plugin_manager

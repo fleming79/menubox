@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import functools
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import ipywidgets as ipw
 import traitlets
 
 from menubox import hasparent, mb_async, utils
 from menubox import trait_factory as tf
+from menubox.css import CSScls
 from menubox.log import log_exceptions
 
 if TYPE_CHECKING:
@@ -51,13 +52,13 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         self,
         cfunc: Callable[..., Coroutine] | AsyncRunButton | str,
         *,
-        description: str = "Start",
-        cancel_description: str = "Cancel",
+        description="Start",
+        cancel_description="Cancel",
         kw: dict | str | Callable[[], dict] | None = None,
         style: dict | None = None,
-        button_style: str = "primary",
-        cancel_button_style: str = "warning",
-        tooltip: str = "",
+        button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
+        cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
+        tooltip="",
         link_button=False,
         tasktype: mb_async.TaskType = mb_async.TaskType.general,
         parent: hasparent.HasParent | None = None,
@@ -100,6 +101,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             utils.weak_observe(self._corofunc_or_button, self._update_link_button, "task")
             self._update_link_button()
         self.set_description(description)
+        self.add_class(CSScls.button)
         super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
         self.on_click(self._on_click)
         if self.parent:
