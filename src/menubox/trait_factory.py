@@ -47,7 +47,6 @@ __all__ = [
     "Button_toggle",
     "Button_cancel",
     "Checkbox",
-    "Checkbox_A",
     "ColorPicker",
     "ColorsInput",
     "Combobox",
@@ -127,13 +126,6 @@ ValueWidget = IHP(ipw.ValueWidget)
 
 # Ipywidget Bool
 Checkbox = IHP(ipw.Checkbox)
-Checkbox_A = IHP(
-    ipw.Checkbox,
-    defaults={
-        "layout": {"width": "auto"},
-        "style": {"description_width": "initial"},
-    },
-)
 ToggleButton = IHP(ipw.ToggleButton, add_css_class=(CSScls.button, CSScls.button_toggle))
 Valid = IHP(ipw.Valid)
 

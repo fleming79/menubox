@@ -6,7 +6,7 @@ import os
 from ipylab.css_stylesheet import CSSStyleSheet
 
 PREFIX = f"menubox-{os.getpid()}"
-V_PREFIX = f"--{PREFIX}-"
+V_PREFIX = f"--{PREFIX}"
 
 
 class CSSvar(enum.StrEnum):
@@ -75,24 +75,24 @@ class CSScls(enum.StrEnum):
 VARIABLES = {
     CSSvar.button_main_color: "var(--jp-ui-inverse-font-color1)",
     CSSvar.button_main_background_color: "var(--jp-accept-color-normal)",
-    CSSvar.button_menu_color: "var(--jp-ui-font-color1)",
-    CSSvar.button_menu_background_color: "var(--jp-layout-color3)",
-    CSSvar.button_open_color: "var(--jp-ui-font-color1)",
-    CSSvar.button_open_background_color: "var(---jp-layout-color3)",
-    CSSvar.button_modal_color: "var(--jp-ui-font-color2)",
-    CSSvar.button_modal_background_color: "var(--jp-layout-color2)",
-    CSSvar.button_toggle_color: "var(--jp-ui-font-color2)",
-    CSSvar.button_toggle_background_color: "var(--jp-layout-color2)",
-    CSSvar.button_shuffle_color: "var(---jp-ui-font-color2)",
-    CSSvar.button_shuffle_background_color: "var(--jp-layout-color2)",
+    CSSvar.button_menu_color: "var(--jp-ui-font-color2)",
+    CSSvar.button_menu_background_color: "var(--jp-border-color2)",
+    CSSvar.button_open_color: f"var({CSSvar.button_menu_color})",
+    CSSvar.button_open_background_color: f"var({CSSvar.button_menu_background_color})",
+    CSSvar.button_modal_color: f"var({CSSvar.button_menu_color})",
+    CSSvar.button_modal_background_color: f"var({CSSvar.button_menu_background_color})",
+    CSSvar.button_toggle_color: f"var({CSSvar.button_menu_color})",
+    CSSvar.button_toggle_background_color: f"var({CSSvar.button_menu_background_color})",
+    CSSvar.button_shuffle_color: f"var({CSSvar.button_menu_color})",
+    CSSvar.button_shuffle_background_color: f"var({CSSvar.button_menu_background_color})",
     CSSvar.button_cancel_color: "var(--jp-ui-inverse-font-color1)",
     CSSvar.button_cancel_background_color: "var(--jp-reject-color-normal)",
     CSSvar.button_dangerous_color: "var(--jp-ui-inverse-font-color2)",
     CSSvar.button_dangerous_background_color: "var(--jp-warn-color-normal)",
     CSSvar.button_busy_border: "var(--jp-border-color1)",
     CSSvar.button_active_view_border: "var(--jp-border-color1)",
-    CSSvar.menubox_border: "solid 1px var(--jp-border-color2)",
-    CSSvar.menubox_vt_border: "solid 1px var(--jp-border-color1)",
+    CSSvar.menubox_border: "solid 1px var(--jp-border-color3)",
+    CSSvar.menubox_vt_border: "solid 1px var(--jp-border-color2)",
 }
 
 VARIABLES_KEY = "VARIABLES"
@@ -159,12 +159,15 @@ STYLESHEET = f"""
 
 /* Boxes */
 .{CSScls.Menubox} {{
+    flex: 1 0 auto;
     border: var({CSSvar.menubox_border});}}
 .{CSScls.MenuboxHeader} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
     border: var({CSSvar.menubox_border});}}
+.{CSScls.MenuboxCenter} {{
+    flex: 1 0 auto;}}
 .{CSScls.MenuboxMenu} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
@@ -200,11 +203,11 @@ class MenuboxCSSStyleSheet(CSSStyleSheet):
 stylesheet = MenuboxCSSStyleSheet()
 
 
-def _autostart_once(stylesheet: MenuboxCSSStyleSheet):
+def load_stylesheet(stylesheet: MenuboxCSSStyleSheet):
     import menubox
 
     stylesheet.load_stylesheet(*menubox.plugin_manager.hook.get_css_stylesheet_and_variables())
-    stylesheet.on_ready(_autostart_once, remove=True)
+    stylesheet.on_ready(load_stylesheet, remove=True)
 
 
-stylesheet.on_ready(_autostart_once)
+stylesheet.on_ready(load_stylesheet)
