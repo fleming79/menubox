@@ -61,7 +61,6 @@ class Menubox(HasParent, Panel):
     _RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (_MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
-    ENABLE_WIDGETS: ClassVar = ()
     _Menubox_init_complete = False
 
     # Traits
@@ -194,8 +193,6 @@ class Menubox(HasParent, Panel):
             return
         self.observe(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
         try:
-            for name in self.ENABLE_WIDGETS:
-                self.enable_widget(name)
             if views is not None:
                 self.views = views
             if viewlist is not None:
@@ -337,7 +334,7 @@ class Menubox(HasParent, Panel):
         self.set_trait("loading_view", view)
         self.mb_refresh()
         if view and not self._mb_configured:
-            await self._mb_configure()
+            await self.mb_configure()
         try:
             view, center = await self.get_center(view)
             self._setting_view = True
@@ -460,7 +457,16 @@ class Menubox(HasParent, Panel):
         if self.box_menu:
             self.box_menu.children = (self.button_menu,) if self.button_menu else ()
 
-    async def _mb_configure(self) -> None:
+    async def mb_configure(self) -> None:
+        """Configure this widget - called once only when loading the first view.
+
+        This includes:
+            - Enabling the maximize button if it exists or if the default view is minimized.
+            - Enabling the menu button if there are menu views.
+            - Enabling the toggle view button if there are toggle views.
+            - Updating the tab and shuffle buttons.
+            - Calling the super class's mb_configure method if it exists.
+        """
         self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self._MINIMIZED)
         if self._has_maximize_button:
             self.enable_widget("button_minimize")
@@ -470,6 +476,9 @@ class Menubox(HasParent, Panel):
             self.enable_widget("button_toggleview")
         self._update_tab_buttons()
         self._update_shuffle_buttons()
+        if cb := getattr(super(), "mb_configure", None):
+            # permit other overloads.
+            await cb()
         self._mb_configured = True
 
     def _observe_mb_refresh(self, change: ChangeType):

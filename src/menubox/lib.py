@@ -30,7 +30,7 @@ stylesheet: CSSStyleSheet | None = None
 
 
 @hookimpl
-def get_css_stylesheet_and_variables():
+def add_css_stylesheet():
     return STYLESHEET, {}
 
 

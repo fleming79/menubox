@@ -11,9 +11,9 @@ if TYPE_CHECKING:
 hookspec = pluggy.HookspecMarker("menubox")
 
 
-@hookspec(firstresult=True)
-def get_css_stylesheet_and_variables():
-    """Provide the css stylesheet to use for menubox in this kernel."""
+@hookspec
+def add_css_stylesheet() -> tuple[str, dict]:  # type: ignore
+    """Define an additional css stylesheet and/or override css variables."""
 
 
 @hookspec

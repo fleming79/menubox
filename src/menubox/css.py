@@ -199,9 +199,10 @@ STYLESHEET = f"""
     flex-flow: row wrap;
     border: var({CSSvar.menubox_border});}}
 .{CSScls.nested_borderbox} {{
-    border: var({CSSvar.menubox_border});
+    flex: 1 0 auto;
     margin: 5px 5px 5px 5px;
-    padding: 5px 5px 5px 5px;}}
+    padding: 5px 5px 5px 5px;
+    border: var({CSSvar.menubox_border});}}
 """
 
 
@@ -230,7 +231,12 @@ stylesheet = MenuboxCSSStyleSheet()
 def load_stylesheet(stylesheet: MenuboxCSSStyleSheet):
     import menubox
 
-    stylesheet.load_stylesheet(*menubox.plugin_manager.hook.get_css_stylesheet_and_variables())
+    variables = {}
+    ss = ""
+    for s, v in reversed(menubox.plugin_manager.hook.add_css_stylesheet()):
+        ss += s
+        variables.update(v)
+    stylesheet.load_stylesheet(ss, variables)
     stylesheet.on_ready(load_stylesheet, remove=True)
 
 
