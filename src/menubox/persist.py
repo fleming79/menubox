@@ -66,7 +66,7 @@ class MenuboxPersist(MenuboxVT):
     version = traitlets.Int(1, read_only=True)
     versions = TypedTuple(traitlets.Int())
     saved_timestamp = traitlets.Unicode()
-    menu_load_index = tf.ModalBox(
+    menu_load_index = tf.Modalbox(
         "_get_version_box",
         title="Persistence",
         button_expand_description="⇵",

@@ -3,7 +3,7 @@ from typing import override
 
 import menubox as mb
 from menubox import trait_factory as tf
-from menubox.modalbox import ModalBox
+from menubox.modalbox import Modalbox
 
 
 class PMBB(mb.MenuboxVT):
@@ -13,8 +13,8 @@ class PMBB(mb.MenuboxVT):
     slider = tf.IntSlider()
     box_extra = tf.HBox().configure(children=("count",))
     box_mb2 = tf.VBox()
-    mb1 = tf.ModalBox(obj="box_extra", title="mb1 open")
-    mb2 = tf.ModalBox(
+    mb1 = tf.Modalbox(obj="box_extra", title="mb1 open")
+    mb2 = tf.Modalbox(
         obj="get_mb2_widgets",
         box="box_mb2",
         title="mb2 open",
@@ -43,7 +43,7 @@ class PMBB(mb.MenuboxVT):
 
 async def test_modal_button(home: mb.Home):
     obj = PMBB(home=home)
-    assert isinstance(obj.mb1, ModalBox)
+    assert isinstance(obj.mb1, Modalbox)
     assert obj.mb1_change_count == 0
     obj.mb1.expand()
     assert obj.mb1.expanded
@@ -61,7 +61,7 @@ async def test_modal_button(home: mb.Home):
     assert obj.mb2.button_expand.description == "mb2"
 
     # No parent
-    mbox = ModalBox(obj, "Obj in modal box")
+    mbox = Modalbox(obj, "Obj in modal box")
     mbox.expand()
 
     mbox.collapse()

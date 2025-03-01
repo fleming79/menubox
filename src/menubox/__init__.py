@@ -25,7 +25,7 @@ from menubox.home import Home
 from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT
-from menubox.modalbox import ModalBox
+from menubox.modalbox import Modalbox
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, StrTuple, TypedTuple
 from menubox.valuetraits import TypedInstanceTuple, ValueTraits
 
@@ -54,7 +54,7 @@ __all__ = [
     "Home",
     "Menubox",
     "MenuboxVT",
-    "ModalBox",
+    "Modalbox",
     "NameTuple",
     "ProposalType",
     "StrTuple",

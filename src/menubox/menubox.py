@@ -70,7 +70,7 @@ class Menubox(HasParent, Panel):
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
-    view_css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
+    css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
     views: ClassVar[traitlets.Dict[str, utils.GetWidgetsInputType]] = traitlets.Dict(
         default_value={}, key_trait=traitlets.Unicode()
     )  # type: ignore
@@ -104,9 +104,7 @@ class Menubox(HasParent, Panel):
     _tab_buttons: tf.InstanceHP[weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
     task_load_view = tf.Task()
     html_title = tf.HTML_Title().configure(load_default=False)
-    out_help = tf.MarkdownViewer(
-        layout={"border": "solid 1px LightGrey", "margin": "5px " * 4, "padding": "5px " * 4}
-    ).configure(add_css_class=CSScls.resize_both)
+    out_help = tf.MarkdownViewer().configure(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
     button_menu = tf.Button_menu(description="☰").configure(load_default=False)
@@ -351,10 +349,10 @@ class Menubox(HasParent, Panel):
             self.set_trait("loading_view", NO_DEFAULT)
         if view:
             # TODO: write these to be single transaction.
-            for clsname in self.view_css_classes:
+            for clsname in self.css_classes:
                 self.add_class(clsname)
         else:
-            for clsname in self.view_css_classes:
+            for clsname in self.css_classes:
                 self.remove_class(clsname)
         if view and view != self.view_previous:
             self.view_previous = view

@@ -21,7 +21,7 @@ _template_folders: set[pathlib.Path] = set()
 if TYPE_CHECKING:
     import ipywidgets as ipw
 
-    from menubox.modalbox import ModalBox
+    from menubox.modalbox import Modalbox
 
 __all__ = ["MenuboxVT"]
 
@@ -44,7 +44,7 @@ class MenuboxVT(Menubox, ValueTraits):
     title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
-    view_css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
+    css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _templates = traitlets.Dict(traitlets.Unicode(), traitlets.Unicode())
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
     _sw_template = tf.Dropdown(
@@ -55,7 +55,7 @@ class MenuboxVT(Menubox, ValueTraits):
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
     repository = tf.Repository()
-    template_controls = tf.ModalBox(
+    template_controls = tf.Modalbox(
         "box_template_controls",
         title="Copy and load settings",
         button_expand_description="📜",
@@ -145,7 +145,7 @@ class MenuboxVT(Menubox, ValueTraits):
             return self.template_controls
         return None
 
-    def _on_template_controls_expand(self, b: ModalBox):
+    def _on_template_controls_expand(self, b: Modalbox):
         if getattr(self, "_n_template_folders", 0) != len(_template_folders):
             self.update_templates()
         self._sw_template.options = self.templates

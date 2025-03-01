@@ -47,14 +47,15 @@ class CSScls(enum.StrEnum):
     tab_button = f"{PREFIX}-tab-button"
 
     Menubox = f"{PREFIX}-Menubox"
-    MenuboxHeader = f"{PREFIX}-Menubox-header"
-    MenuboxCenter = f"{PREFIX}-Menubox-center"
-    MenuboxMenu = f"{PREFIX}-Menubox-menu"
-    MenuboxShuffle = f"{PREFIX}-Menubox-shuffle"
+    Menubox_header = f"{PREFIX}-Menubox-header"
+    Menubox_center = f"{PREFIX}-Menubox-center"
+    Menubox_menu = f"{PREFIX}-Menubox-menu"
+    Menubox_shuffle = f"{PREFIX}-Menubox-shuffle"
 
     MenuboxVT = f"{PREFIX}-MenuboxVT"
 
-    ModalBoxHeader = f"{PREFIX}-ModalBox-header"
+    Modalbox = f"{PREFIX}-Modalbox"
+    ModalboxHeader = f"{PREFIX}-Modalbox-header"
 
     button = f"{PREFIX}-button"
     button_modal = f"{PREFIX}-button-modal"
@@ -71,11 +72,13 @@ class CSScls(enum.StrEnum):
 
     async_run_button = f"{PREFIX}-async_run_button"
 
+    nested_borderbox = f"{PREFIX}-nested-border-box"  # A box using same default border as menubox
+
 
 VARIABLES = {
     CSSvar.button_main_color: "var(--jp-ui-inverse-font-color1)",
     CSSvar.button_main_background_color: "var(--jp-accept-color-normal)",
-    CSSvar.button_menu_color: "var(--jp-ui-font-color2)",
+    CSSvar.button_menu_color: "var(--jp-ui-font-color1)",
     CSSvar.button_menu_background_color: "var(--jp-border-color2)",
     CSSvar.button_open_color: f"var({CSSvar.button_menu_color})",
     CSSvar.button_open_background_color: f"var({CSSvar.button_menu_background_color})",
@@ -160,24 +163,41 @@ STYLESHEET = f"""
 /* Boxes */
 .{CSScls.Menubox} {{
     flex: 1 0 auto;
+    max-width:100%;
     border: var({CSSvar.menubox_border});}}
-.{CSScls.MenuboxHeader} {{
+.{CSScls.Menubox_header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
-    border: var({CSSvar.menubox_border});}}
-.{CSScls.MenuboxCenter} {{
+    border-bottom: var({CSSvar.menubox_border});}}
+.{CSScls.Menubox_center} {{
     flex: 1 0 auto;}}
-.{CSScls.MenuboxMenu} {{
+.{CSScls.Menubox_menu} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;}}
-.{CSScls.MenuboxShuffle} {{
+.{CSScls.Menubox_shuffle} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
-    height: max-content;}}
-.{CSScls.Menubox} {{
+    max-width:100%;
+    height: auto;}}
+.{CSScls.Modalbox}{{
+    border: {CSSvar.menubox_border},
+    align-self: flex-start;
+    overflow: hidden;
+    flex: 0 0 auto;}}
+
+.{CSScls.MenuboxVT} {{
     border: var({CSSvar.menubox_vt_border});}}
+
+.{CSScls.ModalboxHeader} {{
+    flex: 0 0 auto;
+    flex-flow: row wrap;
+    border: var({CSSvar.menubox_border});}}
+.{CSScls.nested_borderbox} {{
+    border: var({CSSvar.menubox_border});
+    margin: 5px 5px 5px 5px;
+    padding: 5px 5px 5px 5px;}}
 """
 
 

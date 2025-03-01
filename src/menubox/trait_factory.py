@@ -83,7 +83,7 @@ __all__ = [
     "SelectMultipleValidate",
     "Label",
     "Menubox",
-    "ModalBox",
+    "Modalbox",
     "NaiveDatetimePicker",
     "Output",
     "Password",
@@ -148,11 +148,11 @@ GridBox = IHP(ipw.GridBox)
 MenuboxHeader = IHP(
     ipw.HBox,
     dlink={"source": ("self", "border"), "target": "layout.border_bottom"},
-    add_css_class=CSScls.MenuboxHeader,
+    add_css_class=CSScls.Menubox_header,
 )
-MenuboxCenter = IHP(ipw.VBox, add_css_class=CSScls.MenuboxCenter)
-MenuboxMenu = IHP(ipw.HBox, add_css_class=CSScls.MenuboxMenu)
-MenuboxShuffle = IHP(ipw.HBox, add_css_class=CSScls.MenuboxShuffle)
+MenuboxCenter = IHP(ipw.VBox, add_css_class=CSScls.Menubox_center)
+MenuboxMenu = IHP(ipw.HBox, add_css_class=CSScls.Menubox_menu)
+MenuboxShuffle = IHP(ipw.HBox, add_css_class=CSScls.Menubox_shuffle)
 
 
 # Ipywidget Float
@@ -272,7 +272,7 @@ AsyncRunButton_update = IHP(
     defaults={"tasktype": mb_async.TaskType.update},
     add_css_class=CSScls.button_main,
 )
-ModalBox = IHP(cast(type["menubox.modalbox.ModalBox"], "menubox.modalbox.ModalBox"))
+Modalbox = IHP(cast(type["menubox.modalbox.Modalbox"], "menubox.modalbox.Modalbox"))
 
 Repository = IHP(
     cast(type["menubox.repository.Repository"], "menubox.repository.Repository"),

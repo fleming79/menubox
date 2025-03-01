@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, override
+from typing import TYPE_CHECKING, override
 
 import traitlets
 
@@ -87,7 +87,6 @@ class SelectRepository(MenuboxVT):
     ```
     """
 
-    DEFAULT_LAYOUT: ClassVar = {"flex_flow": "row", "flex": "0 0 auto"}
     box_center = None
     if TYPE_CHECKING:
         parent: MenuboxVT

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Self, override
+from typing import TYPE_CHECKING, Self, override
 
 import ipywidgets as ipw
 import traitlets
@@ -15,16 +15,10 @@ from menubox.trait_types import ChangeType, StrTuple
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
-__all__ = ["ModalBox"]
+__all__ = ["Modalbox"]
 
 
-class ModalBox(HasParent, ipw.VBox):
-    DEFAULT_LAYOUT: ClassVar[dict[str, str]] = {
-        "border": "solid 1px LightGrey",
-        "align_self": "flex-start",
-        "overflow": "hidden",
-        "flex": "0 0 auto",
-    }
+class Modalbox(HasParent, ipw.VBox):
     obj = traitlets.Any(read_only=True)
     button_expand = tf.Button_modal()
     button_collapse = tf.Button_modal(disabled=True)
@@ -32,7 +26,7 @@ class ModalBox(HasParent, ipw.VBox):
     header_children = StrTuple("H_FILL")
     expanded = traitlets.Bool(False, read_only=True)
     html_title = tf.HTML_Title().configure(allow_none=True, load_default=False)
-    header = tf.HBox().configure(allow_none=True, add_css_class=CSScls.ModalBoxHeader)
+    header = tf.HBox().configure(allow_none=True, add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
 
     @log_exceptions
@@ -59,7 +53,7 @@ class ModalBox(HasParent, ipw.VBox):
         obj:
 
         parent :
-            The object that owns the ModalBox.
+            The object that owns the Modalbox.
 
         if button_expand_description is not set, the description will be the
         same as title.
@@ -81,8 +75,6 @@ class ModalBox(HasParent, ipw.VBox):
         """
         if self._HasParent_init_complete:
             return
-        if "layout" not in kwargs and self.DEFAULT_LAYOUT:
-            kwargs["layout"] = self.DEFAULT_LAYOUT
         if self.parent:
             self.log = self.parent.log
         if not callable(obj) and not isinstance(obj, ipw.Widget | tuple | str):
@@ -113,6 +105,7 @@ class ModalBox(HasParent, ipw.VBox):
             "button_collapse",
             {"description": fstr(button_collapse_description), "tooltip": fstr(button_collapse_tooltip)},
         )
+        self.add_class(CSScls.ModalboxHeader)
         super().__init__(parent=parent, children=(self.button_expand,), **kwargs)
         if orientation == "horizontal":
             self.layout.flex_flow = "row"

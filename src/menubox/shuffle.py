@@ -67,7 +67,7 @@ class ObjShuffle(MenuboxVT):
     box_info = tf.VBox()
     box_info_header = tf.HBox().configure(children=("html_title", "sw_version", "button_clip_put", "html_info"))
     box_details = tf.VBox()
-    modal_info = tf.ModalBox("box_info", "Details", box="box_details")
+    modal_info = tf.Modalbox("box_info", "Details", box="box_details")
     objshuffle_header_controls = StrTuple(
         "sw_obj",
         "button_scan_obj",
