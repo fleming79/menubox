@@ -74,6 +74,8 @@ class CSScls(enum.StrEnum):
 
     nested_borderbox = f"{PREFIX}-nested-border-box"  # A box using same default border as menubox
 
+    Menubox_horizontal = "horizontal"  # A modifier applicable to menubox
+
 
 VARIABLES = {
     CSSvar.button_main_color: "var(--jp-ui-inverse-font-color1)",
@@ -165,13 +167,15 @@ STYLESHEET = f"""
     flex: 1 0 auto;
     max-width:100%;
     border: var({CSSvar.menubox_border});}}
+.{CSScls.Menubox}.horizontal {{
+    flex-flow: row wrap;}}
 .{CSScls.Menubox_header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_center} {{
-    flex: 1 0 auto;}}
+    height: auto;}}
 .{CSScls.Menubox_menu} {{
     flex: 0 0 auto;
     flex-flow: row wrap;

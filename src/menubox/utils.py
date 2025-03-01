@@ -15,6 +15,7 @@ import pandas as pd
 import traitlets
 
 import menubox as mb
+from menubox.css import CSSvar
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
@@ -437,7 +438,7 @@ def unhide(widget):
         widget.layout.visibility = "visible"
 
 
-def set_border(widget, border: str = "solid 1px black"):
+def set_border(widget, border: str = f"var({CSSvar.menubox_border})"):
     """Set the layout of the widget."""
 
     if isinstance(widget, mb.Menubox):
