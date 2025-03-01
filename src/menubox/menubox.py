@@ -392,7 +392,7 @@ class Menubox(HasParent, Panel):
         Returns:
             None
         """
-        if not self._Menubox_init_complete:
+        if not self._Menubox_init_complete or self.closed:
             return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")

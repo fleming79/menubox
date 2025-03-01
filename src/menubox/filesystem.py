@@ -51,7 +51,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     )
-    url = tf.Text(
+    url = tf.Combobox(
         description="url",
         continuous_update=False,
         layout={"flex": "1 0 auto", "width": "auto"},
@@ -144,7 +144,6 @@ class Filesystem(MenuboxVT):
                 self.dlink((self, "disabled"), (w, "disabled"))
         self.update_widget_locks()
         await super().init_async()
-        self.button_update.start()
 
     @override
     async def get_center(self, view: str | None):
@@ -179,10 +178,12 @@ class Filesystem(MenuboxVT):
                         self.refresh_view()
                 case "view" if self.view_active:
                     self.button_update.start()
-        else:
+        elif self.view_active:
             match change["owner"]:
-                case self.url | self.sw_main if self.view_active:
-                    self.button_update.start()
+                case self.url:
+                    self.button_update.start(url=self.url.value)
+                case self.sw_main:
+                    self.button_update.start(url=self.sw_main.value)
 
     async def button_clicked(self, b: Button):
         if self.read_only:
@@ -243,12 +244,12 @@ class Filesystem(MenuboxVT):
                         if self.filters and not any(o["name"].endswith(ext) for ext in self.filters):
                             continue
                         files["📄 " + o["name"].rsplit("/", 1)[-1]] = o["name"]
-            url = self.sw_main.value
+            # url = self.sw_main.value
             with self.ignore_change():
                 self.sw_main.options = options = folders | files
-                if not url or url not in options.values():
-                    url = None
-                self.sw_main.value = url
+                self.url.options = options = tuple(options.values())
+                self.sw_main.value = url if url in options else None
+                self.url.value = url
         except asyncio.CancelledError:
             pass
         finally:

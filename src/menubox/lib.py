@@ -31,7 +31,11 @@ stylesheet: CSSStyleSheet | None = None
 
 @hookimpl
 def add_css_stylesheet():
-    return STYLESHEET, {}
+    return STYLESHEET, {
+        "--jp-widgets-input-background-color": "var(--jp-input-background)",
+        "--jp-widgets-input-focus-border-color": "var(--jp-input-active-border-color)",
+        "--jp-widgets-input-border-width": "var(--jp-border-width)",
+    }
 
 
 @hookimpl

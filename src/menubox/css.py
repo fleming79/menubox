@@ -100,20 +100,7 @@ VARIABLES = {
     CSSvar.menubox_vt_border: "solid 1px var(--jp-border-color2)",
 }
 
-VARIABLES_KEY = "VARIABLES"
 STYLESHEET = f"""
-:root {{
---jp-widgets-color: var(--jp-content-font-color1);
---jp-widgets-label-color: var(--jp-widgets-color);
---jp-widgets-readout-color: var(--jp-widgets-color);
---jp-widgets-input-color: var(--jp-ui-font-color1);
---jp-widgets-input-background-color: var(--jp-input-background);
---jp-widgets-input-border-color: var(--jp-border-color1);
---jp-widgets-input-focus-border-color: var(--jp-input-active-border-color);
---jp-widgets-input-border-width: var(--jp-border-width);
-{VARIABLES_KEY}
-}}
-
 .{CSScls.resize_both} {{ resize: both;}}
 .{CSScls.resize_horizontal} {{ resize: horizontal;}}
 .{CSScls.resize_vertical} {{ resize: vertical;}}
@@ -175,12 +162,14 @@ STYLESHEET = f"""
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_center} {{
+    flex: 1 1 auto;
     height: auto;}}
 .{CSScls.Menubox_menu} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;}}
 .{CSScls.Menubox_shuffle} {{
+    align-self: flex-start;
     flex: 0 0 auto;
     flex-flow: row wrap;
     max-width:100%;
@@ -220,8 +209,8 @@ class MenuboxCSSStyleSheet(CSSStyleSheet):
             variables: A dictionary of CSS variables to values.
         """
         variables = VARIABLES | variables
-        variables_ = "".join(f"{k} :{v};\n" for k, v in variables.items())
-        text = text.replace(VARIABLES_KEY, variables_)
+        variables_ = f":root {{{''.join(f'{k} :{v};\n' for k, v in variables.items())}}}\n"
+        text = variables_ + text
         stylesheet.replace(text)
 
 
