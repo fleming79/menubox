@@ -42,16 +42,14 @@ __all__ = [
 ]
 
 
-def limited_string(obj, max_len=100, suffix=" …", mode="start"):
+def limited_string(obj, max_len=100, suffix=" …", mode: Literal["start", "end"] = "start"):
     """Returns a string rep of obj of length up to max_len."""
     s = str(obj)
     if len(s) > max_len - len(suffix):
         if mode == "start":
             return str(s)[0:max_len] + suffix
         if mode == "end":
-            return suffix + str(s)[0:max_len]
-        msg = f"{mode=}"
-        raise NotImplementedError(msg)
+            return suffix + str(s)[-max_len:]
     return s
 
 

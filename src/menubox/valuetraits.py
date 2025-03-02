@@ -5,12 +5,14 @@ import enum
 import inspect
 import json
 import pathlib
+import weakref
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeVar, overload, override
 
 import orjson
 import ruamel.yaml
 import toolz
+from ipywidgets import Widget
 from traitlets import Dict, HasTraits, Instance, Set, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
@@ -166,6 +168,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
             raise TypeError(msg)
         self._trait = trait
         super().__init__(allow_none=allow_none, read_only=read_only, help=help)
+        self._close_observers = weakref.WeakKeyDictionary()
 
     def class_init(self, cls: type[Any], name: str | None) -> None:
         super().class_init(cls, name)
@@ -209,13 +212,14 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
                     try:
                         self._trait._validate(obj, val)
                     except Exception as e:
-                        if not isinstance(val, dict):
-                            msg = f"Invalid element detected of type {type(val)}"
-                            raise TypeError(msg) from e
-                        val = self.new_update_inst(obj, val, i)
+                        if isinstance(val, dict):
+                            val = self.new_update_inst(obj, val, i)
+                        else:
+                            e.add_note(f"`{obj.__class__.__name__}.{self.name}` {obj=}")
+                            raise
                     if val is None:
                         continue
-                    if id(val) not in map(id, values):
+                    if id(val) not in map(id, values) and not getattr(val, "closed", False):
                         values.append(val)
                 return tuple(values)
         except Exception as e:
@@ -365,10 +369,6 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
             raise RuntimeError(msg)
         self._set_parent = bool(set_parent)
         self._close_on_remove = bool(close_on_remove)
-        if not self._set_parent:
-            self._tuple_on_add = None  # type: ignore
-        if not self._close_on_remove:
-            self._tuple_on_remove = None  # type: ignore
         self._on_add = on_add
         self._on_remove = on_remove
         self._factory = factory
@@ -377,13 +377,25 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
     def _tuple_on_add(self, parent: ValueTraits, obj: HasParent):
         if isinstance(obj, HasParent) and self._set_parent:
             obj.parent = parent
+        if isinstance(obj, HasParent | Widget) and obj not in self._close_observers:
+            names = "closed" if isinstance(obj, HasParent) else "comm"
+            handle = utils.weak_observe(obj, self._observe_obj_closed, names, False, weakref.ref(parent), names)
+            self._close_observers[obj] = handle, names
 
     def _tuple_on_remove(self, _: ValueTraits, obj: HasParent):
+        if args := self._close_observers.pop(obj, None):
+            obj.unobserve(*args)
         if self._close_on_remove and hasattr(obj, "close"):
             obj.close()
 
     def tag(self, **kw):
         raise NotImplementedError
+
+    def _observe_obj_closed(self, ref: weakref.ref[ValueTraits], name: str):
+        if (parent := ref()) and not parent.closed:
+            filt = (lambda obj: not obj.closed) if name == "closed" else lambda obj: obj.comm
+            values = filter(filt, getattr(parent, self.name))
+            parent.set_trait(self.name, values)
 
 
 class _TypedTupleRegister(HasParent):
