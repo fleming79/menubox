@@ -161,8 +161,6 @@ STYLESHEET = f"""
 
 /* Boxes */
 .{CSScls.Menubox} {{
-    flex: 1 0 auto;
-    max-width:100%;
     border: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox}.horizontal {{
     flex-flow: row wrap;}}
