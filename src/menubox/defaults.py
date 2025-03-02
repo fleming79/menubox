@@ -64,7 +64,14 @@ class _NoValue(float, enum.Enum):
         try:
             return getattr(pd.NA, name)
         except AttributeError:
-            if name not in ["_typ", "__iter__", "__pandas_priority__"]:
+            if name not in [
+                "_typ",
+                "__iter__",
+                "__pandas_priority__",
+                "_pytestfixturefunction",
+                "__test__",
+                "__bases__",
+            ]:
                 raise
             return None
 

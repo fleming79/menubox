@@ -24,8 +24,6 @@ from menubox.trait_types import ChangeType, ProposalType, StrTuple
 if TYPE_CHECKING:
     import asyncio
 
-    InsertPosition = Literal["start", "end"]
-
 CLEANR = re.compile("<.*?>")
 
 
@@ -192,19 +190,14 @@ class Menubox(HasParent, Panel):
         if self._Menubox_init_complete:
             return
         self.observe(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
-        try:
-            if views is not None:
-                self.views = views
-            if viewlist is not None:
-                self.set_trait("viewlist", viewlist)
-            if tabviews is not None:
-                self.set_trait("tabviews", tabviews)
-            view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
-            super().__init__(children=(HTML_LOADING,) if view in self.viewlist else (), **kwargs)
-        except Exception as e:
-            self.on_error(e, "__init__ failed")
-            super(HasParent, self).__init__()
-            raise
+        if views is not None:
+            self.views = views
+        if viewlist is not None:
+            self.set_trait("viewlist", viewlist)
+        if tabviews is not None:
+            self.set_trait("tabviews", tabviews)
+        view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
+        super().__init__(children=(HTML_LOADING,) if view in self.viewlist else (), **kwargs)
         self._Menubox_init_complete = True
         if view is not None:
             self.load_view(view)
@@ -404,13 +397,15 @@ class Menubox(HasParent, Panel):
         if self.view == self._MINIMIZED:
             self.children = (self.header,)
         else:
-            center = tuple(self.get_widgets(self._get_help_widget() if self.show_help else None, self.center))
-            if mb.DEBUG_ENABLED and not self.header:
-                center = self.get_widgets(*center, self.button_activate)
+            center = (self.center,)
             if self.box_center:
-                self.box_center.children = center
-                center = self.box_center
-            self.children = tuple(self.get_widgets(self.header, center))
+                self.box_center.children = self.get_widgets(*center)
+                center = (self.box_center,)
+            if mb.DEBUG_ENABLED and not self.header:
+                center = (self.button_activate, *center)
+            if self.show_help:
+                center = (self._get_help_widget, *center)
+            self.children = self.get_widgets(self.header, *center)
         if self.border is not None:
             self.layout.border = self.border if self.view else ""
 
@@ -707,7 +702,7 @@ class Menubox(HasParent, Panel):
     def load_shuffle_item(
         self,
         obj_or_name: ipw.Widget | Menubox | str,
-        position: InsertPosition = "start",
+        position: Literal["start", "end"] = "start",
         alt_name="",
         ensure_wrapped=False,
     ):
@@ -736,7 +731,12 @@ class Menubox(HasParent, Panel):
         return None
 
     def put_obj_in_box_shuffle(
-        self, obj: ipw.Widget | mb.Menubox, *, position: InsertPosition = "end", alt_name="", ensure_wrapped=False
+        self,
+        obj: ipw.Widget | mb.Menubox,
+        *,
+        position: Literal["start", "end"] = "end",
+        alt_name="",
+        ensure_wrapped=False,
     ) -> mb.Menubox:
         """Puts an object into the box shuffle container.
 
@@ -760,16 +760,19 @@ class Menubox(HasParent, Panel):
             TypeError: If the object is not a widget.
             RuntimeError: If the object is already in the box shuffle but is not a Menubox.
         """
-        if isinstance(obj, mb.Menubox) and obj.closed:
+        obj_ = obj
+        if (isinstance(obj, mb.Menubox) and obj.closed) or (isinstance(obj, ipw.Widget) and not obj.comm):
             msg = f"The instance of {utils.fullname(obj)} is closed!"
+            raise RuntimeError(msg)
+        if obj is self:
+            msg = f"Adding a menubox to its own shuffle_box is prohibited! {self=}"
             raise RuntimeError(msg)
         if not isinstance(obj, ipw.Widget):
             msg = f"obj of type={type(obj)} is not a widget!"
             raise TypeError(msg)
         if exists := self.obj_in_box_shuffle(obj):
-            if not isinstance(exists, mb.Menubox):
-                msg = "Bug above"
-                raise RuntimeError(msg)
+            if ensure_wrapped and obj is exists and isinstance(obj, Menubox) and obj.showbox is self.box_shuffle:
+                obj.set_trait("showbox", None)
             obj = exists
         self.enable_widget("box_shuffle")
         assert self.box_shuffle  # noqa: S101
@@ -777,8 +780,8 @@ class Menubox(HasParent, Panel):
             obj = mb.Menubox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
             if alt_name:
                 obj.title_description = "<b>{self.name}<b>"
-        children = (c for c in self.box_shuffle.children if c is not obj)
-        self.box_shuffle.children = (*children, obj) if position == "end" else (*children, obj)
+        children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
+        self.box_shuffle.children = (*children, obj) if position == "end" else (obj, *children)
         obj.set_trait("showbox", self.box_shuffle)
         return obj
 
@@ -792,8 +795,7 @@ class Menubox(HasParent, Panel):
         "Show and to the shell."
         self.show()
         if add_to_shell:
-            return self.add_to_shell()
-        return None
+            self.add_to_shell()
 
     def show_in_dialog(self, title: str, **kwgs):
         """Open in a dialog."""
