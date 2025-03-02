@@ -511,6 +511,7 @@ class Menubox(HasParent, Panel):
             case "button_close" if self.button_close:
                 self.button_close.tooltip = f"Close {self}"
             case "button_help" if self.button_help:
+                self.show()
                 self.button_help.tooltip = f"Help for  {utils.fullname(self)}\n"
             case "shuffle_button_views":
                 self._update_shuffle_buttons()
