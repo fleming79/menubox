@@ -20,6 +20,7 @@ class CSSvar(enum.StrEnum):
     button_dangerous_color = f"{V_PREFIX}-button-dangerous-color"
     button_toggle_color = f"{V_PREFIX}-button-toggle-color"
     button_shuffle_color = f"{V_PREFIX}-button-shuffle-color"
+    button_tab_color = f"{V_PREFIX}-button-tab-color"
 
     button_main_background_color = f"{V_PREFIX}-button-main-background-color"
     button_menu_background_color = f"{V_PREFIX}-button-menu-background-color"
@@ -29,9 +30,10 @@ class CSSvar(enum.StrEnum):
     button_dangerous_background_color = f"{V_PREFIX}-button-dangerous-background-color"
     button_toggle_background_color = f"{V_PREFIX}-button-toggle-background-color"
     button_shuffle_background_color = f"{V_PREFIX}-button-shuffle-background-color"
+    button_tab_background_color = f"{V_PREFIX}-button-tab-background-color"
 
     button_busy_border = f"{V_PREFIX}-button-busy-border"
-    button_active_view_border = f"{V_PREFIX}-button-busy-border"
+    button_active_view_border = f"{V_PREFIX}-active-view"
 
     menubox_border = f"{V_PREFIX}-Menubox-border"
     menubox_vt_border = f"{V_PREFIX}-MenuboxVT-border"
@@ -58,19 +60,18 @@ class CSScls(enum.StrEnum):
     ModalboxHeader = f"{PREFIX}-Modalbox-header"
 
     button = f"{PREFIX}-button"
-    button_modal = f"{PREFIX}-button-modal"
-    button_main = f"{PREFIX}-button-main"
-    button_menu = f"{PREFIX}-button-menu"
-    button_open = f"{PREFIX}-button-open"
-    button_cancel = f"{PREFIX}-button-cancel"
-    button_dangerous = f"{PREFIX}-button-dangerous"
-    button_toggle = f"{PREFIX}-button-toggle"
-    button_shuffle = f"{PREFIX}-button-shuffle"
+    button_type_modal = "mod-modal"
+    button_type_main = "mod-main"
+    button_type_menu = "mod-menu"
+    button_type_open = "mod-open"
+    button_type_tab = "mod-tab"
+    button_type_cancel = "mod-cancel"
+    button_type_dangerous = "mod-dangerous"
+    button_type_toggle = "mod-toggle"
+    button_type_shuffle = "mod-shuffle"
 
-    button_is_busy = f"{PREFIX}-button-busy"
-    button_active_view = f"{PREFIX}-button-active_view"
-
-    async_run_button = f"{PREFIX}-async_run_button"
+    button_is_busy = "mod-button-busy"
+    button_active_view = "mod-active-view"
 
     nested_borderbox = f"{PREFIX}-nested-border-box"  # A box using same default border as menubox
 
@@ -78,6 +79,7 @@ class CSScls(enum.StrEnum):
 
 
 VARIABLES = {
+    # Colors
     CSSvar.button_main_color: "var(--jp-ui-inverse-font-color1)",
     CSSvar.button_main_background_color: "var(--jp-accept-color-normal)",
     CSSvar.button_menu_color: "var(--jp-ui-font-color1)",
@@ -90,12 +92,15 @@ VARIABLES = {
     CSSvar.button_toggle_background_color: f"var({CSSvar.button_menu_background_color})",
     CSSvar.button_shuffle_color: f"var({CSSvar.button_menu_color})",
     CSSvar.button_shuffle_background_color: f"var({CSSvar.button_menu_background_color})",
+    CSSvar.button_tab_color: f"var({CSSvar.button_menu_color})",
+    CSSvar.button_tab_background_color: f"var({CSSvar.button_menu_background_color})",
     CSSvar.button_cancel_color: "var(--jp-ui-inverse-font-color1)",
     CSSvar.button_cancel_background_color: "var(--jp-reject-color-normal)",
     CSSvar.button_dangerous_color: "var(--jp-ui-inverse-font-color2)",
     CSSvar.button_dangerous_background_color: "var(--jp-warn-color-normal)",
-    CSSvar.button_busy_border: "var(--jp-border-color1)",
-    CSSvar.button_active_view_border: "var(--jp-border-color1)",
+    # Borders
+    CSSvar.button_busy_border: "solid 1px var(--jp-reject-color-normal)",
+    CSSvar.button_active_view_border: "solid 2px var(--jp-border-color1)",
     CSSvar.menubox_border: "solid 1px var(--jp-border-color3)",
     CSSvar.menubox_vt_border: "solid 1px var(--jp-border-color2)",
 }
@@ -107,45 +112,50 @@ STYLESHEET = f"""
 
 .{CSScls.button} {{width: max-content; flex: 0 0 auto;}}
 
-.{CSScls.button_main} {{
+.{CSScls.button}.{CSScls.button_type_main} {{
     color: var({CSSvar.button_main_color});
     background-color: var({CSSvar.button_main_background_color});
 }}
-.{CSScls.button_menu} {{
+.{CSScls.button}.{CSScls.button_type_menu} {{
     color: var({CSSvar.button_menu_color});
     background-color: var({CSSvar.button_menu_background_color});
 }}
-.{CSScls.button_open} {{
+.{CSScls.button}.{CSScls.button_type_open} {{
     color: var({CSSvar.button_open_color});
     background-color: var({CSSvar.button_open_background_color});
 }}
-.{CSScls.button_modal} {{
+.{CSScls.button}.{CSScls.button_type_modal} {{
     color: var({CSSvar.button_modal_color});
     background-color: var({CSSvar.button_modal_background_color});
 }}
-.{CSScls.button_cancel} {{
+.{CSScls.button}.{CSScls.button_type_cancel} {{
     color: var({CSSvar.button_cancel_color});
     background-color: var({CSSvar.button_cancel_background_color});
 }}
-.{CSScls.button_dangerous} {{
+.{CSScls.button}.{CSScls.button_type_dangerous} {{
     color: var({CSSvar.button_dangerous_color});
     background-color: var({CSSvar.button_dangerous_background_color});
 }}
-.{CSScls.button_toggle} {{
+.{CSScls.button}.{CSScls.button_type_toggle} {{
     color: var({CSSvar.button_toggle_color});
     background-color: var({CSSvar.button_toggle_background_color});
 }}
-.{CSScls.button_shuffle} {{
+.{CSScls.button}.{CSScls.button_type_shuffle} {{
     color: var({CSSvar.button_shuffle_color});
     background-color: var({CSSvar.button_shuffle_background_color});
 }}
-.{CSScls.button_is_busy} {{
+.{CSScls.button}.{CSScls.button_type_tab} {{
+    color: var({CSSvar.button_tab_color});
+    background-color: var({CSSvar.button_tab_background_color});
+}}
+
+.{CSScls.button}.{CSScls.button_is_busy} {{
     border: var({CSSvar.button_busy_border});
     box-shadow: 0 4px 5px 0 rgba(0, 0, 0, var(--md-shadow-key-penumbra-opacity)),
     0 1px 10px 0 rgba(0, 0, 0, var(--md-shadow-ambient-shadow-opacity)),
     0 2px 4px -1px rgba(0, 0, 0, var(--md-shadow-key-umbra-opacity));
 }}
-.{CSScls.button_active_view} {{
+.{CSScls.button}.{CSScls.button_active_view} {{
     border: var({CSSvar.button_active_view_border});
 }}
 
@@ -162,7 +172,7 @@ STYLESHEET = f"""
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_center} {{
-    flex: 1 1 auto;
+    /* flex: 1 1 auto; */
     height: auto;}}
 .{CSScls.Menubox_menu} {{
     flex: 0 0 auto;

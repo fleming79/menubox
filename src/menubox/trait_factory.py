@@ -126,18 +126,18 @@ ValueWidget = IHP(ipw.ValueWidget)
 
 # Ipywidget Bool
 Checkbox = IHP(ipw.Checkbox)
-ToggleButton = IHP(ipw.ToggleButton, add_css_class=(CSScls.button, CSScls.button_toggle))
+ToggleButton = IHP(ipw.ToggleButton, add_css_class=(CSScls.button, CSScls.button_type_toggle))
 Valid = IHP(ipw.Valid)
 
 # Ipywidget Button
-Button_main = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_main))
-Button_open = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_open))
-Button_cancel = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_cancel))
-Button_dangerous = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_dangerous))
-Button_modal = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_modal))
-Button_menu = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_menu))
-Button_toggle = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_toggle))
-Button_shuffle = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_shuffle))
+Button_main = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_main))
+Button_open = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_open))
+Button_cancel = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_cancel))
+Button_dangerous = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_dangerous))
+Button_modal = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_modal))
+Button_menu = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_menu))
+Button_toggle = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_toggle))
+Button_shuffle = IHP(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_shuffle))
 
 # Ipywidget Box
 Box = IHP(ipw.Box)
@@ -229,7 +229,7 @@ Combobox = IHP(ipw.Combobox)
 Controller = IHP(ipw.Controller)
 
 # Ipywidget Upload
-FileUpload = IHP(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main))
+FileUpload = IHP(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_type_main))
 
 # Ipywidget Media
 Image = IHP(ipw.Image)
@@ -265,12 +265,12 @@ MenuboxVT = IHP(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.Menub
 AsyncRunButton = IHP(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults={"tasktype": mb_async.TaskType.general},
-    add_css_class=CSScls.button_main,
+    add_css_class=CSScls.button_type_main,
 )
 AsyncRunButton_update = IHP(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults={"tasktype": mb_async.TaskType.update},
-    add_css_class=CSScls.button_main,
+    add_css_class=CSScls.button_type_main,
 )
 Modalbox = IHP(cast(type["menubox.modalbox.Modalbox"], "menubox.modalbox.Modalbox"))
 

@@ -346,11 +346,8 @@ class Menubox(HasParent, Panel):
                 self.remove_class(clsname)
         if view and view != self.view_previous:
             self.view_previous = view
-        for button in self._view_buttons:
-            if button.description == view:
-                self.add_class(CSScls.button_active_view)
-            else:
-                self.remove_class(CSScls.button_active_view)
+        for b in self._view_buttons:
+            (b.add_class if b.description == view else b.remove_class)(CSScls.button_active_view)
 
         self.menu_close()
         if self.button_menu:
@@ -561,7 +558,9 @@ class Menubox(HasParent, Panel):
         self.title.label = cleanhtml(description)
         self.title.caption = tooltip
 
-    def get_button_loadview(self, view, *, description="", disabled=False):
+    def get_button_loadview(
+        self, view, *, description="", disabled=False, button_type: Literal["open", "tab"] = "open"
+    ):
         """Creates a button that, when clicked, loads a specified view.
         Args:
             view: The name of the view to load when the button is clicked. Must be a key in `self._current_views`.
@@ -580,7 +579,8 @@ class Menubox(HasParent, Panel):
             msg = f"{view=} not in {self._current_views}"
             raise KeyError(msg)
         b = ipw.Button(description=str(description or view), disabled=disabled)
-        b.add_class(CSScls.button_open)
+        b.add_class(CSScls.button)
+        b.add_class(CSScls.button_type_open if button_type == "open" else CSScls.button_type_tab)
         ref = weakref.ref(self)
 
         def button_clicked(_: ipw.Button):
@@ -612,7 +612,7 @@ class Menubox(HasParent, Panel):
             if view in existing:
                 b = existing[view]
             else:
-                b = self.get_button_loadview(view)
+                b = self.get_button_loadview(view, button_type="tab")
                 self._tab_buttons.add(b)
             buttons.append(b)
         self.tab_buttons = buttons
@@ -688,7 +688,7 @@ class Menubox(HasParent, Panel):
         self.shuffle_button_views[name]  # Test
         b = ipw.Button(description=name)
         b.add_class(CSScls.button)
-        b.add_class(CSScls.button_shuffle)
+        b.add_class(CSScls.button_type_shuffle)
         b.on_click(self._shuffle_button_on_click)
         return b
 
