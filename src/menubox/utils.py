@@ -105,7 +105,7 @@ def weak_observe(
         if method_:
             if pass_change:
                 return method_(*args, change=change, **kwgs)  # type:ignore
-            return method_(*args, **kwgs)
+            return method_(*args, **kwgs)  # type: ignore
         change["owner"].unobserve(handle, names=names)
 
         return None  # type: ignore

@@ -338,7 +338,6 @@ class Menubox(HasParent, Panel):
         finally:
             self.set_trait("loading_view", NO_DEFAULT)
         if view:
-            # TODO: write these to be single transaction.
             for clsname in self.css_classes:
                 self.add_class(clsname)
         else:

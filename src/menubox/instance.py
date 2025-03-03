@@ -2,18 +2,7 @@ from __future__ import annotations
 
 import copy
 import inspect
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Literal,
-    NotRequired,
-    ParamSpec,
-    TypedDict,
-    TypeVar,
-    Unpack,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Generic, Literal, NotRequired, ParamSpec, TypedDict, TypeVar, Unpack, overload
 
 import traitlets
 from mergedeep import Strategy, merge
