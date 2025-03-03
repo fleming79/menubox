@@ -202,11 +202,11 @@ class TestMenubox:
 
     async def test_menubox_enable_disable_widget(self):
         m = mb.Menubox()
-        m.enable_widget("html_title", {"description": "test"})
-        assert m.html_title
-        assert m.html_title.description == "test"
-        m.disable_widget("html_title")
-        assert m.html_title is None
+        m.enable_widget("button_promote", {"description": "test"})
+        assert m.button_promote
+        assert m.button_promote.description == "test"
+        m.disable_widget("button_promote")
+        assert m.button_promote is None
 
     async def test_menubox_show_hide(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})

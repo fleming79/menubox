@@ -53,7 +53,7 @@ class Filesystem(MenuboxVT):
     )
     url = tf.Combobox(
         description="url",
-        continuous_update=False,
+        # continuous_update=False,
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     )
@@ -76,20 +76,22 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     )
-    button_home = tf.Button_main(description="🏠")
-    button_up = tf.Button_main(description="↑", tooltip="Navigate up one folder")
     button_update = tf.AsyncRunButton(
         cfunc="_button_update_async",
         description="↻",
         cancel_description="✗",
         tasktype=mb_async.TaskType.update,
     )
-    button_add = tf.AsyncRunButton(
-        cfunc="button_update",
-        kw={"create": True},
+    button_home = tf.Button_main(
+        description="🏠",
+    )
+    button_up = tf.Button_main(
+        description="↑",
+        tooltip="Navigate up one folder",
+    )
+    button_add = tf.Button_main(
         description="✚",
         tooltip="Create new file or folder",
-        disabled=True,
     )
     box_settings = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).configure(children=("protocol", "kw"))
     control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).configure(
@@ -167,9 +169,9 @@ class Filesystem(MenuboxVT):
                 if self.protocol.value == "file" and self.drive:
                     self.drive.options = list_drives()
             case self.drive:
-                if self.drive.value:
-                    self.url.value = self.drive.value
+                if drive := self.drive.value:
                     self.drive.value = None
+                    self.url.value = drive
         if change["owner"] is self:
             match change["name"]:
                 case "read_only":
@@ -194,12 +196,13 @@ class Filesystem(MenuboxVT):
                 await self.button_update.start_wait(url=self.home_url)
             case self.button_up:
                 await self.button_update.start_wait(url=self.fs._parent(self.url.value))
+            case self.button_add:
+                await self.button_update.start_wait(url=self.url.value, create=True)
 
     def update_widget_locks(self):
         for widget in (self.url, self.button_up, self.button_home, self.button_add):
             widget.disabled = self.read_only
 
-    # TODO: Consider making this a singular task
     async def _button_update_async(self, create=False, url: str | None = None):
         if self.prev_protocol != self.protocol.value or self.prev_kwargs != self.storage_options:
             self._fs = None  # causes fs to be recreated
@@ -211,7 +214,9 @@ class Filesystem(MenuboxVT):
         fs = self.fs
         exists = await mb_async.to_thread(fs.exists, url)
         try:
-            if create and not exists:
+            if not exists:
+                if not create:
+                    return
                 root, name = utils.splitname(url)
                 fs.mkdirs(root, exist_ok=True)
                 if "." in name:
@@ -219,10 +224,9 @@ class Filesystem(MenuboxVT):
                     self.log.info("Created file %s", url)
                     self.url.value = root
                     return
-                fs.mkdirs(url, exist_ok=True)
+                await mb_async.to_thread(fs.mkdirs, url, exist_ok=True)
                 self.log.info("Created folder %s", url)
-            if not exists:
-                return
+                exists = True
             try:
                 items = await mb_async.to_thread(fs.ls, url, detail=True)
             except (NotADirectoryError, FileNotFoundError):
