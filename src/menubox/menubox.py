@@ -386,9 +386,12 @@ class Menubox(HasParent, Panel):
             return
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
-        if self.task_load_view:
+        if self.task_load_view and self.loading_view:
             self.children = (HTML_LOADING,)
             await self.task_load_view
+        if not self.view:
+            self.children = ()
+            return
         self.update_title()
         self._update_header()
         if self.view == self._MINIMIZED:
@@ -546,7 +549,8 @@ class Menubox(HasParent, Panel):
         If 'html_title' is available, it sets the description and tooltip, allowing HTML in the description.
         Finally, it updates the label and caption of the title with the cleaned description and tooltip.
         """
-        if not self.view or not self.title_description:
+        if not self.title_description:
+            self.disable_widget("html_title")
             return
         self.enable_widget("html_title")
         description = self.fstr(self.title_description)
@@ -784,6 +788,8 @@ class Menubox(HasParent, Panel):
         children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
         self.box_shuffle.children = (*children, obj) if position == "end" else (obj, *children)
         obj.set_trait("showbox", self.box_shuffle)
+        if obj.button_exit:
+            obj.button_exit.focus()
         return obj
 
     def deactivate(self):

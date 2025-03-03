@@ -170,7 +170,6 @@ STYLESHEET = f"""
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_center} {{
-    /* flex: 1 1 auto; */
     height: auto;}}
 .{CSScls.Menubox_menu} {{
     flex: 0 0 auto;
@@ -178,25 +177,21 @@ STYLESHEET = f"""
     height: max-content;}}
 .{CSScls.Menubox_shuffle} {{
     align-self: flex-start;
-    flex: 0 0 auto;
     flex-flow: row wrap;
     max-width:100%;
     height: auto;}}
 .{CSScls.Modalbox}{{
-    border: {CSSvar.menubox_border},
+    flex: 0 0 auto;
     align-self: flex-start;
     overflow: hidden;
-    flex: 0 0 auto;}}
-
+    border: {CSSvar.menubox_border}}}
 .{CSScls.MenuboxVT} {{
     border: var({CSSvar.menubox_vt_border});}}
-
 .{CSScls.ModalboxHeader} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     border: var({CSSvar.menubox_border});}}
 .{CSScls.nested_borderbox} {{
-    flex: 1 0 auto;
     margin: 5px 5px 5px 5px;
     padding: 5px 5px 5px 5px;
     border: var({CSSvar.menubox_border});}}
