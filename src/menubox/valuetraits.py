@@ -832,8 +832,8 @@ class ValueTraits(HasParent):
         self,
         change: ChangeType,
         tuplename: str,
-        on_add: Callable,
-        on_remove: Callable,
+        on_add: Callable | None,
+        on_remove: Callable | None,
         _tuple_on_add: Callable,
         _tuple_on_remove: Callable,
     ):

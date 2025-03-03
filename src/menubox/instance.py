@@ -158,7 +158,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
     def instance_init(self, obj: HasParent):
         """Init an instance of TypedInstanceTuple."""
         super().instance_init(obj)
-        utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)  # type: ignore #TODO: see weak_observe
+        utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)
 
     @property
     def info_text(self):  # type: ignore

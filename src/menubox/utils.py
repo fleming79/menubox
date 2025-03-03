@@ -6,7 +6,7 @@ import importlib
 import inspect
 import weakref
 from collections.abc import Callable, Generator, Iterable
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Concatenate, Literal, ParamSpec, TypeVar, overload
 
 import ipylab
 import ipylab.log
@@ -53,9 +53,35 @@ def limited_string(obj, max_len=100, suffix=" …", mode: Literal["start", "end"
     return s
 
 
-# TODO: concat the callable when pass_change is True.
+if TYPE_CHECKING:
+
+    @overload
+    def weak_observe(
+        obj: traitlets.HasTraits,
+        method: Callable[Concatenate[ChangeType, P], R],
+        names: str = ...,
+        pass_change: Literal[True] = True,
+        *args: P.args,
+        **kwgs: P.kwargs,
+    ) -> Callable[[ChangeType], R]: ...
+    @overload
+    def weak_observe(
+        obj: traitlets.HasTraits,
+        method: Callable[P, R],
+        names: str = ...,
+        pass_change: Literal[False] = ...,
+        *args: P.args,
+        **kwgs: P.kwargs,
+    ) -> Callable[[ChangeType], R]: ...
+
+
 def weak_observe(
-    obj: traitlets.HasTraits, method: Callable[P, R], names="value", pass_change=False, *args: P.args, **kwgs: P.kwargs
+    obj: traitlets.HasTraits,
+    method: Callable[P, R] | Callable[Concatenate[ChangeType, P], R],
+    names="value",
+    pass_change=False,
+    *args: P.args,
+    **kwgs: P.kwargs,
 ) -> Callable[[ChangeType], R]:
     """Observes a traitlet of an object using a weak reference to the callback method.
 
