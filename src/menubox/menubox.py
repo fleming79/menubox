@@ -422,13 +422,6 @@ class Menubox(HasParent, Panel):
                 self.header.children = widgets
             else:
                 self.disable_widget("header")
-        if self.header:
-            if self.layout.flex_flow and self.layout.flex_flow.startswith("row"):
-                self.header.layout.border_bottom = ""
-                self.header.layout.margin = "0px 0px 0px 0px"
-            else:
-                self.header.layout.border_bottom = self.layout.border_top
-                self.header.layout.margin = "0px 0px 6px 0px"
 
     def refresh_view(self) -> asyncio.Task[str | None]:
         """Refreshes the view by reloading it.
@@ -510,7 +503,6 @@ class Menubox(HasParent, Panel):
             case "button_close" if self.button_close:
                 self.button_close.tooltip = f"Close {self}"
             case "button_help" if self.button_help:
-                self.show()
                 self.button_help.tooltip = f"Help for  {utils.fullname(self)}\n"
             case "shuffle_button_views":
                 self._update_shuffle_buttons()
@@ -666,9 +658,10 @@ class Menubox(HasParent, Panel):
                 self.set_trait("showbox", None)
             case self.button_help:
                 self.show_help = not self.show_help
-                self.enable_widget("button_help")
                 assert self.button_help  # noqa: S101
                 self.button_help.description = "❓" if self.show_help else "❔"
+                if self.show_help:
+                    self.maximize()
             case self.button_activate:
                 self.activate()
 
@@ -799,7 +792,7 @@ class Menubox(HasParent, Panel):
 
     def activate(self, *, add_to_shell=True):
         "Show and to the shell."
-        self.show()
+        self.maximize()
         if add_to_shell:
             self.add_to_shell()
 

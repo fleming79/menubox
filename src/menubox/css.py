@@ -49,10 +49,12 @@ class CSScls(enum.StrEnum):
     tab_button = f"{PREFIX}-tab-button"
 
     Menubox = f"{PREFIX}-Menubox"
-    Menubox_header = f"{PREFIX}-Menubox-header"
-    Menubox_center = f"{PREFIX}-Menubox-center"
-    Menubox_menu = f"{PREFIX}-Menubox-menu"
-    Menubox_shuffle = f"{PREFIX}-Menubox-shuffle"
+    Menubox_item = f"{PREFIX}-Menubox-item"
+    MenuboxVT_item = f"{PREFIX}-MenuboxVT-item"
+    header = "mod-header"
+    centerbox = "mod-centerbox"
+    menu = "mod-menu"
+    shuffle = "mod-shuffle"
 
     MenuboxVT = f"{PREFIX}-MenuboxVT"
 
@@ -164,29 +166,37 @@ STYLESHEET = f"""
     border: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox}.horizontal {{
     flex-flow: row wrap;}}
-.{CSScls.Menubox_header} {{
+.{CSScls.Menubox_item}.{CSScls.header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
-.{CSScls.Menubox_center} {{
+.{CSScls.Menubox_item}.{CSScls.centerbox} {{
     height: auto;}}
-.{CSScls.Menubox_menu} {{
+.{CSScls.Menubox_item}.{CSScls.menu} {{
+    flex: 0 0 auto;}}
+.{CSScls.Menubox_item}.{CSScls.shuffle} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;}}
-.{CSScls.Menubox_shuffle} {{
+.{CSScls.Menubox_item}.{CSScls.shuffle} {{
     align-self: flex-start;
     flex-flow: row wrap;
     max-width:100%;
     height: auto;}}
+
+.{CSScls.MenuboxVT} {{
+    border: var({CSSvar.menubox_vt_border});}}
+.{CSScls.MenuboxVT_item}.{CSScls.header} {{
+    flex: 0 0 auto;
+    flex-flow: row wrap;
+    height: max-content;
+    border-bottom: var({CSSvar.menubox_vt_border});}}
 .{CSScls.Modalbox}{{
     flex: 0 0 auto;
     align-self: flex-start;
     overflow: hidden;
     border: {CSSvar.menubox_border}}}
-.{CSScls.MenuboxVT} {{
-    border: var({CSSvar.menubox_vt_border});}}
 .{CSScls.ModalboxHeader} {{
     flex: 0 0 auto;
     flex-flow: row wrap;

@@ -148,11 +148,11 @@ GridBox = IHP(ipw.GridBox)
 MenuboxHeader = IHP(
     ipw.HBox,
     dlink={"source": ("self", "border"), "target": "layout.border_bottom"},
-    add_css_class=CSScls.Menubox_header,
+    add_css_class=(CSScls.Menubox_item, CSScls.header),
 )
-MenuboxCenter = IHP(ipw.VBox, add_css_class=CSScls.Menubox_center)
-MenuboxMenu = IHP(ipw.HBox, add_css_class=CSScls.Menubox_menu)
-MenuboxShuffle = IHP(ipw.HBox, add_css_class=CSScls.Menubox_shuffle)
+MenuboxCenter = IHP(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox))
+MenuboxMenu = IHP(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.menu))
+MenuboxShuffle = IHP(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.shuffle))
 
 
 # Ipywidget Float
