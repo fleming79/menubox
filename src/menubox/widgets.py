@@ -29,6 +29,7 @@ __all__ = [
     "TextareaValidate",
     "ValidatedTrait",
     "ValidateWidget",
+    "CodeEditorValidate",
 ]
 
 
@@ -135,6 +136,10 @@ class SelectMultipleValidate(ipw.SelectMultiple, ValidateWidget):
             return ()
 
 
+class CodeEditorValidate(ipylab.CodeEditor, ValidateWidget):
+    value = ValidatedTrait().tag(sync=True)
+
+
 class MarkdownViewer(ipylab.SimpleOutput):
     _converted_value = traitlets.Unicode()
     value = traitlets.Unicode()
@@ -151,7 +156,7 @@ class MarkdownViewer(ipylab.SimpleOutput):
                 else:
                     self.update()
             case "_converted_value":
-                self.push(ipd.Markdown(self._converted_value, url=self.url or None))
+                self.push(ipd.Markdown(self._converted_value, url=self.url or None), clear=True)
 
     @mb_async.debounce(1)
     def update(self):
