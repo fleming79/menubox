@@ -55,9 +55,9 @@ def run_async(
 ):
     """Run aw as a task, possibly cancelling an existing task if the name overlaps.
 
-    Also accepts a callables that return produces an awaitable.
+    Also accepts a callable that returns an awaitable.
 
-    A strong ref is kept for the task in either obj.tasks
+    A strong ref is kept for the task in either obj.tasks or _background_tasks.
 
     **Important: A result is returned ONLY when `restart=True`**
 
