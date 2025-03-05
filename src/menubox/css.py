@@ -185,7 +185,7 @@ STYLESHEET = f"""
     height: auto;}}
 
 .{CSScls.Menubox}.{CSScls.wrapper} {{
-    border: {CSSvar.menubox_vt_border};
+    border: var({CSSvar.menubox_vt_border});
     margin: 5px 5px 5px 5px;}}
 
 .{CSScls.MenuboxVT} {{
