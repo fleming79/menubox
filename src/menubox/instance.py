@@ -312,20 +312,19 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             self,
             *,
             read_only: bool = ...,
-            allow_none: bool | NO_DEFAULT_TYPE = ...,
-            load_default: Literal[False],
+            allow_none: Literal[False],
+            load_default: bool | NO_DEFAULT_TYPE = ...,
             **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T | None]: ...
-
+        ) -> InstanceHP[T]: ...
         @overload
         def configure(
             self,
             *,
             read_only: bool = ...,
-            allow_none: Literal[False],
-            load_default: bool | NO_DEFAULT_TYPE = ...,
+            allow_none: bool | NO_DEFAULT_TYPE = ...,
+            load_default: Literal[False],
             **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T]: ...
+        ) -> InstanceHP[T | None]: ...
         @overload
         def configure(
             self,
