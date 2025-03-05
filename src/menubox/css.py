@@ -55,6 +55,7 @@ class CSScls(enum.StrEnum):
     centerbox = "mod-centerbox"
     menu = "mod-menu"
     shuffle = "mod-shuffle"
+    wrapper = "mod-wrapper"
 
     MenuboxVT = f"{PREFIX}-MenuboxVT"
 
@@ -178,12 +179,14 @@ STYLESHEET = f"""
 .{CSScls.Menubox_item}.{CSScls.shuffle} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
-    height: max-content;}}
-.{CSScls.Menubox_item}.{CSScls.shuffle} {{
+    border: {CSSvar.menubox_border};
     align-self: flex-start;
-    flex-flow: row wrap;
     max-width:100%;
     height: auto;}}
+
+.{CSScls.Menubox}.{CSScls.wrapper} {{
+    border: {CSSvar.menubox_vt_border};
+    margin: 5px 5px 5px 5px;}}
 
 .{CSScls.MenuboxVT} {{
     border: var({CSSvar.menubox_vt_border});}}

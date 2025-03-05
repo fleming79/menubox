@@ -835,9 +835,9 @@ class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
     widget = tf.InstanceHP(ipw.Widget).configure(read_only=True, load_default=False)
     views = traitlets.Dict({"widget": "widget"})
+    css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):
         self.set_trait("widget", widget)
-        if isinstance(widget, Menubox):
-            self.parent = widget
+        utils.weak_observe(widget, self.close, names="comm")
         super().__init__()
