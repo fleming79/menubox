@@ -106,11 +106,11 @@ FileUpload = ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button
 MenuboxHeader = ihpwrap(
     ipw.HBox,
     dlink={"source": ("self", "border"), "target": "layout.border_bottom"},
-    add_css_class=(CSScls.Menubox_item, CSScls.header),
+    add_css_class=(CSScls.Menubox_item, CSScls.box_header),
 )
 MenuboxCenter = ihpwrap(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox))
-MenuboxMenu = ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.menu))
-MenuboxShuffle = ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.shuffle))
+MenuboxMenu = ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_menu))
+MenuboxShuffle = ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle))
 
 
 # Ipywidget String

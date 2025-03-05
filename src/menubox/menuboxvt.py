@@ -47,7 +47,7 @@ class MenuboxVT(Menubox, ValueTraits):
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _templates = traitlets.Dict(traitlets.Unicode(), traitlets.Unicode())
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
-    header = tf.MenuboxHeader().configure(allow_none=True, add_css_class=(CSScls.MenuboxVT_item, CSScls.header))
+    header = tf.MenuboxHeader().configure(allow_none=True, add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header))
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )

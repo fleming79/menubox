@@ -51,10 +51,10 @@ class CSScls(enum.StrEnum):
     Menubox = f"{PREFIX}-Menubox"
     Menubox_item = f"{PREFIX}-Menubox-item"
     MenuboxVT_item = f"{PREFIX}-MenuboxVT-item"
-    header = "mod-header"
-    centerbox = "mod-centerbox"
-    menu = "mod-menu"
-    shuffle = "mod-shuffle"
+    box_header = "mod-box-header"
+    centerbox = "mod-box-center"
+    box_menu = "mod-box-menu"
+    box_shuffle = "mod-box-shuffle"
     wrapper = "mod-wrapper"
 
     MenuboxVT = f"{PREFIX}-MenuboxVT"
@@ -167,16 +167,17 @@ STYLESHEET = f"""
     border: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox}.horizontal {{
     flex-flow: row wrap;}}
-.{CSScls.Menubox_item}.{CSScls.header} {{
+.{CSScls.Menubox_item}.{CSScls.box_header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_item}.{CSScls.centerbox} {{
     height: auto;}}
-.{CSScls.Menubox_item}.{CSScls.menu} {{
-    flex: 0 0 auto;}}
-.{CSScls.Menubox_item}.{CSScls.shuffle} {{
+.{CSScls.Menubox_item}.{CSScls.box_menu} {{
+    flex: 0 1 auto;
+    flex-flow: row wrap;}}
+.{CSScls.Menubox_item}.{CSScls.box_shuffle} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     border: {CSSvar.menubox_border};
@@ -190,7 +191,7 @@ STYLESHEET = f"""
 
 .{CSScls.MenuboxVT} {{
     border: var({CSSvar.menubox_vt_border});}}
-.{CSScls.MenuboxVT_item}.{CSScls.header} {{
+.{CSScls.MenuboxVT_item}.{CSScls.box_header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
