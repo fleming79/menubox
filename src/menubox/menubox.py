@@ -814,20 +814,29 @@ class Menubox(HasParent, Panel):
         return obj
 
     def deactivate(self):
-        "Remove from shell hide and load view None."
+        "Hide and close existing shell connections."
         self.hide()
         for sc in self.connections:
             sc.close()
 
     def activate(self, *, add_to_shell=True):
-        "Show and to the shell."
+        "Maximize and add to the shell."
         self.maximize()
         if add_to_shell:
             self.add_to_shell()
 
-    def show_in_dialog(self, title: str, **kwgs):
-        """Open in a dialog."""
-        self.activate(add_to_shell=False)
+    def show_in_dialog(self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE, **kwgs):
+        """Display the menubox in a dialog.
+
+        Args:
+            title: The title of the dialog.
+            view: The view to load. If None, the default view is loaded.
+            **kwgs: Keyword arguments passed to ipylab.app.dialog.show_dialog.
+
+        Returns:
+            The result of ipylab.app.dialog.show_dialog.
+        """
+        self.load_view(view)
         return ipylab.app.dialog.show_dialog(title=title, body=self, **kwgs)
 
 
