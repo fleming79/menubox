@@ -68,6 +68,7 @@ class HPI4(HasParent):
 async def test_instance(home: mb.Home):
     hp1 = HPI(name="hp1")
     assert hp1.my_button
+    assert hp1.a
     assert hp1.a.name
     hp1.parent = None
     # Spawn from Class name
@@ -101,6 +102,7 @@ async def test_instance(home: mb.Home):
     assert hp2.parent is hp1, "When value is updated the parent is updated."
 
     assert not hp2.c.parent, "Tag specifying no parent succeeded."
+    assert hp2.d
     assert hp2.d.description == "C has value", "from dynamic_kwgs."
 
     hp1.instanceHP_enable_disable("a", False)

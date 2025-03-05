@@ -25,7 +25,7 @@ class ChildrenSetter(ValueTraits):
     def on_change(self, change: ChangeType):
         if change["owner"] is self.parent:
             if change["name"] == self.name and isinstance(change["old"], Box):
-                change["old"].children = ()
+                change["old"].set_trait("children", ())
             elif change["name"] == self.nametuple_name:
                 self._update_dotted_names_from_parent_nametuple()
         if change["owner"] is self:
@@ -54,4 +54,4 @@ class ChildrenSetter(ValueTraits):
     @debounce(0.01, tasktype=TaskType.update)
     def update(self):
         if self.parent and (box := getattr(self.parent, self.name)):
-            box.children = self.parent.get_widgets(self.dottednames, show=True)
+            box.set_trait("children", self.parent.get_widgets(self.dottednames, show=True))

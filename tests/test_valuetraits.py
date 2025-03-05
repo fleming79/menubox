@@ -14,7 +14,7 @@ from menubox.trait_types import NameTuple
 
 
 class Nested(HasParent):
-    number = tf.FloatText()
+    number = tf.InstanceHP(ipw.FloatText)
 
 
 class VT1(ValueTraits):

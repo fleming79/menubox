@@ -93,9 +93,8 @@ class Menubox(HasParent, Panel):
 
     # Trait instances
     center: traitlets.Container[utils.GetWidgetsInputType] = traitlets.Any(read_only=True, allow_none=True)  # type: ignore
-    tab_buttons = Buttons()
-    shuffle_buttons = Buttons()
-
+    tab_buttons = Buttons(read_only=True)
+    shuffle_buttons = Buttons(read_only=True)
     # Trait factory
     _view_buttons: tf.InstanceHP[weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
     _tab_buttons: tf.InstanceHP[weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
@@ -197,7 +196,7 @@ class Menubox(HasParent, Panel):
         if tabviews is not None:
             self.set_trait("tabviews", tabviews)
         view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
-        super().__init__(children=(HTML_LOADING,) if view in self.viewlist else (), **kwargs)
+        super().__init__(**kwargs)
         self._Menubox_init_complete = True
         if view is not None:
             self.load_view(view)
@@ -386,15 +385,15 @@ class Menubox(HasParent, Panel):
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.task_load_view and self.loading_view:
-            self.children = (HTML_LOADING,)
+            self.set_trait("children", (HTML_LOADING,))
             await self.task_load_view
         if not self.view:
-            self.children = ()
+            self.set_trait("children", ())
             return
         self.update_title()
         self._update_header()
         if self.view == self._MINIMIZED:
-            self.children = (self.header,)
+            self.set_trait("children", (self.header,))
         else:
             center = (self.center,)
             if self.box_center:
@@ -404,7 +403,7 @@ class Menubox(HasParent, Panel):
                 center = (self.button_activate, *center)
             if self.show_help:
                 center = (self._get_help_widget, *center)
-            self.children = self.get_widgets(self.header, *center)
+            self.set_trait("children", self.get_widgets(self.header, *center))
         if self.border is not None:
             self.layout.border = self.border if self.view else ""
 
@@ -610,10 +609,10 @@ class Menubox(HasParent, Panel):
                 b = self.get_button_loadview(view, button_type="tab")
                 self._tab_buttons.add(b)
             buttons.append(b)
-        self.tab_buttons = buttons
+        self.set_trait("tab_buttons", buttons)
 
     def _update_shuffle_buttons(self):
-        self.shuffle_buttons = (self.get_shuffle_button(name) for name in self.shuffle_button_views)
+        self.set_trait("shuffle_buttons", (self.get_shuffle_button(name) for name in self.shuffle_button_views))
 
     def _onchange_showbox(self, change):
         if isinstance(change["old"], ipw.Box):

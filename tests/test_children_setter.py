@@ -81,6 +81,7 @@ async def test_children_setter_nested_enable_disable(cto: ChildrenSetterTester):
 
     # Check enable nested
     cto.enable_widget("nested", {"dropdown": None})
+    assert cto.nested
     assert cto.nested.dropdown is None
     assert cs.tasks, "Update debounced should be scheduled"
     await cs.wait_tasks()
@@ -94,6 +95,7 @@ async def test_children_setter_nested_enable_disable(cto: ChildrenSetterTester):
 async def test_children_setter_builtin(cto: ChildrenSetterTester):
     assert cto.dynamic_box
     await asyncio.sleep(0.1)
+    assert cto.nested
     assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
 
@@ -101,6 +103,7 @@ async def test_children_setter_enable(cto: ChildrenSetterTester):
     assert cto.dynamic_box
     cto.enable_widget("label_no_default")
     await asyncio.sleep(0.1)
+    assert cto.nested
     assert cto.dynamic_box.children == (cto.label_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
 
@@ -108,6 +111,7 @@ async def test_children_setter_hide(cto: ChildrenSetterTester):
     assert cto.dynamic_box
     mb.utils.hide(cto.dropdown)
     await asyncio.sleep(0.1)
+    assert cto.nested
     assert cto.dynamic_box.children == (cto.nested.dropdown, cto.nested.button)
 
 
@@ -119,6 +123,7 @@ async def test_children_setter_nametuple(cto: ChildrenSetterTester):
     # Check we can dynamically adjust the children
     cto.dynamic_box_nametuple_children = ("label", "dropdown", "nested.dropdown", "nested.button")
     await asyncio.sleep(0.1)
+    assert cto.nested
     assert cto.dynamic_box_nametuple.children == (cto.label, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
     # Check still dynamically updates

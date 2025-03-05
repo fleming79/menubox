@@ -438,7 +438,7 @@ class TestMenubox:
             m.put_obj_in_box_shuffle(m)
         m = mb.Menubox(views={"a": ipw.HTML("A")})
         with pytest.raises(TypeError):
-            m.put_obj_in_box_shuffle(1)
+            m.put_obj_in_box_shuffle(1)  # type: ignore
 
     async def test_menubox_activate_deactivate(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")}, view=None)

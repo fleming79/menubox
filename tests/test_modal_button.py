@@ -1,6 +1,8 @@
 import asyncio
 from typing import override
 
+import ipywidgets as ipw
+
 import menubox as mb
 from menubox import trait_factory as tf
 from menubox.modalbox import Modalbox
@@ -9,8 +11,8 @@ from menubox.modalbox import Modalbox
 class PMBB(mb.MenuboxVT):
     task_button_run = tf.Task()
     task_update = tf.Task()
-    count = tf.FloatText()
-    slider = tf.IntSlider()
+    count = tf.InstanceHP(ipw.FloatText)
+    slider = tf.InstanceHP(ipw.IntSlider)
     box_extra = tf.HBox().configure(children=("count",))
     box_mb2 = tf.VBox()
     mb1 = tf.Modalbox(obj="box_extra", title="mb1 open")

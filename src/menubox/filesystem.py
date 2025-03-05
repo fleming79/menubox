@@ -32,8 +32,8 @@ class Filesystem(MenuboxVT):
     box_center = None
     _fs = None
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
-    prev_protocol = "file"
-    prev_kwargs: dict | None = None
+    prev_protocol = traitlets.Enum(values=sorted(available_protocols()), default_value="file")
+    prev_kwargs = traitlets.Dict()
     folders_only = traitlets.Bool()
     read_only = traitlets.Bool()
     disabled = traitlets.Bool()
@@ -218,7 +218,7 @@ class Filesystem(MenuboxVT):
                 if not create:
                     return
                 root, name = utils.splitname(url)
-                fs.mkdirs(root, exist_ok=True)
+                await mb_async.to_thread(fs.mkdirs, root, exist_ok=True)
                 if "." in name:
                     fs.touch(url)
                     self.log.info("Created file %s", url)

@@ -58,7 +58,7 @@ async def test_persist():
 
     assert p.to_dict() == p.to_dict()
     assert p.df.equals(p.df)
-
+    assert p.menu_load_index
     p.menu_load_index.expand()
     p.version_widget.value = 2
     assert p.version == 2
