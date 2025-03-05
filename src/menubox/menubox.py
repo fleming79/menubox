@@ -617,7 +617,7 @@ class Menubox(HasParent, Panel):
     def _onchange_showbox(self, change):
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
-        for name in ("button_exit", "button_promote", "button_promote"):
+        for name in ("button_exit", "button_promote", "button_demote"):
             self.instanceHP_enable_disable(name, bool(self.showbox))
         if self.showbox:
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
@@ -691,7 +691,7 @@ class Menubox(HasParent, Panel):
         if not self.box_shuffle:
             return None
         for c in self.box_shuffle.children:
-            if c is obj or isinstance(c, mb.Menubox) and c.views.get("WRAPPED") is obj:
+            if c is obj or isinstance(c, MenuboxWrapper) and c.widget is obj:
                 return c
         return None
 
@@ -726,14 +726,44 @@ class Menubox(HasParent, Panel):
             return self.put_obj_in_box_shuffle(obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped)
         return None
 
+    if TYPE_CHECKING:
+
+        @overload
+        def put_obj_in_box_shuffle(
+            self,
+            obj: ipw.Widget | mb.Menubox,
+            *,
+            ensure_wrapped: Literal[True],
+            position: Literal["start", "end"] = ...,
+            alt_name=...,
+        ) -> MenuboxWrapper: ...
+        @overload
+        def put_obj_in_box_shuffle(  # type: ignore
+            self,
+            obj: mb.Menubox,
+            *,
+            ensure_wrapped: Literal[False] = ...,
+            position: Literal["start", "end"] = ...,
+            alt_name=...,
+        ) -> Menubox: ...
+        @overload
+        def put_obj_in_box_shuffle(
+            self,
+            obj: ipw.Widget,
+            *,
+            ensure_wrapped: Literal[False] = ...,
+            position: Literal["start", "end"] = ...,
+            alt_name=...,
+        ) -> MenuboxWrapper: ...
+
     def put_obj_in_box_shuffle(
         self,
         obj: ipw.Widget | mb.Menubox,
         *,
+        ensure_wrapped=False,
         position: Literal["start", "end"] = "end",
         alt_name="",
-        ensure_wrapped=False,
-    ) -> mb.Menubox:
+    ) -> Menubox | MenuboxWrapper:
         """Puts an object into the box shuffle container.
 
         If the object is already in the box shuffle, it will be moved to the end or beginning
@@ -772,10 +802,10 @@ class Menubox(HasParent, Panel):
             obj = exists
         self.enable_widget("box_shuffle")
         assert self.box_shuffle  # noqa: S101
-        if not isinstance(obj, mb.Menubox) or ensure_wrapped and "WRAPPED" not in obj.views:
-            obj = mb.Menubox(name=alt_name, views={"WRAPPED": obj}, view="WRAPPED")
-            if alt_name:
-                obj.title_description = "<b>{self.name}<b>"
+        if not isinstance(obj, mb.Menubox) or ensure_wrapped and not isinstance(obj, MenuboxWrapper):
+            obj = MenuboxWrapper(obj)
+            alt_name = alt_name or "<b>{self.widget.name}<b>" if isinstance(obj_, Menubox) else ""
+            obj.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
         self.box_shuffle.children = (*children, obj) if position == "end" else (obj, *children)
         obj.set_trait("showbox", self.box_shuffle)
@@ -799,3 +829,15 @@ class Menubox(HasParent, Panel):
         """Open in a dialog."""
         self.activate(add_to_shell=False)
         return ipylab.app.dialog.show_dialog(title=title, body=self, **kwgs)
+
+
+class MenuboxWrapper(Menubox):
+    DEFAULT_VIEW = "widget"
+    widget = tf.InstanceHP(ipw.Widget).configure(read_only=True, load_default=False)
+    views = traitlets.Dict({"widget": "widget"})
+
+    def __init__(self, widget: ipw.Widget):
+        self.set_trait("widget", widget)
+        if isinstance(widget, Menubox):
+            self.parent = widget
+        super().__init__()

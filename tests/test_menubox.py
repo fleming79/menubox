@@ -5,6 +5,7 @@ import pytest
 
 import menubox as mb
 from menubox import trait_factory as tf
+from menubox.menubox import MenuboxWrapper
 
 
 class TestMenubox:
@@ -150,15 +151,16 @@ class TestMenubox:
         assert abox
         b = ipw.Button(description="Not a Menubox")
         wrapper = m3.put_obj_in_box_shuffle(b)
-        assert wrapper.view == "WRAPPED"
-        assert wrapper.center is b
+        assert wrapper.view == "widget"
+        assert wrapper.widget is b
         assert b not in abox.children, "should be added with wrapper"
         assert wrapper in abox.children
         assert m3.obj_in_box_shuffle(b) is wrapper
         assert wrapper is m3.obj_in_box_shuffle(b), "should be able to find it."
         assert m3.obj_in_box_shuffle(m3) is None
         await wrapper.wait_tasks()
-        assert b is wrapper.center, "b should be the loaded 'view'"
+        assert b is wrapper.widget
+        assert wrapper.view == "widget"
 
     async def test_menubox_enable_menu_button(self):
         m2 = mb.Menubox()
@@ -428,8 +430,8 @@ class TestMenubox:
         assert m2.showbox is None
         assert len(m.box_shuffle.children) == 2
         wrapper2 = m.box_shuffle.children[1]
-        assert isinstance(wrapper2, mb.Menubox)
-        assert wrapper2.center is m2
+        assert isinstance(wrapper2, MenuboxWrapper)
+        assert wrapper2.widget is m2
         for w in (m2, widget):
             w.close()
             with pytest.raises(RuntimeError):
