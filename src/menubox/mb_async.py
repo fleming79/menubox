@@ -113,6 +113,8 @@ def run_async(
                 async with asyncio.timeout(timeout):
                     result = await aw_
             result = await aw_
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             mb.log.on_error_wrapped(aw_, obj, "run async", e)
             raise

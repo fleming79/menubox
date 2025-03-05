@@ -148,7 +148,6 @@ MenuboxVT = ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.M
 AsyncRunButton = ihpwrap(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults={"tasktype": mb_async.TaskType.general},
-    add_css_class=CSScls.button_type_main,
 )
 AsyncRunButton_update = ihpwrap(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),

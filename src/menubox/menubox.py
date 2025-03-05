@@ -825,7 +825,7 @@ class Menubox(HasParent, Panel):
         if add_to_shell:
             self.add_to_shell()
 
-    def show_in_dialog(self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE, **kwgs):
+    def show_in_dialog(self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs):
         """Display the menubox in a dialog.
 
         Args:
