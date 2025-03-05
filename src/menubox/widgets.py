@@ -29,7 +29,6 @@ __all__ = [
     "TextareaValidate",
     "ValidatedTrait",
     "ValidateWidget",
-    "CodeEditorValidate",
 ]
 
 
@@ -134,10 +133,6 @@ class SelectMultipleValidate(ipw.SelectMultiple, ValidateWidget):
             return tuple(v for v in value if v in self.options)
         except Exception:
             return ()
-
-
-class CodeEditorValidate(ipylab.CodeEditor, ValidateWidget):
-    value = ValidatedTrait().tag(sync=True)
 
 
 class MarkdownViewer(ipylab.SimpleOutput):

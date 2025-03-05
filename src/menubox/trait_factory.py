@@ -43,7 +43,6 @@ __all__ = [
     "Button_toggle",
     "Button_cancel",
     "CodeEditor",
-    "CodeEditorValidate",
     "Combobox",
     "ComboboxValidate",
     "Dropdown",
@@ -137,7 +136,6 @@ TextValidate = ihpwrap(menubox.widgets.TextValidate, defaults={"value": ""})
 FloatTextValidate = ihpwrap(menubox.widgets.FloatTextValidate, defaults={"value": 0})
 IntTextValidate = ihpwrap(menubox.widgets.IntTextValidate, defaults={"value": 0})
 SelectMultipleValidate = ihpwrap(menubox.widgets.SelectMultipleValidate, defaults={"value": ()})
-CodeEditorValidate = ihpwrap(menubox.widgets.CodeEditorValidate, defaults={"value": ""})
 MarkdownViewer = ihpwrap(menubox.widgets.MarkdownViewer)
 
 # menubox
