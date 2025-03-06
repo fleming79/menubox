@@ -200,7 +200,7 @@ STYLESHEET = f"""
     flex: 0 0 auto;
     align-self: flex-start;
     overflow: hidden;
-    border: {CSSvar.menubox_border}}}
+    border: var({CSSvar.menubox_border});}}
 .{CSScls.ModalboxHeader} {{
     flex: 0 0 auto;
     flex-flow: row wrap;

@@ -105,7 +105,6 @@ class Modalbox(HasParent, ipw.VBox):
             "button_collapse",
             {"description": fstr(button_collapse_description), "tooltip": fstr(button_collapse_tooltip)},
         )
-        self.add_class(CSScls.ModalboxHeader)
         super().__init__(parent=parent, children=(self.button_expand,), **kwargs)
         if orientation == "horizontal":
             self.layout.flex_flow = "row"
@@ -166,9 +165,12 @@ class Modalbox(HasParent, ipw.VBox):
     @log_exceptions
     def _observe_expanded(self, _: ChangeType):
         if self.expanded:
+            self.add_class(CSScls.Modalbox)
             if callable(self._on_expand):
                 self.log.debug(f"on_expand call: {self._on_expand}")
                 self._on_expand(self)
-        elif callable(self._on_collapse):
-            self.log.debug(f"_on_collapse call: {self._on_expand}")
-            self._on_collapse(self)
+        else:
+            self.remove_class(CSScls.Modalbox)
+            if callable(self._on_collapse):
+                self.log.debug(f"_on_collapse call: {self._on_expand}")
+                self._on_collapse(self)
