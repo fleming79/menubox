@@ -786,7 +786,6 @@ class Menubox(HasParent, Panel):
             TypeError: If the object is not a widget.
             RuntimeError: If the object is already in the box shuffle but is not a Menubox.
         """
-        obj_ = obj
         if (isinstance(obj, mb.Menubox) and obj.closed) or (isinstance(obj, ipw.Widget) and not obj.comm):
             msg = f"The instance of {utils.fullname(obj)} is closed!"
             raise RuntimeError(msg)
@@ -796,22 +795,23 @@ class Menubox(HasParent, Panel):
         if not isinstance(obj, ipw.Widget):
             msg = f"obj of type={type(obj)} is not a widget!"
             raise TypeError(msg)
-        if exists := self.obj_in_box_shuffle(obj):
-            if ensure_wrapped and obj is exists and isinstance(obj, Menubox) and obj.showbox is self.box_shuffle:
+        obj_ = obj
+        if found := self.obj_in_box_shuffle(obj):
+            if ensure_wrapped and obj is found and isinstance(obj, Menubox) and obj.showbox is self.box_shuffle:
                 obj.set_trait("showbox", None)
-            obj = exists
+            obj_ = found
         self.enable_widget("box_shuffle")
         assert self.box_shuffle  # noqa: S101
-        if not isinstance(obj, mb.Menubox) or ensure_wrapped and not isinstance(obj, MenuboxWrapper):
-            obj = MenuboxWrapper(obj)
-            alt_name = alt_name or "<b>{self.widget.name}<b>" if isinstance(obj_, Menubox) else ""
-            obj.title_description = f"<b>{alt_name}<b>" if alt_name else ""
+        if not isinstance(obj_, mb.Menubox) or ensure_wrapped and not isinstance(obj_, MenuboxWrapper):
+            obj_ = MenuboxWrapper(obj_)
+            alt_name = alt_name or "<b>{self.widget.name}<b>" if isinstance(obj, Menubox) else ""
+            obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
-        self.box_shuffle.children = (*children, obj) if position == "end" else (obj, *children)
-        obj.set_trait("showbox", self.box_shuffle)
-        if obj.button_exit:
-            obj.button_exit.focus()
-        return obj
+        self.box_shuffle.children = (*children, obj_) if position == "end" else (obj_, *children)
+        obj_.set_trait("showbox", self.box_shuffle)
+        if obj_.button_exit:
+            obj_.button_exit.focus()
+        return obj_
 
     def deactivate(self):
         "Hide and close existing shell connections."
