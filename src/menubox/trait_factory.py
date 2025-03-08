@@ -68,7 +68,7 @@ __all__ = [
     "TextValidate",
     "TextareaValidate",
     "VBox",
-    "MarkdownViewer",
+    "MarkdownOutput",
 ]
 
 if TYPE_CHECKING:
@@ -136,7 +136,7 @@ TextValidate = ihpwrap(menubox.widgets.TextValidate, defaults={"value": ""})
 FloatTextValidate = ihpwrap(menubox.widgets.FloatTextValidate, defaults={"value": 0})
 IntTextValidate = ihpwrap(menubox.widgets.IntTextValidate, defaults={"value": 0})
 SelectMultipleValidate = ihpwrap(menubox.widgets.SelectMultipleValidate, defaults={"value": ()})
-MarkdownViewer = ihpwrap(menubox.widgets.MarkdownViewer)
+MarkdownOutput = ihpwrap(menubox.widgets.MarkdownOutput)
 
 # menubox
 

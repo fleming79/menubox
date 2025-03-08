@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import textwrap
 import weakref
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
@@ -23,7 +24,7 @@ __all__ = [
     "ComboboxValidate",
     "FloatTextValidate",
     "IntTextValidate",
-    "MarkdownViewer",
+    "MarkdownOutput",
     "SelectMultipleValidate",
     "TextValidate",
     "TextareaValidate",
@@ -135,11 +136,11 @@ class SelectMultipleValidate(ipw.SelectMultiple, ValidateWidget):
             return ()
 
 
-class MarkdownViewer(ipylab.SimpleOutput):
+class MarkdownOutput(ipylab.SimpleOutput):
     _converted_value = traitlets.Unicode()
     value = traitlets.Unicode()
     max_outputs = traitlets.Int(1).tag(sync=True)
-    converter = traitlets.Callable(lambda value: value)
+    converter = traitlets.Callable(textwrap.dedent)
     url = traitlets.Unicode()
 
     @traitlets.observe("value", "_converted_value")

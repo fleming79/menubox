@@ -100,7 +100,7 @@ class Menubox(HasParent, Panel):
     _tab_buttons: tf.InstanceHP[weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
     task_load_view = tf.Task()
     html_title = tf.HTML_Title().configure(load_default=False)
-    out_help = tf.MarkdownViewer().configure(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
+    out_help = tf.MarkdownOutput().configure(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
     button_menu = tf.Button_menu(description="☰").configure(load_default=False)

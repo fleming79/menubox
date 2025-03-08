@@ -82,7 +82,7 @@ class MenuboxVT(Menubox, ValueTraits):
     )
 
     description = tf.CodeEditor(mime_type="text/x-markdown")
-    description_viewer = tf.MarkdownViewer(layout={"margin": "0px 0px 0px 10px"}).configure(
+    description_viewer = tf.MarkdownOutput(layout={"margin": "0px 0px 0px 10px"}).configure(
         dlink={"source": ("description", "value"), "target": "value"},
         set_attrs={"converter": "._convert_description"},
         add_css_class=(CSScls.resize_vertical,),
