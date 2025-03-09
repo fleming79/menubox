@@ -23,7 +23,7 @@ dependencies = [
   "numpy",
   "pandas",
   "toolz",
-  "traitlets>=5.13.0",
+  "traitlets>=5.14.3",
   "wrapt>=1.15.0",
   "fsspec>=2023.9.2",
   "orjson>=3.9.14",

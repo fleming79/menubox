@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import pathlib
 import re
-from typing import TYPE_CHECKING, ClassVar, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
 import psutil
 import traitlets
@@ -283,7 +283,7 @@ class RelativePath(Filesystem):
     value_traits_persist = NameTuple()
     parent: Filesystem
 
-    def __new__(cls, parent: Filesystem, **kwargs):
+    def __new__(cls, parent: Filesystem, **kwargs) -> Self:
         return super().__new__(cls, home=parent.home, parent=parent, **kwargs)
 
     def __init__(self, parent: Filesystem, **kwargs):

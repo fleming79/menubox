@@ -5,7 +5,7 @@ import enum
 import functools
 import inspect
 import weakref
-from typing import TYPE_CHECKING, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, ParamSpec, Self, TypeVar, cast
 
 import wrapt
 
@@ -242,7 +242,7 @@ class PeriodicMode(str, enum.Enum):
 class _Periodic:
     __slots__ = ("_repeat", "task", "wrapped", "instance", "args", "kwargs", "wait", "mode")
 
-    def __new__(cls, wrapped, instance, args, kwargs, wait, mode):
+    def __new__(cls, wrapped, instance, args, kwargs, wait, mode) -> Self:
         self = super().__new__(cls)
         self._repeat = True
         self.wrapped = wrapped

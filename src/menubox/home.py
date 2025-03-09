@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import TYPE_CHECKING, ClassVar, Self, cast
 
 import traitlets
 
@@ -48,13 +48,13 @@ class Home(HasParent):
     def validate_name(cls, name: str) -> str:
         return to_safe_homename(name)
 
-    def __new__(cls, name: Home | str | pathlib.Path, **kwargs):
+    def __new__(cls, name: Home | str | pathlib.Path, **kwargs) -> Self:
         if isinstance(name, Home):
-            return name
+            return name  # type: ignore
+        name = to_safe_homename(str(name))
         if name not in cls._all_homes:
-            name = to_safe_homename(str(name))
             cls._all_homes[name] = super().__new__(cls, name=name, **kwargs)  # type: ignore
-        return cls._all_homes[name]
+        return cls._all_homes[name]  # type: ignore
 
     @log_exceptions
     def __init__(self, name: str | Home | pathlib.Path, *, private=False, **kwargs):

@@ -286,7 +286,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     parent = Parent()
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> Self:
         def _make_key():
             key = [cls.__qualname__]
             if not isinstance(cls.SINGLETON_BY, tuple):

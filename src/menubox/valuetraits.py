@@ -549,7 +549,7 @@ class ValueTraits(HasParent):
             msg = "Parent must not be set prior to init of ValueTraits."
             raise RuntimeError(msg)
 
-    def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs):
+    def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
         if home:
             home = Home(home)
         elif isinstance(parent, ValueTraits):
