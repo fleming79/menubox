@@ -439,49 +439,34 @@ def instanceHP_wrapper(
     load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
     **kwargs: Unpack[IHPSettings],
 ) -> Callable[P, InstanceHP[T]]:
-    """
-    A decorator style function to produce InstanceHP trait for klass.
+    """Wraps the InstanceHP trait for use with HasParent classes.
 
-    Note: the returned instance can also be configured.
-
-    klass:
-        The class to base the instance on.
-    defaults:
-        default values used in the create.
-    strategy:
-        How defaults are merged with the instance kwargs if a clash occurs with defaults.
-
-    Configure
-    ---------
-    read_only: boo [ default False ]
-        Make the trait read only.
-    load_default: bool [default True]
-    allow_none : Optional bool
-        default : True if load_default is False else False
-    tags:
-        Default tags to apply (see tags).
-
+    This function creates a factory that returns an InstanceHP trait,
+    configured with the specified settings. It's designed to be used
+    when adding a trait to a new subclass of HasParent.
+    Args:
+        klass: The class or a string representation of the class to be instantiated by the InstanceHP trait.
+        defaults: A dictionary of default keyword arguments to be passed to the class constructor.
+        strategy: The merging strategy to use when combining defaults with instance-specific keyword arguments.
+                  Defaults to Strategy.REPLACE.
+        tags: A dictionary of tags to be applied to the InstanceHP trait.
+        read_only: Whether the InstanceHP trait should be read-only. Defaults to True.
+        allow_none: Whether the InstanceHP trait should allow None as a value. Defaults to NO_DEFAULT.
+        load_default: Whether the InstanceHP trait should load the default value upon initialization. Defaults to NO_DEFAULT.
+        **kwargs: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
+    Returns:
+        A factory function that, when called, returns an InstanceHP trait instance.  The factory
+        function accepts *args and **kwgs which are passed to the constructor of `klass` when the
+        trait's default value is requested.
     Usage:
-    -----
-
-    ```
-    Dropdown = instanceHP_wrapper(Dropdown, defaults={"options": (1, 2, 3)})
-
-
-    class Widget_Box(Menubox):
-        a = Dropdown(description="a")
-        b = Dropdown(description="b").configure(load_default=False)
-
-
-    wb = Widget_box()
-    assert b.a.description == "a"
-    wb2 = Widget_box()
-    assert wb2.a is not wb
-    ```
-
+        Use this function to add an InstanceHP trait to a class that inherits from HasParent.
+        The returned factory should be assigned as a class-level attribute.  When the trait
+        is accessed for the first time on an instance of the class, the InstanceHP trait will
+        be instantiated and configured.
     """
+
     defaults_ = merge({}, defaults) if defaults else {}
-    tags = dict(tags) if tags else {}
+    tags = dict(tags) if tags else {}  # type: ignore
 
     def instanceHP_factory(*args: P.args, **kwgs: P.kwargs) -> InstanceHP[T]:
         """Returns an InstanceHP[klass] trait.
