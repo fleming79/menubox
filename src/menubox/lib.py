@@ -132,11 +132,8 @@ def remove_on_close(inst: InstanceHP, parent: HasParent, old: object | None, new
                 parent
                 and ((cname == "closed" and value) or (cname == "comm" and not value))
                 and parent._trait_values.get(inst.name) is change["owner"]
-            ):
-                if inst.allow_none and not parent.closed:
-                    parent.set_trait(inst.name, None)
-                elif old := parent._trait_values.pop(inst.name, None):
-                    inst._value_changed(parent, old, None)
+            ) and (old := parent._trait_values.pop(inst.name, None)):
+                inst._value_changed(parent, old, None)
 
         names = "closed" if isinstance(new, HasParent) else "comm"
         new.observe(_observe_closed, names)
