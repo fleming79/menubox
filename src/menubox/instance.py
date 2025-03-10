@@ -154,7 +154,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
     def __repr__(self):
-        return f"InstanHP<klass={self.klass.__name__}>"
+        return f"InstanceHP<klass={self.klass.__name__}>"
 
     def __str__(self):
         return self.name
