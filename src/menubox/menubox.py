@@ -24,6 +24,8 @@ from menubox.trait_types import ChangeType, ProposalType, StrTuple
 if TYPE_CHECKING:
     import asyncio
 
+    from menubox.instance import IHPChange
+
 CLEANR = re.compile("<.*?>")
 
 
@@ -118,10 +120,17 @@ class Menubox(HasParent, Panel):
     # Boxes
     box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
     box_menu = tf.MenuboxMenu().configure(allow_none=True)
-    showbox = tf.Box().configure(allow_none=True, load_default=False, on_replace_close=False)
+    showbox = tf.Box().configure(
+        allow_none=True,
+        load_default=False,
+        on_replace_close=False,
+        remove_on_close=False,
+        value_changed="_onchange_showbox",
+    )
     header = tf.MenuboxHeader().configure(allow_none=True)
     box_center = tf.MenuboxCenter().configure(allow_none=True)
     _mb_refresh_traitnames = (
+        "closed",
         "show_help",
         "html_title",
         "border",
@@ -148,7 +157,6 @@ class Menubox(HasParent, Panel):
         "button_close",
         "center",
         "remover",
-        "showbox",
         "tab_buttons",
         "shuffle_buttons",
         "shuffle_button_views",
@@ -203,16 +211,6 @@ class Menubox(HasParent, Panel):
 
     async def init_async(self):
         return await super().init_async()
-
-    @override
-    def close(self, force=False):
-        if self.closed or (self.KEEP_ALIVE and not force):
-            return
-        if self.task_load_view:
-            self.task_load_view.cancel("Closing")
-        if self.trait_has_value("showbox"):
-            self.set_trait("showbox", None)
-        super().close(force)
 
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType):
@@ -469,6 +467,7 @@ class Menubox(HasParent, Panel):
 
     def _observe_mb_refresh(self, change: ChangeType):
         if self.closed:
+            self.unobserve(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
             return
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
@@ -480,9 +479,6 @@ class Menubox(HasParent, Panel):
                 return
             case "tabviews":
                 self._update_tab_buttons()
-                return
-            case "showbox":
-                self._onchange_showbox(change)
                 return
             case "menuviews":
                 if self.menuviews:
@@ -614,7 +610,7 @@ class Menubox(HasParent, Panel):
     def _update_shuffle_buttons(self):
         self.set_trait("shuffle_buttons", (self.get_shuffle_button(name) for name in self.shuffle_button_views))
 
-    def _onchange_showbox(self, change):
+    def _onchange_showbox(self, change: IHPChange):
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
         for name in ("button_exit", "button_promote", "button_demote"):
@@ -808,6 +804,7 @@ class Menubox(HasParent, Panel):
             obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
         self.box_shuffle.children = (*children, obj_) if position == "end" else (obj_, *children)
+        obj_.show()
         obj_.set_trait("showbox", self.box_shuffle)
         if obj_.button_exit:
             obj_.button_exit.focus()
