@@ -71,7 +71,7 @@ class MenuboxVT(Menubox, ValueTraits):
         layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
         style={"description_width": "initial"},
     ).configure(
-        dynamic_kwgs={"value": "name", "disabled": lambda config: config["parent"].RENAMEABLE},
+        dynamic_kwgs={"value": "name", "disabled": lambda config: not config["parent"].RENAMEABLE},
     )
     _description_label = tf.HTML("<b>Description</b>")
     _description_preview_label = tf.HTML("<b>Description preview</b>")
