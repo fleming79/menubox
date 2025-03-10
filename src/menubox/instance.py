@@ -215,7 +215,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             return value  # type: ignore
 
     def finalize(self):
-        """Finalizes the menubox instance by resolving the class and calling the initialization hook.
+        """Finalizes the InstanceHP instance by resolving the class and calling the initialization hook.
 
         If the class is already resolved, this method does nothing. Otherwise, it imports the class if necessary,
         verifies that it is a class, stores it in the instance, and calls the 'instancehp_finalize' hook.
