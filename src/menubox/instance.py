@@ -98,7 +98,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             raise TypeError(msg)
         return super().class_init(cls, name)
 
-    def __init__(self, klass: type[T] | str, *args, **kwgs: Any) -> None:
+    def __init__(self, klass: Callable[P, T] | str, *args: P.args, **kwgs: P.kwargs) -> None:
         """InstanceHP is an Instance type class  to spawn the instance of
         `klass(*args, **kwargs)` in the `HasParent` (parent) object.
 
@@ -428,7 +428,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
 
 
 def instanceHP_wrapper(
-    klass: type[T] | str,
+    klass: Callable[P, T] | str,
     /,
     *,
     defaults: None | dict[str, Any] = None,
@@ -438,7 +438,7 @@ def instanceHP_wrapper(
     allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
     load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
     **kwargs: Unpack[IHPSettings],
-):
+) -> Callable[P, InstanceHP[T]]:
     """
     A decorator style function to produce InstanceHP trait for klass.
 
@@ -483,9 +483,7 @@ def instanceHP_wrapper(
     defaults_ = merge({}, defaults) if defaults else {}
     tags = dict(tags) if tags else {}
 
-    # TODO : Requires py 3.12+ https://typing.readthedocs.io/en/latest/spec/constructors.html#converting-a-constructor-to-callable
-    # Hopefully this will restore documentation to the Constructor.
-    def instanceHP_factory(*args, **kwgs) -> InstanceHP[T]:
+    def instanceHP_factory(*args: P.args, **kwgs: P.kwargs) -> InstanceHP[T]:
         """Returns an InstanceHP[klass] trait.
 
         Use this to add a trait to new subclass of HasParent.
@@ -494,8 +492,9 @@ def instanceHP_wrapper(
 
         Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
         """
-        kw = merge({}, defaults_, kwgs, strategy=strategy) if defaults_ else kwgs
-        instance = InstanceHP(klass, *args, **kw)
+        if defaults_:
+            kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
+        instance = InstanceHP(klass, *args, **kwgs)
         instance.configure(load_default=load_default, read_only=read_only, allow_none=allow_none, **kwargs)
         if tags:
             instance.tag(**tags)
