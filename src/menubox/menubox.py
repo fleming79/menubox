@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import re
 import textwrap
@@ -22,8 +23,6 @@ from menubox.hasparent import HasParent
 from menubox.trait_types import ChangeType, ProposalType, StrTuple
 
 if TYPE_CHECKING:
-    import asyncio
-
     from menubox.instance import IHPChange
 
 CLEANR = re.compile("<.*?>")
@@ -384,7 +383,7 @@ class Menubox(HasParent, Panel):
             self.enable_widget("button_activate")
         if self.task_load_view and self.loading_view:
             self.set_trait("children", (HTML_LOADING,))
-            await self.task_load_view
+            await asyncio.wait([self.task_load_view])
         if not self.view:
             self.set_trait("children", ())
             return
