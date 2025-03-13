@@ -148,7 +148,7 @@ def run_async(
 
 
 def run_async_singular(
-    aw: Awaitable[T] | functools.partial[T], *, obj: HasParent | None = None, name: str | None = None, **kwargs
+    aw: Awaitable[T] | Callable[[T], Awaitable[T]], *, obj: HasParent | None = None, name: str | None = None, **kwargs
 ) -> asyncio.Task[T]:
     """Schedule the aw for execution with run_async.
 
