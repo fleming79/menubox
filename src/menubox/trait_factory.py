@@ -150,7 +150,6 @@ AsyncRunButton = ihpwrap(
 AsyncRunButton_update = ihpwrap(
     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
     defaults={"tasktype": mb_async.TaskType.update},
-    add_css_class=CSScls.button_type_main,
 )
 Modalbox = ihpwrap(cast(type["menubox.modalbox.Modalbox"], "menubox.modalbox.Modalbox"))
 
