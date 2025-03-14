@@ -335,9 +335,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
 def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
     """A decorator that throttles the call to wrapped function.
 
-    Compatible with coroutines and functions and methods.
-
-    pass log=defaults.NO_VALUE to disable all logging.
+    Compatible with coroutines, functions and methods.
 
     Returns a task.
     """
@@ -347,7 +345,8 @@ def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Call
 def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
     """A decorator that debounces the call to the wrapped function.
 
-    Compatible with coroutines and functions and methods.
+    Compatible with coroutines, functions and methods.
+
     Returns a task.
     """
     return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype, **kw)  # type: ignore
