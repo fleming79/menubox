@@ -648,7 +648,8 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
     async def init_async(self):
         """Perform additional initialisation tasks.
 
-        Override this task by calling:
+        When override this method ensure to call:
+
         ``` python
         await super().init_async()
         ```
@@ -657,12 +658,16 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             await corofunc()
 
     async def wait_init_async(self) -> Self:
-        try:
-            await self.init_async  # type: ignore
-        except Exception as e:
-            if inspect.iscoroutinefunction(self.init_async):
-                e.add_note("It looks like wait_init_async is being awaited somewhere which could cause a deadlock")
-            raise
+        if isinstance(self.init_async, asyncio.Task):
+            try:
+                await asyncio.shield(self.init_async)  # type: ignore
+            except asyncio.CancelledError:
+                if self.init_async.cancelled():
+                    self.log.warning("init_async was cancelled before completing")
+            except Exception as e:
+                if inspect.iscoroutinefunction(self.init_async):
+                    e.add_note("It looks like wait_init_async is being awaited somewhere which could cause a deadlock")
+                raise
         return self
 
     async def button_clicked(self, b: ipw.Button):
