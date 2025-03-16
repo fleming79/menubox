@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import os
 
+from ipylab.common import Singular
 from ipylab.css_stylesheet import CSSStyleSheet
 
 PREFIX = f"menubox-{os.getpid()}"
@@ -212,9 +213,7 @@ STYLESHEET = f"""
 """
 
 
-class MenuboxCSSStyleSheet(CSSStyleSheet):
-    SINGLE = True
-
+class MenuboxCSSStyleSheet(Singular, CSSStyleSheet):
     def load_stylesheet(self, text: str, variables: dict[CSSvar, str]):
         """Loads a stylesheet with the given text and variables.
 
@@ -228,22 +227,4 @@ class MenuboxCSSStyleSheet(CSSStyleSheet):
         variables = VARIABLES | variables
         variables_ = f":root {{{''.join(f'{k} :{v};\n' for k, v in variables.items())}}}\n"
         text = variables_ + text
-        stylesheet.replace(text)
-
-
-stylesheet = MenuboxCSSStyleSheet()
-
-
-def load_stylesheet(stylesheet: MenuboxCSSStyleSheet):
-    import menubox
-
-    variables = {}
-    ss = ""
-    for s, v in reversed(menubox.plugin_manager.hook.add_css_stylesheet()):
-        ss += s
-        variables.update(v)
-    stylesheet.load_stylesheet(ss, variables)
-    stylesheet.on_ready(load_stylesheet, remove=True)
-
-
-stylesheet.on_ready(load_stylesheet)
+        self.replace(text)

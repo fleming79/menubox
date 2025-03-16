@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import functools
-import importlib
 import inspect
 import weakref
 from collections.abc import Callable, Generator, Iterable
@@ -445,7 +444,8 @@ def get_widgets(
                 if parent:
                     parent.on_error(e, msg, widget)
                 else:
-                    ipylab.app.log.exception(e, msg, widget)
+                    app = ipylab.App()
+                    app.log.exception(msg, widget, exc_info=e)
 
     yield from _get_widgets(items)
 
@@ -552,13 +552,3 @@ def download_button(buffer, filename: str, button_description: str):
     </html>
     """
     return ipw.HTML(html_button)
-
-
-def import_item(dottedname: str):
-    """Import an item from a module, given its dotted name.
-
-    For example:
-    >>> import_item("os.path.join")
-    """
-    modulename, objname = dottedname.rsplit(".", maxsplit=1)
-    return getattr(importlib.import_module(modulename), objname)

@@ -383,7 +383,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
             self._close_observers[obj] = handle, names
 
     def _tuple_on_remove(self, _: ValueTraits, obj: HasParent):
-        if args := self._close_observers.pop(obj, None):
+        if isinstance(obj, HasParent | Widget) and (args := self._close_observers.pop(obj, None)):
             obj.unobserve(*args)
         if self._close_on_remove and hasattr(obj, "close"):
             obj.close()

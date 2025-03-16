@@ -4,6 +4,7 @@ import copy
 import inspect
 from typing import TYPE_CHECKING, Any, Generic, Literal, NotRequired, ParamSpec, TypedDict, TypeVar, Unpack, overload
 
+import ipylab.common
 import traitlets
 from mergedeep import Strategy, merge
 
@@ -222,7 +223,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         """
         if hasattr(self, "klass"):
             return
-        klass = self._klass if inspect.isclass(self._klass) else utils.import_item(self._klass)
+        klass = self._klass if inspect.isclass(self._klass) else ipylab.common.import_item(self._klass)
         assert inspect.isclass(klass)  # noqa: S101
         self.klass = klass  # type: ignore
         mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, settings=self.settings)

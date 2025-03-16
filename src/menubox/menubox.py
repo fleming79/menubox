@@ -9,7 +9,6 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Literal, overload, override
 
 import docstring_to_markdown
-import ipylab
 import traitlets
 from ipylab import Panel
 from ipywidgets import widgets as ipw
@@ -827,13 +826,13 @@ class Menubox(HasParent, Panel):
         Args:
             title: The title of the dialog.
             view: The view to load. If None, the default view is loaded.
-            **kwgs: Keyword arguments passed to ipylab.app.dialog.show_dialog.
+            **kwgs: Keyword arguments passed to self.app.dialog.show_dialog.
 
         Returns:
-            The result of ipylab.app.dialog.show_dialog.
+            The result of self.app.dialog.show_dialog.
         """
         self.load_view(view)
-        return ipylab.app.dialog.show_dialog(title=title, body=self, **kwgs)
+        return self.app.dialog.show_dialog(title=title, body=self, **kwgs)
 
 
 class MenuboxWrapper(Menubox):

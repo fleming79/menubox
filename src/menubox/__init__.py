@@ -68,7 +68,12 @@ __all__ = [
 
 def _get_plugin_manager():
     # Only to be run once here
+    import ipylab
     import pluggy
+
+    from menubox._autostart import IpylabPlugin
+
+    ipylab.plugin_manager.register(IpylabPlugin(), name="menubox")
 
     from menubox import hookspecs, lib
 

@@ -3,7 +3,7 @@ from typing import override
 import ipywidgets as ipw
 import pytest
 import traitlets
-from ipylab import Fixed
+from ipylab.common import Fixed
 
 import menubox
 from menubox import HasParent, ValueTraits

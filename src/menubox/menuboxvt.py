@@ -224,7 +224,7 @@ class MenuboxVT(Menubox, ValueTraits):
                 with path.open() as f:
                     data = f.read()
                 mime_type = "text/json" if path.suffix == "json" else "text/yaml"
-                ipylab.app.dialog.show_dialog(title=path.name, body=ipylab.CodeEditor(value=data, mime_type=mime_type))
+                self.app.dialog.show_dialog(title=path.name, body=ipylab.CodeEditor(value=data, mime_type=mime_type))
 
     @override
     async def get_center(self, view: str | None):

@@ -35,15 +35,16 @@ def START_DEBUG(*, to_stdio=False):
     if to_stdio:
         import sys
 
-        ipylab.app.log_level = ipylab.log.LogLevel.DEBUG
-        ipylab.app.shell.log_viewer.buffer_size.value = 0
+        app = ipylab.App()
+        app.log_level = ipylab.log.LogLevel.DEBUG
+        app.shell.log_viewer.buffer_size.value = 0
 
         def record_to_stdout(record):
             sys.stdout.write(record.output["text"])
 
-        assert ipylab.app.logging_handler  # noqa: S101
-        ipylab.app.logging_handler.register_callback(record_to_stdout)
-        ipylab.app.log.info("Debugging enabled")
+        assert app.logging_handler  # noqa: S101
+        app.logging_handler.register_callback(record_to_stdout)
+        app.log.info("Debugging enabled")
 
 
 def on_error(error: Exception, msg: str, obj: Any = None):
@@ -54,7 +55,8 @@ def on_error(error: Exception, msg: str, obj: Any = None):
         msg (str): The error message to log.
         obj (Any, optional): An optional object to include in the log message. Defaults to None.
     """
-    ipylab.app.log.exception(msg, obj=obj, exc_info=error)
+    app = ipylab.App()
+    app.log.exception(msg, obj=obj, exc_info=error)
 
 
 def on_error_wrapped(wrapped, instance, msg, e: Exception):
@@ -108,20 +110,3 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
             callcount -= 1
 
     return _log_exceptions(wrapped, instance)  # type: ignore
-
-
-def observe_ipylab_log_level(_):
-    def refresh_all_menuboxes():
-        for inst in mb.Menubox._instances.values():
-            if isinstance(inst, mb.Menubox) and not inst.closed and inst.view:
-                inst.mb_refresh()
-
-    if ipylab.app.log_level == ipylab.log.LogLevel.DEBUG:
-        START_DEBUG(to_stdio=False)
-        refresh_all_menuboxes()
-    elif mb.DEBUG_ENABLED:
-        mb.DEBUG_ENABLED = False
-        refresh_all_menuboxes()
-
-
-ipylab.app.observe(observe_ipylab_log_level, names="log_level")

@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 def anyio_backend():
     mb.log.START_DEBUG(to_stdio=True)
     if "debugpy" not in sys.modules:
-        ipylab.app.log_level = ipylab.log.LogLevel.WARNING
+        app = ipylab.App()
+        app.log_level = ipylab.log.LogLevel.WARNING
     return "asyncio"
 
 
