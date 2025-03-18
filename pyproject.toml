@@ -104,3 +104,7 @@ docstring-code-format = true
 [tool.codespell]
 write = true
 skip = "__py_cache__,dist,.gitignore"
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = 'standard'

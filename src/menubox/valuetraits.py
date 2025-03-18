@@ -11,9 +11,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeVar, overloa
 
 import orjson
 import ruamel.yaml
-import toolz
 from ipywidgets import Widget
-from traitlets import Dict, HasTraits, Instance, Set, TraitError, TraitType, Undefined, observe
+from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
@@ -135,20 +134,8 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
                 "update_item_names": self._update_item_names,
                 "new_update_inst": self.new_update_inst,
                 "trait": self._trait,
-                "SINGLETON_BY": self._get_SINGLETON_BY,
             }
         }
-
-    def _get_SINGLETON_BY(self):
-        names = []
-        for trait in self._all_traits(self):
-            if (
-                isinstance(trait, Instance)
-                and issubclass(trait.klass, HasParent)  # type: ignore
-                and trait.klass.SINGLETON_BY
-            ):
-                names.extend(trait.klass.SINGLETON_BY)
-        return tuple(toolz.unique(names))
 
     @staticmethod
     def _all_traits(obj):
@@ -761,17 +748,17 @@ class ValueTraits(HasParent):
                 raise
 
     @classmethod
-    def _tuple_register(cls, tuplename: str):
-        """Return the typed_instance_tuple class associated with tuplename.
+    def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], object]:
+        """Return the constructor to create a new item that belongs to a typed instance tuple.
 
         Args:
-            tuplename: Name of a typed_instance_tuple registered in the class.
-
-        Returns:
-            The typed_instance_tuple class associated with tuplename.
+            tuplename: Name of the typed instance tuple.
 
         Raises:
-            KeyError: If tuplename is not a registered typed_instance_tuple.
+            KeyError: If the tuple name is not registered.
+
+        Returns:
+            Constructor for the typed instance tuple.
         """
         if tuplename not in cls._vt_tit_names:
             msg = (
@@ -779,7 +766,7 @@ class ValueTraits(HasParent):
                 f"Register tuple names ={list(cls._vt_tit_names)}!"
             )
             raise KeyError(msg)
-        return cls._vt_tit_names[tuplename]
+        return cls._vt_tit_names[tuplename]["new_update_inst"]
 
     def _vt_update_reg_value_traits(self):
         pairs = set()
@@ -1121,18 +1108,6 @@ class ValueTraits(HasParent):
         if callable(on_change):
             on_change(change)
 
-    @classmethod
-    def get_tuple_singleton_by(cls, tuplename: str) -> tuple:
-        """Get the (combined) SINGLETON_BY of the trait/s registered for the trait of
-        the class."""
-        if tuplename not in cls._vt_tit_names:
-            msg = (
-                f"{tuplename=} is not a registered typed_instance_tuple "
-                f"Register tuple names ={list(cls._vt_tit_names)}!"
-            )
-            raise KeyError(msg)
-        return cls._tuple_register(tuplename)["SINGLETON_BY"]() or ()
-
     def get_tuple_obj(self, tuplename: str, add=True, **kwds):
         """Retrieves or creates an object associated with a `TypedInstaneTuple` tuple trait.
 
@@ -1150,9 +1125,9 @@ class ValueTraits(HasParent):
         Returns:
             The object associated with the `TypedInstaneTuple` tuple trait.
         """
-        new_update_inst = self._tuple_register(tuplename)["new_update_inst"]
+        new_update_inst = self._get_new_update_inst(tuplename)
         index = kwds.pop("index", None)
-        obj = new_update_inst(self, kwds, index=index)
+        obj = new_update_inst(self, kwds, index)
         if add:
             t = getattr(self, tuplename)  # type:tuple
             if obj not in t:

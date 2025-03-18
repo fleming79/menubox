@@ -72,6 +72,7 @@ class Repository(Filesystem, MenuboxPersist):
 
 
 class Repositories(ObjShuffle):
+    SINGLETON_BY = ("home",)
     obj_cls = traitlets.Type(Repository)
 
 

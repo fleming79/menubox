@@ -26,7 +26,7 @@ async def test_shuffle():
     assert home.name == root.name
     assert root.as_posix() == home.repository.url.value
 
-    shuffle = ObjNumberShuffle(home=home)
+    shuffle = ObjNumberShuffle(home=home, name="Shuffle")
     assert shuffle.obj_cls
 
     await shuffle.load_view(reload=True)

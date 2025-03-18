@@ -8,7 +8,6 @@
     "python.testing.cwd": "${workspaceFolder}",
     "python.analysis.autoImportCompletions": false,
     "editor.formatOnSave": true,
-    "python.analysis.typeCheckingMode": "standard",
     "ruff.organizeImports": true,
     "ruff.enable": true,
     "[python]": {

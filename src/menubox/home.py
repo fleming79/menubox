@@ -1,23 +1,24 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, ClassVar, Self, cast
+from typing import TYPE_CHECKING, ClassVar, cast, override
 
 import traitlets
 
 from menubox import trait_types, utils
 from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP
-from menubox.log import log_exceptions
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from menubox.repository import Repository
 
 __all__ = ["Home"]
 
 
-def to_safe_homename(name: str):
-    n = pathlib.PurePath(utils.sanatise_filename(name)).name
+def to_safe_homename(name: str | Home | pathlib.Path):
+    n = pathlib.PurePath(utils.sanatise_filename(str(name))).name
     if not n:
         msg = f"Unable convert {name=} to a valid home"
         raise NameError(msg)
@@ -39,7 +40,6 @@ class Home(HasParent):
     SINGLETON_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     _HREG: _HomeRegister
-    _all_homes: ClassVar[dict[str, Home]] = {}
     repository = InstanceHP(cast(type["Repository"], "menubox.repository.Repository"), name="default").configure(
         dynamic_kwgs={"url": "_url"}
     )
@@ -48,16 +48,17 @@ class Home(HasParent):
     def validate_name(cls, name: str) -> str:
         return to_safe_homename(name)
 
-    def __new__(cls, name: Home | str | pathlib.Path, **kwargs) -> Self:
-        if isinstance(name, Home):
-            return name  # type: ignore
-        name = to_safe_homename(str(name))
-        if name not in cls._all_homes:
-            cls._all_homes[name] = super().__new__(cls, name=name, **kwargs)  # type: ignore
-        return cls._all_homes[name]  # type: ignore
+    @override
+    @classmethod
+    def get_single_key(cls, name: str | Home | pathlib.Path, **kwgs) -> Hashable:
+        return (to_safe_homename(name),)
 
-    @log_exceptions
-    def __init__(self, name: str | Home | pathlib.Path, *, private=False, **kwargs):
+    def __new__(cls, name: str | Home | pathlib.Path, /, *args, **kwgs):
+        if isinstance(name, Home):
+            return name
+        return super().__new__(cls, *args, name=name, **kwgs)
+
+    def __init__(self, name: str | Home | pathlib.Path, /, *, private=False, **kwargs):
         if self._HasParent_init_complete:
             return
         path = name if isinstance(name, pathlib.Path) else pathlib.Path(str(name))

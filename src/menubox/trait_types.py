@@ -92,36 +92,3 @@ class NameTuple(StrTuple):
 
     def _iterate(self, value):
         yield from toolz.unique(value)
-
-
-class MetaHasParent(traitlets.MetaHasTraits):
-    _SETUP_KEY = "_MetaHasParent_setup_class_in_progress"
-
-    def setup_class(cls, classdict):  # noqa: N805
-        setattr(cls, MetaHasParent._SETUP_KEY, True)
-        super().setup_class(classdict)
-        delattr(cls, MetaHasParent._SETUP_KEY)
-
-
-class classproperty(property):  # noqa: N801
-    """Property at a class level.
-
-    Setting is not allowed.
-    usage:
-    ```
-    @classproperty
-    def myclassproperty(cls):
-        return a_property_common_to_the_class()
-    ```
-    """
-
-    # source https://stackoverflow.com/questions/128573/using-property-on-classmethods/64738850#64738850
-    # Do not try set
-    def __get__(self, __instance, owner_cls):  # type: ignore
-        if hasattr(owner_cls, MetaHasParent._SETUP_KEY):
-            return NotImplemented
-        return self.fget(owner_cls)  # type: ignore
-
-    def __set__(self, __instance, __value) -> None:
-        msg = "Setting a classproperty is not allowed!"
-        raise ValueError(msg)

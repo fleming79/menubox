@@ -373,8 +373,6 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         on_replace_close: Bool
             Close the previous instance if it is replaced.
             Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
-            Also, If not configured, default is True except for HasParent items that
-            specify SINGLETON_BY = False.
         allow_none :  bool
             Allow the value to be None.
         set_parent: Bool [True]

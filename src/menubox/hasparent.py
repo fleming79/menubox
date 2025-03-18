@@ -3,13 +3,13 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import inspect
-import weakref
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
 import toolz
 import traitlets
+from ipylab.common import Singular
 from ipylab.log import IpylabLoggerAdapter
 from traitlets import HasTraits
 
@@ -17,13 +17,13 @@ import menubox
 import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
-from menubox.trait_types import ChangeType, MetaHasParent, NameTuple, ProposalType
+from menubox.trait_types import ChangeType, NameTuple, ProposalType
 
 __all__ = ["HasParent", "Link", "Dlink"]
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Callable, Generator, Hashable
 
     from menubox.instance import InstanceHP
 
@@ -237,35 +237,32 @@ class Parent(traitlets.TraitType):
         raise TypeError(msg)
 
 
-class HasParent(HasTraits, metaclass=MetaHasParent):
-    """A base class for objects that have a parent-child relationship and enhanced trait management.
+class HasParent(Singular):
+    """A base class for objects that have a parent and can manage links to other objects.
 
-    NOTE: This class will only instantiate when there is a running event loop.
+    This class provides a foundation for creating objects that exist within a hierarchical
+    structure, allowing for parent-child relationships and the management of links
+    (both regular and dynamic) between related objects. It includes features for:
+    - Maintaining a parent object.
+    - Creating and managing links (using traitlets) to other objects.
+    - Handling asynchronous initialization.
+    - Closing and cleaning up resources.
+    - Formatting strings with access to the object's namespace.
+    - Handling errors and logging.
+    - Managing InstanceHP traits for enabling/disabling features.
+    - Waiting for asynchronous tasks to complete.
+    - Retrieving widgets associated with the object.
+    The class utilizes traitlets for managing attributes and observing changes,
+    ensuring that changes to the parent or linked objects trigger appropriate updates.
+    It also provides mechanisms for asynchronous initialization and cleanup,
+    making it suitable for use in environments where asynchronous operations are common.
 
-    Key Features:
-    - Singleton Instance Management:  Optionally creates singleton instances based on specified attributes (SINGLETON_BY).
-    - Nested Attribute Loading:  Recursively loads attributes from dictionaries into the object and its children.
-    - Trait Linking:  Provides methods for linking and unlinking traits between objects (link, dlink).
-    - Error Handling:  Includes a robust error handling mechanism with logging (on_error).
-    - Asynchronous Task Management:  Supports asynchronous initialization and task management.
-    - Widget Retrieval:  Facilitates the retrieval of widgets associated with the object.
-    - Automatic parent closed handling.
-    Key Attributes:
-    - parent: A Parent trait representing the parent object.
-    - name: A Unicode trait for the object's name.
-    - log: An IpylabLoggerAdapter instance for logging.
-    - closed: A boolean trait indicating whether the object is closed.
-    Usage:
-    Inherit from this class to create objects that require parent-child relationships,
-    singleton instances, trait linking, and enhanced attribute management.
+    # NOTE: This class requires a running event loop to initialize.
     """
 
     RENAMEABLE = True
     KEEP_ALIVE = False
     SINGLETON_BY: ClassVar[tuple[str, ...] | None] = None
-    _singleton_instances: ClassVar[weakref.WeakValueDictionary[tuple, Any]] = weakref.WeakValueDictionary()
-    _singleton_instances_key: tuple | None = None
-    _singleton_key_template: ClassVar[str] = ""
     _InstanceHP: ClassVar[dict[str, InstanceHP[HasParent]]] = {}
     _HasParent_init_complete = False
     _prohibited_parent_links: ClassVar[set[str]] = set()
@@ -278,45 +275,12 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         key_trait=traitlets.Unicode(),
         read_only=True,
     )
-    closed = traitlets.Bool()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
     log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent()
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
-
-    def __new__(cls, *args, **kwargs) -> Self:
-        def _make_key():
-            key = [cls.__qualname__]
-            if not isinstance(cls.SINGLETON_BY, tuple):
-                raise TypeError
-            for n in cls.SINGLETON_BY:
-                if n == "cls":
-                    val = n
-                else:
-                    val = kwargs.get(n) or getattr(cls, n, None)
-                    if val and isinstance(val, traitlets.TraitType):
-                        val = val.default_value
-                    if not val or val is traitlets.Undefined:
-                        msg = f"SINGLETON_BY key '{n}' value not provided or invalid for {cls=}."
-                        raise ValueError(msg)
-                key.append(val)
-            return tuple(key)
-
-        key = _make_key() if cls.SINGLETON_BY else None
-        if key and key in cls._singleton_instances:
-            return cls._singleton_instances[key]
-        # class definitions per
-        inst = super().__new__(cls, *args, **kwargs)
-        if key:
-            if not isinstance(cls.SINGLETON_BY, tuple):
-                raise TypeError
-            if "name" in cls.SINGLETON_BY:
-                inst.name = key[cls.SINGLETON_BY.index("name") + 1]
-            cls._singleton_instances[key] = inst
-            inst._singleton_instances_key = key
-        return inst
 
     def __init__(self, *, parent: HasParent | None = None, **kwargs):
         """Initialize the HasParent class.
@@ -327,6 +291,10 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         """
         if self._HasParent_init_complete:
             return
+        if self.SINGLETON_BY and "name" in self.SINGLETON_BY:
+            name = self._single_key[self.SINGLETON_BY.index("name")]
+            self.set_trait("name", name)
+            self.RENAMEABLE = False
         values = {}
         for name in tuple(kwargs):
             if name in self._InstanceHP:
@@ -351,6 +319,20 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
                 cls.RENAMEABLE = False
         cls._cls_update_InstanceHP_register()
         super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
+        if not cls.SINGLETON_BY:
+            return None
+        key = []
+        for n in cls.SINGLETON_BY:
+            if n == "cls":
+                val = cls
+            else:
+                val = kwgs[n]
+                val = str(val) if val in ["name", "home"] else val
+            key.append(val)
+        return tuple(key)
 
     @classmethod
     def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:
@@ -557,13 +539,8 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
         """
         if self.closed or (self.KEEP_ALIVE and not force):
             return
-        close = getattr(super(), "close", None)
-        if callable(close):
-            close()
-        self.closed = True
+        super().close()
         self.log.debug("Closed")
-        if self._singleton_instances_key:
-            self._singleton_instances.pop(self._singleton_instances_key, None)
         self.set_trait("parent", None)
         if self.trait_has_value("_hasparent_all_links"):
             for link in self._hasparent_all_links.values():
@@ -574,7 +551,7 @@ class HasParent(HasTraits, metaclass=MetaHasParent):
             d = getattr(self, n, None)
             if isinstance(d, dict):
                 d.clear()
-        self.closed = True  # Need to restore this trait to false.
+        self.set_trait("closed", True)  # Need to restore this trait to false.
 
     def fstr(self, string: str, raise_errors=False, parameters: dict | None = None) -> str:
         """Formats string using fstr type notation.

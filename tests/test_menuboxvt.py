@@ -53,7 +53,7 @@ class MyNewObj(mb.MenuboxVT):
 
 
 class MyNewObjSingleInstanceByName(mb.MenuboxVT):
-    SINGLETON_BY = ("name",)
+    SINGLETON_BY = ("home", "name")
 
 
 async def test_menuboxvt():

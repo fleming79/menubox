@@ -12,7 +12,7 @@ import menubox.trait_types as tt
 
 
 class MenuboxSingleton(mb.MenuboxVT):
-    SINGLETON_BY = ("cls", "name")
+    SINGLETON_BY = ("home", "name")
 
 
 class VTT(mb.ValueTraits):
@@ -89,10 +89,8 @@ class VTT2(mb.ValueTraits):
 class TestValueTraits:
     async def test_registration_and_singleton(self, home: mb.Home):
         # Test registration and singleton behavior
-        assert len(VTT._vt_tit_names["menuboxvts"]["SINGLETON_BY"]()) == 2, "Registered at import"
-        vals = ["update_by", "update_item_names", "new_update_inst", "trait", "SINGLETON_BY"]
-        assert list(VTT._tuple_register("menuboxvts")) == vals
-        assert VTT.get_tuple_singleton_by("menuboxvts") == ("cls", "name")
+        vals = ["update_by", "update_item_names", "new_update_inst", "trait"]
+        assert list(VTT._vt_tit_names["menuboxvts"]) == vals
 
     async def test_basic_functionality(self, home: mb.Home):
         # Test basic ValueTraits and TypedInstanceTuple functionality

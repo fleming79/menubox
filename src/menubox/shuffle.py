@@ -1,3 +1,4 @@
+from collections.abc import Hashable
 from typing import override
 
 import ipywidgets as ipw
@@ -36,7 +37,6 @@ class ObjShuffle(MenuboxVT):
 
     SINGLETON_BY = ("home", "name")
     RENAMEABLE = False
-    name = traitlets.Unicode("default")
     obj_cls = traitlets.Type(MenuboxPersist)
     pool = TypedInstanceTuple(traitlets.Instance(MenuboxPersist)).configure(
         factory="factory_pool",
@@ -80,6 +80,11 @@ class ObjShuffle(MenuboxVT):
     box_center = None
     views = traitlets.Dict({"Main": ("box_shuffle_controls", "box_details", "box_shuffle")})
     value_traits = NameTuple(*MenuboxVT.value_traits, "sw_obj", "sw_version")
+
+    @override
+    @classmethod
+    def get_single_key(cls, name="default", **kwgs) -> Hashable:
+        return super().get_single_key(name=name, **kwgs)
 
     def factory_pool(self, **kwargs):
         return self.obj_cls(**kwargs)

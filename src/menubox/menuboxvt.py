@@ -13,7 +13,7 @@ from menubox import utils
 from menubox.css import CSScls
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_types import ChangeType, NameTuple, StrTuple, classproperty
+from menubox.trait_types import ChangeType, NameTuple, StrTuple
 from menubox.valuetraits import ValueTraits
 
 _template_folders: set[pathlib.Path] = set()
@@ -45,7 +45,6 @@ class MenuboxVT(Menubox, ValueTraits):
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
-    _templates = traitlets.Dict(traitlets.Unicode(), traitlets.Unicode())
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
     header = tf.MenuboxHeader().configure(allow_none=True, add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header))
     _sw_template = tf.Dropdown(
@@ -168,13 +167,14 @@ class MenuboxVT(Menubox, ValueTraits):
 
     register_template_root_folder(pathlib.Path(__file__).parent.joinpath("templates"))
 
-    @classproperty
-    def templates(cls) -> dict:  # noqa: N805
+    @property
+    def templates(self) -> dict:
         """Templates for the class will be available in this dict mapping a name to
         dict of the settings.
 
         The settings can be defined as yaml files in the _template_folder.
         """
+        cls = self.__class__
         if not hasattr(cls, "_templates"):
             cls.update_templates()
         return cls._templates
