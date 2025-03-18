@@ -414,58 +414,38 @@ EXTERNAL = CallbackMode.external
 
 
 class ValueTraits(HasParent):
-    """A class that provides a framework for managing and observing changes to
-    a dictionary of values (the "value") and nested attributes within a
-    HasTraits object.
-    This class extends HasParent and introduces several features:
-    - **Value Traits**: Allows specifying traits (attributes) whose changes
-      should be observed.  Changes to these traits trigger the `on_change`
-      method.  Supports dotted paths for observing nested attributes.
-    - **Persistent Value Traits**: Similar to value traits, but intended for
-      attributes that should be persisted (e.g., saved to a file).
-    - **Typed Instance Tuples**: Integrates with TypedInstanceTuple traits,
-      allowing observation of changes within the items of these tuples.
-    - **Change Management**: Provides a context manager (`ignore_change`) to
-      temporarily ignore changes, preventing them from triggering `on_change`.
-    - **Initialization**:  Handles initialization of the value dictionary,
-      including extracting values from keyword arguments.
-    - **Loading and Saving**: Provides methods for loading values from a
-      dictionary, YAML file, or other sources, and saving values to a
-      dictionary, JSON, or YAML file.
-    - **Error Handling**: Includes basic error handling and logging.
-    Attributes:
-        _STASH_DEFAULTS (bool): Whether to stash the default values of the
-            object's traits.
-        _AUTO_VALUE (bool): Whether to automatically connect the 'value' trait
-            if it is found.
-        _ignore_change_cnt (int): A counter for the number of times changes
-            should be ignored.
-        _vt_reg_value_traits_persist (set[tuple[HasTraits, str]]): A set of
-            (object, trait_name) tuples for persistent value traits.
-        _vt_reg_value_traits (set[tuple[HasTraits, str]]): A set of
-            (object, trait_name) tuples for value traits.
-        _vt_tuple_reg (Dict[str, _TypedTupleRegister]): A dictionary of
-            _TypedTupleRegister objects, keyed by tuple name.
-        _vt_tit_names (ClassVar[dict]): A dictionary of TypedInstanceTuple
-            names and their configurations.
-        _vt_busy_updating_count (int): A counter for the number of times the
-            object is currently updating.
-        _vt_init_complete (bool): Whether the object has been completely
-            initialized.
-        dtype (str): The data type of the value dictionary (default: "dict").
-        home (InstanceHome): An instance of the InstanceHome class, used for
-            managing the object's home directory.
-        value (_ValueTraitsValueTrait): A trait for the value dictionary.
-        parent_dlink (NameTuple): A named tuple for parent links.
-        value_traits (NameTuple): A named tuple for value traits.
-        value_traits_persist (NameTuple): A named tuple for persistent value
-            traits.
-        _prohibited_parent_links (ClassVar[set[str]]): A set of prohibited
-            parent links.
-        _prohibited_value_traits (ClassVar[set[str]]): A set of prohibited
-            value traits.
-        _value (Callable): A callable for the value dictionary (only present
-            during type checking).
+    """ValueTraits is a class that provides a way to manage and observe changes to
+    a collection of traits, particularly those that represent values or settings.
+
+    It extends HasParent and incorporates features for handling nested traits,
+    typed instance tuples, and change notifications.
+    Key Features:
+    - Value Trait Management: Allows defining and observing changes to a set of
+        value traits, specified by dotted names (e.g., "a.b.c").  Changes to these
+        traits trigger the `on_change` method.
+    - Persistence: Supports a separate set of value traits that are persisted
+        (e.g., saved to a file).
+    - Typed Instance Tuples: Integrates with TypedInstanceTuple to manage
+        collections of objects with specific types and observe changes within those
+        collections.
+    - Change Notifications: Provides a mechanism for handling change events,
+        including the ability to temporarily ignore changes and to propagate
+        changes to parent objects.
+    - Initialization: Ensures proper initialization of the object, including
+        setting up the home directory, parent object, and initial values.
+    - Data Loading and Conversion: Supports loading values from dictionaries,
+        YAML strings, and callables, and converting the object's state to
+        dictionaries, JSON, and YAML.
+    - Error Handling: Includes error handling for invalid trait names, data
+        loading errors, and change event errors.
+    - Utilities: Offers utility methods for getting and setting values,
+        converting the object to a dictionary, and generating JSON and YAML
+        representations.
+    The class uses traitlets for defining and observing traits, and it
+    incorporates features for handling nested traits, typed instance tuples,
+    and change notifications. It also provides a way to load values from
+    dictionaries, YAML strings, and callables, and to convert the object's
+    state to dictionaries, JSON, and YAML.
     """
 
     _STASH_DEFAULTS = False
@@ -480,7 +460,6 @@ class ValueTraits(HasParent):
     dtype = "dict"
     home = InstanceHome()
     value = _ValueTraitsValueTrait()
-    parent_dlink = NameTuple()
     value_traits = NameTuple()
     value_traits_persist = NameTuple()
     _prohibited_parent_links: ClassVar[set[str]] = {"home"}

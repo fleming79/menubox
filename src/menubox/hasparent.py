@@ -309,9 +309,6 @@ class HasParent(Singular):
         # Requires a running event loop.
         self.init_async = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
 
-    def __del__(self):
-        self.close(force=True)
-
     def __init_subclass__(cls, **kwargs) -> None:
         if cls.SINGLETON_BY:
             assert isinstance(cls.SINGLETON_BY, tuple)  # noqa: S101
