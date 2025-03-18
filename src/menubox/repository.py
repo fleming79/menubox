@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Self, override
 
 import traitlets
+from ipylab.common import Fixed
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
@@ -91,7 +92,7 @@ class SelectRepository(MenuboxVT):
     box_center = None
     if TYPE_CHECKING:
         parent: MenuboxVT
-    repositories = tf.Repositories()
+    repositories: Fixed[Self, Repositories] = Fixed(lambda c: Repositories(home=c["owner"].home))
     repository_name = tf.Dropdown(
         description="Repository",
         tooltip="Add a new repository using the repository set below",

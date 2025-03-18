@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -87,19 +87,20 @@ class MenuboxPersist(MenuboxVT):
         tooltip="Save persistence data for current version",
         tasktype=mb_async.TaskType.update,
     )
-    version_widget = tf.InstanceHP(
+    version_widget: tf.InstanceHP[Self, ipw.BoundedIntText] = tf.InstanceHP(
         ipw.BoundedIntText,
-        min=1,
-        max=1,
-        step=1,
-        description="Version",
-        tooltip="Changing the version will switch to the new version dropping"
-        " unsaved changes. \n"
-        "If a new version doesn't exist, the present values are retained and can be"
-        " saved in the new version.",
-        layout={"width": "130px"},
-    ).configure(
-        dynamic_kwgs={"disabled": "SINGLE_VERSION"},
+        lambda c: ipw.BoundedIntText(
+            min=1,
+            max=1,
+            step=1,
+            description="Version",
+            tooltip="Changing the version will switch to the new version dropping"
+            " unsaved changes. \n"
+            "If a new version doesn't exist, the present values are retained and can be"
+            " saved in the new version.",
+            layout={"width": "130px"},
+            disabled=c["parent"].SINGLE_VERSION,
+        ),
     )
     box_version = tf.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)

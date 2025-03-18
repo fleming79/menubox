@@ -727,7 +727,7 @@ class ValueTraits(HasParent):
                 raise
 
     @classmethod
-    def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], object]:
+    def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], Any]:
         """Return the constructor to create a new item that belongs to a typed instance tuple.
 
         Args:

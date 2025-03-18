@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, ClassVar, cast, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
 import traitlets
 
@@ -40,8 +40,9 @@ class Home(HasParent):
     SINGLETON_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     _HREG: _HomeRegister
-    repository = InstanceHP(cast(type["Repository"], "menubox.repository.Repository"), name="default").configure(
-        dynamic_kwgs={"url": "_url"}
+    repository: InstanceHP[Self, Repository] = InstanceHP(
+        "menubox.repository.Repository",
+        create=lambda c: c["klass"](name="default", url=c["parent"]._url, **c["kwgs"]),
     )
 
     @classmethod
@@ -98,7 +99,7 @@ class InstanceHome(traitlets.TraitType[Home, Home]):
 
 
 class _HomeRegister(traitlets.HasTraits):
-    homes = trait_types.TypedTuple(InstanceHome(), read_only=True)
+    homes = trait_types.TypedTuple(traitlets.Instance(Home), read_only=True)
 
     @property
     def all_roots(self):

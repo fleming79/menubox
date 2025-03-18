@@ -263,7 +263,7 @@ class HasParent(Singular):
     RENAMEABLE = True
     KEEP_ALIVE = False
     SINGLETON_BY: ClassVar[tuple[str, ...] | None] = None
-    _InstanceHP: ClassVar[dict[str, InstanceHP[HasParent]]] = {}
+    _InstanceHP: ClassVar[dict[str, InstanceHP[HasParent, Any]]] = {}
     _HasParent_init_complete = False
     _prohibited_parent_links: ClassVar[set[str]] = set()
     _hp_reg_parent_link = traitlets.Set()

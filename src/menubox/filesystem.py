@@ -5,6 +5,7 @@ import pathlib
 import re
 from typing import TYPE_CHECKING, ClassVar, Self, override
 
+import ipywidgets as ipw
 import psutil
 import traitlets
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
@@ -57,8 +58,15 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     )
-    drive = tf.Dropdown(value=None, tooltip="Change drive", layout={"width": "max-content"}).configure(
-        dynamic_kwgs={"options": lambda _: list_drives()},
+    drive: tf.InstanceHP[Self, ipw.Dropdown] = tf.InstanceHP(
+        ipw.Dropdown,
+        lambda c: c["klass"](
+            value=None,
+            tooltip="Change drive",
+            layout={"width": "max-content"},
+            options=list_drives(),
+        ),
+    ).configure(
         dlink={
             "source": ("protocol", "value"),
             "target": "layout.visibility",

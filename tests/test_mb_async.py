@@ -10,7 +10,7 @@ from menubox.hasparent import HasParent
 
 class MBRunAsync(HasParent):
     my_set = traitlets.Set()
-    my_task = tf.Task()
+    my_task = tf.InstanceHP(asyncio.Task).configure(allow_none=True, load_default=False)
 
 
 async def async_function(result, delay=0.0):

@@ -6,7 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Literal, overload, override
+from typing import TYPE_CHECKING, ClassVar, Final, Literal, Self, overload, override
 
 import docstring_to_markdown
 import traitlets
@@ -96,8 +96,8 @@ class Menubox(HasParent, Panel):
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons: tf.InstanceHP[weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
-    _tab_buttons: tf.InstanceHP[weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
+    _view_buttons: tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
+    _tab_buttons: tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
     task_load_view = tf.Task()
     html_title = tf.HTML_Title().configure(load_default=False)
     out_help = tf.MarkdownOutput().configure(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))

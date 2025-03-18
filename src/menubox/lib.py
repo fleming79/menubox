@@ -15,12 +15,11 @@ from menubox import HasParent, utils
 from menubox.children_setter import ChildrenSetter
 from menubox.css import STYLESHEET, CSScls
 from menubox.defaults import hookimpl
-from menubox.instance import IHPChange, IHPCreate
 
 if TYPE_CHECKING:
     from ipylab.css_stylesheet import CSSStyleSheet
 
-    from menubox.instance import IHPSettings, InstanceHP
+    from menubox.instance import IHPChange, IHPSettings, InstanceHP, S, T
 
 
 _on_click_register = weakref.WeakKeyDictionary()
@@ -61,20 +60,9 @@ def instancehp_finalize(inst: InstanceHP, settings: IHPSettings, klass: type):  
 
 
 @hookimpl
-def instancehp_default_kwgs(inst: InstanceHP, parent: HasParent, kwgs: dict):
+def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
     if inst.settings.get("set_parent"):
         kwgs["parent"] = parent
-
-    if dynamic_kwgs := inst.settings.get("dynamic_kwgs"):
-        for name, value in dynamic_kwgs.items():
-            if callable(value):
-                kwgs[name] = value(
-                    IHPCreate(parent=parent, name=inst.name, klass=inst.klass, args=inst.args, kwgs=kwgs)
-                )
-            elif value == "self":
-                kwgs[name] = parent
-            else:
-                kwgs[name] = utils.getattr_nested(parent, value, hastrait_value=False)
 
     if children := inst.settings.get("children"):
         if isinstance(children, dict):
@@ -87,20 +75,12 @@ def instancehp_default_kwgs(inst: InstanceHP, parent: HasParent, kwgs: dict):
 
 
 @hookimpl
-def instancehp_default_create(inst: InstanceHP, parent: HasParent, args: tuple, kwgs: dict):
-    if create := inst.settings.get("create"):
-        create = utils.getattr_nested(parent, create, hastrait_value=False) if isinstance(create, str) else create
-        return create(IHPCreate(parent=parent, name=inst.name, klass=inst.klass, args=args, kwgs=kwgs))
-    return inst.klass(*args, **kwgs)
-
-
-@hookimpl
 def instancehp_on_change(inst: InstanceHP, change: IHPChange):
     settings = inst.settings
     parent = change["parent"]
     old = change["old"]
     new = change["new"]
-    for func in (on_replace_close, set_parent, dlink, remove_on_close, on_click, set_attrs, add_css_class):
+    for func in (on_replace_close, set_parent, dlink, remove_on_close, on_click, add_css_class):
         if func.__name__ in settings:
             try:
                 func(inst, parent, old, new)
@@ -111,7 +91,7 @@ def instancehp_on_change(inst: InstanceHP, change: IHPChange):
         vc(change)
 
 
-def remove_on_close(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):
+def remove_on_close(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):
     if parent.closed:
         return
     if inst not in inst_close_observers:
@@ -140,14 +120,14 @@ def remove_on_close(inst: InstanceHP, parent: HasParent, old: object | None, new
         inst_close_observers[inst][parent] = {"handler": _observe_closed, "names": names}
 
 
-def on_replace_close(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):  # noqa: ARG001
+def on_replace_close(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):  # noqa: ARG001
     if inst.settings.get("on_replace_close") and isinstance(old, Widget | HasParent):
         if mb.DEBUG_ENABLED:
             parent.log.debug(f"Closing replaced item `{parent.__class__.__name__}.{inst.name}` {old.__class__}")
         old.close()
 
 
-def on_click(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):
+def on_click(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):
     if on_click := inst.settings.get("on_click"):
         if isinstance(old, ipw.Button) and (on_click := _on_click_register.pop(old)):
             old.on_click(on_click, remove=True)
@@ -166,7 +146,7 @@ def on_click(inst: InstanceHP, parent: HasParent, old: object | None, new: objec
             ref = weakref.ref(parent)
 
             def _on_click(b: ipw.Button):
-                obj: HasParent | None = ref()
+                obj: S | None = ref()
                 if obj:
 
                     async def click_callback():
@@ -185,22 +165,7 @@ def on_click(inst: InstanceHP, parent: HasParent, old: object | None, new: objec
             _on_click_register[new] = _on_click
 
 
-def set_attrs(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):  # noqa: ARG001
-    if parent.closed:
-        return
-    if (set_attrs := inst.settings.get("set_attrs")) and (new):
-        for k, v in set_attrs.items():
-            val = v
-            if isinstance(val, str) and val.startswith("."):
-                val = val[1:]
-                val = parent if val == "self" else utils.getattr_nested(parent, val)
-            elif callable(val):
-                config = IHPCreate(parent=parent, name=inst.name, klass=inst.klass, args=inst.args, kwgs=inst.kwgs)
-                val = val(config)
-            utils.setattr_nested(new, k, val, setattr)
-
-
-def dlink(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):  # noqa: ARG001
+def dlink(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):  # noqa: ARG001
     """Creates dynamic links (dlinks) between traits of objects based on the provided configuration.
 
     This function establishes links between a source trait of an object (typically a parent) and a target trait of another object,
@@ -250,7 +215,7 @@ def dlink(inst: InstanceHP, parent: HasParent, old: object | None, new: object |
                 parent.dlink((src_obj, src_trait), target=(new, tgt_trait), transform=transform, key=key)
 
 
-def add_css_class(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):  # noqa: ARG001
+def add_css_class(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):  # noqa: ARG001
     if add_css_class := inst.settings.get("add_css_class"):
         for cn in utils.iterflatten(add_css_class):
             if isinstance(new, ipw.DOMWidget):
@@ -259,7 +224,7 @@ def add_css_class(inst: InstanceHP, parent: HasParent, old: object | None, new: 
                 old.remove_class(cn)
 
 
-def set_parent(inst: InstanceHP, parent: HasParent, old: object | None, new: object | None):
+def set_parent(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):
     if inst.settings.get("set_parent"):
         if isinstance(old, HasParent) and getattr(old, "parent", None) is parent:
             old.parent = None

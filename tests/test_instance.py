@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import gc
 import weakref
-from typing import cast
+from typing import Self
 
 import ipywidgets as ipw
 import pytest
@@ -18,8 +18,10 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.Menubox):
-    a = InstanceHP(cast(type["HPI"], "tests.test_instance.HPI"), name="a").configure(allow_none=True)
-    b = InstanceHP(cast(type["HPI"], "tests.test_instance.HPI"), name="b").configure(
+    a = InstanceHP["Self", "HPI"]("tests.test_instance.HPI", lambda c: c["klass"](name="a", **c["kwgs"])).configure(
+        allow_none=True
+    )
+    b = InstanceHP["Self", "HPI"]("tests.test_instance.HPI", lambda c: c["klass"](name="b", **c["kwgs"])).configure(
         load_default=False, allow_none=False
     )
     my_button = tf.Button_main(description="A button")
@@ -35,17 +37,11 @@ class HPI(mb.Menubox):
 
 
 class HPI2(HPI, mb.MenuboxVT):
-    b = InstanceHP(HPI, name="b").configure(set_attrs={"name": lambda config: config["parent"].get_name(config)})
-    c = InstanceHP(HPI, name="C has value").configure(set_parent=False)
-    d = InstanceHP(ipw.Dropdown).configure(dynamic_kwgs={"description": "c.name"}, allow_none=True)
+    c: InstanceHP[Self, HPI] = InstanceHP(HPI, lambda c: c["klass"](name="C has value")).configure(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository()
     button = tf.AsyncRunButton(cfunc="_button_async")
     widgetlist = mb.StrTuple("select_repository", "not a widget")
-
-    @staticmethod
-    def get_name(config: tf.IHPCreate):
-        return f"{config['parent']}.{config['name']}"
 
     async def _button_async(self):
         return True
@@ -85,7 +81,6 @@ async def test_instance(home: mb.Home):
     assert hp2.a is not hp1.a
     assert isinstance(hp2.b, HasParent)
     assert hp2.b.parent is hp2
-    assert hp2.b.name == "<HPI2 name:''>.b", "by `get_name`."
     assert hp2.b.b is hp1
     hp2.log.info("About to test a raised exception.")
     with pytest.raises(RuntimeError, match="already a parent."):
@@ -102,13 +97,10 @@ async def test_instance(home: mb.Home):
     assert hp2.parent is hp1, "When value is updated the parent is updated."
 
     assert not hp2.c.parent, "Tag specifying no parent succeeded."
-    assert hp2.d
-    assert hp2.d.description == "C has value", "from dynamic_kwgs."
 
     hp1.instanceHP_enable_disable("a", False)
     assert not hp1.a, "Should have removed (hp2)"
 
-    assert isinstance(hp2.d, ipw.Dropdown), "Spawning a widget."
     assert isinstance(hp2.e, ipw.Dropdown), "Spawning via instanceHP_wrapper inst."
     assert hp2.e.description == "From a factory"
     assert hp2.e.options == (1, 2, 3), "provided in defaults."

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
 import ipylab
 import ipywidgets as ipw
@@ -15,6 +15,7 @@ from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 from menubox.valuetraits import ValueTraits
+from menubox.widgets import MarkdownOutput
 
 _template_folders: set[pathlib.Path] = set()
 
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     import ipywidgets as ipw
 
     from menubox.modalbox import Modalbox
+    from menubox.repository import Repository  # noqa: F401
 
 __all__ = ["MenuboxVT"]
 
@@ -54,7 +56,13 @@ class MenuboxVT(Menubox, ValueTraits):
     box_template_controls = tf.HBox(layout={"width": "max-content"}).configure(
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
-    repository = tf.Repository()
+    repository = tf.InstanceHP[Self, "Repository"](
+        "menubox.repository.Repository", lambda c: c["parent"].home.repository
+    ).configure(
+        on_replace_close=False,
+        set_parent=False,
+        read_only=False,
+    )
     template_controls = tf.Modalbox(
         "box_template_controls",
         title="Copy and load settings",
@@ -64,13 +72,16 @@ class MenuboxVT(Menubox, ValueTraits):
     ).configure(
         allow_none=True,
     )
-    text_name = tf.Text(
-        description="Name",
-        continuous_update=False,
-        layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
-        style={"description_width": "initial"},
-    ).configure(
-        dynamic_kwgs={"value": "name", "disabled": lambda config: not config["parent"].RENAMEABLE},
+    text_name: tf.InstanceHP[Self, ipw.Text] = tf.InstanceHP(
+        ipw.Text,
+        create=lambda c: c["klass"](
+            value=c["parent"].name,
+            description="Name",
+            continuous_update=False,
+            layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
+            style={"description_width": "initial"},
+            disabled=not c["parent"].RENAMEABLE,
+        ),
     )
     _description_label = tf.HTML("<b>Description</b>")
     _description_preview_label = tf.HTML("<b>Description preview</b>")
@@ -81,10 +92,15 @@ class MenuboxVT(Menubox, ValueTraits):
     )
 
     description = tf.CodeEditor(mime_type="text/x-markdown")
-    description_viewer = tf.MarkdownOutput(layout={"margin": "0px 0px 0px 10px"}).configure(
+    description_viewer = tf.InstanceHP[Self, MarkdownOutput](
+        MarkdownOutput,
+        lambda c: c["klass"](
+            layout={"margin": "0px 0px 0px 10px"},
+            converter=c["parent"]._convert_description,
+        ),
+    ).configure(
         dlink={"source": ("description", "value"), "target": "value"},
-        set_attrs={"converter": "._convert_description"},
-        add_css_class=(CSScls.resize_vertical,),
+        add_css_class=CSScls.resize_vertical,
     )
     button_configure = tf.Button_open(tooltip="Configure").configure(
         load_default=False,

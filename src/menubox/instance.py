@@ -1,8 +1,18 @@
 from __future__ import annotations
 
-import copy
 import inspect
-from typing import TYPE_CHECKING, Any, Generic, Literal, NotRequired, ParamSpec, TypedDict, TypeVar, Unpack, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Literal,
+    NotRequired,
+    ParamSpec,
+    TypedDict,
+    TypeVar,
+    Unpack,
+    overload,
+)
 
 import ipylab.common
 import traitlets
@@ -24,22 +34,21 @@ if TYPE_CHECKING:
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
 
-
+S = TypeVar("S", bound=HasParent)
 T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class IHPCreate(Generic[T], TypedDict):
+class IHPCreate[S, T](TypedDict):
     name: str
-    parent: HasParent
+    parent: S
     klass: type[T]
-    args: tuple
     kwgs: dict
 
 
-class IHPChange(Generic[T], TypedDict):
+class IHPChange[S, T](TypedDict):
     name: str
-    parent: HasParent
+    parent: S
     old: T | None
     new: T | None
 
@@ -54,18 +63,15 @@ class ChildrenNameTuple(TypedDict):
     nametuple_name: str
 
 
-class IHPSettings(Generic[T], TypedDict):
+class IHPSettings[S, T](TypedDict):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str, ...]]
-    create: NotRequired[str | Callable[[IHPCreate[T]], T]]
-    dynamic_kwgs: NotRequired[dict[str, str | Callable[[IHPCreate[T]], Any]]]
-    set_attrs: NotRequired[dict[str, Any]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
     on_click: NotRequired[str | Callable[[Button], Awaitable | None]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     children: NotRequired[ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...]]
-    value_changed: NotRequired[str | Callable[[IHPChange[T]], None]]
+    value_changed: NotRequired[str | Callable[[IHPChange[S, T]], None]]
 
 
 class IHPDlinkType(TypedDict):
@@ -76,17 +82,17 @@ class IHPDlinkType(TypedDict):
     transform: NotRequired[Callable[[Any], Any]]
 
 
-class InstanceHP(traitlets.TraitType, Generic[T]):
+class InstanceHP(traitlets.TraitType, Generic[S, T]):
     default_value: None = None
     klass: type[T]
     load_default = True
 
     if TYPE_CHECKING:
         name: str  # type: ignore
-        settings: IHPSettings[T]
+        settings: IHPSettings[S, T]
 
         @overload
-        def __get__(self, obj: Any, cls: type[HasParent]) -> T: ...  # type: ignore
+        def __get__(self, obj: Any, cls: type[S]) -> T: ...  # type: ignore
 
     def class_init(self, cls, name):
         if issubclass(cls, HasParent):
@@ -99,38 +105,18 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             raise TypeError(msg)
         return super().class_init(cls, name)
 
-    def __init__(self, klass: Callable[P, T] | str, *args: P.args, **kwgs: P.kwargs) -> None:
-        """InstanceHP is an Instance type class  to spawn the instance of
-        `klass(*args, **kwargs)` in the `HasParent` (parent) object.
+    def __init__(self, klass: type[T] | str, create: None | Callable[[IHPCreate[S, T]], T] = None) -> None:
+        """Initialize a new instance of the class.
 
-        This class replaces `traitlets.Instance` providing the necessary customisation
-        to simplify construnction cutting the need to define "default" decorators by
-        99%. Notably, 'parent' is inserted into **kwargs for `HasParent` subclasses
-        (configurable with the `configure` method).
+        Args:
+            klass (Callable[P, T] | str): The class to instantiate, either as a class object or a string representing the full path to the class.
+            create (Callable[[IHPCreate[S, T]], T] | None, optional): An optional callable that takes an `IHPCreate` instance and returns an instance of the class. Defaults to None.
 
-        It's design is analogous to functools.partial such that *args and **kwgs are
-        passed to the klass during instantion along with parent (if relevant). Default
-        settings will load the 'default' but can also be overridden with the `configure` method.
-
-        Parameters
-        ----------
-        klass : str | HasParent | object
-            The class that forms the basis for the trait.  Class names
-            can also be specified using the name of the class as a string.
-            If the string contains a dot `.` It will be resolved.
-            Else it is assumed to be an subclass of `HasParent`.
-        *args
-            Positional args passed to klass default.
-        **kwgs
-            Extra kwargs passed to to klass default.
-
-        `configure`
-        ----
-        See also .configure for further detail.
-
+        Raises:
+            ValueError: If `klass` is a string but does not contain a ".".
+            TypeError: If `klass` is not a class or a string.
         """
         self.settings = {}
-        inspect.isclass(klass)
         if isinstance(klass, str):
             if "." not in klass:
                 msg = f"{klass=} must be passed with the full path to the class inside the module"
@@ -142,10 +128,9 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
         super().__init__(default_value=None, allow_none=True, read_only=True)
-        self.args = args
-        self.kwgs = kwgs
+        self.create = create
 
-    def instance_init(self, obj: HasParent):
+    def instance_init(self, obj: S):
         """Init an instance of TypedInstanceTuple."""
         super().instance_init(obj)
         utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)
@@ -155,12 +140,12 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
     def __repr__(self):
-        return f"InstanceHP<klass={self.klass.__name__}>"
+        return f'InstanceHP<klass={self.klass.__name__}@{getattr(self.this_class, __name__, "?")}.{self.name}">'
 
     def __str__(self):
         return self.name
 
-    def set(self, obj: HasParent, value) -> None:  # type: ignore
+    def set(self, obj: S, value) -> None:  # type: ignore
         self.finalize()
         if isinstance(value, dict):
             value = self.default(obj, value)
@@ -188,7 +173,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
                 obj.on_error(e, "Instance configuration error.")
             obj._notify_trait(self.name, old_value, new_value)
 
-    def get(self, obj: HasParent, cls: Any = None) -> T | None:  # type: ignore
+    def get(self, obj: S, cls: Any = None) -> T | None:  # type: ignore
         try:
             value: T | None = obj._trait_values[self.name]  # type: ignore
         except KeyError:
@@ -228,7 +213,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
         self.klass = klass  # type: ignore
         mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, settings=self.settings)
 
-    def default(self, parent: HasParent, override: None | dict = None) -> T | None:  # type: ignore
+    def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
         """Create a default instance of the managed class.
 
         This method attempts to create an instance of the class managed by this
@@ -261,17 +246,20 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
                     f"{self.name}:InstanceHP[{self.klass.__name__}] and it has not been set!"
                 )
                 raise RuntimeError(msg)  # noqa: TRY301
-            kwgs = copy.deepcopy(self.kwgs)
+            kwgs = {}
             if self.settings:
                 mb.plugin_manager.hook.instancehp_default_kwgs(inst=self, parent=parent, kwgs=kwgs)
             if override:
                 kwgs = kwgs | override
-            return mb.plugin_manager.hook.instancehp_default_create(inst=self, parent=parent, args=self.args, kwgs=kwgs)
+            if self.create:
+                return self.create(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
+            return self.klass(**kwgs)
+
         except Exception as e:
             parent.on_error(e, f'Instance creation failed for "{utils.fullname(parent)}.{self.name}"', self)
             raise
 
-    def _validate(self, obj: HasParent, value) -> T | None:
+    def _validate(self, obj: S, value) -> T | None:
         if value is None:
             if self.allow_none:
                 return value
@@ -286,7 +274,7 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             return value
         self.error(obj, value)  # noqa: RET503
 
-    def _value_changed(self, parent: HasParent, old: T | None, new: T | None):
+    def _value_changed(self, parent: S, old: T | None, new: T | None):
         settings = self.settings
         if settings:
             change = IHPChange(name=self.name, parent=parent, old=old, new=new)
@@ -306,8 +294,8 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             read_only: bool = ...,
             allow_none: Literal[True],
             load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T | None]: ...
+            **kwgs: Unpack[IHPSettings[S, T]],
+        ) -> InstanceHP[S, T | None]: ...
         @overload
         def configure(
             self,
@@ -315,8 +303,8 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             read_only: bool = ...,
             allow_none: Literal[False],
             load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T]: ...
+            **kwgs: Unpack[IHPSettings[S, T]],
+        ) -> InstanceHP[S, T]: ...
         @overload
         def configure(
             self,
@@ -324,8 +312,8 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             read_only: bool = ...,
             allow_none: bool | NO_DEFAULT_TYPE = ...,
             load_default: Literal[False],
-            **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T | None]: ...
+            **kwgs: Unpack[IHPSettings[S, T]],
+        ) -> InstanceHP[S, T | None]: ...
         @overload
         def configure(
             self,
@@ -333,8 +321,8 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             read_only: bool = ...,
             allow_none: Literal[True] = ...,
             load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T]: ...
+            **kwgs: Unpack[IHPSettings[S, T]],
+        ) -> InstanceHP[S, T]: ...
         @overload
         def configure(
             self,
@@ -342,17 +330,18 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             read_only: bool = ...,
             allow_none: Literal[True] | NO_DEFAULT_TYPE = ...,
             load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[T]],
-        ) -> InstanceHP[T]: ...
+            **kwgs: Unpack[IHPSettings[S, T]],
+        ) -> InstanceHP[S, T]: ...
 
+    # TODO: split out hooks. leave named as 'configure' for read_only, allow_none, Load_default
     def configure(
         self,
         *,
         read_only=True,
         allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
         load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
-        **kwgs: Unpack[IHPSettings[T]],
-    ) -> InstanceHP[T] | InstanceHP[T | None]:
+        **kwgs: Unpack[IHPSettings[S, T]],
+    ) -> InstanceHP[S, T] | InstanceHP[S, T | None]:
         """Configure how the instance is loaded and what hooks to use when it is changed.
 
         Configuration changes are merged using a nested replace strategy except as explained below.
@@ -377,23 +366,6 @@ class InstanceHP(traitlets.TraitType, Generic[T]):
             Allow the value to be None.
         set_parent: Bool [True]
             Set the parent to the parent of the trait (HasParent).
-        dynamic_kwgs: dict[str, str | Callable[[IHPChange[T]], Any]]
-            A mapping of dynamic kwargs to use during instantiation.
-            values can be a mapping of dotted name  to an attribute on the parent
-            or a function that accepts a dict (IHPCreate) and returns the value to substitute.
-        create: str | Callable[[IHPChange[T]], T]
-            The name of the create function in the parent to generate the default or a
-            callabled function that accepts a dict (IHPCreate) and returns the instance.
-        set_attrs: dict[str,any]
-            Set the attributes of the instance during validation (after instantiation).
-            Accepts dotted name keys. Uses `setattr` as the `default_setter`.
-            **Dotted name values**:
-                If the value is a string and starts with `.` the value will be replaced
-                with the dotted name after the `.`.
-            **Callable values**
-                If the value is callable, the result of the callable is used. The callable
-                is passed the structure `IHPCreate` noting that kwgs is updated in the same
-                order as set_attrs.
         dlink: IHPDlinkType | tuple[IHPDlinkType]
             A mapping or tuple of mappings for dlinks to add when creating.
             'source': tuple[obj, str]
@@ -433,11 +405,8 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    read_only=True,
-    allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
-    load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
-    **kwargs: Unpack[IHPSettings],
-) -> Callable[P, InstanceHP[T]]:
+    **kwargs: Unpack[IHPSettings[S, T]],
+) -> Callable[P, InstanceHP[S, T]]:
     """Wraps the InstanceHP trait for use with HasParent classes.
 
     This function creates a factory that returns an InstanceHP trait,
@@ -449,9 +418,6 @@ def instanceHP_wrapper(
         strategy: The merging strategy to use when combining defaults with instance-specific keyword arguments.
                   Defaults to Strategy.REPLACE.
         tags: A dictionary of tags to be applied to the InstanceHP trait.
-        read_only: Whether the InstanceHP trait should be read-only. Defaults to True.
-        allow_none: Whether the InstanceHP trait should allow None as a value. Defaults to NO_DEFAULT.
-        load_default: Whether the InstanceHP trait should load the default value upon initialization. Defaults to NO_DEFAULT.
         **kwargs: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
     Returns:
         A factory function that, when called, returns an InstanceHP trait instance.  The factory
@@ -467,7 +433,7 @@ def instanceHP_wrapper(
     defaults_ = merge({}, defaults) if defaults else {}
     tags = dict(tags) if tags else {}  # type: ignore
 
-    def instanceHP_factory(*args: P.args, **kwgs: P.kwargs) -> InstanceHP[T]:
+    def instanceHP_factory(*args: P.args, **kwgs: P.kwargs) -> InstanceHP[S, T]:
         """Returns an InstanceHP[klass] trait.
 
         Use this to add a trait to new subclass of HasParent.
@@ -478,8 +444,10 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(klass, *args, **kwgs)
-        instance.configure(load_default=load_default, read_only=read_only, allow_none=allow_none, **kwargs)
+        instance: InstanceHP[S, T] = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        if kwargs:
+            # TODO: rename to hooks
+            instance.configure(**kwargs)
         if tags:
             instance.tag(**tags)
         return instance

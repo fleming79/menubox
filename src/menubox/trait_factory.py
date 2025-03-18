@@ -23,9 +23,6 @@ from menubox.instance import IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 __all__ = [
     "AsyncRunButton",
     "AsyncRunButton_update",
@@ -61,7 +58,6 @@ __all__ = [
     "SelectMultipleValidate",
     "Menubox",
     "Modalbox",
-    "Repositories",
     "SelectRepository",
     "Task",
     "Text",
@@ -153,20 +149,8 @@ AsyncRunButton_update = ihpwrap(
 )
 Modalbox = ihpwrap(cast(type["menubox.modalbox.Modalbox"], "menubox.modalbox.Modalbox"))
 
-Repository = ihpwrap(
-    cast(type["menubox.repository.Repository"], "menubox.repository.Repository"),
-    create=lambda config: config["parent"].home.repository,  # type: ignore
-    on_replace_close=False,
-    set_parent=False,
-    read_only=False,
-)
-Repositories = ihpwrap(
-    cast(type["menubox.repository.Repositories"], "menubox.repository.Repositories"),
-    set_parent=False,
-    dynamic_kwgs={"home": "home"},
-    on_replace_close=False,
-)
 SelectRepository = ihpwrap(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))
 
-# other
-Task: Callable[..., InstanceHP[asyncio.Task | None]] = ihpwrap(asyncio.Task, allow_none=True, load_default=False)
+
+def Task():
+    return InstanceHP(asyncio.Task).configure(allow_none=True, load_default=False)
