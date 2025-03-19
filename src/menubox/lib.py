@@ -208,7 +208,7 @@ def dlink(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | N
             if isinstance(transform, str):
                 transform = utils.getattr_nested(parent, transform, hastrait_value=False)
             if transform and not callable(transform):
-                msg = f"Transform must be callable but got {transform:!r}"
+                msg = f"Transform must be callable but got {transform!r}"
                 raise TypeError(msg)
             parent.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
             if not parent.closed and isinstance(new, HasTraits):

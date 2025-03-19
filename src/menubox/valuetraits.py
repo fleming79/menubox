@@ -696,11 +696,9 @@ class ValueTraits(HasParent):
                 elif (obj_ := getattr(obj, n, None)) and isinstance(obj_, HasTraits):
                     # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
                     obj = obj_
-                    if i < len(parts):
-                        continue
-                    if cls._AUTO_VALUE and obj.has_trait("value"):
+                    if cls._AUTO_VALUE and i == segments and obj.has_trait("value"):
                         yield (obj, "value")
-                        continue
+                    continue
                 else:
                     msg = (
                         f"`{n}` is not a trait of {utils.fullname(obj)} and {utils.fullname(obj)} "
@@ -781,7 +779,7 @@ class ValueTraits(HasParent):
             try:
                 self._vt_update_reg_value_traits()
             except Exception as e:
-                e.add_note(f"This is a `value_trait` of {self:!r}")
+                e.add_note(f"This is a `value_trait` of {self!r}")
                 self.on_error(e, "Invalid `value_trait` item found.")
                 if mb.DEBUG_ENABLED:
                     raise
@@ -789,7 +787,7 @@ class ValueTraits(HasParent):
             try:
                 self._vt_update_reg_value_traits_persist()
             except Exception as e:
-                e.add_note(f"This is a `value_trait_persist` of {self:!r}")
+                e.add_note(f"This is a `value_trait_persist` of {self!r}")
                 self.on_error(e, "Invalid `value_trait_persist` item found.")
                 if mb.DEBUG_ENABLED:
                     raise
