@@ -453,3 +453,27 @@ def instanceHP_wrapper(
         return instance
 
     return instanceHP_factory
+
+
+def fixed_wrapper(
+    klass: Callable[P, T] | str, /, *, defaults: None | dict[str, Any] = None
+) -> Callable[P, ipylab.Fixed[S, T]]:  # type: ignore
+    """Wraps a class or importable name of a class in a `ipylab.Fixed` instance factory.
+    The wrapped class is instantiated with the given `defaults` merged with the
+    arguments passed to the factory.
+    Args:
+        klass: Class to wrap, or a string importable as a class.
+        defaults: Default keyword arguments to use when instantiating the class.
+    Returns:
+        A factory function that returns a `ipylab.Fixed` instance.
+    """
+    defaults_ = merge({}, defaults) if defaults else {}
+
+    def fixed_factory(*args: P.args, **kwgs: P.kwargs) -> ipylab.Fixed[S, T]:
+        klass_: Callable[P, T] = ipylab.common.import_item(klass) if isinstance(klass, str) else klass
+        if defaults_:
+            kwgs = merge({}, defaults_, kwgs)  # type: ignore
+        instance: ipylab.Fixed[S, T] = ipylab.Fixed(lambda _: klass_(*args, **kwgs))
+        return instance
+
+    return fixed_factory
