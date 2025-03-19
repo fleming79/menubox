@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import inspect
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, TypeVar, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -216,22 +216,31 @@ class Dlink:
             self.source[0].unobserve(self._update, names=self.source[1])
 
 
-class Parent(traitlets.TraitType):
-    """"""
+S = TypeVar("S", bound=HasTraits | None)
 
+
+class Parent(traitlets.Instance[S]):
+    klass: type[S]  # type: ignore
     allow_none = True
     default_value = None
+    read_only = False
 
-    def _validate(self, obj: HasParent, value: HasParent | None | Any) -> HasParent | None:
+    def __new__(cls, klass: str | type[S], /) -> Parent[S | None]:  # noqa: ARG003
+        return super().__new__(cls)
+
+    def __init__(self, klass: str | type[S], /) -> None:
+        super().__init__(klass=klass)
+
+    def validate(self, obj: S, value: S | None | Any) -> S | None:
         if value is None:
             return None
-        if isinstance(value, HasParent):
+        if value:
             p = value
-            while isinstance(p, HasParent):
+            while hasattr(p, "parent"):
                 if p is obj:
                     msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
                     raise RuntimeError(msg)
-                p = p.parent
+                p = p.parent  # type: ignore
             return value
         msg = "Parent must be either an instance of HasParent or None"
         raise TypeError(msg)
@@ -279,7 +288,7 @@ class HasParent(Singular):
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
     log = traitlets.Instance(IpylabLoggerAdapter)
-    parent = Parent()
+    parent = Parent(HasTraits)
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
     def __init__(self, *, parent: HasParent | None = None, **kwargs):
@@ -700,7 +709,7 @@ class HasParent(Singular):
         return self
 
     def get_widgets(
-        self: HasParent, *items: utils.GetWidgetsInputType, skip_disabled=False, skip_hidden=True, show=True
+        self, *items: utils.GetWidgetsInputType, skip_disabled=False, skip_hidden=True, show=True
     ) -> Generator[ipw.Widget, None, None]:
         """Get widgets from a variety of input types ignoring invalid of closed items..
 

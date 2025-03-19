@@ -8,7 +8,7 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.hasparent import HasParent
+from menubox.hasparent import HasParent, Parent
 from menubox.log import log_exceptions
 from menubox.trait_types import ChangeType, StrTuple
 
@@ -19,6 +19,7 @@ __all__ = ["Modalbox"]
 
 
 class Modalbox(HasParent, ipw.VBox):
+    parent = Parent(HasParent)
     obj = traitlets.Any(read_only=True)
     button_expand = tf.Button_modal()
     button_collapse = tf.Button_modal(disabled=True)

@@ -20,7 +20,7 @@ from menubox import (
 )
 from menubox.__about__ import __version__
 from menubox.defaults import hookimpl
-from menubox.hasparent import HasParent
+from menubox.hasparent import HasParent, Parent
 from menubox.home import Home
 from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
@@ -56,6 +56,7 @@ __all__ = [
     "MenuboxVT",
     "Modalbox",
     "NameTuple",
+    "Parent",
     "ProposalType",
     "StrTuple",
     "TaskType",

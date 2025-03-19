@@ -90,8 +90,6 @@ class SelectRepository(MenuboxVT):
     """
 
     box_center = None
-    if TYPE_CHECKING:
-        parent: MenuboxVT
     repositories: Fixed[Self, Repositories] = Fixed(lambda c: Repositories(home=c["owner"].home))
     repository_name = tf.Dropdown(
         description="Repository",
