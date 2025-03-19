@@ -21,18 +21,19 @@ class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
         }
     )
     button = tf.Button_main(description="nested button")
-    dropdown = tf.Dropdown(description="nested dropdown").configure(allow_none=True)
+    dropdown = tf.I_Dropdown(description="nested dropdown").configure(allow_none=True)
+    label = tf.Label("Nested Label")
 
 
 class ChildrenSetterTester(mb.MenuboxVT):
-    dropdown = tf.Dropdown(description="dropdown")
+    dropdown = tf.I_Dropdown(description="dropdown")
     label = tf.Label("Label")
-    label_no_default = tf.Label("Label no default").configure(load_default=False)
+    dd_no_default = tf.I_Dropdown(description="Label no default").configure(load_default=False)
     nested = tf.InstanceHP(ChildrenSetterTesterNestedObj).configure(allow_none=True)
     dynamic_box = tf.Box().configure(
         children={
             "mode": "monitor",
-            "dottednames": ("label_no_default", "dropdown", "nested.dropdown", "nested.button"),
+            "dottednames": ("dd_no_default", "dropdown", "nested.dropdown", "nested.button"),
         },
     )
     dynamic_box_nametuple_children = NameTuple("label")
@@ -54,7 +55,7 @@ async def cto(home: mb.Home):
     "dottednames",
     [
         ("dropdown", "label"),
-        ("nested.button", "nested.dropdown"),
+        ("nested.button", "nested.dropdown", "nested.label"),
     ],
 )
 async def test_children_setter_manual(cto: ChildrenSetterTester, dottednames: tuple):
@@ -101,10 +102,10 @@ async def test_children_setter_builtin(cto: ChildrenSetterTester):
 
 async def test_children_setter_enable(cto: ChildrenSetterTester):
     assert cto.dynamic_box
-    cto.enable_widget("label_no_default")
+    cto.enable_widget("dd_no_default")
     await asyncio.sleep(0.1)
     assert cto.nested
-    assert cto.dynamic_box.children == (cto.label_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
+    assert cto.dynamic_box.children == (cto.dd_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
 
 async def test_children_setter_hide(cto: ChildrenSetterTester):

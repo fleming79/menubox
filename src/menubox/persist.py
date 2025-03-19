@@ -74,7 +74,7 @@ class MenuboxPersist(MenuboxVT):
     ).configure(
         allow_none=True,
     )
-    sw_version_load = tf.Dropdown(
+    sw_version_load = tf.I_Dropdown(
         description="Load from",
         index=None,
         layout={"width": "max-content"},
@@ -87,8 +87,7 @@ class MenuboxPersist(MenuboxVT):
         tooltip="Save persistence data for current version",
         tasktype=mb_async.TaskType.update,
     )
-    version_widget: tf.InstanceHP[Self, ipw.BoundedIntText] = tf.InstanceHP(
-        ipw.BoundedIntText,
+    version_widget = tf.InstanceHP[Self, ipw.BoundedIntText](ipw.BoundedIntText).set_create(
         lambda c: ipw.BoundedIntText(
             min=1,
             max=1,
@@ -166,7 +165,7 @@ class MenuboxPersist(MenuboxVT):
             box.children = [ipw.HTML('<font color="red">Not saved yet!</font>'), self.button_save_persistence_data]
         return box
 
-    async def _button_save_persistence_data_async(self, version=None):
+    async def _button_save_persistence_data_async(self, version: int | None = None):
         """Use button_save.start to get an awaitable task."""
         repo = self.home.repository
         version = self._to_version(version)

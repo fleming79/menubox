@@ -25,6 +25,7 @@ async def test_repository(home: mb.Home, tmp_path: pathlib.Path):
     assert repo2 is repo
     assert repo2.home is home
     rps.show()
+
     repo3 = Repository(name=name, home=home)
     assert repo3 is repo2
 

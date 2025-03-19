@@ -8,6 +8,7 @@ from typing import (
     Literal,
     NotRequired,
     ParamSpec,
+    Self,
     TypedDict,
     TypeVar,
     Unpack,
@@ -83,9 +84,35 @@ class IHPDlinkType(TypedDict):
 
 
 class InstanceHP(traitlets.TraitType, Generic[S, T]):
-    default_value: None = None
+    """Descriptor for managing instances of a specific class as a trait.
+
+    `InstanceHP` is a trait type that manages instances of a particular class.
+    It handles instantiation, validation, and interaction with the managed
+    instance, including setting parents, observing changes, and providing
+    default values. It also supports plugin hooks for customization.
+    The class provides a way to define and configure how instances of a class
+    are created and managed as traits within a `HasParent` object. It supports
+    lazy instantiation, default value loading, and allows customization through
+    plugin hooks.
+    Attributes:
+        klass: The class to be managed. Can be a class type or a string
+            representing the full path to the class.
+        default_value: The default value for the trait. Defaults to None.
+        allow_none: Whether None is a valid value for the trait. Defaults to True.
+        read_only: Whether the trait is read-only. Defaults to True.
+        load_default: Whether to load a default instance if no value is provided.
+            Defaults to True.
+        create: An optional callable that is used to create the instance.
+        settings: A dictionary to store settings related to the instance.
+        info_text: A property that returns a string describing the instance type.
+    """
+
     klass: type[T]
+    default_value: None = None
+    allow_none = True
+    read_only = True
     load_default = True
+    create = None
 
     if TYPE_CHECKING:
         name: str  # type: ignore
@@ -105,17 +132,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             raise TypeError(msg)
         return super().class_init(cls, name)
 
-    def __init__(self, klass: type[T] | str, create: None | Callable[[IHPCreate[S, T]], T] = None) -> None:
-        """Initialize a new instance of the class.
-
-        Args:
-            klass (Callable[P, T] | str): The class to instantiate, either as a class object or a string representing the full path to the class.
-            create (Callable[[IHPCreate[S, T]], T] | None, optional): An optional callable that takes an `IHPCreate` instance and returns an instance of the class. Defaults to None.
-
-        Raises:
-            ValueError: If `klass` is a string but does not contain a ".".
-            TypeError: If `klass` is not a class or a string.
-        """
+    def __init__(self, klass: type[T] | str) -> None:
         self.settings = {}
         if isinstance(klass, str):
             if "." not in klass:
@@ -127,8 +144,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         else:
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
-        super().__init__(default_value=None, allow_none=True, read_only=True)
-        self.create = create
+        super().__init__()
 
     def instance_init(self, obj: S):
         """Init an instance of TypedInstanceTuple."""
@@ -144,6 +160,10 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     def __str__(self):
         return self.name
+
+    def set_create(self, create: Callable[[IHPCreate[S, T]], T]) -> Self:
+        self.create = create
+        return self
 
     def set(self, obj: S, value) -> None:  # type: ignore
         self.finalize()
@@ -372,7 +392,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             'target: str
             transform: Callable[Any, Any]
                 A function to convert the source value to the target value.
-        set_children: ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...] <Boxes and Panels only>
+        children: ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...] <Boxes and Panels only>
             Children are collected from the parent using `parent.get_widgets`.
             and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
 
@@ -444,7 +464,7 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance: InstanceHP[S, T] = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        instance: InstanceHP[S, T] = InstanceHP(klass).set_create(lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
         if kwargs:
             # TODO: rename to hooks
             instance.configure(**kwargs)

@@ -56,12 +56,14 @@ class MenuboxVT(Menubox, ValueTraits):
     box_template_controls = tf.HBox(layout={"width": "max-content"}).configure(
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
-    repository = tf.InstanceHP[Self, "Repository"](
-        "menubox.repository.Repository", lambda c: c["parent"].home.repository
-    ).configure(
-        on_replace_close=False,
-        set_parent=False,
-        read_only=False,
+    repository = (
+        tf.InstanceHP[Self, "Repository"]("menubox.repository.Repository")
+        .set_create(lambda c: c["parent"].home.repository)
+        .configure(
+            on_replace_close=False,
+            set_parent=False,
+            read_only=False,
+        )
     )
     template_controls = tf.Modalbox(
         "box_template_controls",
@@ -72,8 +74,7 @@ class MenuboxVT(Menubox, ValueTraits):
     ).configure(
         allow_none=True,
     )
-    text_name: tf.InstanceHP[Self, ipw.Text] = tf.InstanceHP(
-        ipw.Text,
+    text_name = tf.InstanceHP[Self, ipw.Text](ipw.Text).set_create(
         create=lambda c: c["klass"](
             value=c["parent"].name,
             description="Name",
@@ -92,15 +93,17 @@ class MenuboxVT(Menubox, ValueTraits):
     )
 
     description = tf.CodeEditor(mime_type="text/x-markdown")
-    description_viewer = tf.InstanceHP[Self, MarkdownOutput](
-        MarkdownOutput,
-        lambda c: c["klass"](
-            layout={"margin": "0px 0px 0px 10px"},
-            converter=c["parent"]._convert_description,
-        ),
-    ).configure(
-        dlink={"source": ("description", "value"), "target": "value"},
-        add_css_class=CSScls.resize_vertical,
+    description_viewer = (
+        tf.InstanceHP[Self, MarkdownOutput](MarkdownOutput)
+        .set_create(
+            lambda c: c["klass"](
+                layout={"margin": "0px 0px 0px 10px"},
+                converter=c["parent"]._convert_description,
+            ).add_class(CSScls.resize_vertical),
+        )
+        .configure(
+            dlink={"source": ("description", "value"), "target": "value"},
+        )
     )
     button_configure = tf.Button_open(tooltip="Configure").configure(
         load_default=False,

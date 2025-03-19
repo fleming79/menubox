@@ -16,7 +16,7 @@ from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, ob
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
-from menubox.hasparent import HasParent
+from menubox.hasparent import HasParent, Parent
 from menubox.home import Home, InstanceHome
 from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType
@@ -458,6 +458,7 @@ class ValueTraits(HasParent):
     _vt_busy_updating_count = 0
     _vt_init_complete = False
     dtype = "dict"
+    parent = Parent(HasParent)
     home = InstanceHome()
     value = _ValueTraitsValueTrait()
     value_traits = NameTuple()

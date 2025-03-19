@@ -4,10 +4,10 @@ import pathlib
 from typing import TYPE_CHECKING, ClassVar, Self, override
 
 import traitlets
+from ipylab.common import Fixed, import_item
 
 from menubox import trait_types, utils
 from menubox.hasparent import HasParent
-from menubox.instance import InstanceHP
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -40,9 +40,8 @@ class Home(HasParent):
     SINGLETON_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     _HREG: _HomeRegister
-    repository: InstanceHP[Self, Repository] = InstanceHP(
-        "menubox.repository.Repository",
-        create=lambda c: c["klass"](name="default", url=c["parent"]._url, **c["kwgs"]),
+    repository = Fixed[Self, "Repository"](
+        lambda c: import_item("menubox.repository.Repository")(name="default", url=c["owner"]._url, home=c["owner"])
     )
 
     @classmethod

@@ -21,6 +21,7 @@ from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
+from menubox.instance import fixed_wrapper as fwrap
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
 __all__ = [
@@ -79,13 +80,15 @@ Box = ihpwrap(ipw.Box)
 VBox = ihpwrap(ipw.VBox)
 HBox = ihpwrap(ipw.HBox)
 
-HTML = ihpwrap(ipw.HTML)
-Dropdown = ihpwrap(ipw.Dropdown)
-Combobox = ihpwrap(ipw.Combobox)
-Select = ihpwrap(ipw.Select)
-Text = ihpwrap(ipw.Text)
-Label = ihpwrap(ipw.Label)
-SelectionSlider = ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
+HTML = fwrap(ipw.HTML)
+Dropdown = fwrap(ipw.Dropdown)
+Combobox = fwrap(ipw.Combobox)
+Select = fwrap(ipw.Select)
+Text = fwrap(ipw.Text)
+Label = fwrap(ipw.Label)
+SelectionSlider = fwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
+
+I_Dropdown = ihpwrap(ipw.Dropdown)
 
 
 # Button

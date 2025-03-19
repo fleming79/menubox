@@ -18,11 +18,15 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.Menubox):
-    a = InstanceHP["Self", "HPI"]("tests.test_instance.HPI", lambda c: c["klass"](name="a", **c["kwgs"])).configure(
-        allow_none=True
+    a = (
+        InstanceHP["Self", "HPI"]("tests.test_instance.HPI")
+        .set_create(lambda c: c["klass"](name="a", **c["kwgs"]))
+        .configure(allow_none=True)
     )
-    b = InstanceHP["Self", "HPI"]("tests.test_instance.HPI", lambda c: c["klass"](name="b", **c["kwgs"])).configure(
-        load_default=False, allow_none=False
+    b = (
+        InstanceHP["Self", "HPI"]("tests.test_instance.HPI")
+        .set_create(lambda c: c["klass"](name="b", **c["kwgs"]))
+        .configure(load_default=False, allow_none=False)
     )
     my_button = tf.Button_main(description="A button")
     box = tf.HBox().configure(children={"dottednames": ("my_button",), "mode": "monitor"})
@@ -37,7 +41,7 @@ class HPI(mb.Menubox):
 
 
 class HPI2(HPI, mb.MenuboxVT):
-    c: InstanceHP[Self, HPI] = InstanceHP(HPI, lambda c: c["klass"](name="C has value")).configure(set_parent=False)
+    c = InstanceHP[Self, "HPI"](HPI).set_create(lambda c: c["klass"](name="C has value")).configure(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository()
     button = tf.AsyncRunButton(cfunc="_button_async")

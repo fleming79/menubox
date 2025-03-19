@@ -8,6 +8,8 @@ from ipylab.common import Fixed
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem
+from menubox.hasparent import Parent
+from menubox.home import Home
 from menubox.menuboxvt import MenuboxVT
 from menubox.persist import MenuboxPersist
 from menubox.shuffle import ObjShuffle
@@ -26,6 +28,7 @@ class Repository(Filesystem, MenuboxPersist):
     value_traits_persist = NameTuple("protocol", "url", "kw")
     title_description = traitlets.Unicode("<b>Repository: &emsp; {self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.repository}")
+    parent = Parent(Home)
 
     @property
     def root(self):
@@ -37,6 +40,7 @@ class Repository(Filesystem, MenuboxPersist):
         if name == "default":
             self._configure_as_default_repo()
         super().__init__(name=name, **kwargs)
+        self.parent = self.home
         if not self.url.value:
             self.url.value = self.home_url = self.home.repository.url.value
 
@@ -91,7 +95,7 @@ class SelectRepository(MenuboxVT):
 
     box_center = None
     repositories: Fixed[Self, Repositories] = Fixed(lambda c: Repositories(home=c["owner"].home))
-    repository_name = tf.Dropdown(
+    repository_name = tf.I_Dropdown(
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},
