@@ -13,7 +13,7 @@ import ipywidgets as ipw
 import traitlets
 from IPython import display as ipd
 
-from menubox import mb_async
+from menubox import defaults, mb_async
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -36,6 +36,9 @@ __all__ = [
 class ValidatedTrait(traitlets.TraitType):
     "A trait that validates the trait by calling the method."
 
+    def __init__(self, default_value):
+        super().__init__(default_value)
+
     def _validate(self, obj: ValidateWidget, value: Any):
         return obj.validate(value)
 
@@ -54,7 +57,7 @@ class ValidateWidget(ipw.ValueWidget):
     """
 
     _skip_validate = False
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait(None).tag(sync=True)
     _bi_validate: weakref.ref | None = None
 
     @traitlets.validate("value")
@@ -99,31 +102,31 @@ class ValidateWidget(ipw.ValueWidget):
 
 class TextareaValidate(ipw.Textarea, ValidateWidget):
     continuous_update = traitlets.Bool(False).tag(sync=True)
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait("").tag(sync=True)
 
 
 class TextValidate(ipw.Text, ValidateWidget):
     continuous_update = traitlets.Bool(False).tag(sync=True)
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait("").tag(sync=True)
 
 
 class ComboboxValidate(ipw.Combobox, ValidateWidget):
     continuous_update = traitlets.Bool(False).tag(sync=True)
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait("").tag(sync=True)
 
 
 class FloatTextValidate(ipw.FloatText, ValidateWidget):
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait(defaults.nan).tag(sync=True)
 
 
 class IntTextValidate(ipw.IntText, ValidateWidget):
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait("").tag(sync=True)
 
 
 class SelectMultipleValidate(ipw.SelectMultiple, ValidateWidget):
     "SelectMultiple that drops values not in options for validation by default."
 
-    value = ValidatedTrait().tag(sync=True)
+    value = ValidatedTrait(()).tag(sync=True)
     options: tuple
 
     def __init__(self, *, validate: None | Callable[[ProposalType], Any] = None, **kwargs):
