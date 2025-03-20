@@ -153,10 +153,9 @@ class MenuboxVT(Menubox, ValueTraits):
         return self.repository.to_path(self.get_value("subpath"))
 
     def __repr__(self):
-        if self._Menubox_init_complete:
+        if self._Menubox_init_complete and not self.closed:
             name = self.name if self.trait_has_value("name") else ""
-            cs = "closed: " if self.closed else ""
-            return f"<{cs}{self.__class__.__qualname__} home='{self.home}' {name=}>"
+            return f"<{self.__class__.__qualname__} home='{self.home}' {name=}>"
         return super().__repr__()
 
     def _get_template_controls(self):

@@ -51,6 +51,7 @@ class Home(HasParent):
     @override
     @classmethod
     def get_single_key(cls, name: str | Home | pathlib.Path, **kwgs) -> Hashable:
+        assert isinstance(name, Home | str | pathlib.Path)
         return (to_safe_homename(name),)
 
     def __new__(cls, name: str | Home | pathlib.Path, /, *args, **kwgs):
@@ -69,6 +70,8 @@ class Home(HasParent):
             self._HREG.set_trait("homes", (*self._HREG.homes, self))
 
     def __repr__(self):
+        if self.closed:
+            return super().__repr__()
         return f"<Home: {self.name}>"
 
     def __str__(self):

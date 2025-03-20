@@ -291,6 +291,9 @@ class HasParent(Singular):
     parent = Parent(HasTraits)
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
+    def __repr__(self):
+        return f"<Instance of {self.__class__} is closed>"
+
     def __init__(self, *, parent: HasParent | None = None, **kwargs):
         """Initialize the HasParent class.
 

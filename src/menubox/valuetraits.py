@@ -217,7 +217,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
         if inst := self._find_update_item(obj, kw, index=index):
             return inst
         if not self._spawn_new_instances:
-            msg = f"Instance creation is disabled for items in the TypedInstanceTuple {utils.fullname(obj)}.{self.name}"
+            msg = f"Instance creation is disabled for items in the TypedInstanceTuple {utils.fullname(self.this_class)}.{self.name}"
             raise RuntimeError(msg)
         factory = self._get_func(obj, "_factory")
         if not callable(factory):
@@ -487,6 +487,8 @@ class ValueTraits(HasParent):
         return self.__repr__()
 
     def __repr__(self):
+        if self.closed:
+            return super().__repr__()
         cs = "closed: " if self.closed else ""
         home = f"home:{self.home}" if self._vt_init_complete else ""
         return f"<{cs}{self.__class__.__qualname__} name='{self.name}' {home}>"
@@ -524,12 +526,8 @@ class ValueTraits(HasParent):
         elif isinstance(parent, Home):
             home = parent
         else:
-            home_ = getattr(cls.home, "default_value", "")
-            if home_:
-                home = Home(home_)
-            else:
-                msg = "'home' or 'parent' (with a home) must be provided. 'home' may be a string."
-                raise NameError(msg)
+            msg = "'home' or 'parent' (with a home) must be provided. 'home' may be a string."
+            raise NameError(msg)
         inst = super().__new__(cls, home=home, parent=parent, **kwargs)
         if not inst._vt_init_complete and home and inst.has_trait("home"):  # type: ignore
             inst.set_trait("home", home)
@@ -928,6 +926,8 @@ class ValueTraits(HasParent):
     @property
     @override
     def repr_log(self):
+        if self.closed:
+            return super().repr_log
         name = self.name
         name = f" {name=}" if name else ""
         return f"<{self.__class__.__name__}{name}> [{self.home}]"

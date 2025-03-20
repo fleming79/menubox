@@ -54,7 +54,7 @@ class HPI2(HPI, mb.MenuboxVT):
 class HPI3(mb.Menubox):
     box = tf.Box().configure(allow_none=True)
     menubox = tf.Menubox(views={"main": None}).configure(allow_none=True)
-    hpi2 = tf.InstanceHP(HPI2).configure(allow_none=True)
+    hpi2 = tf.InstanceHP(HPI2).set_create(lambda _: HPI2(home="test")).configure(allow_none=True)
 
 
 class HPI4(HasParent):
