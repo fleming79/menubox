@@ -13,7 +13,7 @@ class MBP(MenuboxPersist):
     SINGLE_VERSION = False
     new = traitlets.Unicode()
     a_widget = tf.Text(description="something", value="Using the value")
-    just_a_widget = tf.I_Dropdown(description="just_a_widget", options=[1, 2, 3]).configure(
+    just_a_widget = tf.Dropdown(description="just_a_widget", options=[1, 2, 3]).configure(
         dlink={
             "source": ("self", "df"),
             "target": "layout.visibility",

@@ -95,7 +95,7 @@ class SelectRepository(MenuboxVT):
 
     box_center = None
     repositories: Fixed[Self, Repositories] = Fixed(lambda c: Repositories(home=c["owner"].home))
-    repository_name = tf.I_Dropdown(
+    repository_name = tf.Dropdown(
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},

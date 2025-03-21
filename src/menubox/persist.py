@@ -74,7 +74,7 @@ class MenuboxPersist(MenuboxVT):
     ).configure(
         allow_none=True,
     )
-    sw_version_load = tf.I_Dropdown(
+    sw_version_load = tf.Dropdown(
         description="Load from",
         index=None,
         layout={"width": "max-content"},
