@@ -96,8 +96,8 @@ class Menubox(HasParent, Panel):
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons: tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
-    _tab_buttons: tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]] = tf.InstanceHP(weakref.WeakSet)
+    _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](weakref.WeakSet)
+    _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](weakref.WeakSet)
     task_load_view = tf.Task()
     html_title = tf.HTML_Title().configure(load_default=False)
     out_help = tf.MarkdownOutput().configure(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
@@ -202,8 +202,8 @@ class Menubox(HasParent, Panel):
         if tabviews is not None:
             self.set_trait("tabviews", tabviews)
         view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
-        super().__init__(**kwargs)
         self._Menubox_init_complete = True
+        super().__init__(**kwargs)
         if view is not None:
             self.load_view(view)
 
@@ -469,7 +469,7 @@ class Menubox(HasParent, Panel):
             return
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
-                if self._Menubox_init_complete:
+                if self._mb_configured:
                     self.update_title()
                 return
             case "views" | "viewlist":

@@ -20,7 +20,6 @@ from menubox.widgets import MarkdownOutput
 _template_folders: set[pathlib.Path] = set()
 
 if TYPE_CHECKING:
-    import ipywidgets as ipw
 
     from menubox.modalbox import Modalbox
     from menubox.repository import Repository  # noqa: F401
@@ -59,11 +58,7 @@ class MenuboxVT(Menubox, ValueTraits):
     repository = (
         tf.InstanceHP[Self, "Repository"]("menubox.repository.Repository")
         .set_create(lambda c: c["parent"].home.repository)
-        .configure(
-            on_replace_close=False,
-            set_parent=False,
-            read_only=False,
-        )
+        .configure(on_replace_close=False, set_parent=False, read_only=False)
     )
     template_controls = tf.Modalbox(
         "box_template_controls",
@@ -75,7 +70,7 @@ class MenuboxVT(Menubox, ValueTraits):
         allow_none=True,
     )
     text_name = tf.InstanceHP[Self, ipw.Text](ipw.Text).set_create(
-        create=lambda c: c["klass"](
+        lambda c: ipw.Text(
             value=c["parent"].name,
             description="Name",
             continuous_update=False,

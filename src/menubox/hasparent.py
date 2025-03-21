@@ -311,9 +311,9 @@ class HasParent(Singular):
         for name in tuple(kwargs):
             if name in self._InstanceHP:
                 values[name] = kwargs.pop(name)
+        self._HasParent_init_complete = True
         super().__init__(**kwargs)
         self.parent = parent
-        self._HasParent_init_complete = True
         for name, v in values.items():
             self.instanceHP_enable_disable(name, v)
         if self.init_async:
@@ -438,9 +438,7 @@ class HasParent(Singular):
         from menubox import valuetraits as vt
 
         if isinstance(obj, ipw.Combobox) and name == "value":
-            if value is None:
-                value = ""
-            value = str(value)
+            value = "" if value is None else str(value)
         if (
             isinstance(obj, ipw.widget_selection._Selection) and name == "value" and isinstance(value, str)
         ) and value == "":
@@ -523,7 +521,7 @@ class HasParent(Singular):
         """
 
         if name not in self._InstanceHP:
-            msg = f"{name=} not in {list(self._InstanceHP)}"
+            msg = f"{name=} is not an InstanceHP instance in {utils.fullname(self)} {list(self._InstanceHP)}"
             raise KeyError(msg)
         if enable in [False, None]:
             self.set_trait(name, None)

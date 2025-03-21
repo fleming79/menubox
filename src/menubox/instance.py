@@ -112,7 +112,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     allow_none = True
     read_only = True
     load_default = True
-    create = None
+    _create = None
 
     if TYPE_CHECKING:
         name: str  # type: ignore
@@ -156,13 +156,13 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
     def __repr__(self):
-        return f'InstanceHP<klass={self.klass.__name__}@{getattr(self.this_class, __name__, "?")}.{self.name}">'
+        return f'InstanceHP<klass={self.klass.__name__}@{utils.fullname(self.this_class)}.{self.name}">'
 
     def __str__(self):
         return self.name
 
     def set_create(self, create: Callable[[IHPCreate[S, T]], T]) -> Self:
-        self.create = create
+        self._create = create
         return self
 
     def set(self, obj: S, value) -> None:  # type: ignore
@@ -261,18 +261,15 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             if not self.load_default and override is None:
                 if self.allow_none:
                     return None
-                msg = (
-                    f"Both `load_default` and `allow_none` are `None` for {parent.__class__.__qualname__}."
-                    f"{self.name}:InstanceHP[{self.klass.__name__}] and it has not been set!"
-                )
+                msg = f"Both `load_default` and `allow_none` are `None` and the value is unset for {self!r}"
                 raise RuntimeError(msg)  # noqa: TRY301
             kwgs = {}
             if self.settings:
                 mb.plugin_manager.hook.instancehp_default_kwgs(inst=self, parent=parent, kwgs=kwgs)
             if override:
                 kwgs = kwgs | override
-            if self.create:
-                return self.create(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
+            if self._create:
+                return self._create(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
             return self.klass(**kwgs)
 
         except Exception as e:
@@ -283,10 +280,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         if value is None:
             if self.allow_none:
                 return value
-            msg = (
-                f"None is not allowed for the InstanceHP trait `{obj.__class__.__qualname__}.{self.name}`. "
-                "Use `.configure(allow_none=True)` to permit it."
-            )
+            msg = f"`None` is not allowed for {self}. Use `.configure(allow_none=True)` to permit it."
             raise traitlets.TraitError(msg)
         if isinstance(value, self.klass):  # type:ignore[arg-type]
             if obj._cross_validation_lock is False:
