@@ -58,23 +58,20 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     )
-    drive: tf.InstanceHP[Self, ipw.Dropdown] = (
-        tf.InstanceHP(ipw.Dropdown)
-        .set_create(
-            lambda c: c["klass"](
-                value=None,
-                tooltip="Change drive",
-                layout={"width": "max-content"},
-                options=list_drives(),
-            ),
-        )
-        .configure(
-            dlink={
-                "source": ("protocol", "value"),
-                "target": "layout.visibility",
-                "transform": lambda protocol: utils.to_visibility(protocol == "file"),
-            },
-        )
+    drive: tf.InstanceHP[Self, ipw.Dropdown] = tf.InstanceHP(
+        ipw.Dropdown,
+        lambda c: c["klass"](
+            value=None,
+            tooltip="Change drive",
+            layout={"width": "max-content"},
+            options=list_drives(),
+        ),
+    ).configure(
+        dlink={
+            "source": ("protocol", "value"),
+            "target": "layout.visibility",
+            "transform": lambda protocol: utils.to_visibility(protocol == "file"),
+        },
     )
     sw_main = tf.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},

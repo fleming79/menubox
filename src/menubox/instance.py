@@ -8,7 +8,6 @@ from typing import (
     Literal,
     NotRequired,
     ParamSpec,
-    Self,
     TypedDict,
     TypeVar,
     Unpack,
@@ -112,7 +111,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     allow_none = True
     read_only = True
     load_default = True
-    _create = None
 
     if TYPE_CHECKING:
         name: str  # type: ignore
@@ -132,8 +130,9 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             raise TypeError(msg)
         return super().class_init(cls, name)
 
-    def __init__(self, klass: type[T] | str) -> None:
+    def __init__(self, klass: type[T] | str, create: Callable[[IHPCreate[S, T]], T] | None = None) -> None:
         self.settings = {}
+        self._create = create
         if isinstance(klass, str):
             if "." not in klass:
                 msg = f"{klass=} must be passed with the full path to the class inside the module"
@@ -160,10 +159,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     def __str__(self):
         return self.name
-
-    def set_create(self, create: Callable[[IHPCreate[S, T]], T]) -> Self:
-        self._create = create
-        return self
 
     def set(self, obj: S, value) -> None:  # type: ignore
         self.finalize()
@@ -458,7 +453,7 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance: InstanceHP[S, T] = InstanceHP(klass).set_create(lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        instance: InstanceHP[S, T] = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
         if kwargs:
             # TODO: rename to hooks
             instance.configure(**kwargs)
@@ -467,4 +462,3 @@ def instanceHP_wrapper(
         return instance
 
     return instanceHP_factory
-

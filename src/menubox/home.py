@@ -51,7 +51,7 @@ class Home(HasParent):
     @override
     @classmethod
     def get_single_key(cls, name: str | Home | pathlib.Path, **kwgs) -> Hashable:
-        assert isinstance(name, Home | str | pathlib.Path)
+        assert isinstance(name, Home | str | pathlib.Path)  # noqa: S101
         return (to_safe_homename(name),)
 
     def __new__(cls, name: str | Home | pathlib.Path, /, *args, **kwgs):

@@ -20,7 +20,6 @@ from menubox.widgets import MarkdownOutput
 _template_folders: set[pathlib.Path] = set()
 
 if TYPE_CHECKING:
-
     from menubox.modalbox import Modalbox
     from menubox.repository import Repository  # noqa: F401
 
@@ -55,11 +54,9 @@ class MenuboxVT(Menubox, ValueTraits):
     box_template_controls = tf.HBox(layout={"width": "max-content"}).configure(
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
-    repository = (
-        tf.InstanceHP[Self, "Repository"]("menubox.repository.Repository")
-        .set_create(lambda c: c["parent"].home.repository)
-        .configure(on_replace_close=False, set_parent=False, read_only=False)
-    )
+    repository = tf.InstanceHP[Self, "Repository"](
+        "menubox.repository.Repository", lambda c: c["parent"].home.repository
+    ).configure(on_replace_close=False, set_parent=False, read_only=False)
     template_controls = tf.Modalbox(
         "box_template_controls",
         title="Copy and load settings",
@@ -69,7 +66,8 @@ class MenuboxVT(Menubox, ValueTraits):
     ).configure(
         allow_none=True,
     )
-    text_name = tf.InstanceHP[Self, ipw.Text](ipw.Text).set_create(
+    text_name = tf.InstanceHP[Self, ipw.Text](
+        ipw.Text,
         lambda c: ipw.Text(
             value=c["parent"].name,
             description="Name",
@@ -88,17 +86,14 @@ class MenuboxVT(Menubox, ValueTraits):
     )
 
     description = tf.CodeEditor(mime_type="text/x-markdown")
-    description_viewer = (
-        tf.InstanceHP[Self, MarkdownOutput](MarkdownOutput)
-        .set_create(
-            lambda c: c["klass"](
-                layout={"margin": "0px 0px 0px 10px"},
-                converter=c["parent"]._convert_description,
-            ).add_class(CSScls.resize_vertical),
-        )
-        .configure(
-            dlink={"source": ("description", "value"), "target": "value"},
-        )
+    description_viewer = tf.InstanceHP[Self, MarkdownOutput](
+        MarkdownOutput,
+        lambda c: c["klass"](
+            layout={"margin": "0px 0px 0px 10px"},
+            converter=c["parent"]._convert_description,
+        ).add_class(CSScls.resize_vertical),
+    ).configure(
+        dlink={"source": ("description", "value"), "target": "value"},
     )
     button_configure = tf.Button_open(tooltip="Configure").configure(
         load_default=False,

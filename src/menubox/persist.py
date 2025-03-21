@@ -87,7 +87,8 @@ class MenuboxPersist(MenuboxVT):
         tooltip="Save persistence data for current version",
         tasktype=mb_async.TaskType.update,
     )
-    version_widget = tf.InstanceHP[Self, ipw.BoundedIntText](ipw.BoundedIntText).set_create(
+    version_widget = tf.InstanceHP[Self, ipw.BoundedIntText](
+        ipw.BoundedIntText,
         lambda c: ipw.BoundedIntText(
             min=1,
             max=1,
