@@ -89,15 +89,19 @@ SelectionSlider = ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)}
 
 
 # Button
-Button_main = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_main))
-Button_open = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_open))
-Button_cancel = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_cancel))
-Button_dangerous = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_dangerous))
-Button_modal = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_modal))
-Button_menu = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_menu))
-Button_toggle = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_toggle))
-Button_shuffle = ihpwrap(ipw.Button, add_css_class=(CSScls.button, CSScls.button_type_shuffle))
-FileUpload = ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_type_main))
+Button_main = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_main))
+Button_open = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_open))
+Button_cancel = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_cancel))
+Button_dangerous = ihpwrap(
+    ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_dangerous)
+)
+Button_modal = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_modal))
+Button_menu = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_menu))
+Button_toggle = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_toggle))
+Button_shuffle = ihpwrap(
+    ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_shuffle)
+)
+FileUpload = ihpwrap(ipw.FileUpload, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_main))
 
 MenuboxHeader = ihpwrap(
     ipw.HBox,

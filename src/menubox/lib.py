@@ -46,13 +46,6 @@ def instancehp_finalize(inst: InstanceHP, settings: IHPSettings, klass: type):  
             settings["on_replace_close"] = not klass.SINGLETON_BY
         elif issubclass(klass, Widget) and "on_replace_close":
             settings["on_replace_close"] = True
-    if issubclass(klass, ipw.Button) and not issubclass(klass, mb.async_run_button.AsyncRunButton):
-        if "on_click" not in settings:
-            settings["on_click"] = "button_clicked"
-        else:
-            settings.pop("on_click", None)
-    if "add_css_class" in settings and not issubclass(klass, ipw.DOMWidget):
-        settings.pop("add_css_class", None)
     if issubclass(klass, HasParent) and "set_parent" not in settings:
         settings["set_parent"] = True
     if "remove_on_close" not in settings and issubclass(klass, HasParent | Widget):

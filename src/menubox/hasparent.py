@@ -225,11 +225,11 @@ class Parent(traitlets.Instance[S]):
     default_value = None
     read_only = False
 
-    def __new__(cls, klass: str | type[S], /) -> Parent[S | None]:  # noqa: ARG003
+    def __new__(cls, _klass: str | type[S], /) -> Parent[S | None]:
         return super().__new__(cls)
 
-    def __init__(self, klass: str | type[S], /) -> None:
-        super().__init__(klass=klass)
+    def __init__(self, _klass: str | type[S], /) -> None:
+        super().__init__(klass=_klass)
 
     def validate(self, obj: S, value: S | None | Any) -> S | None:
         if value is None:
