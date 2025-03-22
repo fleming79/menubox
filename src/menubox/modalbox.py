@@ -23,11 +23,11 @@ class Modalbox(HasParent, ipw.VBox):
     obj = traitlets.Any(read_only=True)
     button_expand = tf.Button_modal()
     button_collapse = tf.Button_modal(disabled=True)
-    box = tf.Box().configure(allow_none=True, load_default=False, set_parent=False)
+    box = tf.Box().configure(allow_none=True, load_default=False).hooks(set_parent=False)
     header_children = StrTuple("H_FILL")
     expanded = traitlets.Bool(False, read_only=True)
     html_title = tf.HTML_Title().configure(allow_none=True, load_default=False)
-    header = tf.HBox().configure(allow_none=True, add_css_class=CSScls.ModalboxHeader)
+    header = tf.HBox().configure(allow_none=True).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
 
     @log_exceptions

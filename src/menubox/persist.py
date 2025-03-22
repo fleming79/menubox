@@ -78,7 +78,7 @@ class MenuboxPersist(MenuboxVT):
         description="Load from",
         index=None,
         layout={"width": "max-content"},
-    ).configure(
+    ).hooks(
         dlink={"source": ("self", "versions"), "target": "options"},
     )
     button_save_persistence_data = tf.AsyncRunButton(

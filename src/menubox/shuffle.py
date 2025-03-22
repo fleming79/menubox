@@ -65,7 +65,7 @@ class ObjShuffle(MenuboxVT):
     button_scan_obj = tf.Button_main(description="↻", tooltip="Update options")
     button_clip_put = tf.Button_main(description="⎘", tooltip="Copy data to clipboard")
     box_info = tf.VBox()
-    box_info_header = tf.HBox().configure(children=("html_title", "sw_version", "button_clip_put", "html_info"))
+    box_info_header = tf.HBox().hooks(children=("html_title", "sw_version", "button_clip_put", "html_info"))
     box_details = tf.VBox()
     modal_info = tf.Modalbox("box_info", "Details", box="box_details")
     objshuffle_header_controls = StrTuple(
@@ -74,7 +74,7 @@ class ObjShuffle(MenuboxVT):
         "button_show_obj",
         "modal_info",
     )
-    box_shuffle_controls = tf.MenuboxHeader().configure(
+    box_shuffle_controls = tf.MenuboxHeader().hooks(
         children=("sw_obj", "button_scan_obj", "button_show_obj", "modal_info", "_get_template_controls")
     )
     box_center = None

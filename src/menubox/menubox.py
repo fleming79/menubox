@@ -100,7 +100,7 @@ class Menubox(HasParent, Panel):
     _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](weakref.WeakSet)
     task_load_view = tf.Task()
     html_title = tf.HTML_Title().configure(load_default=False)
-    out_help = tf.MarkdownOutput().configure(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
+    out_help = tf.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
     button_menu = tf.Button_menu(description="☰").configure(load_default=False)
@@ -118,12 +118,10 @@ class Menubox(HasParent, Panel):
     # Boxes
     box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
     box_menu = tf.MenuboxMenu().configure(allow_none=True)
-    showbox = tf.Box().configure(
-        allow_none=True,
-        load_default=False,
-        on_replace_close=False,
-        remove_on_close=False,
-        value_changed="_onchange_showbox",
+    showbox = (
+        tf.Box()
+        .configure(allow_none=True, load_default=False)
+        .hooks(on_replace_close=False, remove_on_close=False, value_changed="_onchange_showbox")
     )
     header = tf.MenuboxHeader().configure(allow_none=True)
     box_center = tf.MenuboxCenter().configure(allow_none=True)

@@ -13,7 +13,7 @@ class PMBB(mb.MenuboxVT):
     task_update = tf.Task()
     count = tf.InstanceHP(ipw.FloatText)
     slider = tf.InstanceHP(ipw.IntSlider)
-    box_extra = tf.HBox().configure(children=("count",))
+    box_extra = tf.HBox().hooks(children=("count",))
     box_mb2 = tf.VBox()
     mb1 = tf.Modalbox(obj="box_extra", title="mb1 open")
     mb2 = tf.Modalbox(

@@ -99,7 +99,7 @@ class SelectRepository(MenuboxVT):
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},
-    ).configure(
+    ).hooks(
         dlink={
             "source": ("repositories.sw_obj", "options"),
             "target": "options",

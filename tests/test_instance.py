@@ -25,7 +25,7 @@ class HPI(mb.Menubox):
         load_default=False, allow_none=False
     )
     my_button = tf.Button_main(description="A button")
-    box = tf.HBox().configure(children={"dottednames": ("my_button",), "mode": "monitor"})
+    box = tf.HBox().hooks(children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
 
     async def button_clicked(self, b: ipw.Button):
@@ -37,7 +37,7 @@ class HPI(mb.Menubox):
 
 
 class HPI2(HPI, mb.MenuboxVT):
-    c = InstanceHP[Self, "HPI"](HPI, lambda c: c["klass"](name="C has value")).configure(set_parent=False)
+    c = InstanceHP[Self, "HPI"](HPI, lambda c: c["klass"](name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository()
     button = tf.AsyncRunButton(cfunc="_button_async")
@@ -54,9 +54,12 @@ class HPI3(mb.Menubox):
 
 
 class HPI4(HasParent):
-    hpi = tf.InstanceHP(HPI).configure(
-        allow_none=True,
-        value_changed=lambda change: change["parent"].set_trait("value_changed", change),
+    hpi = (
+        tf.InstanceHP(HPI)
+        .configure(allow_none=True)
+        .hooks(
+            value_changed=lambda change: change["parent"].set_trait("value_changed", change),
+        )
     )
     value_changed = Dict()
 

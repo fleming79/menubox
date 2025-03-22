@@ -30,14 +30,14 @@ class ChildrenSetterTester(mb.MenuboxVT):
     label = tf.Label("Label")
     dd_no_default = tf.Dropdown(description="Label no default").configure(load_default=False)
     nested = tf.InstanceHP(ChildrenSetterTesterNestedObj).configure(allow_none=True)
-    dynamic_box = tf.Box().configure(
+    dynamic_box = tf.Box().hooks(
         children={
             "mode": "monitor",
             "dottednames": ("dd_no_default", "dropdown", "nested.dropdown", "nested.button"),
         },
     )
     dynamic_box_nametuple_children = NameTuple("label")
-    dynamic_box_nametuple = tf.Box().configure(
+    dynamic_box_nametuple = tf.Box().hooks(
         children={
             "mode": "monitor_nametuple",
             "nametuple_name": "dynamic_box_nametuple_children",

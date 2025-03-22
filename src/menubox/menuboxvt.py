@@ -46,17 +46,21 @@ class MenuboxVT(Menubox, ValueTraits):
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
-    header = tf.MenuboxHeader().configure(allow_none=True, add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header))
+    header = (
+        tf.MenuboxHeader().configure(allow_none=True).hooks(add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header))
+    )
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
-    box_template_controls = tf.HBox(layout={"width": "max-content"}).configure(
+    box_template_controls = tf.HBox(layout={"width": "max-content"}).hooks(
         children=("button_clip_put", "button_paste", "_sw_template", "_button_load_template", "_button_template_info")
     )
-    repository = tf.InstanceHP[Self, "Repository"](
-        "menubox.repository.Repository", lambda c: c["parent"].home.repository
-    ).configure(on_replace_close=False, set_parent=False, read_only=False)
+    repository = (
+        tf.InstanceHP[Self, "Repository"]("menubox.repository.Repository", lambda c: c["parent"].home.repository)
+        .configure(read_only=False)
+        .hooks(on_replace_close=False, set_parent=False)
+    )
     template_controls = tf.Modalbox(
         "box_template_controls",
         title="Copy and load settings",
@@ -79,9 +83,9 @@ class MenuboxVT(Menubox, ValueTraits):
     )
     _description_label = tf.HTML("<b>Description</b>")
     _description_preview_label = tf.HTML("<b>Description preview</b>")
-    _box_edit_description_edit = tf.VBox().configure(children=("_description_label", "description"))
-    _box_edit_description_preview = tf.VBox().configure(children=("_description_preview_label", "description_viewer"))
-    _box_edit_description = tf.HBox(layout={"justify_content": "space-between"}).configure(
+    _box_edit_description_edit = tf.VBox().hooks(children=("_description_label", "description"))
+    _box_edit_description_preview = tf.VBox().hooks(children=("_description_preview_label", "description_viewer"))
+    _box_edit_description = tf.HBox(layout={"justify_content": "space-between"}).hooks(
         children=("_box_edit_description_edit", "_box_edit_description_preview")
     )
 
@@ -92,16 +96,19 @@ class MenuboxVT(Menubox, ValueTraits):
             layout={"margin": "0px 0px 0px 10px"},
             converter=c["parent"]._convert_description,
         ).add_class(CSScls.resize_vertical),
-    ).configure(
+    ).hooks(
         dlink={"source": ("description", "value"), "target": "value"},
     )
-    button_configure = tf.Button_open(tooltip="Configure").configure(
-        load_default=False,
-        dlink={
-            "source": ("self", "view"),
-            "target": "description",
-            "transform": lambda view: "End configure" if view == MenuboxVT._CONFIGURE_VIEW else "🔧",
-        },
+    button_configure = (
+        tf.Button_open(tooltip="Configure")
+        .configure(load_default=False)
+        .hooks(
+            dlink={
+                "source": ("self", "view"),
+                "target": "description",
+                "transform": lambda view: "End configure" if view == MenuboxVT._CONFIGURE_VIEW else "🔧",
+            },
+        )
     )
     button_clip_put = tf.Button_open(description="📎", tooltip="Copy settings to clipboard")
     button_paste = tf.Button_open(description="📋", tooltip="Paste settings from clipboard\n")

@@ -8,6 +8,7 @@ from typing import (
     Literal,
     NotRequired,
     ParamSpec,
+    Self,
     TypedDict,
     TypeVar,
     Unpack,
@@ -298,48 +299,23 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
         @overload
         def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: Literal[True],
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[S, T]],
+            self, *, read_only: bool = ..., allow_none: Literal[True], load_default: bool | NO_DEFAULT_TYPE = ...
         ) -> InstanceHP[S, T | None]: ...
         @overload
         def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: Literal[False],
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[S, T]],
+            self, *, read_only: bool = ..., allow_none: Literal[False], load_default: bool | NO_DEFAULT_TYPE = ...
         ) -> InstanceHP[S, T]: ...
         @overload
         def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: bool | NO_DEFAULT_TYPE = ...,
-            load_default: Literal[False],
-            **kwgs: Unpack[IHPSettings[S, T]],
+            self, *, read_only: bool = ..., allow_none: bool | NO_DEFAULT_TYPE = ..., load_default: Literal[False]
         ) -> InstanceHP[S, T | None]: ...
         @overload
         def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: Literal[True] = ...,
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[S, T]],
+            self, *, read_only: bool = ..., allow_none: Literal[True] = ..., load_default: bool | NO_DEFAULT_TYPE = ...
         ) -> InstanceHP[S, T]: ...
         @overload
         def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: Literal[True] | NO_DEFAULT_TYPE = ...,
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            **kwgs: Unpack[IHPSettings[S, T]],
+            self, *, read_only: bool = ..., allow_none=..., load_default: bool | NO_DEFAULT_TYPE = ...
         ) -> InstanceHP[S, T]: ...
 
     # TODO: split out hooks. leave named as 'configure' for read_only, allow_none, Load_default
@@ -349,22 +325,37 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         read_only=True,
         allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
         load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
-        **kwgs: Unpack[IHPSettings[S, T]],
     ) -> InstanceHP[S, T] | InstanceHP[S, T | None]:
-        """Configure how the instance is loaded and what hooks to use when it is changed.
+        """Configures the instance with the provided settings.
 
-        Configuration changes are merged using a nested replace strategy except as explained below.
+        This method allows configuring the instance's behavior regarding read-only status,
+        allowing None values, and loading default values.  It uses a builder pattern
+        allowing chained calls.
+
+        Args:
+            read_only:  If True, the instance will be read-only. Defaults to True.
+            allow_none: If True, None values are permitted. If NO_DEFAULT, defaults to not load_default.
+            load_default: If True, default values are loaded. If NO_DEFAULT, the existing value is kept.
+
+        Returns:
+            The instance itself (self), with updated configuration. The return type reflects whether None is allowed.
+        """
+        self.load_default = load_default if load_default is not NO_DEFAULT else self.load_default
+        self.allow_none = allow_none if allow_none is not NO_DEFAULT else not load_default
+        self.read_only = read_only
+        return self  # type: ignore
+
+    def hooks(self, **kwgs: Unpack[IHPSettings[S, T]]) -> Self:
+        """Configure what hooks to use when the instance is created or changed.
+
+        Hooks are merged using a nested replace strategy except as explained below.
 
         Additional custom hooks are also possible
 
         Defaults
         --------
-        * load_default: True
-        * allow_none: not load_default
-        * read_only: True
         * set_parent: True [HasParent]
         * on_replace_close: True [HasParent | Widget]
-        * on_click: "button_clicked" [Button]
 
         Parameters
         ----------
@@ -394,17 +385,14 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             `nametuple_name` field.
         add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
-        on_click: Str | Tuple[str, ...] <Button **ONLY**>
+        on_click: A function  <Button **ONLY**>
             Dotted name access to the on_click callbacks.
         remove_on_close: bool
             If True, the instance will be removed from the parent when the instance is closed.
         """
-        self.load_default = load_default if load_default is not NO_DEFAULT else self.load_default
-        self.allow_none = allow_none if allow_none is not NO_DEFAULT else not load_default
-        self.read_only = read_only
         if kwgs:
             merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
-        return self  # type: ignore
+        return self
 
 
 def instanceHP_wrapper(
@@ -455,8 +443,7 @@ def instanceHP_wrapper(
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
         instance: InstanceHP[S, T] = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
         if kwargs:
-            # TODO: rename to hooks
-            instance.configure(**kwargs)
+            instance.hooks(**kwargs)
         if tags:
             instance.tag(**tags)
         return instance
