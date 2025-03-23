@@ -1,16 +1,29 @@
 import asyncio
+from typing import Self
 
 import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
+from menubox.async_run_button import AsyncRunButton
 from menubox.hasparent import HasParent
 
 
 class PMB(mb.Menubox):
-    ab_main = tf.AsyncRunButton(cfunc="_button_async", description="Button")
-    ab_nested = tf.AsyncRunButton(cfunc="ab_main", description="Nested button")
-    ab_nested_sub = tf.AsyncRunButton(cfunc="ab_main", description="Sub button", link_button=True)
+    ab_main = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton,
+        lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
+    )
+    ab_nested = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton,
+        lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
+    )
+    ab_nested_sub = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton,
+        lambda c: AsyncRunButton(
+            parent=c["parent"], cfunc=lambda p: p.ab_main, description="Sub button", link_button=True
+        ),
+    )
     data = traitlets.Dict()
 
     async def _button_async(self, **kwgs):

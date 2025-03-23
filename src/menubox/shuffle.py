@@ -1,5 +1,5 @@
 from collections.abc import Hashable
-from typing import override
+from typing import Self, override
 
 import ipywidgets as ipw
 import traitlets
@@ -7,6 +7,7 @@ from pandas.io import clipboards
 
 from menubox import mb_async
 from menubox import trait_factory as tf
+from menubox.async_run_button import AsyncRunButton
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_yaml
 from menubox.persist import MenuboxPersist
@@ -55,12 +56,16 @@ class ObjShuffle(MenuboxVT):
         tooltip="Select the version to show the details",
         layout={"width": "130px"},
     )
-    button_show_obj = tf.AsyncRunButton(
-        cfunc="_button_show_obj_on_click_async",
-        description="Show",
-        cancel_description="Loading",
-        tooltip="Show selected item.",
-        disabled=True,
+    button_show_obj = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton,
+        lambda c: AsyncRunButton(
+            parent=c["parent"],
+            cfunc=lambda p: p._button_show_obj_on_click_async,
+            description="Show",
+            cancel_description="Loading",
+            tooltip="Show selected item.",
+            disabled=True,
+        ),
     )
     button_scan_obj = tf.Button_main(description="↻", tooltip="Update options")
     button_clip_put = tf.Button_main(description="⎘", tooltip="Copy data to clipboard")

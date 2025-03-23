@@ -10,9 +10,10 @@ import pytest
 from traitlets import Dict, TraitError
 
 import menubox as mb
+from menubox.async_run_button import AsyncRunButton
 import menubox.trait_factory as tf
 from menubox.hasparent import HasParent
-from menubox.instance import IHPChange, InstanceHP, instanceHP_wrapper
+from menubox.instance import InstanceHP, instanceHP_wrapper
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
@@ -40,7 +41,9 @@ class HPI2(HPI, mb.MenuboxVT):
     c = InstanceHP[Self, "HPI"](HPI, lambda c: c["klass"](name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository()
-    button = tf.AsyncRunButton(cfunc="_button_async")
+    button = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton, lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async)
+    )
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     async def _button_async(self):

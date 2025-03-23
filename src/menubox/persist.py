@@ -9,6 +9,7 @@ import traitlets
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
+from menubox.async_run_button import AsyncRunButton
 from menubox.home import Home
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVT
@@ -81,11 +82,15 @@ class MenuboxPersist(MenuboxVT):
     ).hooks(
         dlink={"source": ("self", "versions"), "target": "options"},
     )
-    button_save_persistence_data = tf.AsyncRunButton(
-        cfunc="_button_save_persistence_data_async",
-        description="💾",
-        tooltip="Save persistence data for current version",
-        tasktype=mb_async.TaskType.update,
+    button_save_persistence_data = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton,
+        lambda c: AsyncRunButton(
+            parent=c["parent"],
+            cfunc=lambda p: p._button_save_persistence_data_async,
+            description="💾",
+            tooltip="Save persistence data for current version",
+            tasktype=mb_async.TaskType.update,
+        ),
     )
     version_widget = tf.InstanceHP[Self, ipw.BoundedIntText](
         ipw.BoundedIntText,

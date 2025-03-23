@@ -12,6 +12,7 @@ from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
+from menubox.async_run_button import AsyncRunButton
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
@@ -84,11 +85,15 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     )
-    button_update = tf.AsyncRunButton(
-        cfunc="_button_update_async",
-        description="↻",
-        cancel_description="✗",
-        tasktype=mb_async.TaskType.update,
+    button_update = tf.InstanceHP[Self, AsyncRunButton](
+        AsyncRunButton,
+        lambda c: AsyncRunButton(
+            parent=c["parent"],
+            cfunc=lambda p: p._button_update_async,
+            description="↻",
+            cancel_description="✗",
+            tasktype=mb_async.TaskType.update,
+        ),
     )
     button_home = tf.Button_main(
         description="🏠",

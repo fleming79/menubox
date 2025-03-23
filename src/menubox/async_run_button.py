@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar
 
 import ipywidgets as ipw
 import traitlets
@@ -9,14 +9,18 @@ import traitlets
 from menubox import hasparent, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.defaults import NO_DEFAULT
+from menubox.hasparent import HasParent, Parent
 from menubox.log import log_exceptions
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
+    from types import CoroutineType
 
 
-class AsyncRunButton(hasparent.HasParent, ipw.Button):
+S = TypeVar("S", bound=HasParent)
+
+
+class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     """A button that runs the function in a singular task that can be cancelled by
     clicking the button again.
 
@@ -36,24 +40,22 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
     dict.
     """
 
-    parent = hasparent.Parent(hasparent.HasParent)
+    parent: Parent[S] = Parent(HasParent)  # type: ignore
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
     task = tf.Task()
 
-    def __new__(
-        cls, cfunc: Callable[..., Coroutine] | AsyncRunButton | str, parent: hasparent.HasParent | None = None, **kwargs
-    ):
+    def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
         return super().__new__(cls, parent=parent, cfunc=cfunc, **kwargs)
 
     def __init__(
         self,
-        cfunc: str,
+        cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton],
         *,
-        parent: hasparent.HasParent = NO_DEFAULT,  # type: ignore
+        parent: S,
         description="Start",
         cancel_description="Cancel",
-        kw: dict | str | Callable[[], dict] | None = None,
+        kw: Callable[[S], dict] | None = None,
         style: dict | None = None,
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
@@ -65,7 +67,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         if style is None:
             style = {}
         self._cfunc = cfunc
-        self._kw = kw or {}
+        self._kw = kw or (lambda _: {})
         self._cancel_description = cancel_description
         self.name = description
         self._style = style
@@ -73,22 +75,21 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
         self._cancel_style = cancel_button_style
         self._tooltip = tooltip
         self._tasktype = tasktype
-        self._taskname = f"async_run_button_{id(self)}_[{cfunc}]"
         self.set_description(description)
         self.add_class(CSScls.button)
         if not isinstance(parent, hasparent.HasParent):
             msg = f"parent must be an instance of HasParent not {type(parent)}"
             raise TypeError(msg)
         super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
+        self._taskname = f"async_run_button_{id(self)}_[{self.cfunc}]"
         self.on_click(self._on_click)
         if self.parent:
             self.log = self.parent.log
         if link_button:
-            cfunc = utils.getattr_nested(parent, cfunc)
-            if not isinstance(cfunc, AsyncRunButton):
+            if not isinstance(self.cfunc, AsyncRunButton):
                 msg = "When `link_button` cfunc must resolve to be a AsyncRunButton."
                 raise TypeError(msg)
-            utils.weak_observe(cfunc, self._update_link_button, "task")
+            utils.weak_observe(self.cfunc, self._update_link_button, "task")
             self._update_link_button()
 
     @traitlets.validate("name")
@@ -114,14 +115,14 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
 
     @property
     def kw(self) -> dict:
-        kw = self._kw
-        if isinstance(kw, str):
-            kw = utils.getattr_nested(self.parent, kw)
-        return kw() if callable(kw) else kw  # type: ignore
+        return self._kw(self.parent)
+
+    @property
+    def cfunc(self):
+        return self._cfunc(self.parent)  # type: ignore
 
     def _update_link_button(self):
-        cfunc = utils.getattr_nested(self.parent, self._cfunc)
-        if getattr(cfunc, "task", None):
+        if getattr(self.cfunc, "task", None):
             if not self.task:
                 self.disabled = True
                 self._update_disabled = True
@@ -129,7 +130,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
             self._update_disabled = False
             self.disabled = False
 
-    def _on_click(self, _: ipw.Button):
+    def _on_click(self, _: ipw.Button):  # type: ignore
         if self.task:
             self.cancel()
         else:
@@ -155,7 +156,7 @@ class AsyncRunButton(hasparent.HasParent, ipw.Button):
                 raise RecursionError(msg)
             return self.task
         kw = self.kw | kwargs
-        cfunc = utils.getattr_nested(self.parent, self._cfunc)
+        cfunc = self.cfunc
         if isinstance(cfunc, AsyncRunButton):
             aw = cfunc.start(restart=restart, task=task, **kw)
             if isinstance(aw, asyncio.Task):
