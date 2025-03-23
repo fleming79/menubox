@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import functools
 import inspect
+import weakref
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, TypeVar, override
 
 import ipywidgets as ipw
 import pandas as pd
 import toolz
 import traitlets
+from ipylab import Fixed
 from ipylab.common import Singular
 from ipylab.log import IpylabLoggerAdapter
 from traitlets import HasTraits
@@ -17,15 +21,16 @@ import menubox
 import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
+from menubox.css import CSScls
 from menubox.trait_types import ChangeType, NameTuple, ProposalType
 
 __all__ = ["HasParent", "Link", "Dlink"]
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Hashable
+    from collections.abc import Generator, Hashable
 
-    from menubox.instance import InstanceHP
+    from menubox.instance import IHPChange, InstanceHP
 
 
 class Link:
@@ -246,6 +251,7 @@ class Parent(traitlets.Instance[S]):
         raise TypeError(msg)
 
 
+
 class HasParent(Singular):
     """A base class for objects that have a parent and can manage links to other objects.
 
@@ -284,6 +290,8 @@ class HasParent(Singular):
         key_trait=traitlets.Unicode(),
         read_only=True,
     )
+    _button_register = Fixed[Self, dict[tuple[str, ipw.Button], Callable]](lambda _: {})
+
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
@@ -653,6 +661,28 @@ class HasParent(Singular):
                     e.add_note("It looks like wait_init_async is being awaited somewhere which could cause a deadlock")
                 raise
         return self
+
+    def _handle_button_change(self, c: IHPChange[Self, ipw.Button]):
+        if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
+            b.on_click(cb, remove=True)
+        if b := c["new"]:
+            taskname = f"button_clicked[{id(b)}] → {self.__class__.__name__}.{c['name']}"
+            self._button_register[(c["name"], b)] = on_click = functools.partial(
+                self._on_click, weakref.ref(self), taskname
+            )
+            b.on_click(on_click)
+
+    @classmethod
+    def _on_click(cls, ref: weakref.ref[HasParent], taskname: str, b: ipw.Button):
+        if self_ := ref():
+            mb.mb_async.run_async(lambda: self_._button_clicked(b), name=taskname, obj=self_)
+
+    async def _button_clicked(self, b: ipw.Button):
+        try:
+            b.add_class(CSScls.button_is_busy)
+            await self.button_clicked(b)
+        finally:
+            b.remove_class(CSScls.button_is_busy)
 
     async def button_clicked(self, b: ipw.Button):
         """Handles button click events.

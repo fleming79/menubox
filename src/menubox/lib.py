@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
-import inspect
 import weakref
 from typing import TYPE_CHECKING
 
@@ -13,8 +11,9 @@ from traitlets import HasTraits
 import menubox as mb
 from menubox import HasParent, utils
 from menubox.children_setter import ChildrenSetter
-from menubox.css import STYLESHEET, CSScls
+from menubox.css import STYLESHEET
 from menubox.defaults import hookimpl
+from menubox.instance import IHPSet
 
 if TYPE_CHECKING:
     from ipylab.css_stylesheet import CSSStyleSheet
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
     from menubox.instance import IHPChange, IHPSettings, InstanceHP, S, T
 
 
-_on_click_register = weakref.WeakKeyDictionary()
 inst_close_observers: dict[InstanceHP, weakref.WeakKeyDictionary[HasParent | Widget, dict]] = {}
 
 stylesheet: CSSStyleSheet | None = None
@@ -68,23 +66,22 @@ def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
 
 
 @hookimpl
-def instancehp_on_change(inst: InstanceHP, change: IHPChange):
+def instancehp_on_change(inst: InstanceHP, change: IHPChange[S, T]):
     settings = inst.settings
     parent = change["parent"]
     old = change["old"]
     new = change["new"]
-    for func in (on_replace_close, set_parent, dlink, remove_on_close, on_click, add_css_class):
+    for func in (on_replace_close, set_parent, dlink, remove_on_close, on_set, on_unset, add_css_class):
         if func.__name__ in settings:
             try:
                 func(inst, parent, old, new)
             except Exception as e:
                 parent.on_error(e, str(func))
     if vc := settings.get("value_changed"):
-        vc = getattr(parent, vc) if isinstance(vc, str) else vc
         vc(change)
 
 
-def remove_on_close(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):
+def remove_on_close(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):
     if parent.closed:
         return
     if inst not in inst_close_observers:
@@ -113,52 +110,23 @@ def remove_on_close(inst: InstanceHP[S, T], parent: S, old: object | None, new: 
         inst_close_observers[inst][parent] = {"handler": _observe_closed, "names": names}
 
 
-def on_replace_close(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):  # noqa: ARG001
+def on_replace_close(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
     if inst.settings.get("on_replace_close") and isinstance(old, Widget | HasParent):
         if mb.DEBUG_ENABLED:
             parent.log.debug(f"Closing replaced item `{parent.__class__.__name__}.{inst.name}` {old.__class__}")
         old.close()
 
 
-def on_click(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):
-    if on_click := inst.settings.get("on_click"):
-        if isinstance(old, ipw.Button) and (on_click := _on_click_register.pop(old)):
-            old.on_click(on_click, remove=True)
-        if not parent.closed and isinstance(new, ipw.Button):
-            if mb.DEBUG_ENABLED:
-                if not callable(utils.getattr_nested(parent, on_click) if isinstance(on_click, str) else on_click):
-                    msg = f"`{on_click=}` is not callable!"
-                    raise TypeError(msg)
-                if on_click == "button_clicked" and not asyncio.iscoroutinefunction(parent.button_clicked):
-                    msg = f"By convention `{utils.fullname(new)}.button_clicked` must be a coroutine function!"
-                    raise TypeError(msg)
-            taskname = f"button_clicked[{id(new)}] → {parent.__class__.__qualname__}.{inst.name}"
-            if new in _on_click_register:
-                msg = "The button {} is already registered!"
-                raise RuntimeError(msg)
-            ref = weakref.ref(parent)
-
-            def _on_click(b: ipw.Button):
-                obj: S | None = ref()
-                if obj:
-
-                    async def click_callback():
-                        callback = utils.getattr_nested(obj, on_click) if isinstance(on_click, str) else on_click
-                        try:
-                            b.add_class(CSScls.button_is_busy)
-                            result = callback(b)
-                            if inspect.isawaitable(result):
-                                await result
-                        finally:
-                            b.remove_class(CSScls.button_is_busy)
-
-                    mb.mb_async.run_async(click_callback, name=taskname, obj=obj)
-
-            new.on_click(_on_click)
-            _on_click_register[new] = _on_click
+def on_set(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
+    if (on_set := inst.settings.get("on_set")) and new is not None:
+        on_set(IHPSet(name=inst.name, parent=parent, obj=new))
 
 
-def dlink(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):  # noqa: ARG001
+def on_unset(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
+    if (on_unset := inst.settings.get("on_unset")) and old is not None:
+        on_unset(IHPSet(name=inst.name, parent=parent, obj=old))
+
+def dlink(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
     """Creates dynamic links (dlinks) between traits of objects based on the provided configuration.
 
     This function establishes links between a source trait of an object (typically a parent) and a target trait of another object,
@@ -208,7 +176,7 @@ def dlink(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | N
                 parent.dlink((src_obj, src_trait), target=(new, tgt_trait), transform=transform, key=key)
 
 
-def add_css_class(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):  # noqa: ARG001
+def add_css_class(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
     if add_css_class := inst.settings.get("add_css_class"):
         for cn in utils.iterflatten(add_css_class):
             if isinstance(new, ipw.DOMWidget):
@@ -217,7 +185,7 @@ def add_css_class(inst: InstanceHP[S, T], parent: S, old: object | None, new: ob
                 old.remove_class(cn)
 
 
-def set_parent(inst: InstanceHP[S, T], parent: S, old: object | None, new: object | None):
+def set_parent(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):
     if inst.settings.get("set_parent"):
         if isinstance(old, HasParent) and getattr(old, "parent", None) is parent:
             old.parent = None

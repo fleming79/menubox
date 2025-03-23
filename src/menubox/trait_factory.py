@@ -19,7 +19,7 @@ import menubox.widgets
 from menubox import mb_async
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
-from menubox.instance import IHPCreate, IHPDlinkType, InstanceHP
+from menubox.instance import IHPChange, IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
@@ -72,6 +72,7 @@ if TYPE_CHECKING:
     import menubox.modalbox
     import menubox.repository
     import menubox.widgets
+    from menubox.hasparent import HasParent
 
 
 # Ipywidgets shortcuts
@@ -88,20 +89,20 @@ Label = ihpwrap(ipw.Label)
 SelectionSlider = ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
 
 
+def _bchange(c: IHPChange[HasParent, ipw.Button]):
+    c["parent"]._handle_button_change(c)
 # Button
-Button_main = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_main))
-Button_open = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_open))
-Button_cancel = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_cancel))
+Button_main = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_main))
+Button_open = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_open))
+Button_cancel = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_cancel))
 Button_dangerous = ihpwrap(
-    ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_dangerous)
+    ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_dangerous)
 )
-Button_modal = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_modal))
-Button_menu = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_menu))
-Button_toggle = ihpwrap(ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_toggle))
-Button_shuffle = ihpwrap(
-    ipw.Button, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_shuffle)
-)
-FileUpload = ihpwrap(ipw.FileUpload, on_click="button_clicked", add_css_class=(CSScls.button, CSScls.button_type_main))
+Button_modal = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_modal))
+Button_menu = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_menu))
+Button_toggle = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_toggle))
+Button_shuffle = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_shuffle))
+FileUpload = ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_type_main))
 
 MenuboxHeader = ihpwrap(
     ipw.HBox,

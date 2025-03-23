@@ -119,9 +119,9 @@ class Menubox(HasParent, Panel):
     box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
     box_menu = tf.MenuboxMenu().configure(allow_none=True)
     showbox = (
-        tf.Box()
+        tf.InstanceHP[Self, ipw.Box](ipw.Box)
         .configure(allow_none=True, load_default=False)
-        .hooks(on_replace_close=False, remove_on_close=False, value_changed="_onchange_showbox")
+        .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
     )
     header = tf.MenuboxHeader().configure(allow_none=True)
     box_center = tf.MenuboxCenter().configure(allow_none=True)

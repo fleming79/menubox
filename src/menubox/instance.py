@@ -26,10 +26,9 @@ from menubox.hasparent import HasParent
 from menubox.trait_types import Bunched
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Callable
 
-    from ipywidgets import Button
-
+    from menubox.css import CSScls
     from menubox.defaults import NO_DEFAULT_TYPE
 
 
@@ -45,6 +44,12 @@ class IHPCreate[S, T](TypedDict):
     parent: S
     klass: type[T]
     kwgs: dict
+
+
+class IHPSet[S, T](TypedDict):
+    name: str
+    parent: S
+    obj: T
 
 
 class IHPChange[S, T](TypedDict):
@@ -66,13 +71,14 @@ class ChildrenNameTuple(TypedDict):
 
 class IHPSettings[S, T](TypedDict):
     set_parent: NotRequired[bool]
-    add_css_class: NotRequired[str | tuple[str, ...]]
+    add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
-    on_click: NotRequired[str | Callable[[Button], Awaitable | None]]
+    on_set: NotRequired[Callable[[IHPSet[S, T]], Any]]
+    on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     children: NotRequired[ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...]]
-    value_changed: NotRequired[str | Callable[[IHPChange[S, T]], None]]
+    value_changed: NotRequired[Callable[[IHPChange[S, T]], None]]
 
 
 class IHPDlinkType(TypedDict):
@@ -285,6 +291,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         self.error(obj, value)  # noqa: RET503
 
     def _value_changed(self, parent: S, old: T | None, new: T | None):
+        if new is None and old is None:
+            return
         settings = self.settings
         if settings:
             change = IHPChange(name=self.name, parent=parent, old=old, new=new)
