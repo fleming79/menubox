@@ -101,9 +101,13 @@ class Filesystem(MenuboxVT):
         description="✚",
         tooltip="Create new file or folder",
     )
-    box_settings = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(children=("protocol", "kw"))
+    box_settings = tf.InstanceHP[Self, ipw.HBox](
+        ipw.HBox, lambda _: ipw.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"})
+    ).hooks(
+        set_children=lambda p: (p.protocol, p.kw),
+    )
     control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
-        children={
+        set_children={
             "dottednames": ("button_home", "button_up", "drive", "url", "button_add", "button_update"),
             "mode": "monitor",
         }
@@ -285,7 +289,7 @@ class RelativePath(Filesystem):
     """A relative filesystem"""
 
     folders_only = traitlets.Bool(False)
-    box_settings = tf.HBox(layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(children=("relative_path",))
+    box_settings = tf.HBox(layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(set_children=("relative_path",))
     relative_path = tf.Text(".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()

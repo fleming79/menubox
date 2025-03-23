@@ -1,27 +1,19 @@
 from __future__ import annotations
 
-import contextlib
-import weakref
 from typing import TYPE_CHECKING
 
-import ipywidgets as ipw
 from ipywidgets import Widget
-from traitlets import HasTraits
 
-import menubox as mb
-from menubox import HasParent, utils
-from menubox.children_setter import ChildrenSetter
+from menubox import HasParent
 from menubox.css import STYLESHEET
 from menubox.defaults import hookimpl
-from menubox.instance import IHPSet
+from menubox.instance import InstanceHP
 
 if TYPE_CHECKING:
     from ipylab.css_stylesheet import CSSStyleSheet
 
-    from menubox.instance import IHPChange, IHPSettings, InstanceHP, S, T
+    from menubox.instance import IHPHookMappings, InstanceHP, S, T
 
-
-inst_close_observers: dict[InstanceHP, weakref.WeakKeyDictionary[HasParent | Widget, dict]] = {}
 
 stylesheet: CSSStyleSheet | None = None
 
@@ -36,158 +28,23 @@ def add_css_stylesheet():
 
 
 @hookimpl
-def instancehp_finalize(inst: InstanceHP, settings: IHPSettings, klass: type):  # noqa: ARG001
+def instancehp_finalize(inst: InstanceHP, hookmappings: IHPHookMappings, klass: type):
+    if "children" in hookmappings:
+        raise NotImplementedError(str(inst))
     if getattr(klass, "KEEP_ALIVE", False):
-        settings["on_replace_close"] = False
-    if "on_replace_close" not in settings:
+        hookmappings["on_replace_close"] = False
+    if "on_replace_close" not in hookmappings:
         if issubclass(klass, HasParent):
-            settings["on_replace_close"] = not klass.SINGLETON_BY
+            hookmappings["on_replace_close"] = not klass.SINGLETON_BY
         elif issubclass(klass, Widget) and "on_replace_close":
-            settings["on_replace_close"] = True
-    if issubclass(klass, HasParent) and "set_parent" not in settings:
-        settings["set_parent"] = True
-    if "remove_on_close" not in settings and issubclass(klass, HasParent | Widget):
-        settings["remove_on_close"] = True
+            hookmappings["on_replace_close"] = True
+    if issubclass(klass, HasParent) and "set_parent" not in hookmappings:
+        hookmappings["set_parent"] = True
+    if "remove_on_close" not in hookmappings and issubclass(klass, HasParent | Widget):
+        hookmappings["remove_on_close"] = True
 
 
 @hookimpl
 def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
-    if inst.settings.get("set_parent"):
+    if inst._hookmappings.get("set_parent"):
         kwgs["parent"] = parent
-
-    if children := inst.settings.get("children"):
-        if isinstance(children, dict):
-            home = getattr(parent, "home", "_child setter")
-            val = {} | children
-            val.pop("mode")
-            ChildrenSetter(home=home, parent=parent, name=inst.name, value=val)
-        else:
-            kwgs["children"] = parent.get_widgets(*children, skip_hidden=False, show=True)
-
-
-@hookimpl
-def instancehp_on_change(inst: InstanceHP, change: IHPChange[S, T]):
-    settings = inst.settings
-    parent = change["parent"]
-    old = change["old"]
-    new = change["new"]
-    for func in (on_replace_close, set_parent, dlink, remove_on_close, on_set, on_unset, add_css_class):
-        if func.__name__ in settings:
-            try:
-                func(inst, parent, old, new)
-            except Exception as e:
-                parent.on_error(e, str(func))
-    if vc := settings.get("value_changed"):
-        vc(change)
-
-
-def remove_on_close(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):
-    if parent.closed:
-        return
-    if inst not in inst_close_observers:
-        inst_close_observers[inst] = weakref.WeakKeyDictionary()
-    # value closed
-    if (old_observer := inst_close_observers[inst].pop(parent, {})) and isinstance(old, HasParent | Widget):
-        with contextlib.suppress(ValueError):
-            old.unobserve(**old_observer)
-
-    if isinstance(new, HasParent | Widget):
-        parent_ref = weakref.ref(parent)
-
-        def _observe_closed(change: mb.ChangeType):
-            # If the parent has closed, remove it from parent if appropriate.
-            parent = parent_ref()
-            cname, value = change["name"], change["new"]
-            if (
-                parent
-                and ((cname == "closed" and value) or (cname == "comm" and not value))
-                and parent._trait_values.get(inst.name) is change["owner"]
-            ) and (old := parent._trait_values.pop(inst.name, None)):
-                inst._value_changed(parent, old, None)
-
-        names = "closed" if isinstance(new, HasParent) else "comm"
-        new.observe(_observe_closed, names)
-        inst_close_observers[inst][parent] = {"handler": _observe_closed, "names": names}
-
-
-def on_replace_close(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
-    if inst.settings.get("on_replace_close") and isinstance(old, Widget | HasParent):
-        if mb.DEBUG_ENABLED:
-            parent.log.debug(f"Closing replaced item `{parent.__class__.__name__}.{inst.name}` {old.__class__}")
-        old.close()
-
-
-def on_set(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
-    if (on_set := inst.settings.get("on_set")) and new is not None:
-        on_set(IHPSet(name=inst.name, parent=parent, obj=new))
-
-
-def on_unset(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
-    if (on_unset := inst.settings.get("on_unset")) and old is not None:
-        on_unset(IHPSet(name=inst.name, parent=parent, obj=old))
-
-def dlink(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
-    """Creates dynamic links (dlinks) between traits of objects based on the provided configuration.
-
-    This function establishes links between a source trait of an object (typically a parent) and a target trait of another object,
-    allowing changes in the source trait to propagate to the target trait. The links are configured based on the `dlink` setting
-    associated with the given `InstanceHP` object.
-
-    Args:
-        inst (InstanceHP): The InstanceHP object containing the settings for the dynamic link.  The settings should include
-            a "dlink" key that specifies the source and target traits to link.
-        change (IHPChange): A dictionary containing information about the change that triggered the dlink creation.
-            It should include the 'parent' object (where the source trait resides) and the 'new' object (where the target trait resides).
-
-    The `dlink` setting can be a single dictionary or a list of dictionaries, each defining a dynamic link.
-    Each dictionary should contain the following keys:
-
-        - `source`: A tuple containing the name of the source object and the name of the source trait.
-          If the source object name is "self", it refers to the `parent` object. Otherwise, it's an attribute of the parent.
-        - `target`: The name of the target trait.  It can optionally include a class name prefix (e.g., "ClassName.trait_name")
-           to specify a nested object within the target object.
-        - `transform` (optional): A callable that transforms the value of the source trait before it is applied to the target trait.
-          It can also be a string representing an attribute of the parent object that is a callable.
-
-    The function uses the `dlink` method of the parent object to create the dynamic links. It first disconnects previous dlinks.
-    Then, if the target object is a `HasTraits` instance, it creates a connected link to propagate changes to the target trait.
-
-    Raises:
-        TypeError: If the `transform` value is not callable.
-    """
-    if dlink := inst.settings.get("dlink"):
-        dlinks = (dlink,) if isinstance(dlink, dict) else dlink
-        for dlink in dlinks:
-            src_name, src_trait = dlink["source"]
-            src_obj = parent if src_name == "self" else utils.getattr_nested(parent, src_name, hastrait_value=False)
-            tgt_trait = dlink["target"]
-            key = f"{id(parent)} {parent.__class__.__qualname__}.{inst.name}.{tgt_trait}"
-            if new and "." in tgt_trait:
-                class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
-                new = utils.getattr_nested(new, class_name, hastrait_value=False)
-            transform = dlink.get("transform")
-            if isinstance(transform, str):
-                transform = utils.getattr_nested(parent, transform, hastrait_value=False)
-            if transform and not callable(transform):
-                msg = f"Transform must be callable but got {transform!r}"
-                raise TypeError(msg)
-            parent.dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
-            if not parent.closed and isinstance(new, HasTraits):
-                parent.dlink((src_obj, src_trait), target=(new, tgt_trait), transform=transform, key=key)
-
-
-def add_css_class(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):  # noqa: ARG001
-    if add_css_class := inst.settings.get("add_css_class"):
-        for cn in utils.iterflatten(add_css_class):
-            if isinstance(new, ipw.DOMWidget):
-                new.add_class(cn)
-            if isinstance(old, ipw.DOMWidget):
-                old.remove_class(cn)
-
-
-def set_parent(inst: InstanceHP[S, T], parent: S, old: T | None, new: T | None):
-    if inst.settings.get("set_parent"):
-        if isinstance(old, HasParent) and getattr(old, "parent", None) is parent:
-            old.parent = None
-        if isinstance(new, HasParent) and not parent.closed:
-            new.parent = parent

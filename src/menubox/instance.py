@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import inspect
+import weakref
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Generic,
     Literal,
     NotRequired,
@@ -17,9 +19,11 @@ from typing import (
 
 import ipylab.common
 import traitlets
+from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
 
 import menubox as mb
+import menubox.children_setter
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
 from menubox.hasparent import HasParent
@@ -52,11 +56,12 @@ class IHPSet[S, T](TypedDict):
     obj: T
 
 
-class IHPChange[S, T](TypedDict):
+class IHPChange(TypedDict, Generic[S, T]):
     name: str
     parent: S
     old: T | None
     new: T | None
+    ihp: InstanceHP[S, T]
 
 
 class ChildrenDottedNames(TypedDict):
@@ -69,7 +74,7 @@ class ChildrenNameTuple(TypedDict):
     nametuple_name: str
 
 
-class IHPSettings[S, T](TypedDict):
+class IHPHookMappings(TypedDict, Generic[S, T]):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
     dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
@@ -77,7 +82,12 @@ class IHPSettings[S, T](TypedDict):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    children: NotRequired[ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...]]
+    set_children: NotRequired[
+        Callable[[S], utils.GetWidgetsInputType]
+        | ChildrenDottedNames
+        | ChildrenNameTuple
+        | tuple[utils.GetWidgetsInputType, ...]
+    ]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], None]]
 
 
@@ -118,13 +128,164 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     allow_none = True
     read_only = True
     load_default = True
+    _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
+    _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[HasParent | Widget, dict]]] = {}
 
     if TYPE_CHECKING:
         name: str  # type: ignore
-        settings: IHPSettings[S, T]
+        _hookmappings: IHPHookMappings[S, T]
 
         @overload
         def __get__(self, obj: Any, cls: type[S]) -> T: ...  # type: ignore
+
+    @classmethod
+    def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
+        if not replace and name in cls._change_hooks:
+            msg = f"callback hook {name=} is already registered!"
+            raise KeyError(msg)
+        cls._change_hooks[name] = hook
+
+    @classmethod
+    def _remove_on_close_hook(cls, c: IHPChange[S, T]):
+        if c["parent"].closed:
+            return
+        if c["ihp"] not in cls._close_observers:
+            cls._close_observers[c["ihp"]] = weakref.WeakKeyDictionary()
+        # value closed
+        if (old_observer := cls._close_observers[c["ihp"]].pop(c["parent"], {})) and isinstance(
+            c["old"], HasParent | Widget
+        ):
+            try:  # noqa: SIM105
+                c["old"].unobserve(**old_observer)
+            except ValueError:
+                pass
+
+        if isinstance(c["new"], HasParent | Widget):
+            parent_ref = weakref.ref(c["parent"])
+            inst = c["ihp"]
+
+            def _observe_closed(change: mb.ChangeType):
+                # If the c["parent"] has closed, remove it from c["parent"] if appropriate.
+                parent = parent_ref()
+                cname, value = change["name"], change["new"]
+                if (
+                    parent
+                    and ((cname == "closed" and value) or (cname == "comm" and not value))
+                    and parent._trait_values.get(inst.name) is change["owner"]
+                ) and (old := parent._trait_values.pop(inst.name, None)):
+                    inst._value_changed(parent, old, None)
+
+            names = "closed" if isinstance(c["new"], HasParent) else "comm"
+            c["new"].observe(_observe_closed, names)
+            cls._close_observers[c["ihp"]][c["parent"]] = {"handler": _observe_closed, "names": names}
+
+    @staticmethod
+    def _on_replace_close_hook(c: IHPChange[S, T]):
+        if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | HasParent):
+            if mb.DEBUG_ENABLED:
+                c["parent"].log.debug(
+                    f"Closing replaced item `{c['parent'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"
+                )
+            c["old"].close()
+
+    @staticmethod
+    def _on_set_hook(c: IHPChange[S, T]):
+        if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
+            on_set(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["new"]))
+
+    @staticmethod
+    def _on_unset_hook(c: IHPChange[S, T]):
+        if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
+            on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
+
+    @staticmethod
+    def _dlink_hook(c: IHPChange[S, T]):
+        """Creates dynamic links (dlinks) between traits of objects based on the provided configuration.
+
+        This function establishes links between a source trait of an object (typically a c["parent"]) and a target trait of another object,
+        allowing changes in the source trait to propagate to the target trait. The links are configured based on the `dlink` setting
+        associated with the given `InstanceHP` object.
+
+        Args:
+            c["ihp"] (InstanceHP): The InstanceHP object containing the settings for the dynamic link.  The settings should include
+                a "dlink" key that specifies the source and target traits to link.
+            change (IHPChange): A dictionary containing information about the change that triggered the dlink creation.
+                It should include the 'c["parent"]' object (where the source trait resides) and the 'c["new"]' object (where the target trait resides).
+
+        The `dlink` setting can be a single dictionary or a list of dictionaries, each defining a dynamic link.
+        Each dictionary should contain the following keys:
+
+            - `source`: A tuple containing the name of the source object and the name of the source trait.
+            If the source object name is "self", it refers to the `c["parent"]` object. Otherwise, it's an attribute of the c["parent"].
+            - `target`: The name of the target trait.  It can optionally include a class name prefix (e.g., "ClassName.trait_name")
+            to specify a nested object within the target object.
+            - `transform` (optional): A callable that transforms the value of the source trait before it is applied to the target trait.
+            It can also be a string representing an attribute of the c["parent"] object that is a callable.
+
+        The function uses the `dlink` method of the c["parent"] object to create the dynamic links. It first disconnects previous dlinks.
+        Then, if the target object is a `HasTraits` instance, it creates a connected link to propagate changes to the target trait.
+
+        Raises:
+            TypeError: If the `transform` value is not callable.
+        """
+        if dlink := c["ihp"]._hookmappings.get("dlink"):
+            dlinks = (dlink,) if isinstance(dlink, dict) else dlink
+            for dlink in dlinks:
+                src_name, src_trait = dlink["source"]
+                src_obj = (
+                    c["parent"]
+                    if src_name == "self"
+                    else utils.getattr_nested(c["parent"], src_name, hastrait_value=False)
+                )
+                tgt_trait = dlink["target"]
+                key = f"{id(c['parent'])} {c['parent'].__class__.__qualname__}.{c['ihp'].name}.{tgt_trait}"
+                new = c["new"]
+                if new and "." in tgt_trait:
+                    class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
+                    new = utils.getattr_nested(new, class_name, hastrait_value=False)
+                transform = dlink.get("transform")
+                if isinstance(transform, str):
+                    transform = utils.getattr_nested(c["parent"], transform, hastrait_value=False)
+                if transform and not callable(transform):
+                    msg = f"Transform must be callable but got {transform!r}"
+                    raise TypeError(msg)
+                c["parent"].dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
+                if not c["parent"].closed and isinstance(new, traitlets.HasTraits):
+                    c["parent"].dlink((src_obj, src_trait), target=(new, tgt_trait), transform=transform, key=key)
+
+    @staticmethod
+    def _add_css_class_hook(c: IHPChange[S, T]):
+        if add_css_class := c["ihp"]._hookmappings.get("add_css_class"):
+            for cn in utils.iterflatten(add_css_class):
+                if isinstance(c["new"], DOMWidget):
+                    c["new"].add_class(cn)
+                if isinstance(c["old"], DOMWidget):
+                    c["old"].remove_class(cn)
+
+    @staticmethod
+    def _set_parent_hook(c: IHPChange[S, T]):
+        if c["ihp"]._hookmappings.get("set_parent"):
+            if isinstance(c["old"], HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
+                c["old"].parent = None
+            if isinstance(c["new"], HasParent) and not c["parent"].closed:
+                c["new"].parent = c["parent"]
+
+    @staticmethod
+    def _set_children_hook(c: IHPChange[S, T]):
+        if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
+            if isinstance(children, dict):
+                home = getattr(c["parent"], "home", "_child setter")
+                val = {} | children
+                val.pop("mode")
+                menubox.children_setter.ChildrenSetter(home=home, parent=c["parent"], name=c["ihp"].name, value=val)
+            else:
+                children = c["parent"].get_widgets(children, skip_hidden=False, show=True)  # type: ignore
+                c["new"].set_trait("children", children)  # type: ignore
+
+    @staticmethod
+    def _value_changed_hook(c: IHPChange[S, T]):
+        if value_changed := c["ihp"]._hookmappings.get("value_changed"):
+            value_changed(c)
 
     def class_init(self, cls, name):
         if issubclass(cls, HasParent):
@@ -138,7 +299,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         return super().class_init(cls, name)
 
     def __init__(self, klass: type[T] | str, create: Callable[[IHPCreate[S, T]], T] | None = None) -> None:
-        self.settings = {}
+        self._hookmappings = {}
         self._create = create
         if isinstance(klass, str):
             if "." not in klass:
@@ -172,7 +333,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         if isinstance(value, dict):
             value = self.default(obj, value)
         new_value = self._validate(obj, value)
-        if isinstance(value, HasParent) and self.settings.get("set_parent"):
+        if isinstance(value, HasParent) and self._hookmappings.get("set_parent"):
             # Do this early in case the parent is invalid.
             value.parent = obj
         try:
@@ -233,7 +394,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         klass = self._klass if inspect.isclass(self._klass) else ipylab.common.import_item(self._klass)
         assert inspect.isclass(klass)  # noqa: S101
         self.klass = klass  # type: ignore
-        mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, settings=self.settings)
+        mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, hookmappings=self._hookmappings)
 
     def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
         """Create a default instance of the managed class.
@@ -266,7 +427,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
                 msg = f"Both `load_default` and `allow_none` are `None` and the value is unset for {self!r}"
                 raise RuntimeError(msg)  # noqa: TRY301
             kwgs = {}
-            if self.settings:
+            if self._hookmappings:
                 mb.plugin_manager.hook.instancehp_default_kwgs(inst=self, parent=parent, kwgs=kwgs)
             if override:
                 kwgs = kwgs | override
@@ -293,10 +454,14 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def _value_changed(self, parent: S, old: T | None, new: T | None):
         if new is None and old is None:
             return
-        settings = self.settings
-        if settings:
-            change = IHPChange(name=self.name, parent=parent, old=old, new=new)
-            mb.plugin_manager.hook.instancehp_on_change(inst=self, change=change)
+        if hookmappings := self._hookmappings:
+            change = IHPChange(name=self.name, parent=parent, old=old, new=new, ihp=self)
+            for hookname in hookmappings:
+                if hook := self._change_hooks.get(hookname):
+                    try:
+                        hook(change)
+                    except Exception as e:
+                        parent.on_error(e, str(hook))
 
     def _on_obj_close(self, change: mb.ChangeType):
         obj = change["owner"]
@@ -353,12 +518,12 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         self.read_only = read_only
         return self  # type: ignore
 
-    def hooks(self, **kwgs: Unpack[IHPSettings[S, T]]) -> Self:
-        """Configure what hooks to use when the instance is created or changed.
+    def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
+        """Configure what hooks to use when the instance value changes.
 
-        Hooks are merged using a nested replace strategy except as explained below.
+        Hooks are merged using a nested replace strategy.
 
-        Additional custom hooks are also possible
+        Additional custom hooks are also possible with the class method `register_change_hook`.
 
         Defaults
         --------
@@ -393,15 +558,33 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             `nametuple_name` field.
         add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
-        on_click: A function  <Button **ONLY**>
-            Dotted name access to the on_click callbacks.
         remove_on_close: bool
             If True, the instance will be removed from the parent when the instance is closed.
+        on_set: IHPChange
+            A new value when it isn't None.
+        on_unset: IHPChange
+            An old value when it isn't None.
         """
         if kwgs:
-            merge(self.settings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
+            merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
 
+    @classmethod
+    def _register_default_hooks(cls):
+        for cb in (
+            cls._on_replace_close_hook,
+            cls._set_parent_hook,
+            cls._dlink_hook,
+            cls._remove_on_close_hook,
+            cls._on_set_hook,
+            cls._on_unset_hook,
+            cls._add_css_class_hook,
+            cls._set_children_hook,
+            cls._value_changed_hook,
+        ):
+            cls.register_change_hook(cb.__name__.removesuffix("hook").strip("_"), cb)
+
+InstanceHP._register_default_hooks()
 
 def instanceHP_wrapper(
     klass: Callable[P, T] | str,
@@ -410,7 +593,7 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    **kwargs: Unpack[IHPSettings[S, T]],
+    **kwargs: Unpack[IHPHookMappings[S, T]],
 ) -> Callable[P, InstanceHP[S, T]]:
     """Wraps the InstanceHP trait for use with HasParent classes.
 
@@ -457,3 +640,4 @@ def instanceHP_wrapper(
         return instance
 
     return instanceHP_factory
+

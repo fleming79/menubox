@@ -300,7 +300,7 @@ class HasParent(Singular):
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
     def __repr__(self):
-        return f"<Instance of {self.__class__} is closed>"
+        return f"<{self.__class__}: closed>" if self.closed else f"<{self.__class__}>"
 
     def __init__(self, *, parent: HasParent | None = None, **kwargs):
         """Initialize the HasParent class.

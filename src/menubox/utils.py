@@ -18,9 +18,8 @@ from menubox.css import CSSvar
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
-    from menubox.hasparent import HasParent
+    from menubox.instance import S
     from menubox.trait_types import ChangeType
-
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -379,7 +378,7 @@ def get_widgets(
     skip_disabled=False,
     skip_hidden=True,
     show=True,
-    parent: HasParent | None = None,
+    parent: S | None = None,  # type: ignore
 ) -> Generator[ipw.Widget, None, None]:
     """Collects widgets omitting duplicate side-by-side instances and self.
 
@@ -405,6 +404,12 @@ def get_widgets(
             widget = item
             try:
                 while callable(widget):
+                    if parent:
+                        try:
+                            widget = widget(parent)
+                            continue
+                        except TypeError:
+                            pass
                     widget = widget()
                 if isinstance(widget, str):
                     match widget:

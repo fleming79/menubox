@@ -25,7 +25,7 @@ class HPI(mb.Menubox):
         load_default=False, allow_none=False
     )
     my_button = tf.Button_main(description="A button")
-    box = tf.HBox().hooks(children={"dottednames": ("my_button",), "mode": "monitor"})
+    box = tf.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
 
     async def button_clicked(self, b: ipw.Button):
@@ -163,11 +163,13 @@ class TestInstance:
     ):
         hpi4 = HPI4()
         assert hpi4.hpi
-        assert hpi4.value_changed == IHPChange(name="hpi", parent=hpi4, old=None, new=hpi4.hpi)
+        assert hpi4.value_changed["new"] is hpi4.hpi
+        assert hpi4.value_changed["old"] is None
         old = hpi4.hpi
         new = HPI()
         hpi4.set_trait("hpi", new)
-        assert hpi4.value_changed == IHPChange(name="hpi", parent=hpi4, old=old, new=new)
+        assert hpi4.value_changed["new"] is new
+        assert hpi4.value_changed["old"] is old
 
     @pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])
     async def test_instance_gc(self, trait, weakref_enabled):
