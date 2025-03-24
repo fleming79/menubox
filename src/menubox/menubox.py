@@ -340,7 +340,6 @@ class Menubox(HasParent, Panel):
             self.view_previous = view
         for b in self._view_buttons:
             (b.add_class if b.description == view else b.remove_class)(CSScls.button_active_view)
-
         self.menu_close()
         if self.button_menu:
             self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
@@ -363,7 +362,7 @@ class Menubox(HasParent, Panel):
         """
         return view, self.views.get(view, None)  # type: ignore
 
-    @mb_async.debounce(0.01)
+    @mb_async.throttle(0.1)
     async def mb_refresh(self) -> None:
         """Refreshes the Menubox's display based on its current state.
 
@@ -469,6 +468,9 @@ class Menubox(HasParent, Panel):
             case "name" | "html_title" | "title_description" | "title_description_tooltip":
                 if self._mb_configured:
                     self.update_title()
+                return
+            case "border":
+                self.layout.border = self.border if self.view else ""
                 return
             case "views" | "viewlist":
                 self._update_views_onchange()
@@ -615,8 +617,7 @@ class Menubox(HasParent, Panel):
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
                 self.showbox.children = (*self.showbox.children, self)
             self.show()
-            if self.button_exit:
-                self.button_exit.focus()
+
 
     @override
     async def button_clicked(self, b: ipw.Button):
@@ -800,10 +801,9 @@ class Menubox(HasParent, Panel):
             obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
         self.box_shuffle.children = (*children, obj_) if position == "end" else (obj_, *children)
-        obj_.show()
         obj_.set_trait("showbox", self.box_shuffle)
-        if obj_.button_exit:
-            obj_.button_exit.focus()
+        if self.button_exit:
+            mb.mb_async.call_later(0.1, self.button_exit.focus)
         return obj_
 
     def deactivate(self):
