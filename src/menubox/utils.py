@@ -412,14 +412,12 @@ def get_widgets(
                             pass
                     widget = widget()
                 if isinstance(widget, str):
-                    match widget:
-                        case "H_FILL":
-                            widget = mb.defaults.H_FILL
-                        case "V_FILL":
-                            widget = mb.defaults.V_FILL
-                        case _:
-                            widget = getattr_nested(parent, widget, None, hastrait_value=False)
-                if widget is None:
+                    if widget in ["H_FILL", "V_FILL"]:
+                        widget = mb.defaults.H_FILL if widget == "H_FILL" else mb.defaults.V_FILL
+                        if widget is not last_widget:
+                            yield widget
+                    else:
+                        yield from _get_widgets(getattr_nested(parent, widget, None, hastrait_value=False))
                     continue
                 if isinstance(widget, ipw.Widget):
                     if (
@@ -438,8 +436,9 @@ def get_widgets(
                             show_ = getattr(widget, "show", None)
                             if callable(show_):
                                 show_()
-                else:
+                elif isinstance(widget, Iterable):
                     yield from _get_widgets(widget)
+
             except TypeError:
                 continue
             except RecursionError:
