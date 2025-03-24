@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Self, override
+from typing import TYPE_CHECKING, Self, cast, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -68,7 +68,7 @@ class MenuboxPersist(MenuboxVT):
     versions = TypedTuple(traitlets.Int())
     saved_timestamp = traitlets.Unicode()
     menu_load_index = tf.Modalbox(
-        "_get_version_box",
+        obj="_get_version_box",
         title="Persistence",
         button_expand_description="⇵",
         button_expand_tooltip="Save / load persistence settings.",
@@ -82,7 +82,8 @@ class MenuboxPersist(MenuboxVT):
     ).hooks(
         dlink={"source": ("self", "versions"), "target": "options"},
     )
-    button_save_persistence_data = tf.InstanceHP[Self, AsyncRunButton](
+    button_save_persistence_data = tf.InstanceHP(
+        cast(Self, None),
         AsyncRunButton,
         lambda c: AsyncRunButton(
             parent=c["parent"],
@@ -92,7 +93,8 @@ class MenuboxPersist(MenuboxVT):
             tasktype=mb_async.TaskType.update,
         ),
     )
-    version_widget = tf.InstanceHP[Self, ipw.BoundedIntText](
+    version_widget = tf.InstanceHP(
+        cast(Self, None),
         ipw.BoundedIntText,
         lambda c: ipw.BoundedIntText(
             min=1,

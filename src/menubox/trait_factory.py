@@ -9,7 +9,7 @@ Factory items include:
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import ipylab
 import ipywidgets as ipw
@@ -19,13 +19,12 @@ import menubox.widgets
 from menubox import mb_async
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
-from menubox.instance import IHPChange, IHPCreate, IHPDlinkType, InstanceHP
+from menubox.instance import IHPChange, IHPCreate, IHPDlinkType, InstanceHP, S
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
 __all__ = [
     "AsyncRunButton",
-    "AsyncRunButton_update",
     "MenuboxHeader",
     "MenuboxCenter",
     "MenuboxMenu",
@@ -68,6 +67,9 @@ __all__ = [
 ]
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import CoroutineType
+
     import menubox.menubox
     import menubox.modalbox
     import menubox.repository
@@ -144,18 +146,48 @@ MarkdownOutput = ihpwrap(menubox.widgets.MarkdownOutput)
 Menubox = ihpwrap(cast(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox"))
 MenuboxVT = ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT"))
 
-AsyncRunButton = ihpwrap(
-    cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
-    defaults={"tasktype": mb_async.TaskType.general},
-)
-AsyncRunButton_update = ihpwrap(
-    cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
-    defaults={"tasktype": mb_async.TaskType.update},
-)
+# AsyncRunButton = ihpwrap(
+#     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
+#     defaults={"tasktype": mb_async.TaskType.general},
+# )
+def AsyncRunButton(
+    _: S,
+    cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
+    description="Start",
+    cancel_description="Cancel",
+    kw: Callable[[S], dict] | None = None,
+    style: dict | None = None,
+    button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
+    cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
+    tooltip="",
+    link_button=False,
+    tasktype: mb_async.TaskType = mb_async.TaskType.general,
+    **kwargs,
+):
+    return InstanceHP(
+        _,
+        menubox.async_run_button.AsyncRunButton,
+        lambda c: menubox.async_run_button.AsyncRunButton(
+            parent=c["parent"],
+            cfunc=cfunc,
+            description=description,
+            cancel_description=cancel_description,
+            kw=kw,
+            style=style,
+            button_style=button_style,
+            cancel_button_style=cancel_button_style,
+            tooltip=tooltip,
+            link_button=link_button,
+            tasktype=tasktype,
+            **kwargs,
+        ),
+    )
+
+
 Modalbox = ihpwrap(cast(type["menubox.modalbox.Modalbox"], "menubox.modalbox.Modalbox"))
 
 SelectRepository = ihpwrap(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))
 
 
 def Task():
-    return InstanceHP(asyncio.Task).configure(allow_none=True, load_default=False)
+    return InstanceHP(klass=asyncio.Task).configure(allow_none=True, load_default=False)

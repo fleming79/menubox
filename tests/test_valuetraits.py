@@ -1,4 +1,4 @@
-from typing import Self, override
+from typing import Self, cast, override
 
 import ipywidgets as ipw
 import pytest
@@ -14,13 +14,13 @@ from menubox.trait_types import NameTuple
 
 
 class Nested(HasParent):
-    number = tf.InstanceHP(ipw.FloatText)
+    number = tf.InstanceHP(klass=ipw.FloatText)
 
 
 class VT1(ValueTraits):
     value_change_count = 0
     linked_trait = traitlets.Unicode()
-    nested = tf.InstanceHP(Nested).configure(allow_none=True)
+    nested = tf.InstanceHP(cast(Self, None), Nested).configure(allow_none=True)
     a = traitlets.Unicode()
     b = traitlets.Int()
     c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))

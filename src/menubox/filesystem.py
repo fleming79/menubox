@@ -3,16 +3,14 @@ from __future__ import annotations
 import asyncio
 import pathlib
 import re
-from typing import TYPE_CHECKING, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, cast, override
 
-import ipywidgets as ipw
 import psutil
 import traitlets
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox.async_run_button import AsyncRunButton
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
@@ -47,6 +45,7 @@ class Filesystem(MenuboxVT):
     views = traitlets.Dict({"Main": ()})
 
     protocol = tf.Dropdown(
+        cast(Self, None),
         description="protocol",
         value="file",
         options=sorted(available_protocols()),
@@ -59,14 +58,12 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     )
-    drive: tf.InstanceHP[Self, ipw.Dropdown] = tf.InstanceHP(
-        ipw.Dropdown,
-        lambda c: c["klass"](
-            value=None,
-            tooltip="Change drive",
-            layout={"width": "max-content"},
-            options=list_drives(),
-        ),
+    drive = tf.Dropdown(
+        cast(Self, None),
+        value=None,
+        tooltip="Change drive",
+        layout={"width": "max-content"},
+        options=list_drives(),
     ).hooks(
         dlink={
             "source": ("protocol", "value"),
@@ -85,15 +82,12 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     )
-    button_update = tf.InstanceHP[Self, AsyncRunButton](
-        AsyncRunButton,
-        lambda c: AsyncRunButton(
-            parent=c["parent"],
-            cfunc=lambda p: p._button_update_async,
-            description="↻",
-            cancel_description="✗",
-            tasktype=mb_async.TaskType.update,
-        ),
+    button_update = tf.AsyncRunButton(
+        cast(Self, None),
+        cfunc=lambda p: p._button_update_async,
+        description="↻",
+        cancel_description="✗",
+        tasktype=mb_async.TaskType.update,
     )
     button_home = tf.Button_main(
         description="🏠",
@@ -106,9 +100,7 @@ class Filesystem(MenuboxVT):
         description="✚",
         tooltip="Create new file or folder",
     )
-    box_settings = tf.InstanceHP[Self, ipw.HBox](
-        ipw.HBox, lambda _: ipw.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"})
-    ).hooks(
+    box_settings = tf.HBox(cast(Self, None), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children=lambda p: (p.protocol, p.kw),
     )
     control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
@@ -295,7 +287,7 @@ class RelativePath(Filesystem):
 
     folders_only = traitlets.Bool(False)
     box_settings = tf.HBox(layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(set_children=("relative_path",))
-    relative_path = tf.Text(".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
+    relative_path = tf.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()
     parent: Filesystem

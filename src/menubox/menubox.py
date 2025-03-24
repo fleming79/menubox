@@ -6,7 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Literal, Self, overload, override
+from typing import TYPE_CHECKING, ClassVar, Final, Literal, Self, cast, overload, override
 
 import docstring_to_markdown
 import traitlets
@@ -96,8 +96,8 @@ class Menubox(HasParent, Panel):
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](weakref.WeakSet)
-    _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](weakref.WeakSet)
+    _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
+    _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
     task_load_view = tf.Task()
     html_title = tf.HTML_Title().configure(load_default=False)
     out_help = tf.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
@@ -119,7 +119,7 @@ class Menubox(HasParent, Panel):
     box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
     box_menu = tf.MenuboxMenu().configure(allow_none=True)
     showbox = (
-        tf.InstanceHP[Self, ipw.Box](ipw.Box)
+        tf.InstanceHP(cast(Self, None), ipw.Box)
         .configure(allow_none=True, load_default=False)
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
     )
@@ -835,7 +835,7 @@ class Menubox(HasParent, Panel):
 
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
-    widget = tf.InstanceHP(ipw.Widget).configure(read_only=True, load_default=False)
+    widget = tf.InstanceHP(cast(Self, None), ipw.Widget).configure(read_only=True, load_default=False)
     views = traitlets.Dict({"widget": "widget"})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 

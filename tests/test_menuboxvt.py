@@ -22,9 +22,9 @@ class MyNewObj(mb.MenuboxVT):
     b_has_changed = False
     change_count = 0
 
-    a = tf.InstanceHP(ipw.FloatText)
-    b = tf.InstanceHP(ipw.FloatText)
-    c = tf.InstanceHP(ipw.FloatText)
+    a = tf.InstanceHP(klass=ipw.FloatText)
+    b = tf.InstanceHP(klass=ipw.FloatText)
+    c = tf.InstanceHP(klass=ipw.FloatText)
     views = traitlets.Dict({"Main": ("description_viewer", "a", "b", "c")})
     value_traits_persist = mb.NameTuple(*mb.MenuboxVT.value_traits, "a", "c")
 

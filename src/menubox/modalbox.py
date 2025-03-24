@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = ["Modalbox"]
 
-
+# TODO: make generic for parent
 class Modalbox(HasParent, ipw.VBox):
     parent = Parent(HasParent)
     obj = traitlets.Any(read_only=True)
@@ -33,9 +33,9 @@ class Modalbox(HasParent, ipw.VBox):
     @log_exceptions
     def __init__(
         self,
+        *,
         obj: ipw.Widget | Callable | tuple | str,
         title: str,
-        *,
         parent: HasParent | None = None,
         expand=False,
         box: ipw.Box | str | None = None,

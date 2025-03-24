@@ -14,6 +14,7 @@ from typing import (
     TypedDict,
     TypeVar,
     Unpack,
+    cast,
     overload,
 )
 
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
 
 S = TypeVar("S", bound=HasParent)
+SS = TypeVar("SS", bound=HasParent)
 T = TypeVar("T")
 P = ParamSpec("P")
 
@@ -136,7 +138,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         _hookmappings: IHPHookMappings[S, T]
 
         @overload
-        def __get__(self, obj: Any, cls: type[S]) -> T: ...  # type: ignore
+        def __get__(self, obj: Any, cls: Any) -> T: ...  # type: ignore
 
     @classmethod
     def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
@@ -298,9 +300,14 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             raise TypeError(msg)
         return super().class_init(cls, name)
 
-    def __init__(self, klass: type[T] | str, create: Callable[[IHPCreate[S, T]], T] | None = None) -> None:
+    def __init__(
+        self, _: S | None = None, /, klass: type[T] | str = "", create: Callable[[IHPCreate[S, T]], T] | None = None
+    ) -> None:
         self._hookmappings = {}
         self._create = create
+        if not klass:
+            msg = "klass must be specified"
+            raise ValueError(msg)
         if isinstance(klass, str):
             if "." not in klass:
                 msg = f"{klass=} must be passed with the full path to the class inside the module"
@@ -316,7 +323,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def instance_init(self, obj: S):
         """Init an instance of TypedInstanceTuple."""
         super().instance_init(obj)
-        utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)
+        # utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)
+        obj.observe(self._on_obj_close, names="closed")
 
     @property
     def info_text(self):  # type: ignore
@@ -586,6 +594,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
 InstanceHP._register_default_hooks()
 
+
 def instanceHP_wrapper(
     klass: Callable[P, T] | str,
     /,
@@ -593,8 +602,8 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    **kwargs: Unpack[IHPHookMappings[S, T]],
-) -> Callable[P, InstanceHP[S, T]]:
+    **kwargs: Unpack[IHPHookMappings[HasParent, T]],
+):
     """Wraps the InstanceHP trait for use with HasParent classes.
 
     This function creates a factory that returns an InstanceHP trait,
@@ -621,7 +630,7 @@ def instanceHP_wrapper(
     defaults_ = merge({}, defaults) if defaults else {}
     tags = dict(tags) if tags else {}  # type: ignore
 
-    def instanceHP_factory(*args: P.args, **kwgs: P.kwargs) -> InstanceHP[S, T]:
+    def instanceHP_factory(_: SS | None = None, /, *args: P.args, **kwgs: P.kwargs) -> InstanceHP[SS, T]:
         """Returns an InstanceHP[klass] trait.
 
         Use this to add a trait to new subclass of HasParent.
@@ -632,12 +641,11 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance: InstanceHP[S, T] = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        instance = InstanceHP(_, klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
         if kwargs:
-            instance.hooks(**kwargs)
+            instance.hooks(**kwargs)  # type: ignore
         if tags:
             instance.tag(**tags)
-        return instance
+        return cast(InstanceHP[SS, T], instance)
 
     return instanceHP_factory
-

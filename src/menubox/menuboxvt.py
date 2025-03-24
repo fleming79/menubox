@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
 
 import ipylab
 import ipywidgets as ipw
@@ -53,8 +53,8 @@ class MenuboxVT(Menubox, ValueTraits):
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
-    box_template_controls = tf.InstanceHP[Self, ipw.HBox](
-        ipw.HBox, lambda _: ipw.HBox(layout={"width": "max-content"})
+    box_template_controls = tf.InstanceHP(
+        cast(Self, None), ipw.HBox, lambda _: ipw.HBox(layout={"width": "max-content"})
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -65,12 +65,14 @@ class MenuboxVT(Menubox, ValueTraits):
         )
     )
     repository = (
-        tf.InstanceHP[Self, "Repository"]("menubox.repository.Repository", lambda c: c["parent"].home.repository)
+        tf.InstanceHP[Self, "Repository"](
+            cast(Self, None), "menubox.repository.Repository", lambda c: c["parent"].home.repository
+        )
         .configure(read_only=False)
         .hooks(on_replace_close=False, set_parent=False)
     )
     template_controls = tf.Modalbox(
-        "box_template_controls",
+        obj="box_template_controls",
         title="Copy and load settings",
         button_expand_description="📜",
         button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
@@ -78,7 +80,8 @@ class MenuboxVT(Menubox, ValueTraits):
     ).configure(
         allow_none=True,
     )
-    text_name = tf.InstanceHP[Self, ipw.Text](
+    text_name = tf.InstanceHP(
+        cast(Self, None),
         ipw.Text,
         lambda c: ipw.Text(
             value=c["parent"].name,
@@ -89,8 +92,8 @@ class MenuboxVT(Menubox, ValueTraits):
             disabled=not c["parent"].RENAMEABLE,
         ),
     )
-    _description_label = tf.HTML("<b>Description</b>")
-    _description_preview_label = tf.HTML("<b>Description preview</b>")
+    _description_label = tf.HTML(value="<b>Description</b>")
+    _description_preview_label = tf.HTML(value="<b>Description preview</b>")
     _box_edit_description_edit = tf.VBox().hooks(set_children=("_description_label", "description"))
     _box_edit_description_preview = tf.VBox().hooks(set_children=("_description_preview_label", "description_viewer"))
     _box_edit_description = tf.HBox(layout={"justify_content": "space-between"}).hooks(
@@ -98,7 +101,8 @@ class MenuboxVT(Menubox, ValueTraits):
     )
 
     description = tf.CodeEditor(mime_type="text/x-markdown")
-    description_viewer = tf.InstanceHP[Self, MarkdownOutput](
+    description_viewer = tf.InstanceHP(
+        cast(Self, None),
         MarkdownOutput,
         lambda c: c["klass"](
             layout={"margin": "0px 0px 0px 10px"},

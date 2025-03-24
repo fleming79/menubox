@@ -11,8 +11,8 @@ from menubox.modalbox import Modalbox
 class PMBB(mb.MenuboxVT):
     task_button_run = tf.Task()
     task_update = tf.Task()
-    count = tf.InstanceHP(ipw.FloatText)
-    slider = tf.InstanceHP(ipw.IntSlider)
+    count = tf.InstanceHP(klass=ipw.FloatText)
+    slider = tf.InstanceHP(klass=ipw.IntSlider)
     box_extra = tf.HBox().hooks(set_children=("count",))
     box_mb2 = tf.VBox()
     mb1 = tf.Modalbox(obj="box_extra", title="mb1 open")
@@ -63,7 +63,7 @@ async def test_modal_button(home: mb.Home):
     assert obj.mb2.button_expand.description == "mb2"
 
     # No parent
-    mbox = Modalbox(obj, "Obj in modal box")
+    mbox = Modalbox(obj=obj, title="Obj in modal box")
     mbox.expand()
 
     mbox.collapse()

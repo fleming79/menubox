@@ -401,7 +401,7 @@ class TestMenubox:
 
     async def test_menubox_load_shuffle_item(self):
         class MenuboxA(mb.Menubox):
-            a = tf.HTML("a")
+            a = tf.HTML(value="a")
 
         m = MenuboxA(views={"a": ipw.HTML("A")})
         m.enable_widget("box_shuffle")

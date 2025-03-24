@@ -3,14 +3,13 @@ from __future__ import annotations
 import asyncio
 import gc
 import weakref
-from typing import Self
+from typing import Self, cast
 
 import ipywidgets as ipw
 import pytest
 from traitlets import Dict, TraitError
 
 import menubox as mb
-from menubox.async_run_button import AsyncRunButton
 import menubox.trait_factory as tf
 from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP, instanceHP_wrapper
@@ -19,10 +18,10 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.Menubox):
-    a = InstanceHP["Self", "HPI"]("tests.test_instance.HPI", lambda c: c["klass"](name="a", **c["kwgs"])).configure(
+    a = InstanceHP(cast(Self, None), "tests.test_instance.HPI", lambda c: HPI(name="a", **c["kwgs"])).configure(
         allow_none=True
     )
-    b = InstanceHP["Self", "HPI"]("tests.test_instance.HPI", lambda c: c["klass"](name="b", **c["kwgs"])).configure(
+    b = InstanceHP(cast(Self, None), "tests.test_instance.HPI", lambda c: HPI(name="b", **c["kwgs"])).configure(
         load_default=False, allow_none=False
     )
     my_button = tf.Button_main(description="A button")
@@ -38,12 +37,10 @@ class HPI(mb.Menubox):
 
 
 class HPI2(HPI, mb.MenuboxVT):
-    c = InstanceHP[Self, "HPI"](HPI, lambda c: c["klass"](name="C has value")).hooks(set_parent=False)
+    c = InstanceHP(cast(Self, None), HPI, lambda _: HPI(name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository()
-    button = tf.InstanceHP[Self, AsyncRunButton](
-        AsyncRunButton, lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async)
-    )
+    button = tf.AsyncRunButton(cast(Self, None), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     async def _button_async(self):
@@ -53,17 +50,13 @@ class HPI2(HPI, mb.MenuboxVT):
 class HPI3(mb.Menubox):
     box = tf.Box().configure(allow_none=True)
     menubox = tf.Menubox(views={"main": None}).configure(allow_none=True)
-    hpi2 = tf.InstanceHP(HPI2, lambda _: HPI2(home="test")).configure(allow_none=True)
+    hpi2 = tf.InstanceHP(cast(Self, None), HPI2, lambda _: HPI2(home="test")).configure(allow_none=True)
 
 
 class HPI4(HasParent):
-    hpi = (
-        tf.InstanceHP(HPI)
-        .configure(allow_none=True)
-        .hooks(
-            value_changed=lambda change: change["parent"].set_trait("value_changed", change),
-        )
-    )
+    hpi = tf.InstanceHP(cast(Self, None), HPI).configure(allow_none=True)
+    hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
+
     value_changed = Dict()
 
 
