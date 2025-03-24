@@ -5,7 +5,7 @@ import functools
 import inspect
 import weakref
 from collections.abc import Callable, Generator, Iterable
-from typing import TYPE_CHECKING, Any, Concatenate, Literal, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Concatenate, Literal, overload
 
 import ipylab
 import ipylab.log
@@ -19,12 +19,9 @@ from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
     from menubox.instance import S
-    from menubox.trait_types import ChangeType
+    from menubox.trait_types import ChangeType, P, T
 
-T = TypeVar("T")
-R = TypeVar("R")
 
-P = ParamSpec("P")
 
 __all__ = [
     "getattr_nested",
@@ -56,31 +53,31 @@ if TYPE_CHECKING:
     @overload
     def weak_observe(
         obj: traitlets.HasTraits,
-        method: Callable[Concatenate[ChangeType, P], R],
+        method: Callable[Concatenate[ChangeType, P], T],
         names: str = ...,
         pass_change: Literal[True] = True,
         *args: P.args,
         **kwgs: P.kwargs,
-    ) -> Callable[[ChangeType], R]: ...
+    ) -> Callable[[ChangeType], T]: ...
     @overload
     def weak_observe(
         obj: traitlets.HasTraits,
-        method: Callable[P, R],
+        method: Callable[P, T],
         names: str = ...,
         pass_change: Literal[False] = ...,
         *args: P.args,
         **kwgs: P.kwargs,
-    ) -> Callable[[ChangeType], R]: ...
+    ) -> Callable[[ChangeType], T]: ...
 
 
 def weak_observe(
     obj: traitlets.HasTraits,
-    method: Callable[P, R] | Callable[Concatenate[ChangeType, P], R],
+    method: Callable[P, T] | Callable[Concatenate[ChangeType, P], T],
     names="value",
     pass_change=False,
     *args: P.args,
     **kwgs: P.kwargs,
-) -> Callable[[ChangeType], R]:
+) -> Callable[[ChangeType], T]:
     """Observes a traitlet of an object using a weak reference to the callback method.
 
     This allows the observed object to be garbage collected even if the callback
@@ -98,7 +95,7 @@ def weak_observe(
 
     ref = weakref.WeakMethod(method)
 
-    def handle(change: ChangeType) -> R:
+    def handle(change: ChangeType) -> T:
         method_ = ref()
         if method_:
             if pass_change:

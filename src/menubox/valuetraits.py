@@ -7,7 +7,7 @@ import json
 import pathlib
 import weakref
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, TypeVar, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, overload, override
 
 import orjson
 import ruamel.yaml
@@ -19,7 +19,7 @@ from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent, Parent
 from menubox.home import Home, InstanceHome
 from menubox.pack import json_default_converter, to_yaml
-from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType
+from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterator
@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 
 __all__ = ["TypedInstanceTuple", "ValueTraits"]
 
-T = TypeVar("T")
 
 
 class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[str, Any]]):

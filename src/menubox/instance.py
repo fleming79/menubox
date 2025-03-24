@@ -9,7 +9,6 @@ from typing import (
     Generic,
     Literal,
     NotRequired,
-    ParamSpec,
     Self,
     TypedDict,
     TypeVar,
@@ -28,7 +27,7 @@ import menubox.children_setter
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
 from menubox.hasparent import HasParent
-from menubox.trait_types import Bunched
+from menubox.trait_types import Bunched, P, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -41,18 +40,16 @@ __all__ = ["InstanceHP", "instanceHP_wrapper"]
 
 S = TypeVar("S", bound=HasParent)
 SS = TypeVar("SS", bound=HasParent)
-T = TypeVar("T")
-P = ParamSpec("P")
 
 
-class IHPCreate[S, T](TypedDict):
+class IHPCreate(TypedDict, Generic[S, T]):
     name: str
     parent: S
     klass: type[T]
     kwgs: dict
 
 
-class IHPSet[S, T](TypedDict):
+class IHPSet(TypedDict, Generic[S, T]):
     name: str
     parent: S
     obj: T

@@ -5,11 +5,12 @@ import enum
 import functools
 import inspect
 import weakref
-from typing import TYPE_CHECKING, ParamSpec, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Self, cast
 
 import wrapt
 
 import menubox as mb
+from menubox.trait_types import P, T
 from menubox.utils import funcname, limited_string
 
 if TYPE_CHECKING:
@@ -18,9 +19,6 @@ if TYPE_CHECKING:
     from menubox.hasparent import HasParent
 
 
-T = TypeVar("T")
-R = TypeVar("R")
-P = ParamSpec("P")
 
 
 __all__ = ["run_async", "run_async_singular", "singular_task", "call_later", "debounce", "periodic", "throttle"]

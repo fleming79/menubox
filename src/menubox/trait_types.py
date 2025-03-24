@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, ParamSpec, TypedDict, TypeVar
 
 import toolz
-import traitlets
+from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
+R = TypeVar("R", bound=HasTraits | None)
 T = TypeVar("T")
+P = ParamSpec("P")
 
 __all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType"]
 
@@ -15,17 +17,17 @@ class ChangeType(TypedDict):
     new: Any
     old: Any
     name: str
-    owner: traitlets.HasTraits
+    owner: HasTraits
     type: Literal["change"]
 
 
 class ProposalType(TypedDict):
-    trait: traitlets.TraitType
+    trait: TraitType
     value: Any
-    owner: traitlets.HasTraits
+    owner: HasTraits
 
 
-class Bunched(traitlets.Bunch):
+class Bunched(Bunch):
     """A distinct bunch (hashable)"""
 
     def __hash__(self):  # type: ignore
@@ -34,12 +36,12 @@ class Bunched(traitlets.Bunch):
         return id(self)
 
 
-class TypedTuple(traitlets.TraitType[tuple[T, ...], Iterable[T]]):
+class TypedTuple(TraitType[tuple[T, ...], Iterable[T]]):
     name: str  # type: ignore
     info_text = "A trait for a tuple of any length with type-checked elements."
 
-    def __init__(self, trait: traitlets.TraitType[T, T], default_value=(), **kwargs: Any) -> None:
-        if not isinstance(trait, traitlets.TraitType):
+    def __init__(self, trait: TraitType[T, T], default_value=(), **kwargs: Any) -> None:
+        if not isinstance(trait, TraitType):
             msg = f"{trait=} is not a TraitType"
             raise TypeError(msg)
         self._trait = trait
@@ -50,7 +52,7 @@ class TypedTuple(traitlets.TraitType[tuple[T, ...], Iterable[T]]):
         super().class_init(cls, name)
 
     def subclass_init(self, cls: type[Any]) -> None:
-        if isinstance(self._trait, traitlets.TraitType):
+        if isinstance(self._trait, TraitType):
             self._trait.subclass_init(cls)
 
     def instance_init(self, obj: Any) -> None:
@@ -61,12 +63,12 @@ class TypedTuple(traitlets.TraitType[tuple[T, ...], Iterable[T]]):
         return tuple(self._trait._validate(obj, v) for v in value)
 
 
-class StrTuple(traitlets.TraitType[tuple[str, ...], Iterable[str]]):
+class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
     "A Trait for a tuple of strings."
 
     info_text = "A tuple of any length of str."
     name: str  # type: ignore
-    _trait_klass = traitlets.Unicode
+    _trait_klass = Unicode
     default_value: tuple[str, ...] = ()
 
     def __iter__(self):
@@ -88,7 +90,7 @@ class NameTuple(StrTuple):
     """A Trait for a tuple of unique dotted object names."""
 
     info_text = "A tuple of any length of unique object trait_names (duplicates discarded.)"
-    _trait_klass = traitlets.DottedObjectName
+    _trait_klass = DottedObjectName
 
     def _iterate(self, value):
         yield from toolz.unique(value)

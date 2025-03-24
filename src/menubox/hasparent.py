@@ -6,7 +6,7 @@ import functools
 import inspect
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, TypeVar, override
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -22,7 +22,7 @@ import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
-from menubox.trait_types import ChangeType, NameTuple, ProposalType
+from menubox.trait_types import ChangeType, NameTuple, ProposalType, R
 
 __all__ = ["HasParent", "Link", "Dlink"]
 
@@ -221,22 +221,20 @@ class Dlink:
             self.source[0].unobserve(self._update, names=self.source[1])
 
 
-S = TypeVar("S", bound=HasTraits | None)
 
-
-class Parent(traitlets.Instance[S]):
-    klass: type[S]  # type: ignore
+class Parent(traitlets.Instance[R]):
+    klass: type[R]  # type: ignore
     allow_none = True
     default_value = None
     read_only = False
 
-    def __new__(cls, _klass: str | type[S], /) -> Parent[S | None]:
+    def __new__(cls, _klass: str | type[R], /) -> Parent[R | None]:
         return super().__new__(cls)
 
-    def __init__(self, _klass: str | type[S], /) -> None:
+    def __init__(self, _klass: str | type[R], /) -> None:
         super().__init__(klass=_klass)
 
-    def validate(self, obj: S, value: S | None | Any) -> S | None:
+    def validate(self, obj: R, value: R | None | Any) -> R | None:
         if value is None:
             return None
         if value:

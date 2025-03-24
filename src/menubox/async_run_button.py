@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal
 
 import ipywidgets as ipw
 import traitlets
@@ -10,6 +10,7 @@ from menubox import hasparent, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.hasparent import HasParent, Parent
+from menubox.instance import S
 from menubox.log import log_exceptions
 
 if TYPE_CHECKING:
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
     from types import CoroutineType
 
 
-S = TypeVar("S", bound=HasParent)
 
 
 class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
