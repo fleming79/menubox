@@ -6,7 +6,7 @@ import functools
 import inspect
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, NoReturn, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -250,7 +250,7 @@ class Parent(traitlets.Instance[R]):
 
 
 
-class HasParent(Singular):
+class HasParent(Singular, Generic[R]):
     """A base class for objects that have a parent and can manage links to other objects.
 
     This class provides a foundation for creating objects that exist within a hierarchical
@@ -294,13 +294,13 @@ class HasParent(Singular):
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
     log = traitlets.Instance(IpylabLoggerAdapter)
-    parent = Parent(HasTraits)
+    parent = Parent[R](HasTraits)
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
     def __repr__(self):
         return f"<{self.__class__}: closed>" if self.closed else f"<{self.__class__}>"
 
-    def __init__(self, *, parent: HasParent | None = None, **kwargs):
+    def __init__(self, *, parent: R = None, **kwargs):
         """Initialize the HasParent class.
 
         Args:
@@ -319,7 +319,7 @@ class HasParent(Singular):
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
         super().__init__(**kwargs)
-        self.parent = parent
+        self.set_trait("parent", parent)
         for name, v in values.items():
             self.instanceHP_enable_disable(name, v)
         if self.init_async:
