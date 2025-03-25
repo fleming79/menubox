@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self, override
+from typing import TYPE_CHECKING, Any, Generic, override
 
 import ipywidgets as ipw
 import traitlets
@@ -8,45 +8,44 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.hasparent import HasParent, Parent
+from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
-from menubox.trait_types import ChangeType, StrTuple
+from menubox.trait_types import ChangeType, R, StrTuple
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable
 
 __all__ = ["Modalbox"]
 
+
 # TODO: make generic for parent
-class Modalbox(HasParent, ipw.VBox):
-    parent = Parent(HasParent)
-    obj = traitlets.Any(read_only=True)
+class Modalbox(HasParent, ipw.VBox, Generic[R]):
+    obj = traitlets.Callable(read_only=True)
     button_expand = tf.Button_modal()
     button_collapse = tf.Button_modal(disabled=True)
-    box = tf.Box().configure(allow_none=True, load_default=False).hooks(set_parent=False)
-    header_children = StrTuple("H_FILL")
     expanded = traitlets.Bool(False, read_only=True)
     html_title = tf.HTML_Title().configure(allow_none=True, load_default=False)
     header = tf.HBox().configure(allow_none=True).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
+    parent_dlink = StrTuple("log")
 
     @log_exceptions
     def __init__(
         self,
         *,
-        obj: ipw.Widget | Callable | tuple | str,
+        parent: R,
+        obj: Callable[[R], utils.GetWidgetsInputType],
         title: str,
-        parent: HasParent | None = None,
         expand=False,
-        box: ipw.Box | str | None = None,
+        box: Callable[[R], ipw.Box] | None = None,
         title_tooltip="",
         button_expand_description="",
         button_expand_tooltip="Expand",
         button_collapse_description="🗕",
         button_collapse_tooltip="Collapse",
-        header_children: Iterable[str] = (),
-        on_expand: Callable[[Self], None] | str | None = None,
-        on_collapse: Callable[[Self], None] | str | None = None,
+        header_children: Callable[[R], utils.GetWidgetsInputType] = lambda _: "H_FILL",
+        on_expand: Callable[[R], Any] = lambda _: None,
+        on_collapse: Callable[[R], Any] = lambda _: None,
         orientation="vertical",
         **kwargs,
     ) -> None:
@@ -76,28 +75,15 @@ class Modalbox(HasParent, ipw.VBox):
         """
         if self._HasParent_init_complete:
             return
-        if self.parent:
-            self.log = self.parent.log
-        if not callable(obj) and not isinstance(obj, ipw.Widget | tuple | str):
-            msg = f"view should be an instance of 'Box' or callable or tuple that returns a 'Box' not '{type(obj)}'"
-            raise TypeError(msg)
-        if isinstance(box, str):
-            box = utils.getattr_nested(parent, box)
-        if isinstance(on_expand, str):
-            on_expand = utils.getattr_nested(parent, on_expand)
-        if isinstance(on_collapse, str):
-            on_collapse = utils.getattr_nested(parent, on_collapse)
         self.set_trait("obj", obj)
-        if box:
-            self.set_trait("box", box)
-        fstr = parent.fstr if parent else utils.fstr
+        self._box_getter = box
+        fstr = parent.fstr if isinstance(parent, HasParent) else utils.fstr
         title = fstr(title)
         if title:
             self.instanceHP_enable_disable(
                 "html_title", {"description": f"<b>{title}</b>", "tooltip": fstr(title_tooltip)}
             )
-        if header_children:
-            self.header_children = header_children
+        self.header_children = header_children
         self.instanceHP_enable_disable(
             "button_expand",
             {"description": fstr(button_expand_description or title), "tooltip": fstr(button_expand_tooltip)},
@@ -116,6 +102,12 @@ class Modalbox(HasParent, ipw.VBox):
         if expand:
             mb_async.call_later(0.1, self.expand)
 
+    @property
+    def box(self) -> ipw.Box | None:
+        if self._box_getter:
+            return self._box_getter(self.parent)  # type: ignore
+        return None
+
     @override
     async def button_clicked(self, b: ipw.Button):
         match b:
@@ -127,15 +119,12 @@ class Modalbox(HasParent, ipw.VBox):
     @log_exceptions
     def expand(self):
         """Show the widget"""
-        # open is already used
         self.button_collapse.disabled = False
-        get_widgets = self.parent.get_widgets if self.parent else self._get_widgets
         if self.header:
-            self.header.children = tuple(get_widgets(self.button_collapse, self.html_title, self.header_children))
+            self.header.children = tuple(self._get_widgets(self.button_collapse, self.html_title, self.header_children))
             if self.layout.flex_flow != "row":
                 self.header.layout.border_bottom = self.box.layout.border_top if self.box else self.layout.border_top
-
-        children = tuple(get_widgets(self.header or self.button_collapse, self.obj))
+        children = tuple(self._get_widgets(self.header or self.button_collapse, self.obj))
         self.button_expand.disabled = True
         self.set_trait("expanded", True)
         if self.box:
@@ -152,7 +141,7 @@ class Modalbox(HasParent, ipw.VBox):
             self.collapse()
 
     def _get_widgets(self, *items):
-        return tuple(w for w in utils.iterflatten(items) if isinstance(w, ipw.Widget))
+        return utils.get_widgets(*items, parent=self.parent if isinstance(self.parent, HasParent) else None)
 
     @log_exceptions
     def collapse(self):
@@ -169,9 +158,9 @@ class Modalbox(HasParent, ipw.VBox):
             self.add_class(CSScls.Modalbox)
             if callable(self._on_expand):
                 self.log.debug(f"on_expand call: {self._on_expand}")
-                self._on_expand(self)
+                self._on_expand(self.parent)  # type: ignore
         else:
             self.remove_class(CSScls.Modalbox)
             if callable(self._on_collapse):
                 self.log.debug(f"_on_collapse call: {self._on_expand}")
-                self._on_collapse(self)
+                self._on_collapse(self.parent)  # type: ignore

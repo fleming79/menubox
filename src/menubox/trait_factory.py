@@ -9,7 +9,7 @@ Factory items include:
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import ipylab
 import ipywidgets as ipw
@@ -146,10 +146,7 @@ MarkdownOutput = ihpwrap(menubox.widgets.MarkdownOutput)
 Menubox = ihpwrap(cast(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox"))
 MenuboxVT = ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT"))
 
-# AsyncRunButton = ihpwrap(
-#     cast(type["menubox.async_run_button.AsyncRunButton"], "menubox.async_run_button.AsyncRunButton"),
-#     defaults={"tasktype": mb_async.TaskType.general},
-# )
+
 def AsyncRunButton(
     _: S,
     cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
@@ -184,7 +181,45 @@ def AsyncRunButton(
     )
 
 
-Modalbox = ihpwrap(cast(type["menubox.modalbox.Modalbox"], "menubox.modalbox.Modalbox"))
+def Modalbox(
+    _: S,
+    obj: Callable[[S], menubox.utils.GetWidgetsInputType],
+    title: str,
+    expand=False,
+    box: Callable[[S], ipw.Box] | None = None,
+    title_tooltip="",
+    button_expand_description="",
+    button_expand_tooltip="Expand",
+    button_collapse_description="🗕",
+    button_collapse_tooltip="Collapse",
+    header_children: Callable[[S], menubox.utils.GetWidgetsInputType] = lambda _: "H_FILL",
+    on_expand: Callable[[S], Any] = lambda _: None,
+    on_collapse: Callable[[S], Any] = lambda _: None,
+    orientation="vertical",
+    **kwargs,
+):
+    return InstanceHP(
+        _,
+        cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
+        lambda c: menubox.Modalbox(
+            parent=c["parent"],
+            obj=obj,
+            title=title,
+            expand=expand,
+            box=box,
+            title_tooltip=title_tooltip,
+            button_expand_description=button_expand_description,
+            button_expand_tooltip=button_expand_tooltip,
+            button_collapse_description=button_collapse_description,
+            button_collapse_tooltip=button_collapse_tooltip,
+            header_children=header_children,
+            on_expand=on_expand,
+            on_collapse=on_collapse,
+            orientation=orientation,
+            **kwargs,
+        ),
+    )
+
 
 SelectRepository = ihpwrap(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))
 

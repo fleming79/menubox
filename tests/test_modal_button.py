@@ -1,5 +1,5 @@
 import asyncio
-from typing import override
+from typing import Self, cast, override
 
 import ipywidgets as ipw
 
@@ -15,12 +15,13 @@ class PMBB(mb.MenuboxVT):
     slider = tf.InstanceHP(klass=ipw.IntSlider)
     box_extra = tf.HBox().hooks(set_children=("count",))
     box_mb2 = tf.VBox()
-    mb1 = tf.Modalbox(obj="box_extra", title="mb1 open")
+    mb1 = tf.Modalbox(cast(Self, None), obj=lambda p: p.box_extra, title="mb1 open")
     mb2 = tf.Modalbox(
-        obj="get_mb2_widgets",
-        box="box_mb2",
+        cast(Self, None),
+        obj=lambda p: p.get_mb2_widgets(),
+        box=lambda p: p.box_mb2,
         title="mb2 open",
-        header_children=["slider"],
+        header_children=lambda p: p.slider,
         button_expand_description="mb2",
         expand=True,
     )
@@ -63,7 +64,7 @@ async def test_modal_button(home: mb.Home):
     assert obj.mb2.button_expand.description == "mb2"
 
     # No parent
-    mbox = Modalbox(obj=obj, title="Obj in modal box")
+    mbox = Modalbox(parent=None, obj=lambda _: obj, title="Obj in modal box")
     mbox.expand()
 
     mbox.collapse()

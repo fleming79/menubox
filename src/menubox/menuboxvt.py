@@ -20,7 +20,6 @@ from menubox.widgets import MarkdownOutput
 _template_folders: set[pathlib.Path] = set()
 
 if TYPE_CHECKING:
-    from menubox.modalbox import Modalbox
     from menubox.repository import Repository  # noqa: F401
 
 __all__ = ["MenuboxVT"]
@@ -72,11 +71,12 @@ class MenuboxVT(Menubox, ValueTraits):
         .hooks(on_replace_close=False, set_parent=False)
     )
     template_controls = tf.Modalbox(
-        obj="box_template_controls",
+        cast(Self, None),
+        obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
         button_expand_description="📜",
         button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
-        on_expand="_on_template_controls_expand",
+        on_expand=lambda p: p._on_template_controls_expand(),
     ).configure(
         allow_none=True,
     )
@@ -172,7 +172,7 @@ class MenuboxVT(Menubox, ValueTraits):
             return self.template_controls
         return None
 
-    def _on_template_controls_expand(self, b: Modalbox):
+    def _on_template_controls_expand(self):
         if getattr(self, "_n_template_folders", 0) != len(_template_folders):
             self.update_templates()
         self._sw_template.options = self.templates
