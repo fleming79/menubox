@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, Literal, ParamSpec, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypedDict, TypeVar
 
 import toolz
 from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
-R = TypeVar("R", bound=HasTraits | None)
-T = TypeVar("T")
-P = ParamSpec("P")
-
 __all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType"]
+
+if TYPE_CHECKING:
+    from menubox.hasparent import HasParent
+
+R = TypeVar("R", bound=HasTraits | None)
+RP = TypeVar("RP", bound="HasParent | None")
+T = TypeVar("T")
+S = TypeVar("S", bound="HasParent")
+SS = TypeVar("SS", bound="HasParent")
+
+P = ParamSpec("P")
 
 
 class ChangeType(TypedDict):

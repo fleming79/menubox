@@ -7,7 +7,7 @@ import json
 import pathlib
 import weakref
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, overload, override
 
 import orjson
 import ruamel.yaml
@@ -16,10 +16,10 @@ from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, ob
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
-from menubox.hasparent import HasParent, Parent
+from menubox.hasparent import HasParent
 from menubox.home import Home, InstanceHome
 from menubox.pack import json_default_converter, to_yaml
-from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, T
+from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, R, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterator
@@ -412,7 +412,7 @@ INTERNAL = CallbackMode.internal
 EXTERNAL = CallbackMode.external
 
 
-class ValueTraits(HasParent):
+class ValueTraits(HasParent, Generic[R]):
     """ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
 
@@ -457,7 +457,6 @@ class ValueTraits(HasParent):
     _vt_busy_updating_count = 0
     _vt_init_complete = False
     dtype = "dict"
-    parent = Parent(HasParent)
     home = InstanceHome()
     value = _ValueTraitsValueTrait()
     value_traits = NameTuple()
@@ -536,7 +535,7 @@ class ValueTraits(HasParent):
         self,
         *,
         home: Home | str | None = None,
-        parent: HasParent | None = None,
+        parent: R = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str = None,

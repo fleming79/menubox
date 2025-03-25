@@ -10,13 +10,12 @@ from menubox import hasparent, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.hasparent import HasParent, Parent
-from menubox.instance import S
 from menubox.log import log_exceptions
+from menubox.trait_types import S
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
     from types import CoroutineType
-
 
 
 

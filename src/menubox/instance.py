@@ -11,7 +11,6 @@ from typing import (
     NotRequired,
     Self,
     TypedDict,
-    TypeVar,
     Unpack,
     cast,
     overload,
@@ -27,7 +26,7 @@ import menubox.children_setter
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
 from menubox.hasparent import HasParent
-from menubox.trait_types import Bunched, P, T
+from menubox.trait_types import SS, Bunched, P, S, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -38,8 +37,6 @@ if TYPE_CHECKING:
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
 
-S = TypeVar("S", bound=HasParent)
-SS = TypeVar("SS", bound=HasParent)
 
 
 class IHPCreate(TypedDict, Generic[S, T]):
@@ -128,7 +125,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     read_only = True
     load_default = True
     _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
-    _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[HasParent | Widget, dict]]] = {}
+    _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[HasParent[Any] | Widget, dict]]] = {}
 
     if TYPE_CHECKING:
         name: str  # type: ignore

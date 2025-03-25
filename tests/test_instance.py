@@ -66,7 +66,6 @@ class TestInstance:
         assert hp1.my_button
         assert hp1.a
         assert hp1.a.name
-        hp1.parent = None
         # Spawn from Class name
         assert isinstance(hp1.a, HPI)
         with pytest.raises(RuntimeError):

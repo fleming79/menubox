@@ -221,7 +221,6 @@ class Dlink:
             self.source[0].unobserve(self._update, names=self.source[1])
 
 
-
 class Parent(traitlets.Instance[R]):
     klass: type[R]  # type: ignore
     allow_none = True
@@ -294,7 +293,7 @@ class HasParent(Singular, Generic[R]):
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
     log = traitlets.Instance(IpylabLoggerAdapter)
-    parent = Parent[R](HasTraits)
+    parent = Parent(HasTraits)
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
     def __repr__(self):

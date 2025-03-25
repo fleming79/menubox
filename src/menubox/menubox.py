@@ -6,7 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Literal, Self, cast, overload, override
+from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, cast, overload, override
 
 import docstring_to_markdown
 import traitlets
@@ -19,7 +19,7 @@ from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
-from menubox.trait_types import ChangeType, ProposalType, StrTuple
+from menubox.trait_types import ChangeType, ProposalType, R, StrTuple
 
 if TYPE_CHECKING:
     from menubox.instance import IHPChange
@@ -46,8 +46,7 @@ class HTMLNoClose(ipw.HTML):
 
 HTML_LOADING = HTMLNoClose("Loading ...")
 
-
-class Menubox(HasParent, Panel):
+class Menubox(HasParent, Panel, Generic[R]):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
     _MINIMIZED: Final = "Minimized"
@@ -184,6 +183,7 @@ class Menubox(HasParent, Panel):
     def __init__(
         self,
         *,
+        parent: R = None,
         view=NO_DEFAULT,
         views: dict[str, utils.GetWidgetsInputType] | None = None,
         viewlist: Iterable[str] | None = None,
@@ -201,7 +201,7 @@ class Menubox(HasParent, Panel):
             self.set_trait("tabviews", tabviews)
         view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
         self._Menubox_init_complete = True
-        super().__init__(**kwargs)
+        super().__init__(parent=parent, **kwargs)
         if view is not None:
             self.load_view(view)
 
@@ -362,7 +362,7 @@ class Menubox(HasParent, Panel):
         """
         return view, self.views.get(view, None)  # type: ignore
 
-    @mb_async.throttle(0.1)
+    @mb_async.throttle(0.01)
     async def mb_refresh(self) -> None:
         """Refreshes the Menubox's display based on its current state.
 
@@ -375,11 +375,14 @@ class Menubox(HasParent, Panel):
         """
         if not self._Menubox_init_complete or self.closed:
             return
+        await asyncio.sleep(0.03)
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.task_load_view and self.loading_view:
             self.set_trait("children", (HTML_LOADING,))
             await asyncio.wait([self.task_load_view])
+            self.mb_refresh()
+            return
         if not self.view:
             self.set_trait("children", ())
             return

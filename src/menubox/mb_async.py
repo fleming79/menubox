@@ -5,18 +5,18 @@ import enum
 import functools
 import inspect
 import weakref
-from typing import TYPE_CHECKING, Self, cast
+from typing import TYPE_CHECKING, Self
 
 import wrapt
 
 import menubox as mb
-from menubox.trait_types import P, T
 from menubox.utils import funcname, limited_string
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine
 
     from menubox.hasparent import HasParent
+    from menubox.trait_types import P, T
 
 
 
@@ -206,7 +206,7 @@ def call_later(delay, callback, *args, **kwargs):
     asyncio.get_running_loop().call_later(delay, callit)
 
 
-async def to_thread(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs):
+async def to_thread(func: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> T:
     """Run a function in an executor.
 
     This uses asyncio.to_thread, but catches exceptions re-raising them
@@ -221,9 +221,9 @@ async def to_thread(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs):
         else:
             return {"result": result}
 
-    result = await asyncio.to_thread(func_call)
+    result = await asyncio.to_thread(func_call)  # type: ignore
     try:
-        return cast(T, result["result"])
+        return result["result"]  # type: ignore
     except KeyError:
         pass
     e: Exception = result["exception"]  # type: ignore
