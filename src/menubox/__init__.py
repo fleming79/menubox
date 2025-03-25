@@ -26,7 +26,7 @@ from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT
 from menubox.modalbox import Modalbox
-from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, StrTuple, TypedTuple
+from menubox.trait_types import Bunched, ChangeType, FromParent, NameTuple, ProposalType, StrTuple, TypedTuple
 from menubox.valuetraits import TypedInstanceTuple, ValueTraits
 
 VERSION_INFO = {"menubox": __version__}
@@ -51,6 +51,7 @@ __all__ = [
     "Bunched",
     "ChangeType",
     "HasParent",
+    "FromParent",
     "Home",
     "Menubox",
     "MenuboxVT",

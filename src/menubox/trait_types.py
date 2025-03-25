@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypedDict, TypeVar
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Generic, Literal, ParamSpec, TypedDict, TypeVar
 
 import toolz
 from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
-__all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType"]
+__all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType", "FromParent"]
 
 if TYPE_CHECKING:
     from menubox.hasparent import HasParent
@@ -101,3 +101,27 @@ class NameTuple(StrTuple):
 
     def _iterate(self, value):
         yield from toolz.unique(value)
+
+
+class FromParent(TraitType[Callable[[R], T], Callable[[R], T]], Generic[R, T]):
+    allow_none = False
+
+    def __init__(self, _: R, default_value: Callable[[R], T], /, *, read_only=True):
+        """A trait for a callable that accepts the parent.
+
+        With support for type dirctly inside the callable.
+
+        Usage:
+
+        ``` python
+        class MyClass(HasTraits):
+            fp = FromParent(cast(Self, None), lambda p: p...)
+
+        ```
+        """
+        super().__init__(default_value=default_value, read_only=read_only)
+
+    def validate(self, obj, value):
+        if not callable(value):
+            self.error(obj, value, info="Expected a callable")
+        return value

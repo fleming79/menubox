@@ -493,7 +493,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             self, *, read_only: bool = ..., allow_none=..., load_default: bool | NO_DEFAULT_TYPE = ...
         ) -> InstanceHP[S, T]: ...
 
-    # TODO: split out hooks. leave named as 'configure' for read_only, allow_none, Load_default
     def configure(
         self,
         *,
