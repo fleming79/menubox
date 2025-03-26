@@ -119,7 +119,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     """
 
     klass: type[T]
-    default_value: None = None
+    _blank_value = None
+    default_value = None
     allow_none = True
     read_only = True
     load_default = True
@@ -375,8 +376,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             finally:
                 obj._cross_validation_lock = _cross_validation_lock
             obj._trait_values[self.name] = value  # type: ignore
-            self._value_changed(obj, None, value)
-            obj._notify_observers(Bunched(name=self.name, old=None, new=value, owner=obj, type="change"))
+            self._value_changed(obj, self._blank_value, value)
+            obj._notify_observers(Bunched(name=self.name, old=self._blank_value, new=value, owner=obj, type="change"))
             return value  # type: ignore
         except Exception as e:
             # This should never be reached.
@@ -468,7 +469,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def _on_obj_close(self, change: mb.ChangeType):
         obj = change["owner"]
         if old := obj._trait_values.pop(self.name, None):
-            self._value_changed(obj, old, None)  # type: ignore
+            self._value_changed(obj, old, self._blank_value)  # type: ignore
 
     if TYPE_CHECKING:
 

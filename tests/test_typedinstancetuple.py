@@ -31,6 +31,7 @@ class VTT(mb.ValueTraits):
     )
     menuboxvts = mb.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
         traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
+        klass=mb.MenuboxVT,
         factory=lambda c: c["parent"]._new_menubox(**c["kwgs"]),
     ).hooks(
         update_by="name",
@@ -79,6 +80,7 @@ class VTT2(mb.ValueTraits):
     )
     somelist2 = mb.InstanceHPTuple[Self, VTT1 | mb.Bunched](
         traitlets.Union([Instance(VTT1), Instance(mb.Bunched)]),
+        klass=mb.MenuboxVT,
         factory=lambda c: c["parent"].somelist2_factory(**c["kwgs"]),
     ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
 

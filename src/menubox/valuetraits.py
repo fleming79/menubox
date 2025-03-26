@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 import weakref
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,6 +14,7 @@ from typing import (
     NotRequired,
     Self,
     Unpack,
+    cast,
     overload,
     override,
 )
@@ -28,12 +29,12 @@ import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent, Parent
 from menubox.home import Home, InstanceHome
-from menubox.instance import IHPChange, IHPCreate, IHPHookMappings, IHPSet
+from menubox.instance import IHPChange, IHPCreate, IHPHookMappings, IHPSet, InstanceHP
 from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_types import Bunched, ChangeType, NameTuple, R, T, V
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Iterator
+    from collections.abc import Callable, Collection, Iterable, Iterator
 
     from fsspec import AbstractFileSystem
 
@@ -88,7 +89,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             obj.vt_validating = False
 
 
-class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T]):
+class InstanceHPTuple(InstanceHP[V, tuple[T]], Generic[V, T]):
     """A tuple for ValueTraits where elements can be spawned and observed.
 
     This class provides a way to manage a tuple of instances within a ValueTraits
@@ -110,13 +111,12 @@ class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T
       update existing instances, and whether to set the parent of new instances.
     """
 
-    if TYPE_CHECKING:
-        name: str
-        _hookmappings: InstanceHPTupleHookMappings[V, T]
-
-    default_value = ()  # type: ignore
+    default_value = ()
+    _blank_value = ()
     info_text = "A tuple that can spawn new instances"  # type: ignore
     validating = False
+    if TYPE_CHECKING:
+        _hookmappings: InstanceHPTupleHookMappings[V, T]  # type: ignore
 
     @contextlib.contextmanager
     def _busy_validating(self):
@@ -157,6 +157,8 @@ class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T
         *,
         factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
         read_only=False,
+        klass: type | None = None,
+        default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
     ):
         """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
         if not isinstance(trait, TraitType):
@@ -166,10 +168,10 @@ class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
+        super().__init__(cast(V, None), klass=klass or trait.klass, create=default)  # type: ignore
         self._factory = factory
-        self._hookmappings = {}
-        super().__init__(read_only=read_only)
-        self._close_observers = weakref.WeakKeyDictionary()
+        self.read_only = read_only
+        self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = weakref.WeakKeyDictionary()  # type: ignore
 
     def class_init(self, cls: type[Any], name: str | None) -> None:
         super().class_init(cls, name)
@@ -190,12 +192,12 @@ class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T
         super().instance_init(obj)
         utils.weak_observe(obj, self._on_change, names=self.name, pass_change=True)
 
-    def validate(self, obj: V, value: Iterable):
+    def _validate(self, obj: V, value: Iterable) -> tuple[T, ...]:  # type: ignore
         if obj.closed:
             return ()
         try:
             if self.validating:
-                return getattr(obj, self.name) if obj.trait_has_value(self.name) else self.default()
+                return getattr(obj, self.name) if obj.trait_has_value(self.name) else self.default_value  # type: ignore
             with self._busy_validating():
                 values = []
                 for i, v in enumerate(value):
@@ -273,7 +275,7 @@ class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T
             return inst
         return None
 
-    def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:
+    def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:  # type: ignore
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
@@ -292,8 +294,8 @@ class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T
                 obj.on_error(e, f"on_add callback for {self!r}")
 
     def _on_remove(self, obj: V, value: T):
-        if isinstance(value, HasParent | Widget) and (args := self._close_observers.pop(obj, None)):
-            obj.unobserve(*args)
+        if isinstance(value, HasParent | Widget) and (args := self._close_observers.pop(value, None)):
+            value.unobserve(*args)
         if self._hookmappings.get("close_on_remove") and hasattr(value, "close"):
             value.close()  # type: ignore
         if on_remove := self._hookmappings.get("on_remove"):
@@ -529,7 +531,6 @@ class ValueTraits(HasParent, Generic[R]):
             if "." in k:
                 value[k] = kwargs.pop(k)
         self._init_CHECK_PARENT()
-        self._init_tuple_reg()
         self._vt_update_reg_value_traits()
         self._vt_update_reg_value_traits_persist()
         self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))
@@ -552,12 +553,12 @@ class ValueTraits(HasParent, Generic[R]):
         self._vt_reg_value_traits = set()
         self._vt_reg_value_traits_persist = set()
 
-    def _init_tuple_reg(self):
-        """Create registers InstanceHPTuples."""
-
-        for name in self._InstanceHPTuple:
-            self._vt_tuple_reg[name] = _TypedTupleRegister(name=name, parent=self)
-            self._vt_update_reg_tuples(name)
+    def _get_tuple_register(self, tuplename: str):
+        try:
+            return self._vt_tuple_reg[tuplename]
+        except KeyError:
+            self._vt_tuple_reg[tuplename] = reg = _TypedTupleRegister(name=tuplename, parent=self)
+            return reg
 
     def tag(self, **kw):
         msg = f"The metadata passed be use {list(kw)}"
@@ -704,7 +705,7 @@ class ValueTraits(HasParent, Generic[R]):
                 for dotname in update_item_names:
                     for owner, n in self._get_observer_pairs(obj, dotname):
                         pairs.add((owner, n))
-            self._vt_tuple_reg[tuplename].reg = pairs
+            self._get_tuple_register(tuplename).reg = pairs
 
     def _vt_value_traits_observe(self, change: ChangeType):
         if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(change["new"]):
