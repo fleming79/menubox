@@ -326,9 +326,6 @@ class InstanceHPTuple(InstanceHP[V, tuple[T]], Generic[V, T]):
         for value in (v for v in new if v not in old):
             self._on_add(obj, value)
 
-        # Share notification to on_change and update the value
-        if change["name"] not in (*obj.value_traits, *obj.value_traits_persist):
-            obj._vt_on_change(change)
 
 
 class _TypedTupleRegister(HasParent):

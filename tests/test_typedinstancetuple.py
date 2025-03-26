@@ -63,7 +63,7 @@ class VTT(mb.ValueTraits):
         return mb.MenuboxVT(**kwargs)
 
 
-class VTT1(VTT):
+class VT(VTT):
     removed_count = 0
 
     number = Instance(ipw.FloatText, ())
@@ -78,14 +78,14 @@ class VTT2(mb.ValueTraits):
         update_by="description",
         update_item_names=("value",),
     )
-    somelist2 = mb.InstanceHPTuple[Self, VTT1 | mb.Bunched](
-        traitlets.Union([Instance(VTT1), Instance(mb.Bunched)]),
+    somelist2 = mb.InstanceHPTuple[Self, VT | mb.Bunched](
+        traitlets.Union([Instance(VT), Instance(mb.Bunched)]),
         klass=mb.MenuboxVT,
         factory=lambda c: c["parent"].somelist2_factory(**c["kwgs"]),
     ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
 
     def somelist2_factory(self, **kwargs):
-        return VTT1(**kwargs)
+        return VT(**kwargs)
 
 
 class TestValueTraits:
@@ -105,34 +105,35 @@ class TestValueTraits:
 
         assert vt.value() == {"somelist": ()}
         vt.somelist = (item1,)
-        assert vt.change_count == 1
+        assert vt.change_count == 2
         assert vt.added_count == 1
-        assert vt.somelist_count == 1
+        assert vt.somelist_count == 2
         assert str(vt.value()) == "{'somelist': (Text(value='', description='Item1'),)}"
 
         vt.somelist = (*vt.somelist, item2)
-        assert vt.change_count == 2
+        assert vt.change_count == 3
         assert vt.added_count == 2
-        assert vt.somelist_count == 2
+        assert vt.somelist_count == 3
 
         assert (item1, "value") in vt._vt_tuple_reg["somelist"].reg, "should be registered"
         item1.value = "a new value"
-        assert vt.change_count == 3
+        assert vt.change_count == 4
 
         vt.somelist = (item2,)
-        assert vt.change_count == 4
+        assert vt.change_count == 5
         assert vt.added_count == 2
         assert vt.removed_count == 1
 
         item1.value = "a removed item has changed should not be monitored anymore"
-        assert vt.change_count == 4
+        assert vt.change_count == 5
 
         vt2.somelist = (item2,)
-        assert vt2.change_count == 1
+        assert vt2.change_count == 0, "Value traits should only emit when being monitored"
+        vt2.add_value_traits("somelist")
         assert vt2.added_count == 1
         item2.value = "item 2 should be monitored by both vt and vt2"
-        assert vt.change_count == 5
-        assert vt2.change_count == 2
+        assert vt.change_count == 6
+        assert vt2.change_count == 1
 
     async def test_tuple_obj_and_singleton(self, home: mb.Home):
         vt = VTT(value_traits_persist=("somelist",), home=home)
@@ -149,24 +150,22 @@ class TestValueTraits:
         assert len(vt2.menuboxvts) == 2, "Both instances should be in tuple."
 
     async def test_subclassing_and_on_remove(self, home: mb.Home):
-        vt = VTT(value_traits_persist=("somelist",), home=home)
         # Test subclassing ValueTraits and on_remove
-        vt11 = VTT1(home=vt.home)
-        vt11.somelist = ({"description": "Added"},)  # type: ignore
+        vt = VT(value_traits_persist=("somelist",), home=home)
+        vt.somelist = ({"description": "Added"},)  # type: ignore
 
-        assert vt11.added_count == 1
-        assert vt11.removed_count == 0
-        assert vt11.change_count == 1
+        assert vt.added_count == 1
+        assert vt.removed_count == 0
+        assert vt.change_count == 2
 
-        vt11.somelist = ()
-        assert vt11.change_count == 2
-        assert vt11.removed_count == -10, "Should decrement by 10 each time"
+        vt.somelist = ()
+        assert vt.change_count == 3
+        assert vt.removed_count == -10, "Should decrement by 10 each time"
 
     async def test_spawn_new_instances(self, home: mb.Home):
-        vt = VTT(value_traits_persist=("somelist",), home=home)
-        vt11 = VTT1(home=vt.home)
+        vt = VT(home=home)
         # Test InstanceHPTuple with factory=None
-        hhp2 = VTT2(home=vt11.home)
+        hhp2 = VTT2(home=vt.home)
         with pytest.raises(RuntimeError):
             hhp2.somelist = ({"description": "never created"},)  # type: ignore
         assert len(hhp2.somelist) == 0
@@ -187,9 +186,8 @@ class TestValueTraits:
         assert not hhp2.value()
 
     async def test_multiple_tuples_and_nested_updates(self, home: mb.Home):
-        vt = VTT(value_traits_persist=("somelist",), home=home)
-        vt1 = VTT1(home=vt.home)
-        vt2 = VTT2(home=vt1.home)
+        vt1 = VT(home=home)
+        vt2 = VTT2(home=home)
         # Test multiple tuples in the same object and nested trait updates
         vt2.somelist = (ipw.Text(),)
         assert len(vt2._vt_tuple_reg["somelist"].reg) == 1
