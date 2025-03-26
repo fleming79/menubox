@@ -46,7 +46,11 @@ class MenuboxVT(Menubox, ValueTraits):
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
     header = (
-        tf.MenuboxHeader().configure(allow_none=True).hooks(add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header))
+        tf.MenuboxHeader()
+        .configure(allow_none=True)
+        .hooks(
+            add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header),
+        )
     )
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
@@ -62,13 +66,6 @@ class MenuboxVT(Menubox, ValueTraits):
             p._button_load_template,
             p._button_template_info,
         )
-    )
-    repository = (
-        tf.InstanceHP[Self, "Repository"](
-            cast(Self, None), "menubox.repository.Repository", lambda c: c["parent"].home.repository
-        )
-        .configure(read_only=False)
-        .hooks(on_replace_close=False, set_parent=False)
     )
     template_controls = tf.Modalbox(
         cast(Self, None),
@@ -156,16 +153,6 @@ class MenuboxVT(Menubox, ValueTraits):
                 )
                 raise TypeError(msg)
         super().__init_subclass__(**kwargs)
-
-    @property
-    def fs_root(self):
-        return self.repository.to_path(self.get_value("subpath"))
-
-    def __repr__(self):
-        if self._Menubox_init_complete and not self.closed:
-            name = self.name if self.trait_has_value("name") else ""
-            return f"<{self.__class__.__qualname__} home='{self.home}' {name=}>"
-        return super().__repr__()
 
     def _get_template_controls(self):
         if self.SHOW_TEMPLATE_CONTROLS:

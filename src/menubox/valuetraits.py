@@ -16,7 +16,6 @@ from typing import (
     Unpack,
     cast,
     overload,
-    override,
 )
 
 import orjson
@@ -28,7 +27,6 @@ from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, ob
 import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent, Parent
-from menubox.home import Home, InstanceHome
 from menubox.instance import IHPChange, IHPCreate, IHPHookMappings, IHPSet, InstanceHP
 from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_types import Bunched, ChangeType, NameTuple, R, T, V
@@ -89,7 +87,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             obj.vt_validating = False
 
 
-class InstanceHPTuple(InstanceHP[V, tuple[T]], Generic[V, T]):
+class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
     """A tuple for ValueTraits where elements can be spawned and observed.
 
     This class provides a way to manage a tuple of instances within a ValueTraits
@@ -147,9 +145,6 @@ class InstanceHPTuple(InstanceHP[V, tuple[T]], Generic[V, T]):
                 yield obj._trait
         if isinstance(obj, TraitType):
             yield obj
-
-    def __repr__(self):
-        return f"InstanceHPTuple<{utils.fullname(self.this_class)}.{self.name}>"
 
     def __init__(
         self,
@@ -327,7 +322,6 @@ class InstanceHPTuple(InstanceHP[V, tuple[T]], Generic[V, T]):
             self._on_add(obj, value)
 
 
-
 class _TypedTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
@@ -392,7 +386,6 @@ class ValueTraits(HasParent, Generic[R]):
     _vt_busy_updating_count = 0
     _vt_init_complete = False
     dtype = "dict"
-    home = InstanceHome()
     value = _ValueTraitsValueTrait()
     value_traits = NameTuple()
     value_traits_persist = NameTuple()
@@ -419,13 +412,6 @@ class ValueTraits(HasParent, Generic[R]):
     def __str__(self):
         return self.__repr__()
 
-    def __repr__(self):
-        if self.closed:
-            return super().__repr__()
-        cs = "closed: " if self.closed else ""
-        home = f"home:{self.home}" if self._vt_init_complete else ""
-        return f"<{cs}{self.__class__.__qualname__} name='{self.name}' {home}>"
-
     def __init_subclass__(cls, **kwargs) -> None:
         tn_ = dict(cls._InstanceHPTuple or {})
         for c in cls.mro():
@@ -451,25 +437,9 @@ class ValueTraits(HasParent, Generic[R]):
             msg = "Parent must not be set prior to init of ValueTraits."
             raise RuntimeError(msg)
 
-    def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
-        if home:
-            home = Home(home)
-        elif isinstance(parent, ValueTraits):
-            home = parent.home
-        elif isinstance(parent, Home):
-            home = parent
-        else:
-            msg = "'home' or 'parent' (with a home) must be provided. 'home' may be a string."
-            raise NameError(msg)
-        inst = super().__new__(cls, home=home, parent=parent, **kwargs)
-        if not inst._vt_init_complete and home and inst.has_trait("home"):  # type: ignore
-            inst.set_trait("home", home)
-        return inst
-
     def __init__(
         self,
         *,
-        home: Home | str | None = None,
         parent: R = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
@@ -790,15 +760,6 @@ class ValueTraits(HasParent, Generic[R]):
         except Exception as e:
             self.on_error(e, "Error loading data", data)
             raise
-
-    @property
-    @override
-    def repr_log(self):
-        if self.closed:
-            return super().repr_log
-        name = self.name
-        name = f" {name=}" if name else ""
-        return f"<{self.__class__.__name__}{name}> [{self.home}]"
 
     def add_value_traits(self, *names: str, delay: float | None = None):
         """Append names to value_traits.

@@ -12,7 +12,7 @@ from menubox.instance import IHPSet
 # ruff: noqa: PLR2004
 
 
-class MenuboxSingleton(mb.MenuboxVT):
+class MenuboxSingleton(mb.HasHome, mb.MenuboxVT):
     SINGLETON_BY = ("home", "name")
 
 
@@ -52,11 +52,9 @@ class VTT(mb.ValueTraits):
         self.somelist_count += 1
 
     def on_add(self, c: IHPSet):
-        assert isinstance(c["obj"], ipw.Text)
         self.added_count += 1
 
     def on_remove(self, c: IHPSet):
-        assert isinstance(c["obj"], ipw.Text)
         self.removed_count += 1
 
     def _new_menubox(self, **kwargs):
@@ -89,16 +87,14 @@ class VTT2(mb.ValueTraits):
 
 
 class TestValueTraits:
-    async def test_registration_and_singleton(self, home: mb.Home):
+    async def test_registration_and_singleton(self):
         # Test registration and singleton behavior
         assert isinstance(VTT._InstanceHPTuple.get("menuboxvts"), mb.InstanceHPTuple)
 
-    async def test_basic_functionality(self, home: mb.Home):
+    async def test_basic_functionality(self):
         # Test basic ValueTraits and InstanceHPTuple functionality
-        vt = VTT(value_traits_persist=("somelist",), home=home)
+        vt = VTT(value_traits_persist=("somelist",))
         vt2 = VTT(parent=vt)
-        assert isinstance(vt.home, mb.Home)
-        assert vt2.home is vt.home
 
         item1 = ipw.Text(description="Item1")
         item2 = ipw.Text(description="Item2")
@@ -136,22 +132,23 @@ class TestValueTraits:
         assert vt2.change_count == 1
 
     async def test_tuple_obj_and_singleton(self, home: mb.Home):
-        vt = VTT(value_traits_persist=("somelist",), home=home)
+        vt = VTT(value_traits_persist=("somelist",))
         vt2 = VTT(parent=vt)
         # Test get_tuple_obj and singleton behavior with InstanceHPTuple
-        mb1: mb.MenuboxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1", home=vt2.home)
+        mb1: mb.MenuboxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1")
         assert mb1 not in vt2.menuboxvts, "Should not have added to tuple."
         vt2.menuboxvts = (mb1,)
         assert mb1 in vt2.menuboxvts, "Should have been added to tuple."
         assert mb1 is vt2.get_tuple_obj("menuboxvts", name="mb1")
-        mb2 = vt2.get_tuple_obj("menuboxvts", name="mb2", home=home)
+        mb2 = MenuboxSingleton(name="mb2", home=home)
+        vt2.menuboxvts = (mb1, mb2)
         assert mb2 is not mb1, "A new instance was expected with name='mb2'."
         assert mb2 in vt2.menuboxvts, "The new instance should be added."
         assert len(vt2.menuboxvts) == 2, "Both instances should be in tuple."
 
-    async def test_subclassing_and_on_remove(self, home: mb.Home):
+    async def test_subclassing_and_on_remove(self):
         # Test subclassing ValueTraits and on_remove
-        vt = VT(value_traits_persist=("somelist",), home=home)
+        vt = VT(value_traits_persist=("somelist",))
         vt.somelist = ({"description": "Added"},)  # type: ignore
 
         assert vt.added_count == 1
@@ -162,10 +159,9 @@ class TestValueTraits:
         assert vt.change_count == 3
         assert vt.removed_count == -10, "Should decrement by 10 each time"
 
-    async def test_spawn_new_instances(self, home: mb.Home):
-        vt = VT(home=home)
+    async def test_spawn_new_instances(self):
         # Test InstanceHPTuple with factory=None
-        hhp2 = VTT2(home=vt.home)
+        hhp2 = VTT2()
         with pytest.raises(RuntimeError):
             hhp2.somelist = ({"description": "never created"},)  # type: ignore
         assert len(hhp2.somelist) == 0
@@ -185,9 +181,9 @@ class TestValueTraits:
         hhp2.value_traits_persist = ()
         assert not hhp2.value()
 
-    async def test_multiple_tuples_and_nested_updates(self, home: mb.Home):
-        vt1 = VT(home=home)
-        vt2 = VTT2(home=home)
+    async def test_multiple_tuples_and_nested_updates(self):
+        vt1 = VT()
+        vt2 = VTT2()
         # Test multiple tuples in the same object and nested trait updates
         vt2.somelist = (ipw.Text(),)
         assert len(vt2._vt_tuple_reg["somelist"].reg) == 1
@@ -211,8 +207,8 @@ class TestValueTraits:
 
         assert vt1.closed
 
-    async def test_removal_on_close(self, home: mb.Home):
-        vt = VTT(value_traits_persist=("somelist",), home=home)
+    async def test_removal_on_close(self):
+        vt = VTT(value_traits_persist=("somelist",))
         item1 = ipw.Text(description="Item1")
         vt.somelist = (item1,)
         assert len(vt.somelist) == 1

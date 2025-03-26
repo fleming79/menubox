@@ -11,7 +11,7 @@ from traitlets import Dict, TraitError
 
 import menubox as mb
 import menubox.trait_factory as tf
-from menubox.hasparent import HasParent
+from menubox.hasparent import HasHome
 from menubox.instance import InstanceHP, instanceHP_wrapper
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
@@ -36,10 +36,11 @@ class HPI(mb.Menubox):
                 await super().button_clicked(b)
 
 
-class HPI2(HPI, mb.MenuboxVT):
+class HPI2(mb.HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(cast(Self, None), HPI, lambda _: HPI(name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
-    select_repository = tf.SelectRepository()
+    repository = tf.Repository(cast(Self, None))
+    select_repository = tf.SelectRepository(cast(Self, None))
     button = tf.AsyncRunButton(cast(Self, None), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
@@ -53,7 +54,7 @@ class HPI3(mb.Menubox):
     hpi2 = tf.InstanceHP(cast(Self, None), HPI2, lambda _: HPI2(home="test")).configure(allow_none=True)
 
 
-class HPI4(HasParent):
+class HPI4(HasHome):
     hpi = tf.InstanceHP(cast(Self, None), HPI).configure(allow_none=True)
     hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
 
@@ -78,7 +79,6 @@ class TestInstance:
         assert not hp2.b.a, "Disabled during init (nested)"
         assert hp2.e
         assert hp2.a is not hp1.a
-        assert isinstance(hp2.b, HasParent)
         assert hp2.b.parent is hp2
         assert hp2.b.b is hp1
         hp2.log.info("About to test a raised exception.")
@@ -143,9 +143,7 @@ class TestInstance:
         assert hp2b.select_repository, "close should reset so default will load."
         assert not hp2b.select_repository.closed
 
-    async def test_instance_invalid_value(
-        self,
-    ):
+    async def test_instance_invalid_value(self):
         hpi3 = HPI3()
         with pytest.raises(
             TraitError,
@@ -153,15 +151,13 @@ class TestInstance:
         ):
             hpi3.set_trait("hpi2", 0)
 
-    async def test_instance_value_changed(
-        self,
-    ):
-        hpi4 = HPI4()
+    async def test_instance_value_changed(self, home: mb.Home):
+        hpi4 = HPI4(home=home)
         assert hpi4.hpi
         assert hpi4.value_changed["new"] is hpi4.hpi
         assert hpi4.value_changed["old"] is None
         old = hpi4.hpi
-        new = HPI()
+        new = HPI(home=HasHome)
         hpi4.set_trait("hpi", new)
         assert hpi4.value_changed["new"] is new
         assert hpi4.value_changed["old"] is old

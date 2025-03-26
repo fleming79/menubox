@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import pathlib
-import tempfile
-
 import ipywidgets as ipw
 import traitlets
 
@@ -20,11 +17,7 @@ class ObjNumberShuffle(ObjShuffle):
     obj_cls = traitlets.Type(Numbers)
 
 
-async def test_shuffle():
-    root = pathlib.Path(tempfile.mkdtemp())
-    home = mb.Home(str(root))
-    assert home.name == root.name
-    assert root.as_posix() == home.repository.url.value
+async def test_shuffle(home: mb.Home):
 
     shuffle = ObjNumberShuffle(home=home, name="Shuffle")
     assert shuffle.obj_cls

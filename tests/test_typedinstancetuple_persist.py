@@ -1,4 +1,3 @@
-import tempfile
 from typing import Self
 
 import traitlets
@@ -26,10 +25,9 @@ class HPP(ValueTraits):
 
 
 async def test_persist():
-    tmpdir = tempfile.mkdtemp()
-    hp = HPP(home=tmpdir)
+    hp = HPP()
     assert hp.changecount == 0
-    hp.set_trait("widgets", ({"a": "A", "b": 10}, VTTP(a="B", b=2, home=hp.home)))
+    hp.set_trait("widgets", ({"a": "A", "b": 10}, VTTP(a="B", b=2)))
     assert hp.changecount == 1
 
     assert hp.widgets[0].a == "A"
@@ -40,12 +38,12 @@ async def test_persist():
     assert hp.widgets[1].b == 2
 
     hp.widgets[0].a = "C"
-    hp2 = HPP(home=hp.home)
+    hp2 = HPP()
     hp2.value = hp.to_dict(hastrait_value=False)
 
     assert hp.widgets == hp2.widgets
 
-    hp3 = HPP(home=hp.home)
+    hp3 = HPP()
     hp3.set_trait("value", hp.to_json())
     assert hp3.widgets is not hp.widgets
     assert hp.to_json() == hp3.to_json()

@@ -271,10 +271,9 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         import menubox.children_setter
         if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             if isinstance(children, dict):
-                home = getattr(c["parent"], "home", "_child setter")
                 val = {} | children
                 val.pop("mode")
-                menubox.children_setter.ChildrenSetter(home=home, parent=c["parent"], name=c["ihp"].name, value=val)
+                menubox.children_setter.ChildrenSetter(parent=c["parent"], name=c["ihp"].name, value=val)
             else:
                 children = c["parent"].get_widgets(children, skip_hidden=False, show=True)  # type: ignore
                 c["new"].set_trait("children", children)  # type: ignore
@@ -318,7 +317,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def instance_init(self, obj: S):
         """Init an instance of InstanceHPTuple."""
         super().instance_init(obj)
-        # utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)
         obj.observe(self._on_obj_close, names="closed")
 
     @property

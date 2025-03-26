@@ -5,6 +5,7 @@ from typing import override
 from ipywidgets import Box
 from traitlets import Tuple, Unicode
 
+from menubox.hasparent import HasParent, Parent
 from menubox.mb_async import TaskType, debounce
 from menubox.trait_types import ChangeType, NameTuple
 from menubox.valuetraits import ValueTraits
@@ -16,6 +17,7 @@ class ChildrenSetter(ValueTraits):
     SINGLETON_BY = ("parent", "name")
     _AUTO_VALUE = False
     _prohibited_value_traits = set()  # noqa: RUF012
+    parent = Parent(HasParent)
     dottednames = Tuple(read_only=True)
     nametuple_name = Unicode(help="The name in the parent of a tuple to obtain the dotted names")
     parent_dlink = NameTuple("log")

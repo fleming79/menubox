@@ -20,8 +20,7 @@ from menubox import (
 )
 from menubox.__about__ import __version__
 from menubox.defaults import hookimpl
-from menubox.hasparent import HasParent, Parent
-from menubox.home import Home
+from menubox.hasparent import HasHome, HasParent, Home, Parent
 from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT
@@ -53,6 +52,7 @@ __all__ = [
     "HasParent",
     "FromParent",
     "Home",
+    "HasHome",
     "Menubox",
     "MenuboxVT",
     "Modalbox",

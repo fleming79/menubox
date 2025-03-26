@@ -7,6 +7,7 @@ from pandas.io import clipboards
 
 from menubox import mb_async
 from menubox import trait_factory as tf
+from menubox.hasparent import HasHome
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_yaml
 from menubox.persist import MenuboxPersist
@@ -15,7 +16,7 @@ from menubox.valuetraits import InstanceHPTuple
 
 
 # TODO: make this generic by obj_class - set it by init such that subclassing isn't required.
-class ObjShuffle(MenuboxVT):
+class ObjShuffle(HasHome, MenuboxVT):
     """Provides a shuffle box that that can load objects with persistence into a shuffle
     environment.
 

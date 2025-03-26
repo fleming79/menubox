@@ -63,7 +63,7 @@ class VT2(VT1):
 
 
 async def test_value_traits():
-    vt1 = VT1(home="default")
+    vt1 = VT1()
     assert vt1.value() == {"a": "", "b": 0}  # defaults for non-InstantHP traits
     assert vt1.on_change_counts == 0
     assert vt1.value_change_count == 0  # No defaults
@@ -101,7 +101,7 @@ async def test_value_traits():
     assert vt1.on_change_counts == 4, "Called for each update"
 
     # Check
-    vt2 = VT2(home="default")
+    vt2 = VT2()
     assert vt2.value() == {"vt1": {"a": "", "b": 0}}
     assert vt2.to_json() == '{\n  "vt1": {\n    "a": "",\n    "b": 0\n  }\n}'
     assert vt2.on_change_counts == 0
@@ -123,13 +123,13 @@ async def test_value_traits():
     vt2.linked_trait = "new value"
     assert vt2.vt1.linked_trait == "new value"
 
-    vt22 = VT2(value=vt2.value, value_traits_persist=["vt1.value"], home="default")
+    vt22 = VT2(value=vt2.value, value_traits_persist=["vt1.value"])
 
     assert vt22.value() == vt2.value()
 
     # assert vt2.update_counts
 
-    vt22.vt1 = VT1(home=vt1.home)
+    vt22.vt1 = VT1()
     assert vt22.vt1 is not vt2.vt1
 
     vt1.value_traits_persist = (*vt1.value_traits_persist, "nested.number")
@@ -193,7 +193,7 @@ async def test_value_traits():
 
 
 async def test_vt1_fixed_widget():
-    v = VT1(home="default", value_traits_persist=["c"])
+    v = VT1(value_traits_persist=["c"])
     assert v.value() == {"c": None}
     v.load_value({"c": 1})
     assert v.value() == {"c": 1}
@@ -201,8 +201,8 @@ async def test_vt1_fixed_widget():
 
 
 async def test_vt1_nested_fixed_widget():
-    parent1 = VT1(home="default", name="parent 1")
-    parent2 = VT1(home="default", name="parent 2")
+    parent1 = VT1(name="parent 1")
+    parent2 = VT1(name="parent 2")
 
     # Start with parent1
     v = VT1(parent=parent1, value_traits_persist=["parent.c"])

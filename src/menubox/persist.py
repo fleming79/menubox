@@ -10,7 +10,7 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
-from menubox.home import Home
+from menubox.hasparent import HasHome, Home
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from fsspec import AbstractFileSystem
 
 
-class MenuboxPersist(MenuboxVT):
+class MenuboxPersist(HasHome, MenuboxVT):
     """Persistence of nested settings in yaml files plus persistence of dataframes
     in home.repository.
 

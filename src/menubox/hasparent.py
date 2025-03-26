@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import functools
 import inspect
+import pathlib
 import weakref
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, NoReturn, Self, override
@@ -12,25 +13,24 @@ import ipywidgets as ipw
 import pandas as pd
 import toolz
 import traitlets
-from ipylab import Fixed
-from ipylab.common import Singular
+from ipylab.common import Fixed, Singular, import_item
 from ipylab.log import IpylabLoggerAdapter
 from traitlets import HasTraits
 
 import menubox
 import menubox as mb
 from menubox import defaults as dv
-from menubox import mb_async, utils
+from menubox import mb_async, trait_types, utils
 from menubox.css import CSScls
 from menubox.trait_types import ChangeType, NameTuple, ProposalType, R
 
-__all__ = ["HasParent", "Link", "Dlink"]
-
+__all__ = ["HasParent", "Link", "Dlink", "Home"]
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Hashable
 
     from menubox.instance import IHPChange, InstanceHP
+    from menubox.repository import Repository
 
 
 class Link:
@@ -297,7 +297,10 @@ class HasParent(Singular, Generic[R]):
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
     def __repr__(self):
-        return f"<{self.__class__}: closed>" if self.closed else f"<{self.__class__}>"
+        if self.closed:
+            return super().__repr__()
+        cs = "closed: " if self.closed else ""
+        return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
     def __init__(self, *, parent: R = None, **kwargs):
         """Initialize the HasParent class.
@@ -338,15 +341,7 @@ class HasParent(Singular, Generic[R]):
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
         if not cls.SINGLETON_BY:
             return None
-        key = []
-        for n in cls.SINGLETON_BY:
-            if n == "cls":
-                val = cls
-            else:
-                val = kwgs[n]
-                val = str(val) if val in ["name", "home"] else val
-            key.append(val)
-        return tuple(key)
+        return tuple(cls if k == "cls" else kwgs[k] for k in cls.SINGLETON_BY)
 
     @classmethod
     def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:
@@ -478,8 +473,7 @@ class HasParent(Singular, Generic[R]):
 
     @property
     def repr_log(self):
-        "A representation for logging"
-        return utils.limited_string(self, 40)
+        return self.__repr__()
 
     @override
     def add_traits(self, **_: Any) -> NoReturn:
@@ -761,3 +755,132 @@ class HasParent(Singular, Generic[R]):
     def get(self, name: str, default=None):
         """Same as dict.get method."""
         return getattr(self, name, default)
+
+
+def to_safe_homename(name: str | Home | pathlib.Path):
+    n = pathlib.PurePath(utils.sanatise_filename(str(name))).name
+    if not n:
+        msg = f"Unable convert {name=} to a valid home"
+        raise NameError(msg)
+    return n
+
+
+class Home(HasParent):
+    """A simple object to group objects together using common name.
+
+    Home is singular by name and will return the same object when instantiated with the
+    same name. Passing a name as an absolute path will set the repository url to that
+    value. The name will take the base folder name, therefore it is not allowed to have
+    use folders with the same name but different urls.
+
+    Homes with name = 'default' or initiated with private=True are not registered. All
+    other homes will appear in _REG.homes.
+    """
+
+    SINGLETON_BY: ClassVar = ("name",)
+    KEEP_ALIVE = True
+    _HREG: _HomeRegister
+    repository = Fixed[Self, "Repository"](
+        lambda c: import_item("menubox.repository.Repository")(name="default", url=c["owner"]._url, home=c["owner"])
+    )
+
+    @classmethod
+    def validate_name(cls, name: str) -> str:
+        return to_safe_homename(name)
+
+    @override
+    @classmethod
+    def get_single_key(cls, name: str | Home | pathlib.Path, **kwgs) -> Hashable:
+        assert isinstance(name, Home | str | pathlib.Path)  # noqa: S101
+        return (to_safe_homename(name),)
+
+    def __new__(cls, name: str | Home | pathlib.Path, /, *args, **kwgs):
+        if isinstance(name, Home):
+            return name
+        return super().__new__(cls, *args, name=name, **kwgs)
+
+    def __init__(self, name: str | Home | pathlib.Path, /, *, private=False, **kwargs):
+        if self._HasParent_init_complete:
+            return
+        path = name if isinstance(name, pathlib.Path) else pathlib.Path(str(name))
+        self._url = path.absolute().as_posix() if path.is_absolute() else pathlib.Path().absolute().as_posix()
+        super().__init__(**kwargs)
+        if not private and not self.name.startswith("_"):
+            self._HREG.set_trait("homes", (*self._HREG.homes, self))
+        self.repository  # noqa: B018 # touch the repository to create it
+
+    def __repr__(self):
+        if self.closed:
+            return super().__repr__()
+        return f"<Home: {self.name}>"
+
+    def __str__(self):
+        return self.name
+
+    async def get_repository(self, repository_name: str) -> Repository:
+        from menubox.repository import Repository
+
+        repo: Repository = Repository(name=repository_name, home=self)  # type: ignore
+        await repo.wait_update_tasks()
+        return repo
+
+
+class _HomeTrait(traitlets.TraitType[Home, Home]):
+    """Add this to HasParent classes that should have a home. The trait name must be 'home'."""
+
+    def _validate(self, obj, value: Home | str):
+        if not value:
+            msg = """`home` is required!
+                Hint: `home` can be specified as a string or inherited from a parent."""
+            raise RuntimeError(msg)
+        home = Home(value)
+        if obj.trait_has_value("home") and home is not obj.home:
+            msg = "Changing home is not allowed after it is set current={obj.home} new={home}"
+            raise RuntimeError(msg)
+        return home
+
+
+class HasHome(HasParent):
+    """A Subclass for grouping related objects together by home.
+
+    `home` or `parent` must be specified during instance creation and cannot be changed.
+    """
+
+    home = _HomeTrait()
+
+    def __repr__(self):
+        if self.closed:
+            return super().__repr__()
+        cs = "closed: " if self.closed else ""
+        home = f"{home}" if self._HasParent_init_complete and (home := getattr(self, "home", None)) else ""
+        return f"<{cs}{self.__class__.__name__} name='{self.name}' {home}>"
+
+    def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
+        if has_home := "home" in cls._traits:
+            if home:
+                home = Home(home)
+            elif isinstance(parent, HasHome):
+                home = parent.home
+            elif isinstance(parent, Home):
+                home = parent
+            else:
+                msg = "'home' or 'parent' (with a home) must be provided for this class. 'home' may be a string."
+                raise NameError(msg)
+        inst = super().__new__(cls, home=home, parent=parent, **kwargs)
+        if has_home and not inst._HasParent_init_complete:
+            inst.set_trait("home", home)
+        return inst
+
+
+class _HomeRegister(traitlets.HasTraits):
+    homes = trait_types.TypedTuple(traitlets.Instance(Home), read_only=True)
+
+    @property
+    def all_roots(self):
+        return tuple(home.repository.root for home in self.homes if not getattr(home, "hidden", False))
+
+    def _load_homes(self, all_roots: tuple[str, ...]):
+        self.set_trait("homes", tuple(Home(root) for root in all_roots))
+
+
+Home._HREG = _HomeRegister()

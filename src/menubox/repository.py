@@ -8,12 +8,11 @@ from ipylab.common import Fixed
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem
-from menubox.hasparent import Parent
-from menubox.home import Home
+from menubox.hasparent import HasHome, Parent
 from menubox.menuboxvt import MenuboxVT
 from menubox.persist import MenuboxPersist
 from menubox.shuffle import ObjShuffle
-from menubox.trait_types import ChangeType, NameTuple, StrTuple
+from menubox.trait_types import ChangeType, NameTuple, ProposalType, StrTuple
 
 if TYPE_CHECKING:
     from ipywidgets import Button
@@ -28,7 +27,6 @@ class Repository(Filesystem, MenuboxPersist):
     value_traits_persist = NameTuple("protocol", "url", "kw")
     title_description = traitlets.Unicode("<b>Repository: &emsp; {self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.repository}")
-    parent = Parent(Home)
 
     @property
     def root(self):
@@ -40,7 +38,6 @@ class Repository(Filesystem, MenuboxPersist):
         if name == "default":
             self._configure_as_default_repo()
         super().__init__(name=name, **kwargs)
-        self.parent = self.home
         if not self.url.value:
             self.url.value = self.home_url = self.home.repository.url.value
 
@@ -81,7 +78,7 @@ class Repositories(ObjShuffle):
     obj_cls = traitlets.Type(Repository)
 
 
-class SelectRepository(MenuboxVT):
+class SelectRepository(HasHome, MenuboxVT):
     """Select a repository by name for a parent.
 
     ## Suggestion for usage
@@ -93,6 +90,7 @@ class SelectRepository(MenuboxVT):
     ```
     """
 
+    parent = Parent(HasHome)
     box_center = None
     repositories: Fixed[Self, Repositories] = Fixed(lambda c: Repositories(home=c["owner"].home))
     repository_name = tf.Dropdown(
@@ -109,10 +107,26 @@ class SelectRepository(MenuboxVT):
     button_select_repository = tf.Button_menu(description="…", tooltip="Select/create a new repository")
     header_children = StrTuple()
     views = traitlets.Dict({"Main": ["repository_name", "button_select_repository"]})
-    parent_link = NameTuple("repository")
-    value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name")
+    value_traits = NameTuple(*MenuboxVT.value_traits, "parent.repository", "repository_name")
     value_traits_persist = NameTuple("repository_name")
 
+    @traitlets.validate("parent")
+    def _validate_parent(self, proposal: ProposalType):
+        if parent := proposal["value"]:
+            repository = getattr(parent, "repository", None)
+            if not isinstance(repository, Repository):
+                msg = f"Parent of {self!r} must have the trait repository=Repository"
+                raise RuntimeError(msg)
+        return proposal["value"]
+
+    @property
+    def repository(self) -> Repository:
+        return self.parent.repository  # type: ignore
+
+    @repository.setter
+    def repository(self, value):
+        if self.parent:
+            self.parent.set_trait("repository", value)
     @override
     def on_change(self, change: ChangeType):
         super().on_change(change)

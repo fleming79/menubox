@@ -11,6 +11,7 @@ from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
+from menubox.hasparent import HasHome
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
@@ -26,7 +27,7 @@ def list_drives() -> list[str]:
     return [p.mountpoint.strip("\\ ") for p in psutil.disk_partitions()]
 
 
-class Filesystem(MenuboxVT):
+class Filesystem(HasHome, MenuboxVT):
     """Graphical file selector widget copying the `Panel` based gui defined in fsspec.gui."""
 
     box_center = None

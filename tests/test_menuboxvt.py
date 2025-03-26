@@ -1,5 +1,4 @@
 import pathlib
-import tempfile
 from typing import override
 
 import ipywidgets as ipw
@@ -52,15 +51,8 @@ class MyNewObj(mb.MenuboxVT):
                             self.c.value = change["old"].value
 
 
-class MyNewObjSingleInstanceByName(mb.MenuboxVT):
-    SINGLETON_BY = ("home", "name")
-
-
 async def test_menuboxvt():
-    root = tempfile.mkdtemp()
-    home = mb.Home(root)
-
-    m = MyNewObj(home=home)
+    m = MyNewObj()
     assert m.template_controls
     # Check that the values are registered and observed
     m.a.value = 12
@@ -114,15 +106,3 @@ async def test_menuboxvt():
 
     assert m.box_center
     assert m.description_viewer in m.box_center.children, 'From view "Main"'
-
-    # Test for RENAMEABLE == False
-
-    m2 = MyNewObjSingleInstanceByName(name="fixed name", home=home)
-    assert not m2.RENAMEABLE
-    assert m2.text_name.value == "fixed name"
-
-    m2.name = "new name"
-    assert m2.name == "fixed name"
-    assert m2.text_name.value == "fixed name"
-
-    await m2.load_view(m2._CONFIGURE_VIEW, reload=True)

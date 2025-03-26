@@ -19,7 +19,7 @@ import menubox.widgets
 from menubox import mb_async
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
-from menubox.instance import IHPChange, IHPCreate, IHPDlinkType, InstanceHP, S
+from menubox.instance import IHPChange, IHPCreate, IHPDlinkType, InstanceHP
 from menubox.instance import IHPDlinkType as DLink
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
@@ -57,6 +57,7 @@ __all__ = [
     "SelectMultipleValidate",
     "Menubox",
     "Modalbox",
+    "Repository",
     "SelectRepository",
     "Task",
     "Text",
@@ -75,6 +76,7 @@ if TYPE_CHECKING:
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
+    from menubox.trait_types import H, S
 
 
 # Ipywidgets shortcuts
@@ -219,6 +221,14 @@ def Modalbox(
             **kwargs,
         ),
     )
+
+
+def Repository(_: H):  # type: ignore
+    "Requires parent to have a home"
+    inst = InstanceHP(_, "menubox.repository.Repository", create=lambda c: c["parent"].home.repository)
+    inst.configure(read_only=False)
+    inst.hooks(on_replace_close=False, set_parent=False)
+    return inst
 
 
 SelectRepository = ihpwrap(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))

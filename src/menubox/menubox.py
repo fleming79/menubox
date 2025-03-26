@@ -158,13 +158,6 @@ class Menubox(HasParent, Panel, Generic[R]):
         "tabviews",
     )
 
-    def __repr__(self):
-        cs = "closed: " if self.closed else ""
-        return f"<{cs}{self.__class__.__qualname__} name:'{self.name if self.trait_has_value('name') else ''}'>"
-
-    def __str__(self):
-        return self.__repr__()
-
     @property
     def _current_views(self):
         if not self.viewlist and self.views:
