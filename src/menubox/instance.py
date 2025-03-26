@@ -22,7 +22,6 @@ from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
 
 import menubox as mb
-import menubox.children_setter
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
 from menubox.hasparent import HasParent
@@ -268,6 +267,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     @staticmethod
     def _set_children_hook(c: IHPChange[S, T]):
+        import menubox.children_setter
         if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             if isinstance(children, dict):
                 home = getattr(c["parent"], "home", "_child setter")
@@ -315,7 +315,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         super().__init__()
 
     def instance_init(self, obj: S):
-        """Init an instance of TypedInstanceTuple."""
+        """Init an instance of InstanceHPTuple."""
         super().instance_init(obj)
         # utils.weak_observe(obj, self._on_obj_close, names="closed", pass_change=True)
         obj.observe(self._on_obj_close, names="closed")

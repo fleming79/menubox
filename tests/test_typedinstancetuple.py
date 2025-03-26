@@ -1,4 +1,4 @@
-from typing import override
+from typing import Self, override
 
 import ipywidgets as ipw
 import pytest
@@ -7,6 +7,7 @@ from traitlets import Instance
 
 import menubox as mb
 import menubox.trait_types as tt
+from menubox.instance import IHPSet
 
 # ruff: noqa: PLR2004
 
@@ -21,22 +22,22 @@ class VTT(mb.ValueTraits):
     removed_count = traitlets.Int()
     somelist_count = traitlets.Int()
 
-    somelist = mb.TypedInstanceTuple(Instance(ipw.Text)).configure(
+    somelist = mb.InstanceHPTuple[Self, ipw.Text](Instance(ipw.Text)).hooks(
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
-        on_add="on_add",
-        on_remove="on_remove",
+        on_add=lambda c: c["parent"].on_add(c),
+        on_remove=lambda c: c["parent"].on_remove(c),
     )
-    menuboxvts: mb.TypedInstanceTuple[mb.MenuboxVT | MenuboxSingleton] = mb.TypedInstanceTuple(
+    menuboxvts = mb.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
         traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
-    ).configure(
+        factory=lambda c: c["parent"]._new_menubox(**c["kwgs"]),
+    ).hooks(
         update_by="name",
         update_item_names=("value",),
         set_parent=False,
-        on_add="on_add",
-        on_remove="on_remove",
-        factory="_new_menubox",
+        on_add=lambda c: c["parent"].on_add(c),
+        on_remove=lambda c: c["parent"].on_remove(c),
     )
 
     @override
@@ -49,11 +50,12 @@ class VTT(mb.ValueTraits):
         assert isinstance(self, VTT)
         self.somelist_count += 1
 
-    def on_add(self, obj):
+    def on_add(self, c: IHPSet):
+        assert isinstance(c["obj"], ipw.Text)
         self.added_count += 1
 
-    def on_remove(self, obj):
-        assert isinstance(obj, ipw.Text)
+    def on_remove(self, c: IHPSet):
+        assert isinstance(c["obj"], ipw.Text)
         self.removed_count += 1
 
     def _new_menubox(self, **kwargs):
@@ -65,22 +67,20 @@ class VTT1(VTT):
 
     number = Instance(ipw.FloatText, ())
 
-    def on_remove(self, obj):
+    def on_remove(self, c: IHPSet):
         self.removed_count -= 10
 
 
 class VTT2(mb.ValueTraits):
     value_traits_persist = tt.NameTuple("somelist", "somelist2")
-    somelist = mb.TypedInstanceTuple(Instance(ipw.Text)).configure(
+    somelist = mb.InstanceHPTuple(Instance(ipw.Text), factory=None).hooks(
         update_by="description",
-        spawn_new_instances=False,
         update_item_names=("value",),
     )
-    somelist2 = mb.TypedInstanceTuple(traitlets.Union([Instance(VTT1), Instance(mb.Bunched)])).configure(
-        factory="somelist2_factory",
-        update_by="description",
-        update_item_names=("value", "number.value"),
-    )
+    somelist2 = mb.InstanceHPTuple[Self, VTT1 | mb.Bunched](
+        traitlets.Union([Instance(VTT1), Instance(mb.Bunched)]),
+        factory=lambda c: c["parent"].somelist2_factory(**c["kwgs"]),
+    ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
 
     def somelist2_factory(self, **kwargs):
         return VTT1(**kwargs)
@@ -89,11 +89,10 @@ class VTT2(mb.ValueTraits):
 class TestValueTraits:
     async def test_registration_and_singleton(self, home: mb.Home):
         # Test registration and singleton behavior
-        vals = ["update_by", "update_item_names", "new_update_inst", "trait"]
-        assert list(VTT._vt_tit_names["menuboxvts"]) == vals
+        assert isinstance(VTT._InstanceHPTuple.get("menuboxvts"), mb.InstanceHPTuple)
 
     async def test_basic_functionality(self, home: mb.Home):
-        # Test basic ValueTraits and TypedInstanceTuple functionality
+        # Test basic ValueTraits and InstanceHPTuple functionality
         vt = VTT(value_traits_persist=("somelist",), home=home)
         vt2 = VTT(parent=vt)
         assert isinstance(vt.home, mb.Home)
@@ -136,7 +135,7 @@ class TestValueTraits:
     async def test_tuple_obj_and_singleton(self, home: mb.Home):
         vt = VTT(value_traits_persist=("somelist",), home=home)
         vt2 = VTT(parent=vt)
-        # Test get_tuple_obj and singleton behavior with TypedInstanceTuple
+        # Test get_tuple_obj and singleton behavior with InstanceHPTuple
         mb1: mb.MenuboxVT = vt2.get_tuple_obj("menuboxvts", add=False, name="mb1", home=vt2.home)
         assert mb1 not in vt2.menuboxvts, "Should not have added to tuple."
         vt2.menuboxvts = (mb1,)
@@ -164,7 +163,7 @@ class TestValueTraits:
     async def test_spawn_new_instances(self, home: mb.Home):
         vt = VTT(value_traits_persist=("somelist",), home=home)
         vt11 = VTT1(home=vt.home)
-        # Test TypedInstanceTuple with spawn_new_instances=False
+        # Test InstanceHPTuple with factory=None
         hhp2 = VTT2(home=vt11.home)
         with pytest.raises(RuntimeError):
             hhp2.somelist = ({"description": "never created"},)  # type: ignore

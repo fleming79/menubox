@@ -10,12 +10,16 @@ __all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "Prop
 
 if TYPE_CHECKING:
     from menubox.hasparent import HasParent
+    from menubox.persist import MenuboxPersist
+    from menubox.valuetraits import ValueTraits
 
 R = TypeVar("R", bound=HasTraits | None)
 RP = TypeVar("RP", bound="HasParent | None")
 T = TypeVar("T")
 S = TypeVar("S", bound="HasParent")
 SS = TypeVar("SS", bound="HasParent")
+V = TypeVar("V", bound="ValueTraits")
+MP = TypeVar("MP", bound="MenuboxPersist")
 
 P = ParamSpec("P")
 

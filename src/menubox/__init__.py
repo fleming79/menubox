@@ -27,7 +27,7 @@ from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT
 from menubox.modalbox import Modalbox
 from menubox.trait_types import Bunched, ChangeType, FromParent, NameTuple, ProposalType, StrTuple, TypedTuple
-from menubox.valuetraits import TypedInstanceTuple, ValueTraits
+from menubox.valuetraits import InstanceHPTuple, ValueTraits
 
 VERSION_INFO = {"menubox": __version__}
 DEBUG_ENABLED = False
@@ -61,7 +61,7 @@ __all__ = [
     "ProposalType",
     "StrTuple",
     "TaskType",
-    "TypedInstanceTuple",
+    "InstanceHPTuple",
     "TypedTuple",
     "ValueTraits",
     "hookimpl",

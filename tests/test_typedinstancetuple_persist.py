@@ -1,8 +1,9 @@
 import tempfile
+from typing import Self
 
 import traitlets
 
-from menubox import TypedInstanceTuple, ValueTraits
+from menubox import InstanceHPTuple, ValueTraits
 from menubox.trait_types import NameTuple
 
 # ruff: noqa: PLR2004
@@ -15,7 +16,7 @@ class VTTP(ValueTraits):
 
 
 class HPP(ValueTraits):
-    widgets = TypedInstanceTuple(traitlets.Instance(VTTP))
+    widgets = InstanceHPTuple[Self, VTTP](traitlets.Instance(VTTP)).hooks(set_parent=True)
     changecount = traitlets.Int(0)
     value_traits_persist = NameTuple("widgets")
 

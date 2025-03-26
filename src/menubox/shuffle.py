@@ -11,9 +11,10 @@ from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_yaml
 from menubox.persist import MenuboxPersist
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
-from menubox.valuetraits import TypedInstanceTuple
+from menubox.valuetraits import InstanceHPTuple
 
 
+# TODO: make this generic by obj_class - set it by init such that subclassing isn't required.
 class ObjShuffle(MenuboxVT):
     """Provides a shuffle box that that can load objects with persistence into a shuffle
     environment.
@@ -37,9 +38,10 @@ class ObjShuffle(MenuboxVT):
 
     SINGLETON_BY = ("home", "name")
     RENAMEABLE = False
-    obj_cls = traitlets.Type(MenuboxPersist)
-    pool = TypedInstanceTuple(traitlets.Instance(MenuboxPersist)).configure(
-        factory="factory_pool",
+    obj_cls = MenuboxPersist
+    pool = InstanceHPTuple[Self, MenuboxPersist](
+        traitlets.Instance(MenuboxPersist), factory=lambda c: c["parent"].factory_pool(**c["kwgs"])
+    ).hooks(
         update_item_names=("name", "versions"),
         set_parent=True,
         close_on_remove=False,

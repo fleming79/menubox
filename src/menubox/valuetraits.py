@@ -1,25 +1,36 @@
 from __future__ import annotations
 
 import contextlib
-import enum
-import inspect
 import json
 import pathlib
 import weakref
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, overload, override
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    NotRequired,
+    Self,
+    Unpack,
+    overload,
+    override,
+)
 
 import orjson
 import ruamel.yaml
 from ipywidgets import Widget
+from mergedeep import Strategy, merge
 from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
-from menubox.hasparent import HasParent
+from menubox.hasparent import HasParent, Parent
 from menubox.home import Home, InstanceHome
+from menubox.instance import IHPChange, IHPCreate, IHPHookMappings, IHPSet
 from menubox.pack import json_default_converter, to_yaml
-from menubox.trait_types import Bunched, ChangeType, NameTuple, ProposalType, R, T
+from menubox.trait_types import Bunched, ChangeType, NameTuple, R, T, V
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterator
@@ -27,8 +38,17 @@ if TYPE_CHECKING:
     from fsspec import AbstractFileSystem
 
 
-__all__ = ["TypedInstanceTuple", "ValueTraits"]
+__all__ = ["InstanceHPTuple", "ValueTraits"]
 
+
+class InstanceHPTupleHookMappings(IHPHookMappings, Generic[V, T]):
+    update_by: NotRequired[str]
+    update_item_names: NotRequired[tuple[str, ...]]
+    set_parent: NotRequired[bool]
+    close_on_remove: NotRequired[bool]
+    on_add: NotRequired[Callable[[IHPSet[V, T]], Any]]
+    on_remove: NotRequired[Callable[[IHPSet[V, T]], Any]]
+    value_changed: NotRequired[Callable[[IHPChange[V, T]], None]]
 
 
 class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[str, Any]]):
@@ -68,7 +88,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             obj.vt_validating = False
 
 
-class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
+class InstanceHPTuple(TraitType[tuple[T, ...], Iterable[T | dict]], Generic[V, T]):
     """A tuple for ValueTraits where elements can be spawned and observed.
 
     This class provides a way to manage a tuple of instances within a ValueTraits
@@ -90,24 +110,13 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
       update existing instances, and whether to set the parent of new instances.
     """
 
-    name: str
-    default_value = ()
-    info_text = "A tuple that can spawn new instances"
-    validating = False
-    _callback_specs: ClassVar[dict[str, tuple[str, ...]]] = {
-        "_on_add": ("obj",),
-        "_on_remove": ("obj",),
-        "_factory": ("kwargs",),
-    }
+    if TYPE_CHECKING:
+        name: str
+        _hookmappings: InstanceHPTupleHookMappings[V, T]
 
-    _update_by = "name"
-    _update_item_names: tuple[str, ...] = ()
-    _spawn_new_instances: bool = True
-    _set_parent = True
-    _close_on_remove = True
-    _factory = ""
-    _on_add = ""
-    _on_remove = ""
+    default_value = ()  # type: ignore
+    info_text = "A tuple that can spawn new instances"  # type: ignore
+    validating = False
 
     @contextlib.contextmanager
     def _busy_validating(self):
@@ -120,72 +129,68 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
     def __set_name__(self, owner: ValueTraits, name: str):
         # Register this tuplename with owner (class)
         self.name = name  # type: ignore
-        d = dict(owner._vt_tit_names)
-        if not owner._vt_tit_names:
-            d = {}
+        d = dict(owner._InstanceHPTuple or {})
+        if not owner._InstanceHPTuple:
             # Check for inheritance from other classes
             for cls in owner.__class__.mro(owner.__class__):  # type: ignore
-                if issubclass(cls, ValueTraits) and cls._vt_tit_names:
-                    d.update(cls._vt_tit_names)
-        owner._vt_tit_names = d | {  # type: ignore
-            name: {
-                "update_by": self._update_by,
-                "update_item_names": self._update_item_names,
-                "new_update_inst": self.new_update_inst,
-                "trait": self._trait,
-            }
-        }
+                if issubclass(cls, ValueTraits) and cls._InstanceHPTuple:
+                    d.update(cls._InstanceHPTuple)
+        owner._InstanceHPTuple = d | {name: self}  # type: ignore
 
     @staticmethod
     def _all_traits(obj):
         if hasattr(obj, "_trait"):
             if hasattr(obj._trait, "trait_types"):
                 for obj_ in obj._trait.trait_types:
-                    yield from TypedInstanceTuple._all_traits(obj_)
+                    yield from InstanceHPTuple._all_traits(obj_)
             else:
                 yield obj._trait
         if isinstance(obj, TraitType):
             yield obj
 
-    def __init__(self, trait: TraitType[T, T], *, allow_none=False, read_only=False, help=""):  # noqa: A002
+    def __repr__(self):
+        return f"InstanceHPTuple<{utils.fullname(self.this_class)}.{self.name}>"
+
+    def __init__(
+        self,
+        trait: TraitType[T, T],
+        *,
+        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
+        read_only=False,
+    ):
         """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
         if not isinstance(trait, TraitType):
             msg = f"{trait=} is not a TraitType"
             raise TypeError(msg)
         self._trait = trait
-        super().__init__(allow_none=allow_none, read_only=read_only, help=help)
+        if factory and not callable(factory):
+            msg = "factory must be callable!"
+            raise TypeError(msg)
+        self._factory = factory
+        self._hookmappings = {}
+        super().__init__(read_only=read_only)
         self._close_observers = weakref.WeakKeyDictionary()
 
     def class_init(self, cls: type[Any], name: str | None) -> None:
         super().class_init(cls, name)
         self._trait.class_init(cls, None)
 
-    def subclass_init(self, cls: type[ValueTraits]):  # type: ignore
+    def subclass_init(self, cls: type[Self]):  # type: ignore
         if not issubclass(cls, ValueTraits):
-            msg = "TypedInstanceTuple is only compatible with ValueTraits or a subclass."
+            msg = "InstanceHPTuple is only compatible with ValueTraits or a subclass."
             raise TypeError(msg)
         super().subclass_init(cls)
         # Required to ensure instance_init is always called during init
         if hasattr(cls, "_instance_inits") and self.instance_init not in cls._instance_inits:
             cls._instance_inits.append(self.instance_init)
 
-    def instance_init(self, obj: ValueTraits):
-        """Init an instance of TypedInstanceTuple."""
+    def instance_init(self, obj: V):
+        """Init an instance of InstanceHPTuple."""
         self._trait.instance_init(obj)
         super().instance_init(obj)
-        utils.weak_observe(
-            obj,
-            obj._vt_tuple_on_change,
-            names=self.name,
-            tuplename=self.name,
-            on_add=self._get_func(obj, "_on_add"),
-            on_remove=self._get_func(obj, "_on_remove"),
-            _tuple_on_add=self._tuple_on_add,
-            _tuple_on_remove=self._tuple_on_remove,
-            pass_change=True,
-        )  # type: ignore
+        utils.weak_observe(obj, self._on_change, names=self.name, pass_change=True)
 
-    def validate(self, obj: ValueTraits, value: ProposalType):
+    def validate(self, obj: V, value: Iterable):
         if obj.closed:
             return ()
         try:
@@ -199,7 +204,7 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
                         self._trait._validate(obj, val)
                     except Exception as e:
                         if isinstance(val, dict):
-                            val = self.new_update_inst(obj, val, i)
+                            val = self.update_or_create_inst(obj, val, i)
                         else:
                             e.add_note(f"`{obj.__class__.__name__}.{self.name}` {obj=}")
                             raise
@@ -212,46 +217,43 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
             obj.on_error(e, "Trait validation error", self)
             raise
 
-    def new_update_inst(self, obj, kw: dict, index=None):
-        if inst := self._find_update_item(obj, kw, index=index):
+    def update_or_create_inst(self, obj: V, kw: dict, index=None) -> T:
+        if (inst := self._find_update_item(obj, kw, index=index)) is not None:
             return inst
-        if not self._spawn_new_instances:
-            msg = f"Instance creation is disabled for items in the TypedInstanceTuple {utils.fullname(self.this_class)}.{self.name}"
-            raise RuntimeError(msg)
-        factory = self._get_func(obj, "_factory")
-        if not callable(factory):
-            factory = getattr(self._trait, "klass", None)
-        if not factory:
-            msg = f"A factory is required for {utils.fullname(obj)}.{self.name}"
-            raise RuntimeError(msg)
         try:
-            if self._set_parent:
-                kw = {"parent": obj} | kw
-            return factory(**kw)
+            return self.create_inst(obj, kw)
         except Exception as e:
             if mb.DEBUG_ENABLED:
                 raise
-            msg = (
-                f"Unable to create new instance of {self._trait}"
-                f" factory={utils.fullname(obj)}.{self._factory}\n"
-                f"kw={utils.limited_string(kw, 60)}"
-            )
+            msg = f"Unable to create new instance of {self!r}"
             raise ValueError(msg) from e
 
-    def _find_update_item(self, obj, kw: dict, index: int | None):
+    def create_inst(self, obj: V, kw: dict) -> T:
+        "Create a new instance using the factory"
+        if not self._factory:
+            msg = f"Cannot create a new instance because a factory is not specified for {self!r}"
+            raise RuntimeError(msg)
+        kw = {"parent": obj} | kw if self._hookmappings.get("set_parent", False) else kw
+        klass: type[T] = getattr(self._trait, "klass", None)  # type: ignore
+        c = IHPCreate(name=self.name, parent=obj, klass=klass, kwgs=kw)
+        inst = self._factory(c)
+        self._trait._validate(obj, inst)
+        return inst
+
+    def _find_update_item(self, obj, kw: dict, index: int | None) -> T | None:
         """Check if an item exists in current tuple matching update_by in kw.
 
         The first inst found is updated with kw and returned.
         """
-        ub = self._update_by
-        if ub is None:
+        ub = self._hookmappings.get("update_by", "name")
+        if not ub:
             return None
         if ub is defaults.INDEX:
             if index is None:
                 return None
         elif ub not in kw:
             return None
-        current = getattr(obj, self.name)
+        current: tuple[T, ...] = getattr(obj, self.name)
         for i, inst in enumerate(current):
             if index is not None and ub is defaults.INDEX:
                 if i < index:
@@ -271,124 +273,67 @@ class TypedInstanceTuple(TraitType[tuple[T, ...], Iterable[T | dict]]):
             return inst
         return None
 
-    def _get_func(self, obj: ValueTraits, attr: str) -> Callable | None:
-        """Get a function defined in the mapping by from metadata.
-
-        These can be set by .tag()
-        """
-        if mb.DEBUG_ENABLED and attr not in self._callback_specs:
-            msg = f"{attr} has not been mapped to a function for {obj.__class__}"
-            raise KeyError(msg)
-        funcname = getattr(self, attr)
-        if not funcname:
-            return None
-        func = getattr(obj, funcname, None)
-        if func is None:
-            msg = f'The callback "{utils.fullname(obj)}.{funcname}" is not defined!'
-            raise AttributeError(msg)
-        if not callable(func):
-            msg = f"{utils.fullname(obj)}.{funcname} is not callable!"
-            raise TypeError(msg)
-        sig = inspect.signature(func)
-        if set(self._callback_specs[attr]).difference(sig.parameters):
-            msg = f"{func} is missing the following named arguments: {list(self._callback_specs[attr])})"
-            raise AttributeError(msg)
-        return func
-
-    def configure(
-        self,
-        *,
-        update_by="name",
-        update_item_names: tuple[str, ...] | str = (),
-        spawn_new_instances: bool = True,
-        set_parent=True,
-        close_on_remove=True,
-        factory="",
-        on_add="",
-        on_remove="",
-    ) -> Self:
-        """Change the behaviour of the typed instance tuple.
-
-        Parameters
-        ----------
-        update_by: str
-            If an existing instance with attribute name corresponding to a passed dict,
-            it will be updated rather than spawning a new instance.
-        update_item_names:
-            The names of traits of each instance to observe for a change. Changes are
-            passed to `on_change` of the ValueTraits object.
-        spawn_new_instances: bool
-            If set False, it will not attempt to create a new instance when a
-             dict is passed. Thus factory will not be used, updating values
-             is still permitted.
-        set_parent: bool
-            Set the parent of the trait items to the value_traits instance to which this
-            tuple belongs.
-            *note:* parent is passed as a kwarg during instantiation of new objects.
-        close_on_remove: bool
-            close the instance once it is removed
-
-        factory (**kwargs): str
-            The name of a method of the object to which the tuple belongs.
-            It must return an instance of the specified trait.
-
-        on_add(obj) : str
-            The name of a method called when a new object is added to the tuple.
-            Each new object is passed.
-
-        on_remove(obj): st | None
-            on_add and on_remove are called on each element that is added / removed
-            existing items not called)
-            signature : on_add(obj)
-
-
-        expected convention:
-            * method (self, change or obj)
-            * class method
-
-        """
-        self._update_by = update_by if update_by is defaults.INDEX else str(update_by)
-        self._update_item_names = tuple(utils.iterflatten(update_item_names))
-        self._spawn_new_instances = bool(spawn_new_instances)
-        if self._spawn_new_instances and not factory and not getattr(self._trait, "klass", None):
-            msg = "A factory is required when trait doesn't specify a klass (such as Union)"
-            raise RuntimeError(msg)
-        self._set_parent = bool(set_parent)
-        self._close_on_remove = bool(close_on_remove)
-        self._on_add = on_add
-        self._on_remove = on_remove
-        self._factory = factory
+    def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:
+        if kwgs:
+            merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
 
-    def _tuple_on_add(self, parent: ValueTraits, obj: HasParent):
-        if isinstance(obj, HasParent) and self._set_parent:
-            obj.parent = parent
-        if isinstance(obj, HasParent | Widget) and obj not in self._close_observers:
-            names = "closed" if isinstance(obj, HasParent) else "comm"
-            handle = utils.weak_observe(obj, self._observe_obj_closed, names, False, weakref.ref(parent), names)
-            self._close_observers[obj] = handle, names
+    def _on_add(self, obj: V, value: T):
+        if isinstance(value, HasParent) and self._hookmappings.get("set_parent"):
+            value.parent = obj
+        if isinstance(value, HasParent | Widget) and value not in self._close_observers:
+            names = "closed" if isinstance(value, HasParent) else "comm"
+            handle = utils.weak_observe(value, self._observe_obj_closed, names, False, weakref.ref(obj), names)
+            self._close_observers[value] = handle, names
+        if on_add := self._hookmappings.get("on_add"):
+            try:
+                on_add(IHPSet(name=self.name, parent=obj, obj=value))
+            except Exception as e:
+                obj.on_error(e, f"on_add callback for {self!r}")
 
-    def _tuple_on_remove(self, _: ValueTraits, obj: HasParent):
-        if isinstance(obj, HasParent | Widget) and (args := self._close_observers.pop(obj, None)):
+    def _on_remove(self, obj: V, value: T):
+        if isinstance(value, HasParent | Widget) and (args := self._close_observers.pop(obj, None)):
             obj.unobserve(*args)
-        if self._close_on_remove and hasattr(obj, "close"):
-            obj.close()
+        if self._hookmappings.get("close_on_remove") and hasattr(value, "close"):
+            value.close()  # type: ignore
+        if on_remove := self._hookmappings.get("on_remove"):
+            try:
+                on_remove(IHPSet(name=self.name, parent=obj, obj=value))
+            except Exception as e:
+                obj.on_error(e, f"on_remove callback for {self!r}")
 
     def tag(self, **kw):
         raise NotImplementedError
 
-    def _observe_obj_closed(self, ref: weakref.ref[ValueTraits], name: str):
+    def _observe_obj_closed(self, ref: weakref.ref[V], name: str):
         if (parent := ref()) and not parent.closed:
             filt = (lambda obj: not obj.closed) if name == "closed" else lambda obj: obj.comm
             values = filter(filt, getattr(parent, self.name))
             parent.set_trait(self.name, values)
+
+    def _on_change(self, change: ChangeType):
+        # Collect pairs and update register
+        obj: V = change["owner"]  # type: ignore
+        if obj.closed:
+            return
+        obj._vt_update_reg_tuples(self.name)
+        new, old = change["new"], change["old"]
+
+        for value in (v for v in old if v not in new):
+            self._on_remove(obj, value)
+        for value in (v for v in new if v not in old):
+            self._on_add(obj, value)
+
+        # Share notification to on_change and update the value
+        if change["name"] not in (*obj.value_traits, *obj.value_traits_persist):
+            obj._vt_on_change(change)
 
 
 class _TypedTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
     if TYPE_CHECKING:
-        parent: ValueTraits
+        parent: Parent[ValueTraits]
     reg: set[tuple[HasTraits, str]] = Set()  # type: ignore
 
     @observe("reg")
@@ -403,15 +348,6 @@ class _TypedTupleRegister(HasParent):
             pass
 
 
-class CallbackMode(enum.Enum):
-    external = enum.auto()
-    internal = enum.auto()
-
-
-INTERNAL = CallbackMode.internal
-EXTERNAL = CallbackMode.external
-
-
 class ValueTraits(HasParent, Generic[R]):
     """ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
@@ -424,7 +360,7 @@ class ValueTraits(HasParent, Generic[R]):
         traits trigger the `on_change` method.
     - Persistence: Supports a separate set of value traits that are persisted
         (e.g., saved to a file).
-    - Typed Instance Tuples: Integrates with TypedInstanceTuple to manage
+    - Typed Instance Tuples: Integrates with InstanceHPTuple to manage
         collections of objects with specific types and observe changes within those
         collections.
     - Change Notifications: Provides a mechanism for handling change events,
@@ -453,7 +389,7 @@ class ValueTraits(HasParent, Generic[R]):
     _vt_reg_value_traits_persist: set[tuple[HasTraits, str]] = Set()  # type: ignore
     _vt_reg_value_traits: set[tuple[HasTraits, str]] = Set()  # type: ignore
     _vt_tuple_reg: Dict[str, _TypedTupleRegister] = Dict(read_only=True)
-    _vt_tit_names: ClassVar[dict] = {}
+    _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
     _vt_init_complete = False
     dtype = "dict"
@@ -492,15 +428,15 @@ class ValueTraits(HasParent, Generic[R]):
         return f"<{cs}{self.__class__.__qualname__} name='{self.name}' {home}>"
 
     def __init_subclass__(cls, **kwargs) -> None:
-        tn_ = dict(cls._vt_tit_names)
+        tn_ = dict(cls._InstanceHPTuple or {})
         for c in cls.mro():
             if c is __class__:
                 break
-            if issubclass(c, ValueTraits) and c._vt_tit_names:
-                # Need to copy across other unregistered TypedInstanceTuple mappings
-                for name in c._vt_tit_names:
+            if issubclass(c, ValueTraits) and c._InstanceHPTuple:
+                # Need to copy across other unregistered InstanceHPTuple mappings
+                for name in c._InstanceHPTuple:
                     if name not in tn_:
-                        tn_[name] = c._vt_tit_names[name]
+                        tn_[name] = c._InstanceHPTuple[name]
             if c is HasTraits:
                 msg = (
                     "This class has invalid MRO please ensure ValueTraits is higher "
@@ -508,7 +444,7 @@ class ValueTraits(HasParent, Generic[R]):
                     "in the class definition."
                 )
                 raise RuntimeError(msg)
-        cls._vt_tit_names = tn_
+        cls._InstanceHPTuple = tn_
         super().__init_subclass__(**kwargs)
 
     def _init_CHECK_PARENT(self):
@@ -568,7 +504,7 @@ class ValueTraits(HasParent, Generic[R]):
         self.set_trait("value_traits", value_traits or self.value_traits)
         self.set_trait("value_traits_persist", value_traits_persist or self.value_traits_persist)
         vts = []
-        for v in (*self.value_traits_persist, *self.value_traits, *self._vt_tit_names):
+        for v in (*self.value_traits_persist, *self.value_traits, *self._InstanceHPTuple):
             if v not in vts:
                 vts.append(v)
         if callable(value):
@@ -610,14 +546,16 @@ class ValueTraits(HasParent, Generic[R]):
     def _vt_observe_closed(self, change: ChangeType):
         # Unobserve by clearing the registers
         self._ignore_change_cnt = self._ignore_change_cnt + 1
+        for reg in self._vt_tuple_reg.values():
+            reg.close()
         self._vt_tuple_reg.clear()
         self._vt_reg_value_traits = set()
         self._vt_reg_value_traits_persist = set()
 
     def _init_tuple_reg(self):
-        """Create registers TypedInstanceTuples."""
+        """Create registers InstanceHPTuples."""
 
-        for name in self._vt_tit_names:
+        for name in self._InstanceHPTuple:
             self._vt_tuple_reg[name] = _TypedTupleRegister(name=name, parent=self)
             self._vt_update_reg_tuples(name)
 
@@ -699,7 +637,7 @@ class ValueTraits(HasParent, Generic[R]):
                 else:
                     msg = (
                         f"`{n}` is not a trait of {utils.fullname(obj)} and {utils.fullname(obj)} "
-                        f"is not an instance of HasTraits so is an invalid part of {dotname}."
+                        f"is not an instance of HasTraits so is an invalid part of {dotname=}."
                     )
                     raise TypeError(msg)
                 if n in obj._trait_values:
@@ -734,13 +672,13 @@ class ValueTraits(HasParent, Generic[R]):
         Returns:
             Constructor for the typed instance tuple.
         """
-        if tuplename not in cls._vt_tit_names:
+        if tuplename not in cls._InstanceHPTuple:
             msg = (
                 f"{tuplename=} is not a registered typed_instance_tuple "
-                f"Register tuple names ={list(cls._vt_tit_names)}!"
+                f"Register tuple names ={list(cls._InstanceHPTuple)}!"
             )
             raise KeyError(msg)
-        return cls._vt_tit_names[tuplename]["new_update_inst"]
+        return cls._InstanceHPTuple[tuplename].update_or_create_inst
 
     def _vt_update_reg_value_traits(self):
         pairs = set()
@@ -758,15 +696,15 @@ class ValueTraits(HasParent, Generic[R]):
                     pairs.add(pair)
             self._vt_reg_value_traits_persist = pairs
 
-    def _vt_update_reg_tuples(self, tuplename):
-        names = self._vt_tit_names[tuplename]["update_item_names"]
-        items = getattr(self, tuplename)
-        pairs = set()
-        for obj in items:
-            for dotname in names:
-                for owner, n in self._get_observer_pairs(obj, dotname):
-                    pairs.add((owner, n))
-        self._vt_tuple_reg[tuplename].reg = pairs
+    def _vt_update_reg_tuples(self, tuplename: str):
+        if update_item_names := self._InstanceHPTuple[tuplename]._hookmappings.get("update_item_names", ()):
+            items = getattr(self, tuplename)
+            pairs = set()
+            for obj in items:
+                for dotname in update_item_names:
+                    for owner, n in self._get_observer_pairs(obj, dotname):
+                        pairs.add((owner, n))
+            self._vt_tuple_reg[tuplename].reg = pairs
 
     def _vt_value_traits_observe(self, change: ChangeType):
         if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(change["new"]):
@@ -788,72 +726,6 @@ class ValueTraits(HasParent, Generic[R]):
                 self.on_error(e, "Invalid `value_trait_persist` item found.")
                 if mb.DEBUG_ENABLED:
                     raise
-
-    def _vt_tuple_on_change(
-        self,
-        change: ChangeType,
-        tuplename: str,
-        on_add: Callable | None,
-        on_remove: Callable | None,
-        _tuple_on_add: Callable,
-        _tuple_on_remove: Callable,
-    ):
-        """Handles changes to tuples within ValueTraits, triggering callbacks.
-
-        This method is called when a tuple (`TypedInstanceTuple`) associated with a ValueTraits instance
-        is modified (elements added or removed). It identifies the changes,
-        executes registered callbacks, and propagates the change notification.
-
-        Args:
-            change: A dictionary describing the change event, including the
-                'new' and 'old' values, and the 'owner' (ValueTraits instance).
-            tuplename: The name of the tuple that was changed.
-            on_add: An optional callback function to be executed when elements
-                are added to the tuple.  This is considered an EXTERNAL callback.
-            on_remove: An optional callback function to be executed when elements
-                are removed from the tuple. This is considered an EXTERNAL callback.
-            _tuple_on_add: An optional callback function to be executed when elements
-                are added to the tuple. This is considered an INTERNAL callback.
-            _tuple_on_remove: An optional callback function to be executed when elements
-                are removed from the tuple. This is considered an INTERNAL callback.
-        """
-        # Collect pairs and update register
-        if self.closed:
-            return
-        self._vt_update_reg_tuples(tuplename)
-        # Callbacks
-        new = set(change["new"])
-        old = set(change["old"] or ())
-        obj: ValueTraits = change["owner"]  # type: ignore
-        if _tuple_on_remove or on_remove:
-            for val in old.difference(new):
-                if _tuple_on_remove:
-                    self._typed_tuple_do_callback(_tuple_on_remove, obj, val, tuplename, INTERNAL)
-                if on_remove:
-                    self._typed_tuple_do_callback(on_remove, obj, val, tuplename, EXTERNAL)
-        if _tuple_on_add or on_add:
-            for val in new.difference(old):
-                if _tuple_on_add:
-                    self._typed_tuple_do_callback(_tuple_on_add, obj, val, tuplename, INTERNAL)
-                if on_add:
-                    self._typed_tuple_do_callback(on_add, obj, val, tuplename, EXTERNAL)
-        # Share notification to on_change and update the value
-        if change["name"] not in (*self.value_traits, *self.value_traits_persist):
-            self._vt_on_change(change)
-
-    def _typed_tuple_do_callback(
-        self, callback: Callable, obj: ValueTraits, val: Any, tuplename: str, mode: CallbackMode
-    ):
-        """Callback specific to typed instance tuples. for on_change, on_add, on_remove.
-
-        Will log an error on failure rather than raising it (except when debugging)
-        """
-        try:
-            callback(self, val) if mode is INTERNAL else callback(val)
-        except Exception as e:
-            obj.on_error(e, f"Typed tuple callback '{tuplename}'")
-            if mb.DEBUG_ENABLED:
-                raise
 
     def _vt_on_reg_value_traits_change(self, change: ChangeType):
         if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
@@ -1060,7 +932,7 @@ class ValueTraits(HasParent, Generic[R]):
         Since nested traits are allowed, trait changes in children are also observed.
         adding, removing and creating (InstanceHP only) of items are all propagated.
 
-        `TypedInstanceTuples` change events are also delivered here, specify the
+        `InstanceHPTuples` change events are also delivered here, specify the
         `update_item_names` with the `configure` method when defining them in a class,
         dynamically changing this is not currently supported.
 
