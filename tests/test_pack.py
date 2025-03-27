@@ -13,8 +13,8 @@ class DemoObj(mb.MenuboxVT):
     c = traitlets.Instance(ipw.Text, ())
 
 
-async def test_convert_yaml(home: mb.Home):
-    obj = DemoObj(home=home)
+async def test_convert_yaml():
+    obj = DemoObj()
     assert obj.to_dict() == obj._DEFAULTS
     _, b, _ = obj.a, obj.b, obj.c
 

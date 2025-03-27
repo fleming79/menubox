@@ -46,10 +46,6 @@ class ChildrenSetterTester(mb.MenuboxVT):
     plain_box = tf.Box()
 
 
-@pytest.fixture
-async def cto(home: mb.Home):
-    return ChildrenSetterTester(home=home)
-
 
 @pytest.mark.parametrize(
     "dottednames",
@@ -58,7 +54,8 @@ async def cto(home: mb.Home):
         ("nested.button", "nested.dropdown", "nested.label"),
     ],
 )
-async def test_children_setter_manual(cto: ChildrenSetterTester, dottednames: tuple):
+async def test_children_setter_manual(dottednames: tuple):
+    cto = ChildrenSetterTester()
     children_setter = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
     await children_setter.wait_tasks()
     assert children_setter.dottednames == dottednames
@@ -66,7 +63,8 @@ async def test_children_setter_manual(cto: ChildrenSetterTester, dottednames: tu
     assert cto.plain_box.children == widgets
 
 
-async def test_children_setter_nested_enable_disable(cto: ChildrenSetterTester):
+async def test_children_setter_nested_enable_disable():
+    cto = ChildrenSetterTester()
     dottednames = ("dropdown", "nested.button", "nested.dropdown")
     cs = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
     await cs.wait_tasks()
@@ -93,14 +91,16 @@ async def test_children_setter_nested_enable_disable(cto: ChildrenSetterTester):
     assert cs.closed, "Closing the parent should close it."
 
 
-async def test_children_setter_builtin(cto: ChildrenSetterTester):
+async def test_children_setter_builtin():
+    cto = ChildrenSetterTester()
     assert cto.dynamic_box
     await asyncio.sleep(0.1)
     assert cto.nested
     assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
 
-async def test_children_setter_enable(cto: ChildrenSetterTester):
+async def test_children_setter_enable():
+    cto = ChildrenSetterTester()
     assert cto.dynamic_box
     cto.enable_widget("dd_no_default")
     await asyncio.sleep(0.1)
@@ -108,7 +108,8 @@ async def test_children_setter_enable(cto: ChildrenSetterTester):
     assert cto.dynamic_box.children == (cto.dd_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
 
-async def test_children_setter_hide(cto: ChildrenSetterTester):
+async def test_children_setter_hide():
+    cto = ChildrenSetterTester()
     assert cto.dynamic_box
     mb.utils.hide(cto.dropdown)
     await asyncio.sleep(0.1)
@@ -116,7 +117,8 @@ async def test_children_setter_hide(cto: ChildrenSetterTester):
     assert cto.dynamic_box.children == (cto.nested.dropdown, cto.nested.button)
 
 
-async def test_children_setter_nametuple(cto: ChildrenSetterTester):
+async def test_children_setter_nametuple():
+    cto = ChildrenSetterTester()
     assert cto.dynamic_box_nametuple
     await asyncio.sleep(0.1)
     assert cto.dynamic_box_nametuple.children == (cto.label,)

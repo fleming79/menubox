@@ -14,7 +14,7 @@ from menubox.css import CSScls
 from menubox.hasparent import HasHome
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_types import ChangeType, H, NameTuple, R, StrTuple
+from menubox.trait_types import ChangeType, NameTuple, R, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import MarkdownOutput
 

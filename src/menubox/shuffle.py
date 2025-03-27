@@ -1,5 +1,5 @@
 from collections.abc import Hashable
-from typing import Generic, Self, cast, override
+from typing import Generic, Self, cast, final, override
 
 import ipywidgets as ipw
 import traitlets
@@ -14,6 +14,7 @@ from menubox.trait_types import MP, ChangeType, H, NameTuple, StrTuple
 from menubox.valuetraits import InstanceHPTuple
 
 
+@final
 class ObjShuffle(MenuboxVTH, Generic[H, MP]):
     """A Menubox that can load MenuboxPersist instances into its shuffle box."""
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Generic, Self, cast, override
 
 import traitlets
-from ipylab.common import Fixed
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
@@ -11,7 +10,6 @@ from menubox.filesystem import Filesystem
 from menubox.hasparent import HasHome, Parent
 from menubox.menuboxvt import MenuboxVTH
 from menubox.persist import MenuboxPersist
-from menubox.shuffle import ObjShuffle
 from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -91,20 +89,19 @@ class SelectRepository(MenuboxVTH, Generic[H]):
 
     parent: Parent[H] = Parent(HasHome)  # type: ignore
     box_center = None
+
+    repositories = tf.ObjShuffle(cast(Self, None), Repository)
     repository = tf.Repository(cast(Self, None))
-    repositories = Fixed[Self, "ObjShuffle[Self, Repository]"](
-        lambda c: ObjShuffle(home=c["owner"].home, obj_cls=Repository)
-    )
     repository_name = tf.Dropdown(
+        cast(Self, None),
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},
     ).hooks(
-        dlink={
-            "source": ("repositories.sw_obj", "options"),
-            "target": "options",
-            "transform": lambda options: (*options, *(("default",) if "default" not in options else ())),
-        }
+        on_set=lambda c: (
+            utils.weak_observe(c["parent"].repositories.sw_obj, c["parent"]._update_repository_name_options, "options"),
+            c["parent"]._update_repository_name_options(),
+        )
     )
     button_select_repository = tf.Button_menu(description="…", tooltip="Select/create a new repository")
     header_children = StrTuple()
@@ -136,6 +133,12 @@ class SelectRepository(MenuboxVTH, Generic[H]):
             + "\n".join(f"{k}: {v}" for k, v in repo.value().items())
             + "\nClick to edit repositories."
         )
+
+    def _update_repository_name_options(self):
+        options = self.repositories.sw_obj.options
+        if "default" not in options:
+            options = (*options, "default")
+        self.repository_name.options = options
 
     @override
     async def button_clicked(self, b: Button):

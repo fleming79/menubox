@@ -57,6 +57,7 @@ __all__ = [
     "SelectMultipleValidate",
     "Menubox",
     "Modalbox",
+    "ObjShuffle",
     "Repository",
     "SelectRepository",
     "Task",
@@ -74,9 +75,10 @@ if TYPE_CHECKING:
     import menubox.menubox
     import menubox.modalbox
     import menubox.repository
+    import menubox.shuffle
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import H, S
+    from menubox.trait_types import MP, H, S
 
 
 # Ipywidgets shortcuts
@@ -223,7 +225,7 @@ def Modalbox(
     )
 
 
-def Repository(_: H):  # type: ignore
+def Repository(_: H) -> InstanceHP[H, menubox.repository.Repository]:
     "Requires parent to have a home"
     inst = InstanceHP(_, "menubox.repository.Repository", create=lambda c: c["parent"].home.repository)
     inst.configure(read_only=False)
@@ -231,11 +233,27 @@ def Repository(_: H):  # type: ignore
     return inst
 
 
-def SelectRepository(_: H):  # type: ignore
+def SelectRepository(_: H) -> InstanceHP[H, menubox.repository.SelectRepository[H]]:
     "Requires parent to have a home"
-    inst = InstanceHP[_, "menubox.repository.SelectRepository[_]"](_, "menubox.repository.SelectRepository")
-    return inst.configure(allow_none=False)
+    return InstanceHP(_, "menubox.repository.SelectRepository").configure(allow_none=False)
 
 
 def Task():
     return InstanceHP(klass=asyncio.Task).configure(allow_none=True, load_default=False)
+
+
+def ObjShuffle(_: H, obj_cls: type[MP] | str) -> ipylab.Fixed[H, menubox.shuffle.ObjShuffle[H, MP]]:
+    """A Fixed Obj shuffle for any Menubox persist object.
+
+    ``` python
+    ObjShuffle(cast(Self, None), obj_cls=MyMenuboxPersistClass)
+    ```
+    """
+
+    def get_ObjShuffle(c: ipylab.common.FixedCreate[H]):
+        from menubox.shuffle import ObjShuffle as ObjShuffle_
+
+        cls: type[MP] = ipylab.common.import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
+        return ObjShuffle_(home=c["owner"].home, obj_cls=cls)
+
+    return ipylab.Fixed(get_ObjShuffle)

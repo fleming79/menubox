@@ -106,3 +106,4 @@ async def test_menuboxvt(home: mb.Home):
 
     assert m.box_center
     assert m.description_viewer in m.box_center.children, 'From view "Main"'
+

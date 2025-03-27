@@ -156,7 +156,7 @@ class TestInstance:
         assert hpi4.value_changed["new"] is hpi4.hpi
         assert hpi4.value_changed["old"] is None
         old = hpi4.hpi
-        new = HPI(home=HasHome)
+        new = HPI()
         hpi4.set_trait("hpi", new)
         assert hpi4.value_changed["new"] is new
         assert hpi4.value_changed["old"] is old
