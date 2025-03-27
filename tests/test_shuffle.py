@@ -14,9 +14,7 @@ class Numbers(MenuboxPersist):
 
 
 async def test_shuffle(home: mb.Home):
-    shuffle = ObjShuffle(home=home, name="Shuffle", obj_cls=Numbers)
-    assert shuffle.obj_cls
-
+    shuffle = ObjShuffle(home=home, name="Shuffle", klass=Numbers)
     await shuffle.load_view(reload=True)
     name = "my object"
     shuffle.sw_obj.value = name

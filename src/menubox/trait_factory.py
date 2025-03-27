@@ -242,7 +242,9 @@ def Task():
     return InstanceHP(klass=asyncio.Task).configure(allow_none=True, load_default=False)
 
 
-def ObjShuffle(_: H, obj_cls: type[MP] | str) -> ipylab.Fixed[H, menubox.shuffle.ObjShuffle[H, MP]]:
+def ObjShuffle(
+    _: H, obj_cls: type[MP] | str, factory: Callable[[IHPCreate], MP] | None = None, **kwgs
+) -> ipylab.Fixed[H, menubox.shuffle.ObjShuffle[H, MP]]:
     """A Fixed Obj shuffle for any Menubox persist object.
 
     ``` python
@@ -254,6 +256,6 @@ def ObjShuffle(_: H, obj_cls: type[MP] | str) -> ipylab.Fixed[H, menubox.shuffle
         from menubox.shuffle import ObjShuffle as ObjShuffle_
 
         cls: type[MP] = ipylab.common.import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
-        return ObjShuffle_(home=c["owner"].home, obj_cls=cls)
+        return ObjShuffle_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
 
     return ipylab.Fixed(get_ObjShuffle)
