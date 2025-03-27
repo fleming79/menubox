@@ -10,6 +10,7 @@ from menubox.repository import Repository
 
 
 class SelectRepositoryWidget(Menubox, HasHome):
+    repository = tf.Repository(cast(Self, None))
     select_repository = tf.SelectRepository(cast(Self, None))
     views = traitlets.Dict({"Widgets": "select_repository"})
 
@@ -17,6 +18,7 @@ class SelectRepositoryWidget(Menubox, HasHome):
 async def test_select_repository(home: mb.Home):
     w = SelectRepositoryWidget(home=home)
     assert w is w.select_repository.parent
+    assert w.repository is w.select_repository.repository
     repo = Repository(home=home, name="new repository")
     await repo.wait_tasks()
     await repo.button_save_persistence_data.start()
@@ -32,3 +34,6 @@ async def test_select_repository(home: mb.Home):
     await repo2.button_save_persistence_data.start()
     w.select_repository.repository = repo2
     assert w.select_repository.repository_name.value == repo2.name
+
+    w.repository = repo
+    assert w.select_repository.repository is repo

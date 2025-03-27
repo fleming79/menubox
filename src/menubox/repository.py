@@ -108,6 +108,7 @@ class SelectRepository(MenuboxVTH, Generic[H]):
     views = traitlets.Dict({"Main": ["repository_name", "button_select_repository"]})
     value_traits = NameTuple(*MenuboxVTH.value_traits, "repository", "repository_name")
     value_traits_persist = NameTuple("repository_name")
+    parent_link = NameTuple("repository")
 
     @override
     def on_change(self, change: ChangeType):
