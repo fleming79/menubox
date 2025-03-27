@@ -11,8 +11,7 @@ from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox.hasparent import HasHome
-from menubox.menuboxvt import MenuboxVT
+from menubox.menuboxvt import MenuboxVTH
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
@@ -27,7 +26,7 @@ def list_drives() -> list[str]:
     return [p.mountpoint.strip("\\ ") for p in psutil.disk_partitions()]
 
 
-class Filesystem(HasHome, MenuboxVT):
+class Filesystem(MenuboxVTH):
     """Graphical file selector widget copying the `Panel` based gui defined in fsspec.gui."""
 
     box_center = None
@@ -41,7 +40,7 @@ class Filesystem(HasHome, MenuboxVT):
     title_description = traitlets.Unicode()
     filters = StrTuple()
     minimized_children = StrTuple("url")
-    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
+    value_traits = NameTuple(*MenuboxVTH.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw")
     views = traitlets.Dict({"Main": ()})
 

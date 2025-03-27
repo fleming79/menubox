@@ -39,7 +39,6 @@ class HPI(mb.Menubox):
 class HPI2(mb.HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(cast(Self, None), HPI, lambda _: HPI(name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
-    repository = tf.Repository(cast(Self, None))
     select_repository = tf.SelectRepository(cast(Self, None))
     button = tf.AsyncRunButton(cast(Self, None), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")

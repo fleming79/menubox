@@ -1,5 +1,5 @@
 import pathlib
-from typing import override
+from typing import Self, cast, override
 
 import ipywidgets as ipw
 import traitlets
@@ -14,9 +14,9 @@ mb.MenuboxVT.register_template_root_folder(templates_folder)
 # ruff: noqa: PLR2004
 
 
-class MyNewObj(mb.MenuboxVT):
+class MyNewObj(mb.MenuboxVTH):
     SHOW_TEMPLATE_CONTROLS = True
-    select_repository = tf.SelectRepository()
+    select_repository = tf.SelectRepository(cast(Self, None))
     a_has_changed = False
     b_has_changed = False
     change_count = 0
@@ -51,8 +51,8 @@ class MyNewObj(mb.MenuboxVT):
                             self.c.value = change["old"].value
 
 
-async def test_menuboxvt():
-    m = MyNewObj()
+async def test_menuboxvt(home: mb.Home):
+    m = MyNewObj(home=home)
     assert m.template_controls
     # Check that the values are registered and observed
     m.a.value = 12

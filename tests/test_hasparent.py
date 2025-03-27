@@ -128,7 +128,7 @@ class TestHasParent:
         hp2.parent = hp
 
         class HPsubclass(HP):
-            SINGLETON_BY = ("name",)
+            SINGLE_BY = ("name",)
 
         with pytest.raises(KeyError):
             hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2)
@@ -162,7 +162,7 @@ class TestHasParent:
         parent = HP(a_link=2, a_dlink=4)
 
         class HPsubclass(HP):
-            SINGLETON_BY = ("name",)
+            SINGLE_BY = ("name",)
 
         hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2, name="hps")
         hp.parent = parent
@@ -196,7 +196,7 @@ class TestHasParent:
         hp = HP()
 
         class HPsubclass(HP):
-            SINGLETON_BY = ("name",)
+            SINGLE_BY = ("name",)
 
         hps2 = HPsubclass(a_link=hp.a_link + 3, a_dlink=hp.a_dlink + 4, parent=hp, name="hbs2")
         hps3 = HPsubclass(a_link=hp.a_link + 5, a_dlink=hp.a_dlink + 5, parent=hp, name="hps3")

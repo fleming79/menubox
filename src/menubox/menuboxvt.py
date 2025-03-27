@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, cast, override
 
 import ipylab
 import ipywidgets as ipw
@@ -11,9 +11,10 @@ import menubox as mb
 from menubox import trait_factory as tf
 from menubox import utils
 from menubox.css import CSScls
+from menubox.hasparent import HasHome
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_types import ChangeType, NameTuple, StrTuple
+from menubox.trait_types import ChangeType, H, NameTuple, R, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import MarkdownOutput
 
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 __all__ = ["MenuboxVT"]
 
 
-class MenuboxVT(Menubox, ValueTraits):
+class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     """
     MenuboxVT Combines Menubox with ValueTraits and provides additional features such as templates,
     copy/paste settings, configuration view and description rendering.
@@ -139,7 +140,7 @@ class MenuboxVT(Menubox, ValueTraits):
     value_traits = NameTuple("text_name", "name", "description", "description_viewer")
 
     def __init_subclass__(cls, **kwargs) -> None:
-        if mb.DEBUG_ENABLED:
+        if getattr(mb, "DEBUG_ENABLED", True):
             mro = cls.mro()
             if mro.index(ValueTraits) < mro.index(__class__):
                 smo = "\n\t".join(o.__qualname__ for o in cls.mro())
@@ -272,3 +273,7 @@ class MenuboxVT(Menubox, ValueTraits):
                     self.text_name.value = self.name
         if change["name"] == "visibility" and self.view:
             self.mb_refresh()
+
+
+class MenuboxVTH(MenuboxVT, HasHome):
+    "MenuboxVT with a home"

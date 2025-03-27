@@ -274,7 +274,7 @@ class HasParent(Singular, Generic[R]):
 
     RENAMEABLE = True
     KEEP_ALIVE = False
-    SINGLETON_BY: ClassVar[tuple[str, ...] | None] = None
+    SINGLE_BY: ClassVar[tuple[str, ...] | None] = None
     _InstanceHP: ClassVar[dict[str, InstanceHP[HasParent, Any]]] = {}
     _HasParent_init_complete = False
     _prohibited_parent_links: ClassVar[set[str]] = set()
@@ -311,8 +311,8 @@ class HasParent(Singular, Generic[R]):
         """
         if self._HasParent_init_complete:
             return
-        if self.SINGLETON_BY and "name" in self.SINGLETON_BY:
-            name = self._single_key[self.SINGLETON_BY.index("name")]
+        if self.SINGLE_BY and "name" in self.SINGLE_BY:
+            name = self._single_key[self.SINGLE_BY.index("name")]
             self.set_trait("name", name)
             self.RENAMEABLE = False
         values = {}
@@ -330,18 +330,18 @@ class HasParent(Singular, Generic[R]):
         self.init_async = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
 
     def __init_subclass__(cls, **kwargs) -> None:
-        if cls.SINGLETON_BY:
-            assert isinstance(cls.SINGLETON_BY, tuple)  # noqa: S101
-            if cls.SINGLETON_BY and "name" in cls.SINGLETON_BY:
+        if cls.SINGLE_BY:
+            assert isinstance(cls.SINGLE_BY, tuple)  # noqa: S101
+            if cls.SINGLE_BY and "name" in cls.SINGLE_BY:
                 cls.RENAMEABLE = False
         cls._cls_update_InstanceHP_register()
         super().__init_subclass__(**kwargs)
 
     @classmethod
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
-        if not cls.SINGLETON_BY:
+        if not cls.SINGLE_BY:
             return None
-        return tuple(cls if k == "cls" else kwgs[k] for k in cls.SINGLETON_BY)
+        return tuple(cls if k == "cls" else kwgs[k] for k in cls.SINGLE_BY)
 
     @classmethod
     def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:
@@ -777,7 +777,7 @@ class Home(HasParent):
     other homes will appear in _REG.homes.
     """
 
-    SINGLETON_BY: ClassVar = ("name",)
+    SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     _HREG: _HomeRegister
     repository = Fixed[Self, "Repository"](

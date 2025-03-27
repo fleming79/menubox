@@ -14,7 +14,7 @@ from menubox.valuetraits import ValueTraits
 class ChildrenSetter(ValueTraits):
     "Refreshes the children in an object belonging to dottednames in the parent as they change."
 
-    SINGLETON_BY = ("parent", "name")
+    SINGLE_BY = ("parent", "name")
     _AUTO_VALUE = False
     _prohibited_value_traits = set()  # noqa: RUF012
     parent = Parent(HasParent)

@@ -13,13 +13,8 @@ class Numbers(MenuboxPersist):
     value_traits_persist = mb.NameTuple("a")
 
 
-class ObjNumberShuffle(ObjShuffle):
-    obj_cls = traitlets.Type(Numbers)
-
-
 async def test_shuffle(home: mb.Home):
-
-    shuffle = ObjNumberShuffle(home=home, name="Shuffle")
+    shuffle = ObjShuffle(home=home, name="Shuffle", obj_cls=Numbers)
     assert shuffle.obj_cls
 
     await shuffle.load_view(reload=True)

@@ -231,7 +231,10 @@ def Repository(_: H):  # type: ignore
     return inst
 
 
-SelectRepository = ihpwrap(cast(type["menubox.repository.SelectRepository"], "menubox.repository.SelectRepository"))
+def SelectRepository(_: H):  # type: ignore
+    "Requires parent to have a home"
+    inst = InstanceHP[_, "menubox.repository.SelectRepository[_]"](_, "menubox.repository.SelectRepository")
+    return inst.configure(allow_none=False)
 
 
 def Task():

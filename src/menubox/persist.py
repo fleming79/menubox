@@ -10,9 +10,9 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
-from menubox.hasparent import HasHome, Home
+from menubox.hasparent import Home
 from menubox.log import TZ
-from menubox.menuboxvt import MenuboxVT
+from menubox.menuboxvt import MenuboxVTH
 from menubox.pack import deep_copy, load_yaml
 from menubox.trait_types import ChangeType, StrTuple, TypedTuple
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from fsspec import AbstractFileSystem
 
 
-class MenuboxPersist(HasHome, MenuboxVT):
+class MenuboxPersist(MenuboxVTH):
     """Persistence of nested settings in yaml files plus persistence of dataframes
     in home.repository.
 
@@ -45,7 +45,7 @@ class MenuboxPersist(HasHome, MenuboxVT):
     `my_widget.options` is necessary.
 
     Settings of nested objects are stored in the same settings file by name. For
-    ValueTrait objects (including MenuboxVT), settings defined in `value_traits_persist`
+    ValueTrait objects (including MenuboxVTH), settings defined in `value_traits_persist`
     are the `value` so are stored by default.
 
     Persistence of DataFrames in `value_traits_persist` is not permitted. The tuple
@@ -53,7 +53,7 @@ class MenuboxPersist(HasHome, MenuboxVT):
     as the yaml data.
     """
 
-    SINGLETON_BY = ("home", "name")
+    SINGLE_BY = ("home", "name")
     _PERSIST_TEMPLATE = "settings/{cls.__qualname__}/{name}_v{version}"
     _AUTOLOAD = True
     SINGLE_VERSION = True
@@ -111,10 +111,10 @@ class MenuboxPersist(HasHome, MenuboxVT):
         ),
     )
     box_version = tf.Box()
-    header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
+    header_right_children = StrTuple("menu_load_index", *MenuboxVTH.header_right_children)
 
     task_loading_persistence_data = tf.Task()
-    value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load")
+    value_traits = StrTuple(*MenuboxVTH.value_traits, "version", "sw_version_load")
     value_traits_persist = StrTuple("saved_timestamp", "name", "description")
     dataframe_persist = StrTuple()
 

@@ -1,35 +1,17 @@
-import pathlib
 from typing import Self, cast
 
 import traitlets
 
 import menubox as mb
-from menubox import MenuboxVT
+from menubox import Menubox
 from menubox import trait_factory as tf
 from menubox.hasparent import HasHome
-from menubox.repository import Repositories, Repository
+from menubox.repository import Repository
 
 
-class SelectRepositoryWidget(MenuboxVT, HasHome):
-    repository = tf.Repository(cast(Self, None))
-    select_repository = tf.SelectRepository()
+class SelectRepositoryWidget(Menubox, HasHome):
+    select_repository = tf.SelectRepository(cast(Self, None))
     views = traitlets.Dict({"Widgets": "select_repository"})
-
-
-async def test_repository(home: mb.Home, tmp_path: pathlib.Path):
-    assert home.repository.root == tmp_path.as_posix()
-    assert home.repository.home is home
-
-    rps = Repositories(home=home)
-    name = "My custom repo"
-    repo = rps.get_obj(name)
-    repo2 = rps.get_obj(name)
-    assert repo2 is repo
-    assert repo2.home is home
-    rps.show()
-
-    repo3 = Repository(name=name, home=home)
-    assert repo3 is repo2
 
 
 async def test_select_repository(home: mb.Home):
@@ -42,11 +24,11 @@ async def test_select_repository(home: mb.Home):
     w.select_repository.repositories.update_sw_obj_options()
     assert repo.name in w.select_repository.repository_name.options
     w.select_repository.repository_name.value = repo.name
-    assert w.repository is repo
+    assert w.select_repository.repository is repo
 
     # Test directly setting repository updates the name of the repository sele
     repo2 = Repository(home=home, name="second new repository")
     await repo2.wait_tasks()
     await repo2.button_save_persistence_data.start()
-    w.repository = repo2
+    w.select_repository.repository = repo2
     assert w.select_repository.repository_name.value == repo2.name

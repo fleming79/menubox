@@ -35,7 +35,7 @@ def instancehp_finalize(inst: InstanceHP, hookmappings: IHPHookMappings, klass: 
         hookmappings["on_replace_close"] = False
     if "on_replace_close" not in hookmappings:
         if issubclass(klass, HasParent):
-            hookmappings["on_replace_close"] = not klass.SINGLETON_BY
+            hookmappings["on_replace_close"] = not klass.SINGLE_BY
         elif issubclass(klass, Widget) and "on_replace_close":
             hookmappings["on_replace_close"] = True
     if issubclass(klass, HasParent) and "set_parent" not in hookmappings:

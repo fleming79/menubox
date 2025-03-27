@@ -12,8 +12,8 @@ from menubox.instance import IHPSet
 # ruff: noqa: PLR2004
 
 
-class MenuboxSingleton(mb.HasHome, mb.MenuboxVT):
-    SINGLETON_BY = ("home", "name")
+class MenuboxSingleton(mb.MenuboxVT):
+    SINGLE_BY = ("home", "name")
 
 
 class VTT(mb.ValueTraits):

@@ -1,5 +1,5 @@
 from collections.abc import Hashable
-from typing import Self, cast, override
+from typing import Generic, Self, cast, override
 
 import ipywidgets as ipw
 import traitlets
@@ -7,40 +7,20 @@ from pandas.io import clipboards
 
 from menubox import mb_async
 from menubox import trait_factory as tf
-from menubox.hasparent import HasHome
-from menubox.menuboxvt import MenuboxVT
+from menubox.menuboxvt import MenuboxVTH
 from menubox.pack import to_yaml
 from menubox.persist import MenuboxPersist
-from menubox.trait_types import ChangeType, NameTuple, StrTuple
+from menubox.trait_types import MP, ChangeType, H, NameTuple, StrTuple
 from menubox.valuetraits import InstanceHPTuple
 
 
-# TODO: make this generic by obj_class - set it by init such that subclassing isn't required.
-class ObjShuffle(HasHome, MenuboxVT):
-    """Provides a shuffle box that that can load objects with persistence into a shuffle
-    environment.
+class ObjShuffle(MenuboxVTH, Generic[H, MP]):
+    """A Menubox that can load MenuboxPersist instances into its shuffle box."""
 
-    Persistence is via MenuboxPersist.
-    required attributes:
-    obj_cls: must be subclass of MenuboxPersist
-
-    ## Usage
-
-    ```
-    Shuffler(ObjShuffle, obj_cls=MenuboxPersistSubclass):
-        pass
-
-    s = Shuffler(home='my_home')
-
-    obj1 = s.get_obj('obj1') # type:MenuboxPersistSubclass
-
-    ```
-    """
-
-    SINGLETON_BY = ("home", "name")
+    SINGLE_BY = ("obj_cls", "home")
     RENAMEABLE = False
-    obj_cls = MenuboxPersist
-    pool = InstanceHPTuple[Self, MenuboxPersist](
+    obj_cls: type[MP]
+    pool = InstanceHPTuple[Self, MP](
         traitlets.Instance(MenuboxPersist), factory=lambda c: c["parent"].factory_pool(**c["kwgs"])
     ).hooks(
         update_item_names=("name", "versions"),
@@ -88,7 +68,7 @@ class ObjShuffle(HasHome, MenuboxVT):
     )
     box_center = None
     views = traitlets.Dict({"Main": ("box_shuffle_controls", "box_details", "box_shuffle")})
-    value_traits = NameTuple(*MenuboxVT.value_traits, "sw_obj", "sw_version")
+    value_traits = NameTuple(*MenuboxVTH.value_traits, "sw_obj", "sw_version")
 
     @override
     @classmethod
@@ -106,6 +86,12 @@ class ObjShuffle(HasHome, MenuboxVT):
     def list_stored_datasets(self) -> list[str]:
         """List the stored datasets for the obj_cls."""
         return self.obj_cls.list_stored_datasets(self.home)
+
+    def __init__(self, *, obj_cls: type[MP], **kwargs):
+        if self._HasParent_init_complete:
+            return
+        self.obj_cls = obj_cls
+        super().__init__(**kwargs)
 
     @override
     def on_change(self, change):
@@ -135,7 +121,7 @@ class ObjShuffle(HasHome, MenuboxVT):
     def update_sw_version_options(self):
         self.sw_version.options = self.get_obj_versions(self.sw_obj.value)
 
-    def get_obj(self, name: str):
+    def get_obj(self, name: str) -> MP:
         """Get / create object by name from pool."""
         return self.get_tuple_obj("pool", name=name)
 

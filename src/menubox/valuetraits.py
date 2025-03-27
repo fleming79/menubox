@@ -463,7 +463,7 @@ class ValueTraits(HasParent, Generic[R]):
         if hasattr(self, "vt_validating"):
             msg = (
                 f"{utils.fullname(__class__)}__ini__ BUG. If there are items\n"
-                f" in {self.SINGLETON_BY=} check for bugs in the init of the object.\n"
+                f" in {self.SINGLE_BY=} check for bugs in the init of the object.\n"
                 "Otherwise check which validation is occurring before init is complete."
             )
             raise RuntimeError(msg)
