@@ -92,10 +92,14 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     )
     _description_label = tf.HTML(value="<b>Description</b>")
     _description_preview_label = tf.HTML(value="<b>Description preview</b>")
-    _box_edit_description_edit = tf.VBox().hooks(set_children=("_description_label", "description"))
-    _box_edit_description_preview = tf.VBox().hooks(set_children=("_description_preview_label", "description_viewer"))
-    _box_edit_description = tf.HBox(layout={"justify_content": "space-between"}).hooks(
-        set_children=("_box_edit_description_edit", "_box_edit_description_preview")
+    _box_edit_description_edit = tf.VBox(cast(Self, None)).hooks(
+        set_children=lambda p: (p._description_label, p.description)
+    )
+    _box_edit_description_preview = tf.VBox(cast(Self, None)).hooks(
+        set_children=lambda p: (p._description_preview_label, p.description_viewer)
+    )
+    _box_edit_description = tf.HBox(cast(Self, None), layout={"justify_content": "space-between"}).hooks(
+        set_children=lambda p: (p._box_edit_description_edit, p._box_edit_description_preview)
     )
 
     description = tf.CodeEditor(mime_type="text/x-markdown")
