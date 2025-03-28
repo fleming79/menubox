@@ -77,11 +77,15 @@ class MenuboxPersist(MenuboxVTH):
         allow_none=True,
     )
     sw_version_load = tf.Dropdown(
+        cast(Self, None),
         description="Load from",
         index=None,
         layout={"width": "max-content"},
     ).hooks(
-        dlink={"source": ("self", "versions"), "target": "options"},
+        on_set=lambda c: c["parent"].dlink(
+            src=(c["parent"], "versions"),
+            target=(c["obj"], "options"),
+        ),
     )
     button_save_persistence_data = tf.InstanceHP(
         cast(Self, None),

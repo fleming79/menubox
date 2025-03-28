@@ -72,7 +72,6 @@ class ChildrenNameTuple(TypedDict):
 class IHPHookMappings(TypedDict, Generic[S, T]):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
-    dlink: NotRequired[IHPDlinkType | tuple[IHPDlinkType, ...]]
     on_set: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
@@ -84,14 +83,6 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
         | tuple[utils.GetWidgetsInputType, ...]
     ]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], None]]
-
-
-class IHPDlinkType(TypedDict):
-    """A TypedDict template to use with `InstanceHP.configure`."""
-
-    source: tuple[str, str]  # Dotted name of HasTraits object relative to parent, trait name
-    target: str  # The trait name of the Instance to dlink
-    transform: NotRequired[Callable[[Any], Any]]
 
 
 class InstanceHP(traitlets.TraitType, Generic[S, T]):
@@ -193,61 +184,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def _on_unset_hook(c: IHPChange[S, T]):
         if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
             on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
-
-    @staticmethod
-    def _dlink_hook(c: IHPChange[S, T]):
-        """Creates dynamic links (dlinks) between traits of objects based on the provided configuration.
-
-        This function establishes links between a source trait of an object (typically a c["parent"]) and a target trait of another object,
-        allowing changes in the source trait to propagate to the target trait. The links are configured based on the `dlink` setting
-        associated with the given `InstanceHP` object.
-
-        Args:
-            c["ihp"] (InstanceHP): The InstanceHP object containing the settings for the dynamic link.  The settings should include
-                a "dlink" key that specifies the source and target traits to link.
-            change (IHPChange): A dictionary containing information about the change that triggered the dlink creation.
-                It should include the 'c["parent"]' object (where the source trait resides) and the 'c["new"]' object (where the target trait resides).
-
-        The `dlink` setting can be a single dictionary or a list of dictionaries, each defining a dynamic link.
-        Each dictionary should contain the following keys:
-
-            - `source`: A tuple containing the name of the source object and the name of the source trait.
-            If the source object name is "self", it refers to the `c["parent"]` object. Otherwise, it's an attribute of the c["parent"].
-            - `target`: The name of the target trait.  It can optionally include a class name prefix (e.g., "ClassName.trait_name")
-            to specify a nested object within the target object.
-            - `transform` (optional): A callable that transforms the value of the source trait before it is applied to the target trait.
-            It can also be a string representing an attribute of the c["parent"] object that is a callable.
-
-        The function uses the `dlink` method of the c["parent"] object to create the dynamic links. It first disconnects previous dlinks.
-        Then, if the target object is a `HasTraits` instance, it creates a connected link to propagate changes to the target trait.
-
-        Raises:
-            TypeError: If the `transform` value is not callable.
-        """
-        if dlink := c["ihp"]._hookmappings.get("dlink"):
-            dlinks = (dlink,) if isinstance(dlink, dict) else dlink
-            for dlink in dlinks:
-                src_name, src_trait = dlink["source"]
-                src_obj = (
-                    c["parent"]
-                    if src_name == "self"
-                    else utils.getattr_nested(c["parent"], src_name, hastrait_value=False)
-                )
-                tgt_trait = dlink["target"]
-                key = f"{id(c['parent'])} {c['parent'].__class__.__qualname__}.{c['ihp'].name}.{tgt_trait}"
-                new = c["new"]
-                if new and "." in tgt_trait:
-                    class_name, tgt_trait = tgt_trait.rsplit(".", maxsplit=1)
-                    new = utils.getattr_nested(new, class_name, hastrait_value=False)
-                transform = dlink.get("transform")
-                if isinstance(transform, str):
-                    transform = utils.getattr_nested(c["parent"], transform, hastrait_value=False)
-                if transform and not callable(transform):
-                    msg = f"Transform must be callable but got {transform!r}"
-                    raise TypeError(msg)
-                c["parent"].dlink((src_obj, src_trait), target=None, transform=transform, key=key, connect=False)
-                if not c["parent"].closed and isinstance(new, traitlets.HasTraits):
-                    c["parent"].dlink((src_obj, src_trait), target=(new, tgt_trait), transform=transform, key=key)
 
     @staticmethod
     def _add_css_class_hook(c: IHPChange[S, T]):
@@ -539,13 +475,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             Allow the value to be None.
         set_parent: Bool [True]
             Set the parent to the parent of the trait (HasParent).
-        dlink: IHPDlinkType | tuple[IHPDlinkType]
-            A mapping or tuple of mappings for dlinks to add when creating.
-            'source': tuple[obj, str]
-            'target: str
-            transform: Callable[Any, Any]
-                A function to convert the source value to the target value.
-        children: ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...] <Boxes and Panels only>
+        set_children: ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...] <Boxes and Panels only>
             Children are collected from the parent using `parent.get_widgets`.
             and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
 
@@ -574,7 +504,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         for cb in (
             cls._on_replace_close_hook,
             cls._set_parent_hook,
-            cls._dlink_hook,
             cls._remove_on_close_hook,
             cls._on_set_hook,
             cls._on_unset_hook,

@@ -606,7 +606,7 @@ class HasParent(Singular, Generic[R]):
         target: tuple[HasTraits, str] | None,
         transform: Callable[[Any], Any] | None = None,
         connect=True,
-        key="",
+        key="",  # TODO: Use the target as the key when a key isn't provided.
     ):
         """Does dlink and and keeps a reference link until closed.
 

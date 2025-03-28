@@ -1,4 +1,5 @@
 import tempfile
+from typing import Self, cast
 
 import pandas as pd
 import traitlets
@@ -13,12 +14,12 @@ class MBP(MenuboxPersist):
     SINGLE_VERSION = False
     new = traitlets.Unicode()
     a_widget = tf.Text(description="something", value="Using the value")
-    just_a_widget = tf.Dropdown(description="just_a_widget", options=[1, 2, 3]).hooks(
-        dlink={
-            "source": ("self", "df"),
-            "target": "layout.visibility",
-            "transform": lambda df: mb.utils.to_visibility(df.empty, invert=True),
-        },
+    just_a_widget = tf.Dropdown(cast(Self, None), description="just_a_widget", options=[1, 2, 3]).hooks(
+        on_set=lambda c: c["parent"].dlink(
+            src=(c["parent"], "df"),
+            target=(c["obj"].layout, "visibility"),
+            transform=lambda df: mb.utils.to_visibility(df.empty, invert=True),
+        ),
     )
     value_traits_persist = mb.NameTuple("new", "a_widget.value", "just_a_widget")
     dataframe_persist = mb.NameTuple("df")

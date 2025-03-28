@@ -65,11 +65,11 @@ class Filesystem(MenuboxVTH):
         layout={"width": "max-content"},
         options=list_drives(),
     ).hooks(
-        dlink={
-            "source": ("protocol", "value"),
-            "target": "layout.visibility",
-            "transform": lambda protocol: utils.to_visibility(protocol == "file"),
-        },
+        on_set=lambda c: c["parent"].dlink(
+            src=(c["parent"].protocol, "value"),
+            target=(c["obj"].layout, "visibility"),
+            transform=lambda protocol: utils.to_visibility(protocol == "file"),
+        )
     )
     sw_main = tf.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},

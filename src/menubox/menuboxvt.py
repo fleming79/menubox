@@ -107,18 +107,21 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
             converter=c["parent"]._convert_description,
         ).add_class(CSScls.resize_vertical),
     ).hooks(
-        dlink={"source": ("description", "value"), "target": "value"},
+        on_set=lambda c: c["parent"].dlink(
+            src=(c["parent"].description, "value"),
+            target=(c["obj"], "value"),
+        )
     )
     button_configure = (
-        tf.Button_open(tooltip="Configure")
-        .configure(load_default=False)
+        tf.Button_open(cast(Self, None), tooltip="Configure")
         .hooks(
-            dlink={
-                "source": ("self", "view"),
-                "target": "description",
-                "transform": lambda view: "End configure" if view == MenuboxVT._CONFIGURE_VIEW else "🔧",
-            },
+            on_set=lambda c: c["parent"].dlink(
+                src=(c["parent"], "view"),
+                target=(c["obj"], "description"),
+                transform=lambda view: "End configure" if view == MenuboxVT._CONFIGURE_VIEW else "🔧",
+            ),
         )
+        .configure(load_default=False)
     )
     button_clip_put = tf.Button_open(description="📎", tooltip="Copy settings to clipboard")
     button_paste = tf.Button_open(description="📋", tooltip="Paste settings from clipboard\n")

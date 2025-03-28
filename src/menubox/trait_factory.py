@@ -19,8 +19,7 @@ import menubox.widgets
 from menubox import mb_async
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
-from menubox.instance import IHPChange, IHPCreate, IHPDlinkType, InstanceHP
-from menubox.instance import IHPDlinkType as DLink
+from menubox.instance import IHPChange, IHPCreate, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
 __all__ = [
@@ -42,14 +41,12 @@ __all__ = [
     "Combobox",
     "ComboboxValidate",
     "Dropdown",
-    "DLink",
     "FileUpload",
     "FloatTextValidate",
     "HBox",
     "HTML",
     "HTML_Title",
     "IHPCreate",
-    "IHPDlinkType",
     "InstanceHP",
     "IntTextValidate",
     "Label",
@@ -112,7 +109,10 @@ FileUpload = ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button
 
 MenuboxHeader = ihpwrap(
     ipw.HBox,
-    dlink={"source": ("self", "border"), "target": "layout.border_bottom"},
+    on_set=lambda c: c["parent"].dlink(
+        src=(c["parent"], "border"),
+        target=(c["obj"].layout, "border_bottom"),
+    ),
     add_css_class=(CSScls.Menubox_item, CSScls.box_header),
 )
 MenuboxCenter = ihpwrap(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox))
