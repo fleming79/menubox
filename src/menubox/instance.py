@@ -59,14 +59,10 @@ class IHPChange(TypedDict, Generic[S, T]):
     ihp: InstanceHP[S, T]
 
 
-class ChildrenDottedNames(TypedDict):
-    mode: Literal["monitor"]
-    dottednames: tuple[str, ...]
-
-
-class ChildrenNameTuple(TypedDict):
-    mode: Literal["monitor_nametuple"]
-    nametuple_name: str
+class SetChildrenSettings(TypedDict):
+    mode: Literal["monitor", "monitor_nametuple"]
+    dottednames: NotRequired[tuple[str, ...]]  # 'monitor' `mode` only
+    nametuple_name: NotRequired[str]  # 'monitor_nametuple' `mode` only
 
 
 class IHPHookMappings(TypedDict, Generic[S, T]):
@@ -76,12 +72,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    set_children: NotRequired[
-        Callable[[S], utils.GetWidgetsInputType]
-        | ChildrenDottedNames
-        | ChildrenNameTuple
-        | tuple[utils.GetWidgetsInputType, ...]
-    ]
+    set_children: NotRequired[Callable[[S], utils.GetWidgetsInputType] | SetChildrenSettings]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], None]]
 
 
@@ -475,13 +466,12 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             Allow the value to be None.
         set_parent: Bool [True]
             Set the parent to the parent of the trait (HasParent).
-        set_children: ChildrenDottedNames | ChildrenNameTuple | tuple[utils.GetWidgetsInputType, ...] <Boxes and Panels only>
+        set_children: Callable[[S], utils.GetWidgetsInputType] | SetChildrenSettings
             Children are collected from the parent using `parent.get_widgets`.
             and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
 
             Additionally, if mode is 'monitor', the children will be updated as the state
             of the children is changed (including add/remove hide/show).
-            If mode is 'replace', the children will be replaced when the instance is replaced.
             If mode is 'monitor_nametuple', the children will be updated as the state
             of the children is changed (including add/remove hide/show).
             The children will be passed as a named tuple with the name specified in the
