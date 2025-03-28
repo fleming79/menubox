@@ -281,7 +281,7 @@ class HasParent(Singular, Generic[R]):
     _hp_reg_parent_link = traitlets.Set()
     _hp_reg_parent_dlink = traitlets.Set()
     _hp_reg_links = traitlets.Set()
-    _hasparent_all_links: traitlets.Dict[str, Link | Dlink] = traitlets.Dict(
+    _hasparent_all_links: traitlets.Dict[Hashable, Link | Dlink] = traitlets.Dict(
         default_value={},
         value_trait=traitlets.Union([traitlets.Instance(Link), traitlets.Instance(Dlink)]),
         key_trait=traitlets.Unicode(),
@@ -411,7 +411,7 @@ class HasParent(Singular, Generic[R]):
         method = self.link if mname == "link" else self.dlink
         # remove old links
         for _, name in set(old).difference(change["new"]):
-            method((), (), key=f"{mname}_{name}", connect=False)  # type: ignore
+            method((), (), key=(mname, name), connect=False)  # type: ignore
         # add new links
         for parent, name in change["new"].difference(old):
             v = getattr(self, name)
@@ -421,7 +421,7 @@ class HasParent(Singular, Generic[R]):
                 source = val, "value"
             else:
                 source = parent, name
-            method(source, target, key=f"{mname}_{name}")
+            method(source, target, key=(mname, name))
 
     def setter(self, obj, name: str, value):
         """Sets an attribute on an object, handling special cases for ipywidgets and ValueTraits.
@@ -585,48 +585,40 @@ class HasParent(Singular, Generic[R]):
         ]
         | None = None,
         connect=True,
-        key="",
-    ):
+        key: Hashable = None,
+    ) -> Link | None:
         """Does link and keeps a reference link until closed.
 
         Designed to link the target to one source at a time.
         note: there is no need to use connect=False if simply updating the link for a
         new source.
         """
-        k = key or f"{id(target[0])}_link_{target[1]}"
-        if k in self._hasparent_all_links:
-            self._hasparent_all_links.pop(k).unlink()
+        key = key or ("link", target)
+        if key in self._hasparent_all_links:
+            self._hasparent_all_links.pop(key).unlink()
         if connect:
-            link = Link(src, target, transform=transform, obj=self)
-            self._hasparent_all_links[k] = link
+            self._hasparent_all_links[key] = Link(src, target, transform=transform, obj=self)
+        return None
 
     def dlink(
         self,
         src: tuple[HasTraits, str],
-        target: tuple[HasTraits, str] | None,
+        target: tuple[HasTraits, str],
         transform: Callable[[Any], Any] | None = None,
         connect=True,
-        key="",  # TODO: Use the target as the key when a key isn't provided.
+        key: Hashable = None,
     ):
         """Does dlink and and keeps a reference link until closed.
 
-        Designed to dlink the target to one source at a time.
+        Designed to dlink target to one source at a time.
         note: there is no need to use connect=False if simply updating the link for a
         new source.
         """
-        if not key:
-            if not target:
-                msg = ""
-                raise ValueError(msg)
-            key = f"{id(target[0])}_dlink_{target[1]}"
+        key = key or ("dlink", target)
         if key in self._hasparent_all_links:
             self._hasparent_all_links.pop(key).unlink()
         if connect:
-            if not target:
-                msg = "A target is required when connecting!"
-                raise ValueError(msg)
-            link = Dlink(src, target, transform=transform, obj=self)
-            self._hasparent_all_links[key] = link
+            self._hasparent_all_links[key] = Dlink(src, target, transform=transform, obj=self)
 
     async def init_async(self):
         """Perform additional initialisation tasks.
