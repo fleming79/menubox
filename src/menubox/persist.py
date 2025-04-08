@@ -129,6 +129,7 @@ class MenuboxPersist(MenuboxVTH):
     def _update_versions(self) -> None:
         self.versions = self.get_persistence_versions(self.home, self.name, self.log)
 
+    @override
     async def init_async(self):
         await super().init_async()
         if self.name and self._AUTOLOAD:

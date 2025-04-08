@@ -620,7 +620,7 @@ class HasParent(Singular, Generic[R]):
         if connect:
             self._hasparent_all_links[key] = Dlink(src, target, transform=transform, obj=self)
 
-    async def init_async(self):
+    async def init_async(self) -> None:
         """Perform additional initialisation tasks.
 
         When override this method ensure to call:

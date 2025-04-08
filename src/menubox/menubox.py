@@ -199,9 +199,6 @@ class Menubox(HasParent, Panel, Generic[R]):
         if view is not None:
             self.load_view(view)
 
-    async def init_async(self):
-        return await super().init_async()
-
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType):
         views = proposal["value"]
@@ -813,8 +810,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         "Maximize and add to the shell."
         self.maximize()
         if add_to_shell:
-            with anyio.fail_after(1):
-                await self.add_to_shell()
+            await self.add_to_shell()
 
     async def show_in_dialog(
         self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs
