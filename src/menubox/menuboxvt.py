@@ -222,7 +222,7 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
                     if self.template_controls:
                         self.template_controls.collapse()
             case self._button_template_info:
-                self._show_template_info()
+                await self._show_template_info()
             case self.button_clip_put:
                 self.to_clipboard()
             case self.button_paste:
@@ -239,14 +239,16 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
             return self.fstr(self.DESCRIPTION_VIEWER_TEMPLATE, parameters=parameters)
         return ""
 
-    def _show_template_info(self):
+    async def _show_template_info(self):
         if self._sw_template.value:
             path = self._sw_template.value
             if isinstance(path, pathlib.Path):
                 with path.open() as f:
                     data = f.read()
                 mime_type = "text/json" if path.suffix == "json" else "text/yaml"
-                self.app.dialog.show_dialog(title=path.name, body=ipylab.CodeEditor(value=data, mime_type=mime_type))
+                await self.app.dialog.show_dialog(
+                    title=path.name, body=ipylab.CodeEditor(value=data, mime_type=mime_type)
+                )
 
     @override
     async def get_center(self, view: str | None):

@@ -146,4 +146,4 @@ class SelectRepository(MenuboxVTH, Generic[H]):
         await super().button_clicked(b)
         match b:
             case self.button_select_repository:
-                self.repositories.activate()
+                await self.repositories.activate()

@@ -8,6 +8,7 @@ import weakref
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, cast, overload, override
 
+import anyio
 import docstring_to_markdown
 import traitlets
 from ipylab import Panel
@@ -651,7 +652,7 @@ class Menubox(HasParent, Panel, Generic[R]):
                 if self.show_help:
                     self.maximize()
             case self.button_activate:
-                self.activate()
+                await self.activate()
 
     @log.log_exceptions
     def _shuffle_button_on_click(self, b: ipw.Button):
@@ -808,13 +809,16 @@ class Menubox(HasParent, Panel, Generic[R]):
         for sc in self.connections:
             sc.close()
 
-    def activate(self, *, add_to_shell=True):
+    async def activate(self, *, add_to_shell=True):
         "Maximize and add to the shell."
         self.maximize()
         if add_to_shell:
-            self.add_to_shell()
+            with anyio.fail_after(1):
+                await self.add_to_shell()
 
-    def show_in_dialog(self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs):
+    async def show_in_dialog(
+        self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs
+    ):
         """Display the menubox in a dialog.
 
         Args:
@@ -826,7 +830,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             The result of self.app.dialog.show_dialog.
         """
         self.load_view(view)
-        return self.app.dialog.show_dialog(title=title, body=self, **kwgs)
+        return await self.app.dialog.show_dialog(title=title, body=self, **kwgs)
 
 
 class MenuboxWrapper(Menubox):

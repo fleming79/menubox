@@ -23,7 +23,10 @@ def anyio_backend():
 
 
 @pytest.fixture(autouse=True)
-async def anyio_backend_autouse(anyio_backend):
+async def anyio_backend_autouse(anyio_backend, mocker):
+    app = ipylab.App()
+    app._trait_values.pop("asyncio_loop", None)
+    mocker.patch.object(app, "ready")
     return anyio_backend
 
 

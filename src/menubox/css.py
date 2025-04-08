@@ -214,7 +214,7 @@ STYLESHEET = f"""
 
 
 class MenuboxCSSStyleSheet(Singular, CSSStyleSheet):
-    def load_stylesheet(self, text: str, variables: dict[CSSvar, str]):
+    async def load_stylesheet(self, text: str, variables: dict[CSSvar, str]):
         """Loads a stylesheet with the given text and variables.
 
         The stylesheet text will have the `VARIABLES_KEY` replaced with the
@@ -227,4 +227,4 @@ class MenuboxCSSStyleSheet(Singular, CSSStyleSheet):
         variables = VARIABLES | variables
         variables_ = f":root {{{''.join(f'{k} :{v};\n' for k, v in variables.items())}}}\n"
         text = variables_ + text
-        self.replace(text)
+        await self.replace(text)

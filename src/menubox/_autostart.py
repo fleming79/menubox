@@ -33,4 +33,4 @@ class IpylabPlugin:
         for s, v in reversed(menubox.plugin_manager.hook.add_css_stylesheet()):
             ss += s
             variables.update(v)
-        stylesheet.load_stylesheet(ss, variables)
+        await stylesheet.load_stylesheet(ss, variables)

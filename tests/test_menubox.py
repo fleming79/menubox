@@ -1,5 +1,4 @@
-import asyncio
-
+import anyio
 import ipywidgets as ipw
 import pytest
 
@@ -442,15 +441,20 @@ class TestMenubox:
         with pytest.raises(TypeError):
             m.put_obj_in_box_shuffle(1)  # type: ignore
 
-    async def test_menubox_activate_deactivate(self):
+    async def test_menubox_activate_deactivate(self, mocker):
         m = mb.Menubox(views={"a": ipw.HTML("A")}, view=None)
         assert m.view is None
-        m.activate()
+        cb = mocker.patch.object(m, "add_to_shell")
+        await m.activate()
+        assert cb.call_count == 1
+        assert cb.await_count == 1
         assert m.view == "a"
         m.deactivate()
         assert m.view is None
 
-    async def test_menubox_show_in_dialog(self):
+    async def test_menubox_show_in_dialog(self, mocker):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
-        result = m.show_in_dialog("test")
-        assert isinstance(result, asyncio.Task)
+        cb = mocker.patch.object(m.app.dialog, "show_dialog")
+        await m.show_in_dialog("test")
+        assert cb.call_count == 1
+        assert cb.await_count == 1
