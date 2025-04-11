@@ -6,10 +6,11 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, cast, overload, override
+from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, overload, override
 
-import anyio
 import docstring_to_markdown
+import ipylab.shell
+import ipylab.widgets
 import traitlets
 from ipylab import Panel
 from ipywidgets import widgets as ipw
@@ -806,11 +807,12 @@ class Menubox(HasParent, Panel, Generic[R]):
         for sc in self.connections:
             sc.close()
 
-    async def activate(self, *, add_to_shell=True):
+    async def activate(self, add_to_shell=True, **kwgs: Unpack[ipylab.widgets.AddToShellType]):
         "Maximize and add to the shell."
         self.maximize()
         if add_to_shell:
-            await self.add_to_shell()
+            await self.add_to_shell(**kwgs)
+        return self
 
     async def show_in_dialog(
         self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs
