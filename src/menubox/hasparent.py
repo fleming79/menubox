@@ -14,7 +14,6 @@ import pandas as pd
 import toolz
 import traitlets
 from ipylab.common import Fixed, Singular, import_item
-from ipylab.log import IpylabLoggerAdapter
 from traitlets import HasTraits
 
 import menubox
@@ -292,7 +291,6 @@ class HasParent(Singular, Generic[R]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
-    log = traitlets.Instance(IpylabLoggerAdapter)
     parent = Parent(HasTraits)
     tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
 
@@ -378,10 +376,6 @@ class HasParent(Singular, Generic[R]):
                 raise AttributeError(msg)
             links.append(link)
         return tuple(links)
-
-    @traitlets.default("log")
-    def _default_log(self):
-        return IpylabLoggerAdapter(self.__module__, owner=self)
 
     @traitlets.observe("parent", "parent_link", "parent_dlink")
     def _observe_parent(self, change: ChangeType):
@@ -474,17 +468,6 @@ class HasParent(Singular, Generic[R]):
     @property
     def repr_log(self):
         return self.__repr__()
-
-    @override
-    def add_traits(self, **_: Any) -> NoReturn:
-        """-- DO NOT USE --
-
-        The traitlets version of this function overwrites the class meaning
-        that isininstance & issubclass fail causing unexpected behaviour.
-        """
-
-        msg = "Make a subclass instead."
-        raise NotImplementedError(msg)
 
     def on_error(self, error: Exception, msg: str, obj: Any = None):
         """Logs an error message with exception information.

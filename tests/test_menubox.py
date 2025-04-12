@@ -1,4 +1,3 @@
-import anyio
 import ipywidgets as ipw
 import pytest
 
