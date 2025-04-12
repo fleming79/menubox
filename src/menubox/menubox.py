@@ -815,7 +815,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         return self
 
     async def show_in_dialog(
-        self, title: str, *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs
+        self, title: str = "", *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs
     ):
         """Display the menubox in a dialog.
 
@@ -828,7 +828,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             The result of self.app.dialog.show_dialog.
         """
         self.load_view(view)
-        return await self.app.dialog.show_dialog(title=title, body=self, **kwgs)
+        return await self.app.dialog.show_dialog(title=title or cleanhtml(self.title_description), body=self, **kwgs)
 
 
 class MenuboxWrapper(Menubox):

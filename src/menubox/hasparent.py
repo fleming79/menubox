@@ -529,7 +529,6 @@ class HasParent(Singular, Generic[R]):
         if self.closed or (self.KEEP_ALIVE and not force):
             return
         super().close()
-        self.log.debug("Closed")
         self.set_trait("parent", None)
         if self.trait_has_value("_hasparent_all_links"):
             for link in self._hasparent_all_links.values():
