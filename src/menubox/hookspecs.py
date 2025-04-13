@@ -30,6 +30,7 @@ def instancehp_default_kwgs(inst: InstanceHP, parent: HasParent, kwgs: dict):
 def instancehp_default_create(inst: InstanceHP, parent: HasParent, args: tuple, kwgs: dict):
     """Create the 'default' instance."""
 
+
 @hookspec(firstresult=True)
 def get_icon(obj: HasParent):
     "Get the icon for the object"

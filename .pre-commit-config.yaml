@@ -26,11 +26,11 @@ repos:
       - id: requirements-txt-fixer
       - id: check-builtin-literals
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.31.3
+    rev: 0.33.0
     hooks:
       - id: check-github-workflows
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.0
+    rev: v0.11.5
     hooks:
       - id: ruff
         types_or: [python, jupyter]

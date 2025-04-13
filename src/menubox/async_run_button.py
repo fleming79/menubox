@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from types import CoroutineType
 
 
-
 class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     """A button that runs the function in a singular task that can be cancelled by
     clicking the button again.

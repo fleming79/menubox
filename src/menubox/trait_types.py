@@ -114,7 +114,7 @@ class FromParent(TraitType[Callable[[R], T], Callable[[R], T]], Generic[R, T]):
     def __init__(self, _: R, default_value: Callable[[R], T], /, *, read_only=True):
         """A trait for a callable that accepts the parent.
 
-        With support for type dirctly inside the callable.
+        With support for type directly inside the callable.
 
         Usage:
 

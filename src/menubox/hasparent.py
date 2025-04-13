@@ -247,7 +247,6 @@ class Parent(traitlets.Instance[R]):
         raise TypeError(msg)
 
 
-
 class HasParent(Singular, Generic[R]):
     """A base class for objects that have a parent and can manage links to other objects.
 

@@ -94,6 +94,8 @@ SelectionSlider = ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)}
 
 def _bchange(c: IHPChange[HasParent, ipw.Button]):
     c["parent"]._handle_button_change(c)
+
+
 # Button
 Button_main = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_main))
 Button_open = ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_open))

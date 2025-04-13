@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
 
 
-
 class IHPCreate(TypedDict, Generic[S, T]):
     name: str
     parent: S
@@ -196,6 +195,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     @staticmethod
     def _set_children_hook(c: IHPChange[S, T]):
         import menubox.children_setter
+
         if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             if isinstance(children, dict):
                 val = {} | children
@@ -502,6 +502,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             cls._value_changed_hook,
         ):
             cls.register_change_hook(cb.__name__.removesuffix("hook").strip("_"), cb)
+
 
 InstanceHP._register_default_hooks()
 

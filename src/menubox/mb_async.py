@@ -20,8 +20,6 @@ if TYPE_CHECKING:
     from menubox.trait_types import P, T
 
 
-
-
 __all__ = ["run_async", "run_async_singular", "singular_task", "call_later", "debounce", "periodic", "throttle"]
 
 

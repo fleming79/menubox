@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from menubox.trait_types import ChangeType, P, T
 
 
-
 __all__ = [
     "getattr_nested",
     "setattr_nested",

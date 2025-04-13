@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = ["Modalbox"]
 
+
 class Modalbox(HasParent, ipw.VBox, Generic[R]):
     obj = traitlets.Callable(read_only=True)
     button_expand = tf.Button_modal()

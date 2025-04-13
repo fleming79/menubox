@@ -46,7 +46,6 @@ class ChildrenSetterTester(mb.MenuboxVT):
     plain_box = tf.Box()
 
 
-
 @pytest.mark.parametrize(
     "dottednames",
     [

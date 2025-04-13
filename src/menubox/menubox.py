@@ -50,6 +50,7 @@ class HTMLNoClose(ipw.HTML):
 
 HTML_LOADING = HTMLNoClose("Loading ...")
 
+
 class Menubox(HasParent, Panel, Generic[R]):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
@@ -620,7 +621,6 @@ class Menubox(HasParent, Panel, Generic[R]):
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
                 self.showbox.children = (*self.showbox.children, self)
             self.show()
-
 
     @override
     async def button_clicked(self, b: ipw.Button):
