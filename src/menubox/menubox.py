@@ -12,7 +12,7 @@ import docstring_to_markdown
 import ipylab.shell
 import ipylab.widgets
 import traitlets
-from ipylab import Panel
+from ipylab import Panel, ShellConnection
 from ipywidgets import widgets as ipw
 
 import menubox as mb
@@ -24,6 +24,8 @@ from menubox.hasparent import HasParent
 from menubox.trait_types import ChangeType, ProposalType, R, StrTuple
 
 if TYPE_CHECKING:
+    from ipylab.widgets import AddToShellType
+
     from menubox.instance import IHPChange
 
 CLEANR = re.compile("<.*?>")
@@ -132,6 +134,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         "html_title",
         "border",
         "name",
+        "title",
         "title_description",
         "title_description_tooltip",
         "header",
@@ -159,6 +162,10 @@ class Menubox(HasParent, Panel, Generic[R]):
         "shuffle_button_views",
         "tabviews",
     )
+
+    @traitlets.default("title")
+    def _default_title(self):
+        return ipylab.widgets.Title(icon=mb.plugin_manager.hook.get_icon(obj=self))
 
     @property
     def _current_views(self):
@@ -460,7 +467,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             self.unobserve(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
             return
         match change["name"]:
-            case "name" | "html_title" | "title_description" | "title_description_tooltip":
+            case "name" | "html_title" | "title_description" | "title_description_tooltip" | "title":
                 if self._mb_configured:
                     self.update_title()
                 return
@@ -538,8 +545,9 @@ class Menubox(HasParent, Panel, Generic[R]):
             self.html_title.description_allow_html = True
             self.html_title.description = description
             self.html_title.tooltip = tooltip
-        self.title.label = cleanhtml(description)
-        self.title.caption = tooltip
+        if self.trait_has_value("title"):
+            self.title.label = cleanhtml(description)
+            self.title.caption = tooltip
 
     def get_button_loadview(
         self, view, *, description="", disabled=False, button_type: Literal["open", "tab"] = "open"
@@ -814,6 +822,9 @@ class Menubox(HasParent, Panel, Generic[R]):
             await self.add_to_shell(**kwgs)
         return self
 
+    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:
+        return await super().add_to_shell(**kwgs)
+
     async def show_in_dialog(
         self, title: str = "", *, view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT, **kwgs
     ):
@@ -828,7 +839,8 @@ class Menubox(HasParent, Panel, Generic[R]):
             The result of self.app.dialog.show_dialog.
         """
         self.load_view(view)
-        return await self.app.dialog.show_dialog(title=title or cleanhtml(self.title_description), body=self, **kwgs)
+        title = title or cleanhtml(self.fstr(self.title_description))
+        return await self.app.dialog.show_dialog(title, body=self, **kwgs)
 
 
 class MenuboxWrapper(Menubox):

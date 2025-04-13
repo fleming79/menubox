@@ -6,7 +6,7 @@ import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
-from menubox.persist import MenuboxPersist
+from menubox.persist import MenuboxPersist, MenuboxPersistPool
 
 
 class MBP(MenuboxPersist):
@@ -72,3 +72,27 @@ async def test_persist():
     p.sw_version_load.value = 2
     await p.wait_update_tasks()
     assert p.just_a_widget.value == 3, "From persist v2"
+
+
+class Numbers(MenuboxPersist):
+    a = mb.TypedTuple(traitlets.CFloat(), default_value=range(100))
+    value_traits_persist = mb.NameTuple("a")
+
+
+async def test_menubox_persist_pool(home: mb.Home):
+    mpp = MenuboxPersistPool(home=home, name="Shuffle", klass=Numbers)
+    await mpp.load_view(reload=True)
+    name = "my object"
+    obj = mpp.get_obj(name)
+    assert isinstance(obj, MenuboxPersist)
+    assert len(mpp.pool) == 1
+    assert mpp.box_shuffle
+    assert obj.name == name
+    assert mpp.get_obj(name) is obj
+    await mpp.wait_tasks()
+    mpp.obj_name.value = name
+    await mpp.wait_tasks()
+    assert not obj.versions
+    await obj.button_save_persistence_data.start()
+    assert obj.versions
+    await mpp.wait_tasks()

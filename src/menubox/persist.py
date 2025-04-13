@@ -1,22 +1,27 @@
 from __future__ import annotations
 
+import asyncio
 import pathlib
-from typing import TYPE_CHECKING, Self, cast, override
+from typing import TYPE_CHECKING, Generic, Self, cast, final, override
 
 import ipywidgets as ipw
 import pandas as pd
 import traitlets
 
+import menubox
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
 from menubox.hasparent import Home
+from menubox.instance import IHPCreate
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVTH
 from menubox.pack import deep_copy, load_yaml
-from menubox.trait_types import ChangeType, StrTuple, TypedTuple
+from menubox.trait_types import MP, ChangeType, H, StrTuple, TypedTuple
+from menubox.valuetraits import InstanceHPTuple
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Hashable
     from logging import Logger, LoggerAdapter
 
     from fsspec import AbstractFileSystem
@@ -504,3 +509,75 @@ class MenuboxPersist(MenuboxVTH):
                     return pd.read_parquet(f)  # type: ignore
                 case suffix:
                     raise NotImplementedError(suffix)
+
+
+@final
+class MenuboxPersistPool(MenuboxVTH, Generic[H, MP]):
+    """A Menubox that can load MenuboxPersist instances into the shell."""
+
+    SINGLE_BY = ("klass", "home")
+    RENAMEABLE = False
+    pool = InstanceHPTuple[Self, MP](
+        traitlets.Instance(MenuboxPersist), factory=lambda c: c["parent"].factory_pool(**c["kwgs"])
+    ).hooks(
+        update_item_names=("name", "versions"),
+        set_parent=True,
+        close_on_remove=False,
+    )
+    obj_name = tf.Combobox(cast(Self, None), placeholder="Enter name or select existing", continuous_update=True).hooks(
+        on_set=lambda c: (
+            c["parent"].update_names(),
+            c["parent"].dlink(src=(c["parent"], "names"), target=(c["obj"], "options")),
+        )
+    )
+    names = menubox.StrTuple()
+    title_description = traitlets.Unicode("<b>{self.klass.__qualname__.replace('_','').capitalize()} set</b>")
+    html_info = tf.HTML()
+    info_html_title = ipw.HTML(layout={"margin": "0px 20px 0px 40px"})
+    button_update_names = tf.Button_main(description="↻", tooltip="Update options")
+    box_main = tf.HBox(cast(Self, None)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
+    box_center = None
+    views = traitlets.Dict({"Main": "box_main"})
+
+    @override
+    @classmethod
+    def get_single_key(cls, name="default", **kwgs) -> Hashable:
+        return super().get_single_key(name=name, **kwgs)
+
+    def factory_pool(self, **kwgs):
+        if self._factory:
+            return self._factory(IHPCreate(name="", parent=self, kwgs=kwgs, klass=self.klass))
+        return self.klass(**kwgs)
+
+    def update_names(self) -> list[str]:
+        """List the stored datasets for the klass."""
+        names = self.klass.list_stored_datasets(self.home)
+        self.set_trait("names", names)
+        return names
+
+    def __init__(self, *, klass: type[MP], factory: Callable[[IHPCreate], MP] | None = None, **kwgs):
+        if self._HasParent_init_complete:
+            return
+        self.klass = klass
+        self._factory = factory
+        super().__init__(**kwgs)
+
+    @override
+    async def button_clicked(self, b: ipw.Button):
+        await super().button_clicked(b)
+        match b:
+            case self.button_update_names:
+                self.update_names()
+
+    def get_obj(self, name: str) -> MP:
+        """Get / create object by name from pool."""
+        return self.get_tuple_obj("pool", name=name)
+
+    @override
+    async def activate(self):  # type: ignore
+        result = await self.show_in_dialog()
+        if result["value"] is False:
+            raise asyncio.CancelledError
+        obj = self.get_obj(self.obj_name.value)
+        self.obj_name.value = ""
+        return await obj.activate()

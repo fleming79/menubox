@@ -54,7 +54,7 @@ __all__ = [
     "SelectMultipleValidate",
     "Menubox",
     "Modalbox",
-    "ObjShuffle",
+    "MenuboxPersistPool",
     "Repository",
     "SelectRepository",
     "Task",
@@ -71,8 +71,8 @@ if TYPE_CHECKING:
 
     import menubox.menubox
     import menubox.modalbox
+    import menubox.persist
     import menubox.repository
-    import menubox.shuffle
     import menubox.widgets
     from menubox.hasparent import HasParent
     from menubox.trait_types import MP, H, S
@@ -242,20 +242,20 @@ def Task():
     return InstanceHP(klass=asyncio.Task).configure(allow_none=True, load_default=False)
 
 
-def ObjShuffle(
+def MenuboxPersistPool(
     _: H, obj_cls: type[MP] | str, factory: Callable[[IHPCreate], MP] | None = None, **kwgs
-) -> ipylab.Fixed[H, menubox.shuffle.ObjShuffle[H, MP]]:
+) -> ipylab.Fixed[H, menubox.persist.MenuboxPersistPool[H, MP]]:
     """A Fixed Obj shuffle for any Menubox persist object.
 
     ``` python
-    ObjShuffle(cast(Self, None), obj_cls=MyMenuboxPersistClass)
+    MenuboxPersistPool(cast(Self, None), obj_cls=MyMenuboxPersistClass)
     ```
     """
 
-    def get_ObjShuffle(c: ipylab.common.FixedCreate[H]):
-        from menubox.shuffle import ObjShuffle as ObjShuffle_
+    def get_MenuboxPersistPool(c: ipylab.common.FixedCreate[H]):
+        from menubox.persist import MenuboxPersistPool as MenuboxPersistPool_
 
         cls: type[MP] = ipylab.common.import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
-        return ObjShuffle_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
+        return MenuboxPersistPool_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
 
-    return ipylab.Fixed(get_ObjShuffle)
+    return ipylab.Fixed(get_MenuboxPersistPool)

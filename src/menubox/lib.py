@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import ipylab
 from ipywidgets import Widget
 
+import menubox as mb
 from menubox import HasParent
 from menubox.css import STYLESHEET
 from menubox.defaults import hookimpl
@@ -48,3 +50,44 @@ def instancehp_finalize(inst: InstanceHP, hookmappings: IHPHookMappings, klass: 
 def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
     if inst._hookmappings.get("set_parent"):
         kwgs["parent"] = parent
+
+
+@hookimpl
+def get_icon(obj: HasParent):
+    "Get in icon as a colour block"
+    if isinstance(obj, mb.HasHome):
+        return obj.home.icon
+    if not isinstance(obj, mb.Home) and isinstance(obj.parent, HasParent):
+        return get_icon(obj=obj.parent)
+    colors = [
+        "#e6194B",
+        "#3cb44b",
+        "#ffe119",
+        "#4363d8",
+        "#f58231",
+        "#42d4f4",
+        "#f032e6",
+        "#fabed4",
+        "#469990",
+        "#dcbeff",
+        "#9A6324",
+        "#fffac8",
+        "#800000",
+        "#aaffc3",
+        "#000075",
+        "#a9a9a9",
+        "#ffffff",
+        "#000000",
+    ]
+    i = getattr(get_icon, "i", 0)
+    get_icon.i = i + 1  # type: ignore
+    colour = colors[i % len(colors)]
+    return ipylab.Icon(
+        name=f"SHC-colourblock-{colour}",
+        svgstr=f"""<?xml version="1.0"?>
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
+        viewBox="0 0 5 5">
+    <desc>Example SVG file</desc>
+    <rect x="1" y="1" width="3" height="3" fill="{colour}"/>
+    </svg>""",
+    )

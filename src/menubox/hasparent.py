@@ -7,7 +7,7 @@ import inspect
 import pathlib
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, NoReturn, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -757,6 +757,7 @@ class Home(HasParent):
     repository = Fixed[Self, "Repository"](
         lambda c: import_item("menubox.repository.Repository")(name="default", url=c["owner"]._url, home=c["owner"])
     )
+    icon = Fixed(lambda c: menubox.plugin_manager.hook.get_icon(obj=c["owner"]))
 
     @classmethod
     def validate_name(cls, name: str) -> str:

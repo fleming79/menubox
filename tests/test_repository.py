@@ -23,7 +23,7 @@ async def test_select_repository(home: mb.Home):
     await repo.wait_tasks()
     await repo.button_save_persistence_data.start()
     # Test select an existing repository
-    w.select_repository.repositories.update_sw_obj_options()
+    w.select_repository.repositories.update_names()
     assert repo.name in w.select_repository.repository_name.options
     w.select_repository.repository_name.value = repo.name
     assert w.select_repository.repository is repo

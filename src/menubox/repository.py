@@ -90,7 +90,7 @@ class SelectRepository(MenuboxVTH, Generic[H]):
     parent: Parent[H] = Parent(HasHome)  # type: ignore
     box_center = None
 
-    repositories = tf.ObjShuffle(cast(Self, None), Repository)
+    repositories = tf.MenuboxPersistPool(cast(Self, None), Repository)
     repository = tf.Repository(cast(Self, None))
     repository_name = tf.Dropdown(
         cast(Self, None),
@@ -99,7 +99,7 @@ class SelectRepository(MenuboxVTH, Generic[H]):
         layout={"width": "max-content"},
     ).hooks(
         on_set=lambda c: (
-            utils.weak_observe(c["parent"].repositories.sw_obj, c["parent"]._update_repository_name_options, "options"),
+            utils.weak_observe(c["parent"].repositories, c["parent"]._update_repository_name_options, "names"),
             c["parent"]._update_repository_name_options(),
         )
     )
@@ -114,7 +114,7 @@ class SelectRepository(MenuboxVTH, Generic[H]):
     def on_change(self, change: ChangeType):
         super().on_change(change)
         if change["name"] == "repository":
-            self.repositories.update_sw_obj_options()
+            self.repositories.update_names()
             name = self.repository.name
             if name not in self.repository_name.options:
                 self.repository_name.options = (*self.repository_name.options, name)
@@ -136,7 +136,7 @@ class SelectRepository(MenuboxVTH, Generic[H]):
         )
 
     def _update_repository_name_options(self):
-        options = self.repositories.sw_obj.options
+        options = self.repositories.names
         if "default" not in options:
             options = (*options, "default")
         self.repository_name.options = options
