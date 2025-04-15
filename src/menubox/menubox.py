@@ -428,7 +428,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         return self.load_view(reload=True)  # type: ignore
 
     def get_menu_widgets(self):
-        return tuple(self.get_button_loadview(v) for v in self.menuviews)
+        return tuple(self.get_button_loadview(v) for v in self.menuviews if v is not self.view)
 
     def menu_open(self):
         self.enable_widget("button_menu_minimize")

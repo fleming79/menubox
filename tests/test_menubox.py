@@ -239,8 +239,9 @@ class TestMenubox:
         m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})
         m.menuviews = ("a", "b")
         widgets = m.get_menu_widgets()
-        assert len(widgets) == 2
+        assert len(widgets) == 1
         assert isinstance(widgets[0], ipw.Button)
+        assert widgets[0].description == "b"
 
     async def test_menubox_menu_open_close(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
