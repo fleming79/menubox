@@ -45,4 +45,5 @@ async def home(tmp_path: pathlib.Path):
     home = mb.Home(tmp_path.name)
     repo = Repository(name="default", home=home, url=url)
     assert repo.url.value == url
-    return home
+    yield home
+    home.close()

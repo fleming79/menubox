@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import traitlets
@@ -35,12 +36,23 @@ class Home(Singular):
             return
         super().__init__(**kwargs)
         self.set_trait("name", name)
+        self.instances: weakref.WeakSet[HasHome] = weakref.WeakSet()
 
     def __repr__(self):
         return f"<Home: {self.name}>"
 
     def __str__(self):
         return self.name
+
+    @traitlets.observe("closed")
+    def _home_observe_closed(self, _):
+        if self.closed:
+            for item in self.instances:
+                try:
+                    item.close(force=True)
+                except TypeError:
+                    item.log.exception(f"This object has invalid mro {item=}")
+                    item.close()
 
 
 class _HomeTrait(traitlets.TraitType[Home, Home]):
@@ -55,6 +67,7 @@ class _HomeTrait(traitlets.TraitType[Home, Home]):
         if obj.trait_has_value("home") and home is not obj.home:
             msg = "Changing home is not allowed after it is set current={obj.home} new={home}"
             raise RuntimeError(msg)
+        home.instances.add(obj)
         return home
 
 
@@ -91,7 +104,7 @@ class HasHome(HasParent):
         raise NameError(msg)
 
 
-class HomeIcon(Icon, HasHome):  # type: ignore
+class HomeIcon(HasHome, Icon):
     "An icon singular by home"
 
     SINGLE_BY = ("home",)

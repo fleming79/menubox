@@ -235,7 +235,7 @@ async def to_thread(func: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) 
     raise e
 
 
-class PeriodicMode(str, enum.Enum):
+class PeriodicMode(enum.StrEnum):
     debounce = "debounce"
     throttle = "throttle"
     periodic = "periodic"
