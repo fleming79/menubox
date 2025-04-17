@@ -1,4 +1,5 @@
-import tempfile
+from __future__ import annotations
+
 from typing import Self, cast
 
 import pandas as pd
@@ -29,11 +30,8 @@ class MBP(MenuboxPersist):
         return ("just_a_widget",)
 
 
-async def test_persist():
-    root = tempfile.mkdtemp()
-    mt = mb.Home(root)
-
-    p = MBP(parent=None, home=mt.name, name="main")
+async def test_persist(home: mb.Home):
+    p = MBP(parent=None, home=home, name="main")
     p.just_a_widget.value = 2
     p.df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
 
@@ -45,7 +43,7 @@ async def test_persist():
     for view in p.views:
         await p.load_view(view, reload=True)
 
-    assert p.get_persistence_versions(p.home, p.name)
+    assert p.get_persistence_versions(p.repository, p.name)
 
     assert p.to_dict() != p._DEFAULTS
     assert p._DEFAULTS

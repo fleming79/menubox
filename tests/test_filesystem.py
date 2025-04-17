@@ -1,13 +1,12 @@
 import pathlib
 import tempfile
 
-from menubox import Home
 from menubox.filesystem import Filesystem
 
 
-async def test_filesystem(home: Home):
+async def test_filesystem():
     root = tempfile.mkdtemp()
-    fs = Filesystem(home=home, url=root)
+    fs = Filesystem(url=root)
     await fs.load_view(reload=True)
 
     # Test root

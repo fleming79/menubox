@@ -8,6 +8,7 @@ import ipywidgets as ipw
 import pytest
 
 import menubox as mb
+from menubox.repository import Repository
 
 if TYPE_CHECKING:
     import pathlib
@@ -40,4 +41,8 @@ def weakref_enabled():
 @pytest.fixture
 async def home(tmp_path: pathlib.Path):
     """"""
-    return mb.Home(tmp_path)
+    url = tmp_path.as_posix()
+    home = mb.Home(tmp_path.name)
+    repo = Repository(name="default", home=home, url=url)
+    assert repo.url.value == url
+    return home

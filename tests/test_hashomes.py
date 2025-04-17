@@ -1,15 +1,9 @@
-import pathlib
-import tempfile
-
 from menubox.hashome import Home
 
 
 async def test_home():
-    root = pathlib.Path(tempfile.mkdtemp())
-    root2 = pathlib.Path(tempfile.mkdtemp())
-
-    home1 = Home(root)
+    home1 = Home("home1")
     assert Home(home1) is home1
 
-    home2 = Home(str(root2))
+    home2 = Home("home2")
     assert home2 is not home1

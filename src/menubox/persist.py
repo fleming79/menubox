@@ -12,7 +12,6 @@ import menubox
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
-from menubox.hashome import Home
 from menubox.instance import IHPCreate
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVTH
@@ -26,10 +25,12 @@ if TYPE_CHECKING:
 
     from fsspec import AbstractFileSystem
 
+    from menubox.repository import Repository
+
 
 class MenuboxPersist(MenuboxVTH):
-    """Persistence of nested settings in yaml files plus persistence of dataframes
-    in home.repository.
+    """Persistence of nested settings in yaml files plus persistence of dataframes using
+    repository.
 
     Settings to be persisted are defined in the name_tuple `value_traits_persist`.
     This tuple may be revised at any time, though it is usual to define this list in the
@@ -121,7 +122,7 @@ class MenuboxPersist(MenuboxVTH):
     )
     box_version = tf.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVTH.header_right_children)
-
+    repository = tf.Repository(cast(Self, None))
     task_loading_persistence_data = tf.Task()
     value_traits = StrTuple(*MenuboxVTH.value_traits, "version", "sw_version_load")
     value_traits_persist = StrTuple("saved_timestamp", "name", "description")
@@ -132,7 +133,7 @@ class MenuboxPersist(MenuboxVTH):
         return utils.sanatise_filename(name).lower()
 
     def _update_versions(self) -> None:
-        self.versions = self.get_persistence_versions(self.home, self.name, self.log)
+        self.versions = self.get_persistence_versions(self.repository, self.name, self.log)
 
     @override
     async def init_async(self):
@@ -186,7 +187,7 @@ class MenuboxPersist(MenuboxVTH):
 
     async def _button_save_persistence_data_async(self, version: int | None = None):
         """Use button_save.start to get an awaitable task."""
-        repo = self.home.repository
+        repo = self.repository
         version = self._to_version(version)
         path = repo.to_path(self._get_persist_name(self.name, version))
         self.saved_timestamp = str(pd.Timestamp.now(TZ))
@@ -212,7 +213,7 @@ class MenuboxPersist(MenuboxVTH):
             name (str): The name associated with the dataframes to be saved.
             version (int): The version number associated with the dataframes.
         """
-        repo = self.home.repository
+        repo = self.repository
         for dotted_name in self.dataframe_persist:
             df: pd.DataFrame = utils.getattr_nested(self, dotted_name)
             if df.empty:
@@ -233,7 +234,7 @@ class MenuboxPersist(MenuboxVTH):
             and values are the corresponding pandas DataFrames.  Returns an
             empty dictionary if no DataFrames are found.
         """
-        repo = self.home.repository
+        repo = self.repository
         values = {}
         for dotted_name in self.dataframe_persist:
             path = repo.to_path(self.get_df_filename(name, version, dotted_name))
@@ -276,7 +277,7 @@ class MenuboxPersist(MenuboxVTH):
         return utils.fstr(cls._PERSIST_TEMPLATE, cls=cls, name=name, version=version).lower()
 
     @classmethod
-    def list_stored_datasets(cls, home: Home | str) -> list[str]:
+    def list_stored_datasets(cls, repository: Repository) -> list[str]:
         """List the names of all stored datasets in the given home.
 
         The names are sorted alphabetically.
@@ -287,10 +288,9 @@ class MenuboxPersist(MenuboxVTH):
         Returns:
             A list of dataset names.
         """
-        repo = Home(home).repository
         datasets = set()
-        ptn = repo.to_path(cls._get_persist_name("*", "*"))
-        for f in repo.fs.glob(str(ptn)):
+        ptn = repository.to_path(cls._get_persist_name("*", "*"))
+        for f in repository.fs.glob(str(ptn)):
             datasets.add(utils.stem(f).rsplit("_v", maxsplit=1)[0])  # type: ignore
         return sorted(datasets)
 
@@ -311,7 +311,7 @@ class MenuboxPersist(MenuboxVTH):
 
     @classmethod
     def get_persistence_versions(
-        cls, home: Home | str, name: str, log: Logger | LoggerAdapter | None = None
+        cls, repository: Repository, name: str, log: Logger | LoggerAdapter | None = None
     ) -> tuple[int, ...]:
         """Get all persistence versions for a given name.
 
@@ -325,9 +325,8 @@ class MenuboxPersist(MenuboxVTH):
             If SINGLE_VERSION is True, returns (1,) if version 1 exists, otherwise ().
             Returns () if any error occurs.
         """
-        repo = Home(home).repository
-        path = repo.to_path(cls._get_persist_name(name, "*"))
-        files = repo.fs.glob(str(path))
+        path = repository.to_path(cls._get_persist_name(name, "*"))
+        files = repository.fs.glob(str(path))
         versions = set()
         for f in files:
             try:
@@ -377,7 +376,7 @@ class MenuboxPersist(MenuboxVTH):
             try:
                 version = self._to_version(version)
                 data = await mb_async.to_thread(
-                    self.get_persistence_data, self.home, self.name, self._to_version(version)
+                    self.get_persistence_data, self.repository, self.name, self._to_version(version)
                 )
                 if self.dataframe_persist:
                     df_data = await self.get_dataframes_async(self.name, version)
@@ -400,7 +399,7 @@ class MenuboxPersist(MenuboxVTH):
         self.update_title()
 
     @classmethod
-    def get_persistence_data(cls, home: str | Home, name: str, version: int | None = None) -> dict:
+    def get_persistence_data(cls, repository: Repository, name: str, version: int | None = None) -> dict:
         """
         Retrieves persistence data for a given name and version from a specified home directory.
 
@@ -416,15 +415,14 @@ class MenuboxPersist(MenuboxVTH):
             FileNotFoundError: If the file containing the persistence data is not found.
             TypeError: If the loaded data is not a dictionary.
         """
-        repo = Home(home).repository
-        versions = cls.get_persistence_versions(home, name)
+        versions = cls.get_persistence_versions(repository, name)
         if not versions or version is not None and version not in versions:
             return {}
         if version is None:
             version = max(versions)
-        fname = repo.to_path(cls._get_persist_name(name, version))
-        if repo.fs.isfile(fname):
-            with repo.fs.open(str(fname)) as file:
+        fname = repository.to_path(cls._get_persist_name(name, version))
+        if repository.fs.isfile(fname):
+            with repository.fs.open(str(fname)) as file:
                 data = load_yaml(file)
                 if isinstance(data, dict):
                     return data
@@ -433,7 +431,7 @@ class MenuboxPersist(MenuboxVTH):
                     raise TypeError(msg)
                 return {}
         else:
-            msg = f"{fname!s} in {repo=}"
+            msg = f"{fname!s} in {repository=}"
             raise FileNotFoundError(msg)
 
     def get_latest_version(self) -> int:
@@ -531,6 +529,7 @@ class MenuboxPersistPool(MenuboxVTH, Generic[H, MP]):
         )
     )
     names = menubox.StrTuple()
+    repository = tf.Repository(cast(Self, None))
     title_description = traitlets.Unicode("<b>{self.klass.__qualname__.replace('_','').capitalize()} set</b>")
     html_info = tf.HTML()
     info_html_title = ipw.HTML(layout={"margin": "0px 20px 0px 40px"})
@@ -551,7 +550,7 @@ class MenuboxPersistPool(MenuboxVTH, Generic[H, MP]):
 
     def update_names(self) -> list[str]:
         """List the stored datasets for the klass."""
-        names = self.klass.list_stored_datasets(self.home)
+        names = self.klass.list_stored_datasets(self.repository)
         self.set_trait("names", names)
         return names
 

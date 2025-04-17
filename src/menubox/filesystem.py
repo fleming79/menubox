@@ -11,7 +11,7 @@ from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox.menuboxvt import MenuboxVTH
+from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
@@ -26,7 +26,7 @@ def list_drives() -> list[str]:
     return [p.mountpoint.strip("\\ ") for p in psutil.disk_partitions()]
 
 
-class Filesystem(MenuboxVTH):
+class Filesystem(MenuboxVT):
     """Graphical file selector widget copying the `Panel` based gui defined in fsspec.gui."""
 
     box_center = None
@@ -40,7 +40,7 @@ class Filesystem(MenuboxVTH):
     title_description = traitlets.Unicode()
     filters = StrTuple()
     minimized_children = StrTuple("url")
-    value_traits = NameTuple(*MenuboxVTH.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
+    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw")
     views = traitlets.Dict({"Main": ()})
 
@@ -124,8 +124,6 @@ class Filesystem(MenuboxVTH):
         """
         if self._vt_init_complete:
             return
-        if not url:
-            url = self.home._url
         super().__init__(url=utils.joinpaths(url), **kwargs)
         self.filters = filters
         self.ignore = tuple(re.compile(i) for i in ignore)
@@ -160,7 +158,7 @@ class Filesystem(MenuboxVTH):
     async def get_center(self, view: str | None):
         if view == "Main":
             if self.read_only:
-                self.tooltip = f'Configuration of this filesystem "{self.home}→{self.name}") is disabled.'
+                self.tooltip = "This filesystem ({self.name}) is read only."
                 return view, self.sw_main
             return view, (self.control_widgets, self.box_settings, self.sw_main)
         return await super().get_center(view)
@@ -295,7 +293,7 @@ class RelativePath(Filesystem):
     parent: Filesystem
 
     def __new__(cls, parent: Filesystem, **kwargs) -> Self:
-        return super().__new__(cls, home=parent.home, parent=parent, **kwargs)
+        return super().__new__(cls, parent=parent, **kwargs)
 
     def __init__(self, parent: Filesystem, **kwargs):
         self.disable_widget("drive")

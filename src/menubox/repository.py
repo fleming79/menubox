@@ -37,8 +37,6 @@ class Repository(Filesystem, MenuboxPersist):
         if name == "default":
             self._configure_as_default_repo()
         super().__init__(name=name, **kwargs)
-        if not self.url.value:
-            self.url.value = self.home_url = self.home.repository.url.value
 
     def _configure_as_default_repo(self):
         self.folders_only = True

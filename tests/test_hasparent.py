@@ -1,6 +1,4 @@
 import logging
-import pathlib
-import tempfile
 from typing import Any, override
 
 import ipywidgets as ipw
@@ -11,7 +9,6 @@ import menubox.hasparent as mhp
 import menubox.trait_types as tt
 from menubox import log, mb_async
 from menubox.hashome import Home, HomeIcon
-from menubox.repository import Repository
 
 match = "This exception is intentional"
 
