@@ -11,7 +11,7 @@ import menubox as mb
 from menubox import trait_factory as tf
 from menubox import utils
 from menubox.css import CSScls
-from menubox.hasparent import HasHome
+from menubox.hashome import HasHome
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_types import ChangeType, NameTuple, R, StrTuple

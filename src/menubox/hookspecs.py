@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import pluggy
 
 if TYPE_CHECKING:
-    from menubox import HasParent
+    from menubox import HasParent, Menubox
     from menubox.instance import IHPHookMappings, InstanceHP
 
 hookspec = pluggy.HookspecMarker("menubox")
@@ -32,5 +32,5 @@ def instancehp_default_create(inst: InstanceHP, parent: HasParent, args: tuple, 
 
 
 @hookspec(firstresult=True)
-def get_icon(obj: HasParent):
+def get_icon(obj: Menubox):
     "Get the icon for the object"

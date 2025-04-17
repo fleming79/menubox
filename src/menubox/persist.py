@@ -12,7 +12,7 @@ import menubox
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
-from menubox.hasparent import Home
+from menubox.hashome import Home
 from menubox.instance import IHPCreate
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVTH

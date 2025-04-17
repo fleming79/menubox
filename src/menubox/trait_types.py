@@ -9,7 +9,8 @@ from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 __all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType", "FromParent"]
 
 if TYPE_CHECKING:
-    from menubox.hasparent import HasHome, HasParent
+    from menubox.hashome import HasHome
+    from menubox.hasparent import HasParent
     from menubox.persist import MenuboxPersist
     from menubox.valuetraits import ValueTraits
 

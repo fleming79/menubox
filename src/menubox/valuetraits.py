@@ -875,7 +875,7 @@ class ValueTraits(HasParent, Generic[R]):
             return data
 
     def to_yaml(
-        self, names: None | Iterable[str] = (), fs: AbstractFileSystem | None = None, path: str | None = None
+        self, names: None | Iterable[str] = None, fs: AbstractFileSystem | None = None, path: str | None = None
     ) -> str:
         """Convert settings to yaml.
         Args:

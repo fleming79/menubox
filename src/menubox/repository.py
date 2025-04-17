@@ -7,7 +7,8 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem
-from menubox.hasparent import HasHome, Parent
+from menubox.hashome import HasHome
+from menubox.hasparent import Parent
 from menubox.menuboxvt import MenuboxVTH
 from menubox.persist import MenuboxPersist
 from menubox.trait_types import ChangeType, H, NameTuple, StrTuple

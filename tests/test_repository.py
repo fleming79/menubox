@@ -5,7 +5,7 @@ import traitlets
 import menubox as mb
 from menubox import Menubox
 from menubox import trait_factory as tf
-from menubox.hasparent import HasHome
+from menubox.hashome import HasHome
 from menubox.repository import Repository
 
 

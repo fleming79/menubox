@@ -11,7 +11,7 @@ from traitlets import Dict, TraitError
 
 import menubox as mb
 import menubox.trait_factory as tf
-from menubox.hasparent import HasHome
+from menubox.hashome import HasHome
 from menubox.instance import InstanceHP, instanceHP_wrapper
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
