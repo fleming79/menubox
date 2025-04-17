@@ -6,6 +6,7 @@ import traitlets
 from traitlets import Instance
 
 import menubox as mb
+import menubox.instancehp_tuple
 import menubox.trait_types as tt
 from menubox.instance import IHPSet
 
@@ -22,14 +23,14 @@ class VTT(mb.ValueTraits):
     removed_count = traitlets.Int()
     somelist_count = traitlets.Int()
 
-    somelist = mb.InstanceHPTuple[Self, ipw.Text](Instance(ipw.Text)).hooks(
+    somelist = menubox.instancehp_tuple.InstanceHPTuple[Self, ipw.Text](Instance(ipw.Text)).hooks(
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
         on_add=lambda c: c["parent"].on_add(c),
         on_remove=lambda c: c["parent"].on_remove(c),
     )
-    menuboxvts = mb.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
+    menuboxvts = menubox.instancehp_tuple.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
         traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
         klass=mb.MenuboxVT,
         factory=lambda c: c["parent"]._new_menubox(**c["kwgs"]),
@@ -72,11 +73,11 @@ class VT(VTT):
 
 class VTT2(mb.ValueTraits):
     value_traits_persist = tt.NameTuple("somelist", "somelist2")
-    somelist = mb.InstanceHPTuple(Instance(ipw.Text), factory=None).hooks(
+    somelist = menubox.instancehp_tuple.InstanceHPTuple(Instance(ipw.Text), factory=None).hooks(
         update_by="description",
         update_item_names=("value",),
     )
-    somelist2 = mb.InstanceHPTuple[Self, VT | mb.Bunched](
+    somelist2 = menubox.instancehp_tuple.InstanceHPTuple[Self, VT | mb.Bunched](
         traitlets.Union([Instance(VT), Instance(mb.Bunched)]),
         klass=mb.MenuboxVT,
         factory=lambda c: c["parent"].somelist2_factory(**c["kwgs"]),
@@ -89,7 +90,7 @@ class VTT2(mb.ValueTraits):
 class TestValueTraits:
     async def test_registration_and_singleton(self):
         # Test registration and singleton behavior
-        assert isinstance(VTT._InstanceHPTuple.get("menuboxvts"), mb.InstanceHPTuple)
+        assert isinstance(VTT._InstanceHPTuple.get("menuboxvts"), menubox.instancehp_tuple.InstanceHPTuple)
 
     async def test_basic_functionality(self):
         # Test basic ValueTraits and InstanceHPTuple functionality

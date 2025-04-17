@@ -2,7 +2,8 @@ from typing import Self
 
 import traitlets
 
-from menubox import InstanceHPTuple, ValueTraits
+from menubox import ValueTraits
+from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.trait_types import NameTuple
 
 # ruff: noqa: PLR2004

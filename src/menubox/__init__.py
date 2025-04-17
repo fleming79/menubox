@@ -22,12 +22,13 @@ from menubox.__about__ import __version__
 from menubox.defaults import hookimpl
 from menubox.hashome import HasHome, Home
 from menubox.hasparent import HasParent, Parent
+from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT, MenuboxVTH
 from menubox.modalbox import Modalbox
 from menubox.trait_types import Bunched, ChangeType, FromParent, NameTuple, ProposalType, StrTuple, TypedTuple
-from menubox.valuetraits import InstanceHPTuple, ValueTraits
+from menubox.valuetraits import ValueTraits
 
 VERSION_INFO = {"menubox": __version__}
 DEBUG_ENABLED = False

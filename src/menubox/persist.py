@@ -13,11 +13,11 @@ from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
 from menubox.instance import IHPCreate
+from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVTH
 from menubox.pack import deep_copy, load_yaml
 from menubox.trait_types import MP, ChangeType, H, StrTuple, TypedTuple
-from menubox.valuetraits import InstanceHPTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable

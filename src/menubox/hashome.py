@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import traitlets
 from ipylab import Icon
@@ -13,7 +13,7 @@ __all__ = ["HasParent", "Home", "HomeIcon"]
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-
+@final
 class Home(Singular):
     SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
