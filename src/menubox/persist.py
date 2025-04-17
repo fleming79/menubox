@@ -12,12 +12,13 @@ import menubox
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
+from menubox.hashome import HasHome
 from menubox.instance import IHPCreate
 from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.log import TZ
-from menubox.menuboxvt import MenuboxVTH
+from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
-from menubox.trait_types import MP, ChangeType, H, StrTuple, TypedTuple
+from menubox.trait_types import MP, ChangeType, R, S, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
@@ -28,7 +29,23 @@ if TYPE_CHECKING:
     from menubox.repository import Repository
 
 
-class MenuboxPersist(MenuboxVTH):
+class HasRepository(HasHome):
+    repository = tf.Repository(cast(Self, None))
+
+    def __new__(cls, *, home=None, parent=None, repository=None, **kwargs):
+        home = cls.to_home(home, parent)
+        if not repository:
+            if isinstance(parent, HasRepository):
+                repository = parent.repository
+            else:
+                from menubox.repository import Repository
+
+                if not issubclass(cls, Repository):
+                    repository = Repository(name="default", home=home)
+        return super().__new__(cls, home=home, parent=parent, repository=repository, **kwargs)
+
+
+class MenuboxPersist(HasRepository, MenuboxVT, Generic[R]):
     """Persistence of nested settings in yaml files plus persistence of dataframes using
     repository.
 
@@ -51,7 +68,7 @@ class MenuboxPersist(MenuboxVTH):
     `my_widget.options` is necessary.
 
     Settings of nested objects are stored in the same settings file by name. For
-    ValueTrait objects (including MenuboxVTH), settings defined in `value_traits_persist`
+    ValueTrait objects (including MenuboxVT), settings defined in `value_traits_persist`
     are the `value` so are stored by default.
 
     Persistence of DataFrames in `value_traits_persist` is not permitted. The tuple
@@ -59,7 +76,7 @@ class MenuboxPersist(MenuboxVTH):
     as the yaml data.
     """
 
-    SINGLE_BY = ("home", "name")
+    SINGLE_BY = ("repository", "name")
     _PERSIST_TEMPLATE = "settings/{cls.__qualname__}/{name}_v{version}"
     _AUTOLOAD = True
     SINGLE_VERSION = True
@@ -121,12 +138,13 @@ class MenuboxPersist(MenuboxVTH):
         ),
     )
     box_version = tf.Box()
-    header_right_children = StrTuple("menu_load_index", *MenuboxVTH.header_right_children)
+    header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
     repository = tf.Repository(cast(Self, None))
     task_loading_persistence_data = tf.Task()
-    value_traits = StrTuple(*MenuboxVTH.value_traits, "version", "sw_version_load")
+    value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load")
     value_traits_persist = StrTuple("saved_timestamp", "name", "description")
     dataframe_persist = StrTuple()
+
 
     @classmethod
     def validate_name(cls, name: str) -> str:
@@ -283,7 +301,7 @@ class MenuboxPersist(MenuboxVTH):
         The names are sorted alphabetically.
 
         Args:
-            home: The home directory or a Home object.
+            repository: The the repository to search.
 
         Returns:
             A list of dataset names.
@@ -510,10 +528,10 @@ class MenuboxPersist(MenuboxVTH):
 
 
 @final
-class MenuboxPersistPool(MenuboxVTH, Generic[H, MP]):
+class MenuboxPersistPool(HasRepository, MenuboxVT, Generic[S, MP]):
     """A Menubox that can load MenuboxPersist instances into the shell."""
 
-    SINGLE_BY = ("klass", "home")
+    SINGLE_BY = ("klass", "repository")
     RENAMEABLE = False
     pool = InstanceHPTuple[Self, MP](
         traitlets.Instance(MenuboxPersist), factory=lambda c: c["parent"].factory_pool(**c["kwgs"])
@@ -529,7 +547,6 @@ class MenuboxPersistPool(MenuboxVTH, Generic[H, MP]):
         )
     )
     names = menubox.StrTuple()
-    repository = tf.Repository(cast(Self, None))
     title_description = traitlets.Unicode("<b>{self.klass.__qualname__.replace('_','').capitalize()} set</b>")
     html_info = tf.HTML()
     info_html_title = ipw.HTML(layout={"margin": "0px 20px 0px 40px"})
@@ -544,6 +561,7 @@ class MenuboxPersistPool(MenuboxVTH, Generic[H, MP]):
         return super().get_single_key(name=name, **kwgs)
 
     def factory_pool(self, **kwgs):
+        kwgs["repository"] = self.repository
         if self._factory:
             return self._factory(IHPCreate(name="", parent=self, kwgs=kwgs, klass=self.klass))
         return self.klass(**kwgs)

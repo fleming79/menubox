@@ -25,7 +25,7 @@ from menubox.hasparent import HasParent, Parent
 from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
-from menubox.menuboxvt import MenuboxVT, MenuboxVTH
+from menubox.menuboxvt import MenuboxVT
 from menubox.modalbox import Modalbox
 from menubox.trait_types import Bunched, ChangeType, FromParent, NameTuple, ProposalType, StrTuple, TypedTuple
 from menubox.valuetraits import ValueTraits
@@ -57,7 +57,6 @@ __all__ = [
     "HasHome",
     "Menubox",
     "MenuboxVT",
-    "MenuboxVTH",
     "Modalbox",
     "NameTuple",
     "Parent",

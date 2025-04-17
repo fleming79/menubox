@@ -13,7 +13,7 @@ from menubox.instance import IHPSet
 # ruff: noqa: PLR2004
 
 
-class MenuboxSingleton(mb.MenuboxVTH):
+class MenuboxSingleton(mb.HasHome, mb.MenuboxVT):
     SINGLE_BY = ("home", "name")
 
 

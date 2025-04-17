@@ -5,12 +5,10 @@ import traitlets
 import menubox as mb
 from menubox import Menubox
 from menubox import trait_factory as tf
-from menubox.hashome import HasHome
-from menubox.repository import Repository
+from menubox.repository import HasRepository, Repository
 
 
-class SelectRepositoryWidget(Menubox, HasHome):
-    repository = tf.Repository(cast(Self, None))
+class SelectRepositoryWidget(HasRepository, Menubox):
     select_repository = tf.SelectRepository(cast(Self, None))
     views = traitlets.Dict({"Widgets": "select_repository"})
 
@@ -23,7 +21,7 @@ async def test_select_repository(home: mb.Home):
     await repo.wait_tasks()
     await repo.button_save_persistence_data.start()
     # Test select an existing repository
-    w.select_repository.repositories.update_names()
+    w.select_repository._update_repository_name_options()
     assert repo.name in w.select_repository.repository_name.options
     w.select_repository.repository_name.value = repo.name
     assert w.select_repository.repository is repo

@@ -7,10 +7,8 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem
-from menubox.hashome import HasHome
-from menubox.hasparent import Parent
-from menubox.menuboxvt import MenuboxVTH
-from menubox.persist import MenuboxPersist
+from menubox.menuboxvt import MenuboxVT
+from menubox.persist import HasRepository, MenuboxPersist
 from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -21,6 +19,9 @@ class Repository(Filesystem, MenuboxPersist):
     SINGLE_BY = ("home", "name")
     KEEP_ALIVE = True
     FANCY_NAME = "Repository"
+
+    _repository_init_called = False
+
     folders_only = traitlets.Bool(True)
     disabled = traitlets.Bool(False, read_only=True)
     value_traits_persist = NameTuple("protocol", "url", "kw")
@@ -32,11 +33,12 @@ class Repository(Filesystem, MenuboxPersist):
         return self.url.value
 
     def __init__(self, name: str, **kwargs):
-        if self._HasParent_init_complete:
+        if self._repository_init_called:
             return
+        self._repository_init_called = True
         if name == "default":
             self._configure_as_default_repo()
-        super().__init__(name=name, **kwargs)
+        super().__init__(name=name, repository=Repository(name="default", home=self.home), **kwargs)
 
     def _configure_as_default_repo(self):
         self.folders_only = True
@@ -70,42 +72,25 @@ class Repository(Filesystem, MenuboxPersist):
             f.write(data)  # type: ignore
 
 
-class SelectRepository(MenuboxVTH, Generic[H]):
-    """Select a repository.
-
-    ## Usage
-
-    ``` python
-    from typing import Self
 
 
-    class MyClass(MenuboxVTH):
-        select_repository = tf.SelectRepository(cast(Self, None))
+class SelectRepository(HasRepository, MenuboxVT, Generic[H]):
+    """Select or create a new repository."""
 
-        value_traits_persist = mb.StrTuple("select_repository")
-    ```
-    """
-
-    parent: Parent[H] = Parent(HasHome)  # type: ignore
     box_center = None
-
-    repositories = tf.MenuboxPersistPool(cast(Self, None), Repository)
-    repository = tf.Repository(cast(Self, None))
-    repository_name = tf.Dropdown(
+    persist_repository = tf.Repository(cast(Self, None))
+    repository_name = tf.Combobox(
         cast(Self, None),
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},
     ).hooks(
-        on_set=lambda c: (
-            utils.weak_observe(c["parent"].repositories, c["parent"]._update_repository_name_options, "names"),
-            c["parent"]._update_repository_name_options(),
-        )
+        on_set=lambda c: c["parent"]._update_repository_name_options(),
     )
     button_select_repository = tf.Button_menu(description="…", tooltip="Select/create a new repository")
     header_children = StrTuple()
     views = traitlets.Dict({"Main": ["repository_name", "button_select_repository"]})
-    value_traits = NameTuple(*MenuboxVTH.value_traits, "repository", "repository_name")
+    value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name")
     value_traits_persist = NameTuple("repository_name")
     parent_link = NameTuple("repository")
 
@@ -113,7 +98,6 @@ class SelectRepository(MenuboxVTH, Generic[H]):
     def on_change(self, change: ChangeType):
         super().on_change(change)
         if change["name"] == "repository":
-            self.repositories.update_names()
             name = self.repository.name
             if name not in self.repository_name.options:
                 self.repository_name.options = (*self.repository_name.options, name)
@@ -123,19 +107,11 @@ class SelectRepository(MenuboxVTH, Generic[H]):
             case self.repository_name:
                 name = self.repository_name.value
                 if isinstance(name, str):
-                    self.repository = self.repositories.get_obj(name=name)
-        self._update_button_select_repository_info()
-
-    def _update_button_select_repository_info(self):
-        repo = self.repository
-        self.button_select_repository.tooltip = (
-            f"Current repository: '{repo.name}'"
-            + "\n".join(f"{k}: {v}" for k, v in repo.value().items())
-            + "\nClick to edit repositories."
-        )
+                    self.repository = Repository(name=name, home=self.home)
 
     def _update_repository_name_options(self):
-        options = self.repositories.names
+        options = Repository.list_stored_datasets(self.persist_repository)
+        # Repository.singular.instances
         if "default" not in options:
             options = (*options, "default")
         self.repository_name.options = options
@@ -145,4 +121,5 @@ class SelectRepository(MenuboxVTH, Generic[H]):
         await super().button_clicked(b)
         match b:
             case self.button_select_repository:
-                await self.repositories.activate()
+                repository = Repository(name=self.repository_name.value, home=self.home)
+                await repository.activate()

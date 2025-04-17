@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from menubox.hashome import HasHome
     from menubox.hasparent import HasParent
     from menubox.persist import MenuboxPersist
+    from menubox.repository import HasRepository
     from menubox.valuetraits import ValueTraits
 
 R = TypeVar("R", bound=HasTraits | None)
@@ -20,6 +21,7 @@ T = TypeVar("T")
 S = TypeVar("S", bound="HasParent")
 SS = TypeVar("SS", bound="HasParent")
 H = TypeVar("H", bound="HasHome")
+HR = TypeVar("HR", bound="HasRepository")
 V = TypeVar("V", bound="ValueTraits")
 MP = TypeVar("MP", bound="MenuboxPersist")
 

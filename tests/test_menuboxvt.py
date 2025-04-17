@@ -14,7 +14,7 @@ mb.MenuboxVT.register_template_root_folder(templates_folder)
 # ruff: noqa: PLR2004
 
 
-class MyNewObj(mb.MenuboxVTH):
+class MyNewObj(mb.HasHome, mb.MenuboxVT):
     SHOW_TEMPLATE_CONTROLS = True
     select_repository = tf.SelectRepository(cast(Self, None))
     a_has_changed = False

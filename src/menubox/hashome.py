@@ -74,20 +74,21 @@ class HasHome(HasParent):
         return f"<{cs}{self.__class__.__name__} name='{self.name}' {home}>"
 
     def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
-        if has_home := "home" in cls._traits:
-            if home:
-                home = Home(home)
-            elif isinstance(parent, HasHome):
-                home = parent.home
-            elif isinstance(parent, Home):
-                home = parent
-            else:
-                msg = "'home' or 'parent' (with a home) must be provided for this class. 'home' may be a string."
-                raise NameError(msg)
+        home = cls.to_home(home, parent)
         inst = super().__new__(cls, home=home, parent=parent, **kwargs)
-        if has_home and not inst._HasParent_init_complete:
-            inst.set_trait("home", home)
+        inst.set_trait("home", home)
         return inst
+
+    @classmethod
+    def to_home(cls, home: Home | str | None, parent: HasParent | None):
+        if home:
+            return Home(home)
+        if isinstance(parent, HasHome):
+            return parent.home
+        if isinstance(parent, Home):
+            return parent
+        msg = "'home' or 'parent' (with a home) must be provided for this class. 'home' may be a string."
+        raise NameError(msg)
 
 
 class HomeIcon(Icon, HasHome):  # type: ignore

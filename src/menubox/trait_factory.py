@@ -75,7 +75,7 @@ if TYPE_CHECKING:
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, H, S
+    from menubox.trait_types import HR, MP, H, S
 
 
 # Ipywidgets shortcuts
@@ -227,10 +227,10 @@ def Modalbox(
     )
 
 
-def Repository(_: H) -> InstanceHP[H, menubox.repository.Repository]:
+def Repository(_: HR) -> InstanceHP[HR, menubox.repository.Repository]:
     "Requires parent to have a home"
 
-    def get_default_repository(c: IHPCreate[H, menubox.repository.Repository]):
+    def get_default_repository(c: IHPCreate[HR, menubox.repository.Repository]):
         from menubox.repository import Repository
 
         return Repository(name="default", home=c["parent"].home)
@@ -251,8 +251,8 @@ def Task():
 
 
 def MenuboxPersistPool(
-    _: H, obj_cls: type[MP] | str, factory: Callable[[IHPCreate], MP] | None = None, **kwgs
-) -> ipylab.Fixed[H, menubox.persist.MenuboxPersistPool[H, MP]]:
+    _: HR, obj_cls: type[MP] | str, factory: Callable[[IHPCreate], MP] | None = None, **kwgs
+) -> ipylab.Fixed[HR, menubox.persist.MenuboxPersistPool[HR, MP]]:
     """A Fixed Obj shuffle for any Menubox persist object.
 
     ``` python
@@ -260,10 +260,16 @@ def MenuboxPersistPool(
     ```
     """
 
-    def get_MenuboxPersistPool(c: ipylab.common.FixedCreate[H]):
+    def get_MenuboxPersistPool(c: ipylab.common.FixedCreate[HR]):
         from menubox.persist import MenuboxPersistPool as MenuboxPersistPool_
 
         cls: type[MP] = ipylab.common.import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
-        return MenuboxPersistPool_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
+        return MenuboxPersistPool_(
+            home=c["owner"].home,
+            repository=c["owner"].repository,
+            klass=cls,
+            factory=factory,
+            **kwgs,
+        )
 
     return ipylab.Fixed(get_MenuboxPersistPool)
