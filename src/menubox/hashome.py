@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 
 @final
 class Home(Singular):
+    """A class to group HasHome instances together.
+
+    Closing Home will also force close all HasHome instances.
+    """
     SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     name = traitlets.Unicode(read_only=True)
@@ -55,7 +59,6 @@ class Home(Singular):
 
 
 class _HomeTrait(traitlets.TraitType[Home, Home]):
-    """Add this to HasParent classes that should have a home. The trait name must be 'home'."""
 
     def _validate(self, obj, value: Home | str):
         if not value:
@@ -71,10 +74,11 @@ class _HomeTrait(traitlets.TraitType[Home, Home]):
 
 
 class HasHome(HasParent):
-    """A Subclass for grouping related objects together by home.
+    """A class to group instances by `home`.
 
     `home` or `parent` must be specified during instance creation and cannot be changed.
-    """
+    all instances are added to the weakset `home.instances`. All instances are force
+    closed when the home instance is closed."""
 
     home = _HomeTrait()
 
