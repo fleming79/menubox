@@ -142,7 +142,7 @@ class MenuboxPersist(HasRepository, MenuboxVT, Generic[R]):
     repository = tf.Repository(cast(Self, None))
     task_loading_persistence_data = tf.Task()
     value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load")
-    value_traits_persist = StrTuple("saved_timestamp", "name", "description")
+    value_traits_persist = StrTuple("saved_timestamp", "description")
     dataframe_persist = StrTuple()
 
 
