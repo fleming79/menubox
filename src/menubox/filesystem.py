@@ -31,6 +31,7 @@ class Filesystem(MenuboxVT):
 
     box_center = None
     _fs = None
+    startup_dir = utils.joinpaths(pathlib.Path().cwd())
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
     prev_protocol = traitlets.Enum(values=sorted(available_protocols()), default_value="file")
     prev_kwargs = traitlets.Dict()
@@ -127,6 +128,8 @@ class Filesystem(MenuboxVT):
         super().__init__(url=utils.joinpaths(url), **kwargs)
         self.filters = filters
         self.ignore = tuple(re.compile(i) for i in ignore)
+        if self.protocol.value == "file" and not self.url.value:
+            self.url.value = self.startup_dir
         self.home_url = self.url.value
 
     @property
