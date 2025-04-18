@@ -13,9 +13,9 @@ from menubox import utils
 from menubox.css import CSScls
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_types import ChangeType, NameTuple, R, StrTuple
+from menubox.trait_types import ChangeType, R, StrTuple
 from menubox.valuetraits import ValueTraits
-from menubox.widgets import MarkdownOutput
+from menubox.widgets import ComboboxValidate, MarkdownOutput
 
 _template_folders: set[pathlib.Path] = set()
 
@@ -79,33 +79,30 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     )
     text_name = tf.InstanceHP(
         cast(Self, None),
-        ipw.Text,
-        lambda c: ipw.Text(
-            value=c["parent"].name,
+        ComboboxValidate,
+        lambda c: ComboboxValidate(
+            validate=c["parent"]._validate_name,
             description="Name",
             continuous_update=False,
             layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
             style={"description_width": "initial"},
-            disabled=not c["parent"].RENAMEABLE,
+        ),
+    ).hooks(
+        on_set=lambda c: (
+            c["parent"].link(src=(c["parent"], "name"), target=(c["obj"], "value")),
+            c["parent"].dlink(
+                src=(c["parent"], "name"),
+                target=(c["obj"], "disabled"),
+                transform=lambda name: bool(not c["parent"].RENAMEABLE if name else False),
+            ),
         ),
     )
-    _description_label = tf.HTML(value="<b>Description</b>")
-    _description_preview_label = tf.HTML(value="<b>Description preview</b>")
-    _box_edit_description_edit = tf.VBox(cast(Self, None)).hooks(
-        set_children=lambda p: (p._description_label, p.description)
-    )
-    _box_edit_description_preview = tf.VBox(cast(Self, None)).hooks(
-        set_children=lambda p: (p._description_preview_label, p.description_viewer)
-    )
-    _box_edit_description = tf.HBox(cast(Self, None), layout={"justify_content": "space-between"}).hooks(
-        set_children=lambda p: (p._box_edit_description_edit, p._box_edit_description_preview)
-    )
-
-    description = tf.CodeEditor(mime_type="text/x-markdown")
+    description_preview_label = tf.HTML(value="<b>Description preview</b>")
+    description = tf.CodeEditor(description="Description", mime_type="text/x-markdown")
     description_viewer = tf.InstanceHP(
         cast(Self, None),
         MarkdownOutput,
-        lambda c: c["klass"](
+        lambda c: MarkdownOutput(
             layout={"margin": "0px 0px 0px 10px"},
             converter=c["parent"]._convert_description,
         ).add_class(CSScls.resize_vertical),
@@ -135,15 +132,13 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     _button_template_info = tf.Button_main(
         description="Info", tooltip="Show template details in a read only text editor."
     )
-    subpath = tf.TextValidate(
+    subpath = tf.ComboboxValidate(
         validate=utils.sanatise_filename,
         description="Subpath",
         value="",
         tooltip="The subpath relative to the current repository",
         layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px"},
     )
-
-    value_traits = NameTuple("text_name", "name", "description", "description_viewer")
 
     def __init_subclass__(cls, **kwargs) -> None:
         if getattr(mb, "DEBUG_ENABLED", True):
@@ -227,7 +222,13 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
             case self.button_paste:
                 self.from_clipboard()
             case self.button_configure:
-                self.load_view(self._CONFIGURE_VIEW if self.view != self._CONFIGURE_VIEW else self.view_previous)
+                if self.view == self._CONFIGURE_VIEW:
+                    view = self.view_previous
+                    if view == self._CONFIGURE_VIEW:
+                        view = self._current_views[0]
+                else:
+                    view = self._CONFIGURE_VIEW
+                self.load_view(view)
 
     def _convert_description(self, value: str):
         if value:
@@ -252,9 +253,7 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     @override
     async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
         if view == self._CONFIGURE_VIEW:
-            if self.RENAMEABLE:
-                return view, (self.button_configure, self.text_name, self._box_edit_description)
-            return view, (self.button_configure, self._box_edit_description)
+            return view, (self.text_name, self.description, self.description_viewer)
         return await super().get_center(view)
 
     def from_clipboard(self):
@@ -270,15 +269,6 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
-        if "text_name" in self._trait_values:  # For text_name
-            if change["owner"] is self and change["name"] == "name":
-                if self.name and not self.RENAMEABLE:
-                    self.text_name.disabled = True
-                self.text_name.value = self.name
-            elif change["owner"] is self.text_name:
-                self.name = self.text_name.value
-                with self.ignore_change():
-                    self.text_name.value = self.name
         if change["name"] == "visibility" and self.view:
             self.mb_refresh()
 

@@ -353,13 +353,16 @@ class HasParent(Singular, HasApp, Generic[R]):
 
     @classmethod
     def validate_name(cls, name: str) -> str:
-        return name
+        return name.strip()
+
+    def _validate_name(self, name: str):
+        if not self.RENAMEABLE and self.trait_has_value("name") and self.name:
+            return self.name
+        return self.validate_name(name)
 
     @traitlets.validate("name")
     def _hp_validate_name(self, proposal: ProposalType) -> str:
-        if not self.RENAMEABLE and self.trait_has_value("name") and self.name:
-            return self.name
-        return self.validate_name(proposal["value"]).strip()
+        return self._validate_name(proposal["value"])
 
     @traitlets.validate("parent_link", "parent_dlink")
     def _parent_link_dlink_validate(self, proposal: ProposalType):
