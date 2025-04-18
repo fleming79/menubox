@@ -366,7 +366,15 @@ def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:
             yield iterable  # type: ignore
 
 
-type GetWidgetsInputType = None | str | Callable | ipw.Widget | Iterable[GetWidgetsInputType]
+type GetWidgetsInputType = (
+    None
+    | str
+    | Callable[[], GetWidgetsInputType]
+    | Callable[[S], GetWidgetsInputType]  # type: ignore
+    | ipw.Widget
+    | Iterable[GetWidgetsInputType]
+)
+
 
 def get_widgets(
     *items: GetWidgetsInputType,

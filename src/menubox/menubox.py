@@ -540,15 +540,26 @@ class Menubox(HasParent, Panel, Generic[R]):
             self.disable_widget("html_title")
             return
         self.enable_widget("html_title")
-        description = self.fstr(self.title_description)
-        tooltip = cleanhtml(self.fstr(self.title_description_tooltip))
         if self.html_title:
             self.html_title.description_allow_html = True
-            self.html_title.description = description
-            self.html_title.tooltip = tooltip
+            self.html_title.description = self.get_html_title_description()
+            self.html_title.tooltip = self.get_html_title_description_tooltip()
         if self.trait_has_value("title"):
-            self.title.label = cleanhtml(description)
-            self.title.caption = tooltip
+            self.title.label = self.get_title_label()
+            self.title.caption = self.get_title_caption()
+
+    def get_html_title_description(self):
+        return self.fstr(self.title_description)
+
+    def get_html_title_description_tooltip(self):
+        return cleanhtml(self.fstr(self.title_description_tooltip))
+
+    def get_title_label(self):
+        "This is used to update the title"
+        return cleanhtml(self.fstr(self.title_description))
+
+    def get_title_caption(self):
+        return cleanhtml(self.fstr(self.title_description_tooltip))
 
     def get_button_loadview(
         self, view, *, description="", disabled=False, button_type: Literal["open", "tab"] = "open"
