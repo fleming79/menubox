@@ -8,7 +8,6 @@ import traitlets
 import menubox.hasparent as mhp
 import menubox.trait_types as tt
 from menubox import log, mb_async
-from menubox.hashome import Home, HomeIcon
 
 match = "This exception is intentional"
 
@@ -207,10 +206,3 @@ class TestHasParent:
 
         assert hps2.closed
         assert hps3.closed
-
-
-async def test_home_icon(home: Home):
-    icon = HomeIcon(home=home)
-    icon2 = HomeIcon(home=home)
-    assert icon2 is icon
-    assert icon.name.startswith("menubox-colourblock-")

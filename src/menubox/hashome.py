@@ -4,12 +4,11 @@ import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import traitlets
-from ipylab import Icon
 from ipylab.common import Singular
 
 from menubox.hasparent import HasParent
 
-__all__ = ["HasParent", "Home", "HomeIcon"]
+__all__ = ["HasParent", "Home"]
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -103,51 +102,3 @@ class HasHome(HasParent):
         msg = "'home' or 'parent' (with a home) must be provided for this class. 'home' may be a string."
         raise NameError(msg)
 
-
-class HomeIcon(HasHome, Icon):
-    "An icon singular by home"
-
-    SINGLE_BY = ("home",)
-    KEEP_ALIVE = True
-    _count = -1
-
-    @classmethod
-    def _get_colour(cls):
-        colors = [
-            "#e6194B",
-            "#3cb44b",
-            "#ffe119",
-            "#4363d8",
-            "#f58231",
-            "#42d4f4",
-            "#f032e6",
-            "#fabed4",
-            "#469990",
-            "#dcbeff",
-            "#9A6324",
-            "#fffac8",
-            "#800000",
-            "#aaffc3",
-            "#000075",
-            "#a9a9a9",
-            "#ffffff",
-            "#000000",
-        ]
-        cls._count = cls._count + 1
-        return colors[cls._count % len(colors)]
-
-    def __init__(self, home: Home):
-        if self.singular_init_started:
-            return
-        colour = self._get_colour()
-
-        super().__init__(
-            home=home,
-            name=f"menubox-colourblock-{colour}",
-            svgstr=f"""<?xml version="1.0"?>
-    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
-        viewBox="0 0 5 5">
-    <desc>Example SVG file</desc>
-    <rect x="1" y="1" width="3" height="3" fill="{colour}"/>
-    </svg>""",
-        )

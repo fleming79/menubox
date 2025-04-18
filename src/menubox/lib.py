@@ -9,7 +9,6 @@ import menubox as mb
 from menubox import HasParent
 from menubox.css import STYLESHEET
 from menubox.defaults import hookimpl
-from menubox.hashome import HomeIcon
 from menubox.instance import InstanceHP
 
 if TYPE_CHECKING:
@@ -53,10 +52,5 @@ def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
         kwgs["parent"] = parent
 
 @hookimpl
-def get_icon(obj: mb.Menubox):
-    "Get in icon as a colour block"
-    if isinstance(obj, mb.HasHome):
-        return HomeIcon(home=obj.home)
-    if isinstance(obj, HasParent) and (parent := obj.parent) and isinstance(parent, mb.Menubox):
-        return get_icon(obj=parent)
+def get_icon(obj: mb.Menubox):  # noqa: ARG001
     return ipylab.Icon()

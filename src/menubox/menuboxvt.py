@@ -250,7 +250,7 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
                 )
 
     @override
-    async def get_center(self, view: str | None):
+    async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
         if view == self._CONFIGURE_VIEW:
             if self.RENAMEABLE:
                 return view, (self.button_configure, self.text_name, self._box_edit_description)
