@@ -77,7 +77,7 @@ class MenuboxPersist(HasRepository, MenuboxVT, Generic[R]):
     """
 
     SINGLE_BY = ("repository", "name")
-    _PERSIST_TEMPLATE = "settings/{cls.__qualname__}/{name}_v{version}"
+    _PERSIST_TEMPLATE = "settings/{cls.__name__}/{name}_v{version}"
     _AUTOLOAD = True
     SINGLE_VERSION = True
     SHOW_TEMPLATE_CONTROLS = True

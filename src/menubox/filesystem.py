@@ -158,6 +158,12 @@ class Filesystem(MenuboxVT):
         await super().init_async()
 
     @override
+    def load_value(self, data):
+        self.button_update.cancel(message="loading value")
+        with self.ignore_change():
+            super().load_value(data)
+
+    @override
     async def get_center(self, view: str | None):
         if view == "Main":
             if self.read_only:
@@ -232,7 +238,7 @@ class Filesystem(MenuboxVT):
                 if "." in name:
                     fs.touch(url)
                     self.log.info("Created file %s", url)
-                    self.url.value = root
+                    await self._button_update_async(url=root)
                     return
                 await mb_async.to_thread(fs.mkdirs, url, exist_ok=True)
                 self.log.info("Created folder %s", url)
@@ -241,7 +247,7 @@ class Filesystem(MenuboxVT):
                 items = await mb_async.to_thread(fs.ls, url, detail=True)
             except (NotADirectoryError, FileNotFoundError):
                 if not self.read_only and self.view not in self._RESERVED_VIEWNAMES:
-                    self.url.value = utils.splitname(url)[0]
+                    await self._button_update_async(url=utils.splitname(url)[0])
                 return
             listing = sorted(items, key=lambda x: x["name"])
             listing = [n for n in listing if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self.ignore)]
@@ -310,6 +316,7 @@ class RelativePath(Filesystem):
     def home_url(self, value):
         pass
 
+    @override
     async def _button_update_async(self, create=False, url: str | None = None):
         await super()._button_update_async(create=create, url=url)
         url_ = pathlib.PurePath(self.sw_main.value or self.url.value or "")
@@ -319,3 +326,5 @@ class RelativePath(Filesystem):
             self.button_up.disabled = v == "."
         except ValueError:
             self.url.value = base
+            if await mb_async.to_thread(self.fs.exists, base):
+                await self._button_update_async(url=base)

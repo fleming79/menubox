@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Generic, Self, cast, override
 
 import traitlets
+from ipylab import Fixed
 
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
@@ -14,44 +15,57 @@ from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 if TYPE_CHECKING:
     from ipywidgets import Button
 
+    from menubox.hashome import Home
 
-class Repository(Filesystem, MenuboxPersist):
+
+class Repository(MenuboxPersist):
     SINGLE_BY = ("home", "name")
     KEEP_ALIVE = True
     FANCY_NAME = "Repository"
 
     _repository_init_called = False
-
-    folders_only = traitlets.Bool(True)
-    disabled = traitlets.Bool(False, read_only=True)
-    value_traits_persist = NameTuple("protocol", "url", "kw")
+    value_traits_persist = NameTuple("filesystem")
     title_description = traitlets.Unicode("<b>Repository: &emsp; {self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.repository}")
+    filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
+    box_center = None
+    views = traitlets.Dict({"Main": "filesystem"})
 
     @property
     def root(self):
-        return self.url.value
+        return self.filesystem.url.value
 
-    def __init__(self, name: str, **kwargs):
+    @property
+    def fs(self):
+        return self.filesystem.fs
+
+    def __init__(self, name: str, home: Home | str):
         if self._repository_init_called:
             return
         self._repository_init_called = True
         if name == "default":
             self._configure_as_default_repo()
-        super().__init__(name=name, repository=Repository(name="default", home=self.home), **kwargs)
-
-    def _configure_as_default_repo(self):
-        self.folders_only = True
-        self.set_trait("disabled", True)
-        self.disable_widget("menu_load_index")
-        self.read_only = True
-        self.disable_widget("template_controls")
-        self.viewlist = ("Main",)
+        super().__init__(name=name)
 
     @override
-    def on_change(self, change: ChangeType):
-        if not self.read_only:
-            super().on_change(change)
+    async def init_async(self):
+        await super().init_async()
+        await self.filesystem.wait_init_async()
+
+    def _configure_as_default_repo(self):
+        filesystem = self.filesystem
+        filesystem.folders_only = True
+        filesystem.disabled = True
+        filesystem.read_only = True
+        filesystem.viewlist = ("Main",)
+        self.disable_widget("template_controls")
+        self.disable_widget("menu_load_index")
+
+    def load_value(self, data):
+        if isinstance(data, dict) and "protocol" in data:
+            # The legacy version of Repository was a subclass of Filesystem.
+            data = {"filesystem": data}
+        return super().load_value(data)
 
     def to_path(self, *parts: str):
         """Will join the parts. If a local file system, it will return an absolute path.
@@ -59,7 +73,7 @@ class Repository(Filesystem, MenuboxPersist):
         Returns:
             str: posix style.
         """
-        if self.protocol.value == "file":
+        if self.filesystem.protocol.value == "file":
             return utils.joinpaths(self.root, *parts)
         return utils.joinpaths(self.root, *parts)
 
@@ -68,7 +82,7 @@ class Repository(Filesystem, MenuboxPersist):
         await mb_async.to_thread(self.write, path, data)
 
     def write(self, path: str, data: bytes):
-        with self.fs.open(path, "wb") as f:
+        with self.filesystem.fs.open(path, "wb") as f:
             f.write(data)  # type: ignore
 
 
