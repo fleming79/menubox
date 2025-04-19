@@ -288,6 +288,24 @@ class Filesystem(MenuboxVT):
         finally:
             rp.close()
 
+    async def write_async(self, path: str, data: bytes):
+        # write data to path in fs
+        await mb_async.to_thread(self._write, path, data)
+
+    def _write(self, path: str, data: bytes):
+        with self.fs.open(path, "wb") as f:
+            f.write(data)  # type: ignore
+
+    def to_path(self, *parts: str):
+        """Will join the parts. If a local file system, it will return an absolute path.
+
+        Returns:
+            str: posix style.
+        """
+        if self.protocol.value == "file":
+            return utils.joinpaths(self.url.value, *parts)
+        return utils.joinpaths(self.url.value, *parts)
+
 
 class RelativePath(Filesystem):
     """A relative filesystem"""

@@ -73,18 +73,7 @@ class Repository(MenuboxPersist):
         Returns:
             str: posix style.
         """
-        if self.filesystem.protocol.value == "file":
-            return utils.joinpaths(self.root, *parts)
-        return utils.joinpaths(self.root, *parts)
-
-    async def write_async(self, path: str, data: bytes):
-        # write data to path in fs
-        await mb_async.to_thread(self.write, path, data)
-
-    def write(self, path: str, data: bytes):
-        with self.filesystem.fs.open(path, "wb") as f:
-            f.write(data)  # type: ignore
-
+        return self.filesystem.to_path(*parts)
 
 
 
