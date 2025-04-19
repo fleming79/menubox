@@ -274,7 +274,7 @@ class Filesystem(MenuboxVT):
 
         rp = RelativePath(parent=self)
         try:
-            title = title or f"Path relative to repository '{self.name}''"
+            title = title or f"Path relative to filesystem '{self.name}''"
             result = await rp.show_in_dialog(title)
             if not result["value"]:
                 raise asyncio.CancelledError
