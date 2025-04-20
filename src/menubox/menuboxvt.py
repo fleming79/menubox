@@ -34,12 +34,12 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     """
 
     SHOW_TEMPLATE_CONTROLS = False
-    _CONFIGURE_VIEW = "Configure"
+    CONFIGURE_VIEW = "Configure"
     DESCRIPTION_VIEWER_TEMPLATE = (
         "<details {details_open}><summary><b>Description</b></summary>\n\n{description}\n</details>"
     )
     FANCY_NAME = ""
-    _RESERVED_VIEWNAMES = (*Menubox._RESERVED_VIEWNAMES, _CONFIGURE_VIEW)
+    RESERVED_VIEWNAMES = (*Menubox.RESERVED_VIEWNAMES, CONFIGURE_VIEW)
     title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
@@ -118,7 +118,7 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
             on_set=lambda c: c["parent"].dlink(
                 src=(c["parent"], "view"),
                 target=(c["obj"], "description"),
-                transform=lambda view: "End configure" if view == MenuboxVT._CONFIGURE_VIEW else "🔧",
+                transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
             ),
         )
         .configure(load_default=False)
@@ -222,19 +222,19 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
             case self.button_paste:
                 self.from_clipboard()
             case self.button_configure:
-                if self.view == self._CONFIGURE_VIEW:
+                if self.view == self.CONFIGURE_VIEW:
                     view = self.view_previous
-                    if view == self._CONFIGURE_VIEW:
+                    if view == self.CONFIGURE_VIEW:
                         view = self._current_views[0]
                 else:
-                    view = self._CONFIGURE_VIEW
+                    view = self.CONFIGURE_VIEW
                 self.load_view(view)
 
     def _convert_description(self, value: str):
         if value:
             value = self.fstr(value)
             parameters = self._description_params | {"description": value}
-            if self.view == self._CONFIGURE_VIEW:
+            if self.view == self.CONFIGURE_VIEW:
                 parameters["details_open"] = "open"
             return self.fstr(self.DESCRIPTION_VIEWER_TEMPLATE, parameters=parameters)
         return ""
@@ -252,7 +252,7 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
 
     @override
     async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
-        if view == self._CONFIGURE_VIEW:
+        if view == self.CONFIGURE_VIEW:
             return view, (self.text_name, self.description, self.description_viewer)
         return await super().get_center(view)
 
