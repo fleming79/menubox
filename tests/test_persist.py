@@ -22,7 +22,7 @@ class MBP(MenuboxPersist):
             transform=lambda df: mb.utils.to_visibility(df.empty, invert=True),
         ),
     )
-    value_traits_persist = mb.NameTuple("new", "a_widget.value", "just_a_widget")
+    value_traits_persist = mb.NameTuple(*MenuboxPersist.value_traits_persist, "new", "a_widget.value", "just_a_widget")
     dataframe_persist = mb.NameTuple("df")
     df = traitlets.Instance(pd.DataFrame, default_value=pd.DataFrame())
 
@@ -41,14 +41,14 @@ async def test_persist(home: mb.Home):
     await p.button_save_persistence_data.start()
 
     for view in p.views:
-        await p.load_view(view, reload=True)
+        await p.load_view(view).activate()
 
-    assert p.get_persistence_versions(p.repository, p.name)
+    assert p.get_persistence_versions(p.filesystem, p.name)
 
-    assert p.to_dict() != p._DEFAULTS
+    assert p.to_yaml() != p._DEFAULTS
     assert p._DEFAULTS
     p.value = p._DEFAULTS  # Restore default value
-    assert p.to_dict() == p._DEFAULTS
+    assert p.to_yaml() == p._DEFAULTS
     # loading persistence data back in
 
     assert p.just_a_widget.value != 2
@@ -59,13 +59,22 @@ async def test_persist(home: mb.Home):
     assert p.df.equals(p.df)
     assert p.menu_load_index
     p.menu_load_index.expand()
+
+    # version_widget
+    assert p.version_widget
     p.version_widget.value = 2
+    assert p.task_loading_persistence_data
+    await p.task_loading_persistence_data
     assert p.version == 2
+    await p.wait_update_tasks()
     p.just_a_widget.value = 3
     await p.button_save_persistence_data.start()
+
+    # sw_version_load
     assert 2 in p.sw_version_load.options
     p.sw_version_load.value = 1
-    await p.wait_update_tasks()
+    assert p.task_loading_persistence_data
+    await p.task_loading_persistence_data
     assert p.just_a_widget.value == 2, "From persist v1"
     p.sw_version_load.value = 2
     await p.wait_update_tasks()
@@ -79,7 +88,7 @@ class Numbers(MenuboxPersist):
 
 async def test_menubox_persist_pool(home: mb.Home):
     mpp = MenuboxPersistPool(home=home, name="Shuffle", klass=Numbers)
-    await mpp.load_view(reload=True)
+    mpp.show()
     name = "my object"
     obj = mpp.get_obj(name)
     assert isinstance(obj, MenuboxPersist)

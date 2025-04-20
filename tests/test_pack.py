@@ -15,7 +15,7 @@ class DemoObj(mb.MenuboxVT):
 
 async def test_convert_yaml():
     obj = DemoObj()
-    assert obj.to_dict() == obj._DEFAULTS
+    assert obj.to_yaml() == obj._DEFAULTS
     _, b, _ = obj.a, obj.b, obj.c
 
     # to_yaml & to_dict

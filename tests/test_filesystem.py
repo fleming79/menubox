@@ -6,8 +6,7 @@ from menubox.filesystem import Filesystem
 
 async def test_filesystem():
     root = tempfile.mkdtemp()
-    fs = Filesystem(url=root)
-    await fs.load_view(reload=True)
+    fs = await Filesystem(url=root).activate()
 
     # Test root
     fs.url.value = "C:/"

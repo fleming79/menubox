@@ -43,8 +43,9 @@ async def home(tmp_path: pathlib.Path):
     """"""
     url = tmp_path.as_posix()
     home = mb.Home(tmp_path.name)
-    repo = await Repository(name="default", home=home).wait_init_async()
-    repo.filesystem.load_value({"url": url})
-    assert repo.root == url
+    await home.filesystem.wait_init_async()
+    home.filesystem.value = {"url": url}
+    assert home.filesystem.url.value == url
+    assert home.filesystem.home_url == url
     yield home
     home.close()

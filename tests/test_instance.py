@@ -13,7 +13,6 @@ import menubox as mb
 import menubox.trait_factory as tf
 from menubox.hashome import HasHome
 from menubox.instance import InstanceHP, instanceHP_wrapper
-from menubox.repository import HasRepository
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
@@ -37,7 +36,7 @@ class HPI(mb.Menubox):
                 await super().button_clicked(b)
 
 
-class HPI2(HasRepository, HPI, mb.MenuboxVT):
+class HPI2(HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(cast(Self, None), HPI, lambda _: HPI(name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(allow_none=True)
     select_repository = tf.SelectRepository(cast(Self, None))
@@ -135,7 +134,7 @@ class TestInstance:
         hp2b = HPI2(home=home)
         # Test can load a more complex object & and close
         sr = hp2b.select_repository
-        assert hp2b.select_repository.repository.root
+        assert hp2b.select_repository.repository.target_filesystem
         assert hp2b.select_repository.parent is hp2b
         sr.close()
         assert sr.closed
