@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Generic, Self, cast, override
 import traitlets
 from ipylab import Fixed
 
-from menubox import mb_async, utils
+from menubox import HasHome
 from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem
 from menubox.menuboxvt import MenuboxVT
-from menubox.persist import HasRepository, MenuboxPersist
+from menubox.persist import MenuboxPersist
 from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -24,64 +24,36 @@ class Repository(MenuboxPersist):
     FANCY_NAME = "Repository"
 
     _repository_init_called = False
-    value_traits_persist = NameTuple("filesystem")
     title_description = traitlets.Unicode("<b>Repository: &emsp; {self.name}</b>")
     title_description_tooltip = traitlets.Unicode("{self.repository}")
-    filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
+    target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
-    views = traitlets.Dict({"Main": "filesystem"})
-
-    @property
-    def root(self):
-        return self.filesystem.url.value
-
-    @property
-    def fs(self):
-        return self.filesystem.fs
+    views = traitlets.Dict({"Main": "target_filesystem"})
+    value_traits_persist = NameTuple("target_filesystem")
 
     def __init__(self, name: str, home: Home | str):
         if self._repository_init_called:
             return
         self._repository_init_called = True
-        if name == "default":
-            self._configure_as_default_repo()
         super().__init__(name=name)
 
     @override
     async def init_async(self):
         await super().init_async()
-        await self.filesystem.wait_init_async()
-
-    def _configure_as_default_repo(self):
-        filesystem = self.filesystem
-        filesystem.folders_only = True
-        filesystem.disabled = True
-        filesystem.read_only = True
-        filesystem.viewlist = ("Main",)
-        self.disable_widget("template_controls")
-        self.disable_widget("menu_load_index")
+        await self.target_filesystem.wait_init_async()
 
     def load_value(self, data):
         if isinstance(data, dict) and "protocol" in data:
             # The legacy version of Repository was a subclass of Filesystem.
-            data = {"filesystem": data}
+            data = {"target_filesystem": data}
         return super().load_value(data)
 
-    def to_path(self, *parts: str):
-        """Will join the parts. If a local file system, it will return an absolute path.
 
-        Returns:
-            str: posix style.
-        """
-        return self.filesystem.to_path(*parts)
-
-
-
-class SelectRepository(HasRepository, MenuboxVT, Generic[H]):
+class SelectRepository(HasHome, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
     box_center = None
-    persist_repository = tf.Repository(cast(Self, None))
+    repository = tf.Repository(cast(Self, None))
     repository_name = tf.Combobox(
         cast(Self, None),
         description="Repository",
@@ -113,7 +85,7 @@ class SelectRepository(HasRepository, MenuboxVT, Generic[H]):
                     self.repository = Repository(name=name, home=self.home)
 
     def _update_repository_name_options(self):
-        options = Repository.list_stored_datasets(self.persist_repository)
+        options = Repository.list_stored_datasets(self.repository.filesystem)
         # Repository.singular.instances
         if "default" not in options:
             options = (*options, "default")
