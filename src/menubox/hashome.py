@@ -25,7 +25,7 @@ class Home(Singular):
     SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     name = traitlets.Unicode(read_only=True)
-    filesystem = Fixed[Self, "Filesystem"](lambda _: import_item("menubox.filesystem.Filesystem")())
+    filesystem = Fixed[Self, "Filesystem"](lambda _: import_item("menubox.filesystem.Filesystem")(read_only=True))
 
     @override
     @classmethod

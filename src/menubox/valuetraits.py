@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, overload, override
 
 import orjson
 import ruamel.yaml
@@ -225,7 +225,7 @@ class ValueTraits(HasParent, Generic[R]):
         if not isinstance(value, dict):
             msg = "Expected a dict"
             raise TypeError(msg)
-        value = dict(value)
+        self._init_value = value = dict(value)
         # Extract kwargs that overlap with value_traits/persist in order or vts
         for n in vts:
             name = n
@@ -245,12 +245,15 @@ class ValueTraits(HasParent, Generic[R]):
         self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
-        # Parent must be set prior to setting value because HasParent
-        # may load data from a parent which is need to load values
+
+    @override
+    async def init_async(self):
+        await super().init_async()
+        if self._init_value:
+            self.set_trait("value", self._init_value)
+        del self._init_value
         if self._STASH_DEFAULTS:
-            self._DEFAULTS = self.to_dict()
-        if value:
-            self.set_trait("value", value)
+            self._DEFAULTS = self.to_yaml()
 
     @observe("closed")
     def _vt_observe_closed(self, change: ChangeType):
