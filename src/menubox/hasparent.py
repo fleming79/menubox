@@ -336,7 +336,12 @@ class HasParent(Singular, HasApp, Generic[R]):
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
         if not cls.SINGLE_BY:
             return None
-        return tuple(cls if k == "cls" else kwgs[k] for k in cls.SINGLE_BY)
+        try:
+            return tuple(cls if k == "cls" else kwgs[k] for k in cls.SINGLE_BY)
+        except KeyError:
+            missing = [k for k in cls.SINGLE_BY if (k != "cls") and k not in kwgs]
+            msg = f"The following SINGLE_BY keys were not provided {missing}"
+            raise KeyError(msg) from None
 
     @classmethod
     def _cls_update_InstanceHP_register(cls: type[HasParent]) -> None:

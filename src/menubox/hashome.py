@@ -4,7 +4,7 @@ import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import traitlets
-from ipylab.common import Singular
+from ipylab.common import Fixed, Singular, import_item
 
 from menubox.hasparent import HasParent
 
@@ -12,6 +12,9 @@ __all__ = ["HasParent", "Home"]
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
+
+    from menubox.filesystem import Filesystem  # noqa: F401
+
 
 @final
 class Home(Singular):
@@ -22,6 +25,7 @@ class Home(Singular):
     SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     name = traitlets.Unicode(read_only=True)
+    filesystem = Fixed[Self, "Filesystem"](lambda _: import_item("menubox.filesystem.Filesystem")())
 
     @override
     @classmethod
@@ -86,8 +90,9 @@ class HasHome(HasParent):
         if self.closed:
             return super().__repr__()
         cs = "closed: " if self.closed else ""
-        home = f"{home}" if self._HasParent_init_complete and (home := getattr(self, "home", None)) else ""
-        return f"<{cs}{self.__class__.__name__} name='{self.name}' {home}>"
+        home = self.home
+        name = self.name
+        return f"<{cs}{self.__class__.__name__} {home=} {name=}>"
 
     def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
         home = cls.to_home(home, parent)
