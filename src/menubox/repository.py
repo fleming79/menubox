@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Generic, Self, cast, override
 import traitlets
 from ipylab import Fixed
 
-from menubox import HasHome
+from menubox import HasHome, mb_async
 from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem
 from menubox.menuboxvt import MenuboxVT
@@ -53,14 +53,14 @@ class SelectRepository(HasHome, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
     box_center = None
-    repository = tf.Repository(cast(Self, None))
+    repository = tf.InstanceHP(cast(Self, None), Repository).configure(load_default=False, allow_none=True)
     repository_name = tf.Combobox(
         cast(Self, None),
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},
     ).hooks(
-        on_set=lambda c: c["parent"]._update_repository_name_options(),
+        on_set=lambda c: c["parent"].update_repository_name_options(),
     )
     button_select_repository = tf.Button_menu(description="…", tooltip="Select/create a new repository")
     header_children = StrTuple()
@@ -72,20 +72,14 @@ class SelectRepository(HasHome, MenuboxVT, Generic[H]):
     @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
-        if change["name"] == "repository":
-            name = self.repository.name
-            if name not in self.repository_name.options:
-                self.repository_name.options = (*self.repository_name.options, name)
-                self.repository.button_save_persistence_data.start()
-            self.repository_name.value = name
         match change["owner"]:
             case self.repository_name:
-                name = self.repository_name.value
-                if isinstance(name, str):
-                    self.repository = Repository(name=name, home=self.home)
+                if name := self.repository_name.value:
+                    self.set_trait("repository", Repository(name=name, home=self.home))
 
-    def _update_repository_name_options(self):
-        options = Repository.list_stored_datasets(self.repository.filesystem)
+    @mb_async.debounce(0.1)
+    async def update_repository_name_options(self):
+        options = await Repository.list_stored_datasets(self.home.filesystem)
         # Repository.singular.instances
         if "default" not in options:
             options = (*options, "default")
@@ -98,3 +92,12 @@ class SelectRepository(HasHome, MenuboxVT, Generic[H]):
             case self.button_select_repository:
                 repository = Repository(name=self.repository_name.value, home=self.home)
                 await repository.activate()
+
+    @property
+    def filesystem(self) -> Filesystem:
+        "This is the filesystem of the selected repository"
+        # TDOO: do checks
+        if not self.repository:
+            msg = "A repository has not been set"
+            raise RuntimeError(msg)
+        return self.repository.filesystem

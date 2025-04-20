@@ -228,20 +228,6 @@ def Modalbox(
     )
 
 
-def Repository(_: H) -> InstanceHP[H, menubox.repository.Repository]:
-    "Requires parent to have a home"
-
-    def get_default_repository(c: IHPCreate[H, menubox.repository.Repository]):
-        from menubox.repository import Repository
-
-        return Repository(name="default", home=c["parent"].home)
-
-    inst = InstanceHP(_, "menubox.repository.Repository", create=get_default_repository)
-    inst.configure(read_only=False)
-    inst.hooks(on_replace_close=False, set_parent=False)
-    return inst
-
-
 def SelectRepository(_: H) -> InstanceHP[H, menubox.repository.SelectRepository[H]]:
     "Requires parent to have a home"
     return InstanceHP(_, "menubox.repository.SelectRepository").configure(allow_none=False)

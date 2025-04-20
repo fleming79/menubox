@@ -43,7 +43,7 @@ async def test_persist(home: mb.Home):
     for view in p.views:
         await p.load_view(view).activate()
 
-    assert p.get_persistence_versions(p.filesystem, p.name)
+    assert await p.get_persistence_versions(p.filesystem, p.name)
 
     assert p.to_yaml() != p._DEFAULTS
     assert p._DEFAULTS

@@ -286,7 +286,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[R]):
         return utils.fstr(cls.PERSIST_TEMPLATE, cls=cls, name=name, version=version).lower()
 
     @classmethod
-    def list_stored_datasets(cls, filesystem: Filesystem) -> list[str]:
+    async def list_stored_datasets(cls, filesystem: Filesystem) -> list[str]:
         """List the names of all stored datasets in the given home.
 
         The names are sorted alphabetically.
@@ -299,7 +299,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[R]):
         """
         datasets = set()
         ptn = filesystem.to_path(cls._get_persist_name("*", "*"))
-        for f in filesystem.fs.glob(str(ptn)):
+        for f in await mb_async.to_thread(filesystem.fs.glob, ptn):
             datasets.add(utils.stem(f).rsplit("_v", maxsplit=1)[0])  # type: ignore
         return sorted(datasets)
 
@@ -551,9 +551,10 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
             return self._factory(IHPCreate(name="", parent=self, kwgs=kwgs, klass=self.klass))
         return self.klass(**kwgs)
 
-    def update_names(self) -> list[str]:
+    @mb_async.debounce(0.01)
+    async def update_names(self) -> list[str]:
         """List the stored datasets for the klass."""
-        names = self.klass.list_stored_datasets(self.filesystem)
+        names = await self.klass.list_stored_datasets(self.filesystem)
         self.set_trait("names", names)
         return names
 

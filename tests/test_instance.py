@@ -134,7 +134,6 @@ class TestInstance:
         hp2b = HPI2(home=home)
         # Test can load a more complex object & and close
         sr = hp2b.select_repository
-        assert hp2b.select_repository.repository.target_filesystem
         assert hp2b.select_repository.parent is hp2b
         sr.close()
         assert sr.closed
