@@ -38,7 +38,6 @@ class Filesystem(MenuboxVT):
     prev_kwargs = traitlets.Dict()
     folders_only = traitlets.Bool()
     read_only = traitlets.Bool()
-    disabled = traitlets.Bool()
     title_description = traitlets.Unicode()
     home_url = traitlets.Unicode()
     filters = StrTuple()
@@ -56,7 +55,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     url = tf.Combobox(
         description="url",
@@ -64,7 +63,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     drive = tf.Dropdown(
         cast(Self, None),
@@ -79,7 +78,7 @@ class Filesystem(MenuboxVT):
                 target=(c["obj"].layout, "visibility"),
                 transform=lambda protocol: utils.to_visibility(protocol == "file"),
             ),
-            c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
+            c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
         )
     )
     kw = tf.TextareaValidate(
@@ -90,7 +89,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     sw_main = tf.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
@@ -124,6 +123,10 @@ class Filesystem(MenuboxVT):
     )
 
     @property
+    def root(self):
+        return self.url.value
+
+    @property
     def storage_options(self):
         """Value of the kwargs box as a dictionary"""
         return to_dict(self.kw.value)
@@ -144,16 +147,16 @@ class Filesystem(MenuboxVT):
     @override
     async def init_async(self):
         await super().init_async()
-        if self.protocol.value == "file" and not self.url.value:
+        if self.protocol.value == "file" and not self.root:
             self.url.value = self.startup_dir
-        self.home_url = self.url.value
+        self.home_url = self.root
 
     @override
     def load_value(self, data):
         if data is not defaults.NO_VALUE and data:
             self.button_update.cancel(message="loading data into filesystem")
             super().load_value(data)
-            self.home_url = self.url.value
+            self.home_url = self.root
             self.button_update.start()
 
     @override
@@ -168,6 +171,8 @@ class Filesystem(MenuboxVT):
     @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
+        if self.read_only:
+            return
         match change["owner"]:
             case self.protocol:
                 if self.button_update.task:
@@ -183,8 +188,6 @@ class Filesystem(MenuboxVT):
                     self.url.value = drive
         if change["owner"] is self:
             match change["name"]:
-                case "read_only":
-                    self.disabled = self.read_only
                 case "view" if self.view_active:
                     self.button_update.start()
                 case "ignore":
@@ -192,7 +195,7 @@ class Filesystem(MenuboxVT):
         elif self.view_active:
             match change["owner"]:
                 case self.url:
-                    self.button_update.start(url=self.url.value)
+                    self.button_update.start()
                 case self.sw_main:
                     self.button_update.start(url=self.sw_main.value)
 
@@ -205,9 +208,9 @@ class Filesystem(MenuboxVT):
             case self.button_home:
                 await self.button_update.start_wait(url=self.home_url)
             case self.button_up:
-                await self.button_update.start_wait(url=self.fs._parent(self.url.value))
+                await self.button_update.start_wait(url=self.fs._parent(self.root))
             case self.button_add:
-                await self.button_update.start_wait(url=self.url.value, create=True)
+                await self.button_update.start_wait(url=self.root, create=True)
 
     async def _button_update_async(self, create=False, url: str | None = None):
         if (not self.view_active and not create) or self.vt_validating:
@@ -217,7 +220,7 @@ class Filesystem(MenuboxVT):
             self.prev_protocol = self.protocol.value
             self.prev_kwargs = self.storage_options
         if url is None:
-            url = self.url.value
+            url = self.root
         self.button_add.disabled = True
         fs = self.fs
         exists = await mb_async.to_thread(fs.exists, url)
@@ -295,8 +298,8 @@ class Filesystem(MenuboxVT):
             str: posix style.
         """
         if self.protocol.value == "file":
-            return utils.joinpaths(self.url.value, *parts)
-        return utils.joinpaths(self.url.value, *parts)
+            return utils.joinpaths(self.root, *parts)
+        return utils.joinpaths(self.root, *parts)
 
 
 class RelativePath(Filesystem):
@@ -329,7 +332,7 @@ class RelativePath(Filesystem):
     @override
     async def _button_update_async(self, create=False, url: str | None = None):
         await super()._button_update_async(create=create, url=url)
-        url_ = pathlib.PurePath(self.sw_main.value or self.url.value or "")
+        url_ = pathlib.PurePath(self.sw_main.value or self.root)
         base = self.home_url
         try:
             self.relative_path.value = v = utils.joinpaths(url_.relative_to(base))
