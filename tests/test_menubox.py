@@ -10,6 +10,7 @@ class TestMenubox:
     async def test_menubox_basic_view_loading(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
+        m.show()
         assert m.view == "a", "autoload selects first view"
         await m.wait_tasks()
         assert m.center is wa
@@ -19,7 +20,7 @@ class TestMenubox:
         await m.wait_tasks()
         assert m.view == "a", "should load first view"
 
-        await m.load_view(None, reload=True)
+        m.load_view(None)
         assert m.view is None, "load no view"
         m.load_view("b")
         m.load_view()
@@ -30,6 +31,7 @@ class TestMenubox:
     async def test_menubox_toggle_views(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
+        m.show()
         assert not m._trait_values.get("button_toggleview")
         m.toggleviews = ("a", "b")
         assert m.button_toggleview, "Enabled automatically"
@@ -67,15 +69,13 @@ class TestMenubox:
         m.refresh_view()
         m.mb_refresh()
 
-    async def test_menubox_minimized_and_tuple_views(self):
+    async def test_menuboxMINIMIZED_and_tuple_views(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
-        m = mb.Menubox(views={"a": wa, "b": wb})
-        await m.load_view("Minimized", reload=True)
-
-        assert m.view == m._MINIMIZED
+        m = mb.Menubox(views={"a": wa, "b": wb}).load_view(mb.Menubox.MINIMIZED)
+        assert m.view == m.MINIMIZED
         m.maximize()
         m.views = {"A tuple": (ipw.HTML("Item1"), ipw.HTML("Item2"))}
-        await m.load_view("A tuple", reload=True)
+        await m.load_view("A tuple").activate()
 
     async def test_menubox_shuffle_buttons(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
@@ -91,7 +91,7 @@ class TestMenubox:
     async def test_menubox_view_setting(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        await m2.load_view("b", reload=True)
+        await m2.load_view("b").activate()
 
         assert m2.view == "b"
         # Can also load views by setting the trait. It will be scheduled to load
@@ -111,11 +111,13 @@ class TestMenubox:
     async def test_menubox_shuffle_box_integration(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        m3 = mb.Menubox(title_description="m3", view=m2._MINIMIZED)
+        m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
+        m2.show()
+        m3.show()
         await m3.wait_tasks()
-        assert m3.view == m2._MINIMIZED
+        assert m3.view == m2.MINIMIZED
         await m3.wait_tasks()
-        await m2.load_view(None, reload=True)
+        m2.load_view(None)
         assert m2.view is None, "load no view"
         m3.enable_widget("box_shuffle")
         abox = m3.box_shuffle
@@ -133,7 +135,7 @@ class TestMenubox:
     async def test_menubox_shuffle_box_multiple_items(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        m3 = mb.Menubox(title_description="m3", view=m2._MINIMIZED)
+        m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
         await m3.wait_tasks()
         m3.enable_widget("box_shuffle")
         for i in range(3):
@@ -142,7 +144,7 @@ class TestMenubox:
     async def test_menubox_shuffle_box_wrapping(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        m3 = mb.Menubox(title_description="m3", view=m2._MINIMIZED)
+        m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
         await m3.wait_tasks()
         m3.enable_widget("box_shuffle")
         abox = m3.box_shuffle
@@ -170,6 +172,7 @@ class TestMenubox:
         wa = ipw.HTML("A")
         mb.Menubox.DEFAULT_VIEW = "a"
         m = mb.Menubox(views={"a": wa, "b": ipw.HTML("B")})
+        m.show()
         assert m.view == "a"
         mb.Menubox.DEFAULT_VIEW = mb.defaults.NO_DEFAULT
 
@@ -208,26 +211,12 @@ class TestMenubox:
         m.disable_widget("button_promote")
         assert m.button_promote is None
 
-    async def test_menubox_show_hide(self):
-        m = mb.Menubox(views={"a": ipw.HTML("A")})
-        assert m.view == "a"
-        m.hide()
-        assert m.view is None
-        m.unhide()
-        assert m.view == "a"
-
     async def test_menubox_get_center(self):
         wa = ipw.HTML("A")
         m = mb.Menubox(views={"a": wa})
         view, center = await m.get_center("a")
         assert view == "a"
         assert center is wa
-
-    async def test_menubox_mb_refresh(self):
-        m = mb.Menubox(views={"a": ipw.HTML("A")})
-        await m.mb_refresh()
-        # Test should be run in debug mode which should also add the header
-        assert m.children == (m.header, m.box_center)
 
     async def test_menubox_update_header(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")}, viewlist=())
@@ -237,6 +226,7 @@ class TestMenubox:
 
     async def test_menubox_get_menu_widgets(self):
         m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})
+        m.show()
         m.menuviews = ("a", "b")
         widgets = m.get_menu_widgets()
         assert len(widgets) == 1
@@ -258,6 +248,7 @@ class TestMenubox:
 
     async def test_menubox_get_help_widget(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
+        m.show()
         assert m.view == "a"
         await m.wait_tasks()
         assert len(m.children) == 2
@@ -347,9 +338,9 @@ class TestMenubox:
             case "button_demote":
                 assert m is showbox.children[0]
             case "button_minimize":
-                assert m.view == m._MINIMIZED
+                assert m.view == m.MINIMIZED
             case "button_maximize":
-                m.load_view(m._MINIMIZED)
+                m.load_view(m.MINIMIZED)
                 b.click()
                 assert m.view == "a"
             case "button_help":
@@ -445,7 +436,7 @@ class TestMenubox:
         m = mb.Menubox(views={"a": ipw.HTML("A")}, view=None)
         assert m.view is None
         cb = mocker.patch.object(m, "add_to_shell")
-        await m.activate()
+        await m.activate(add_to_shell=True)
         assert cb.call_count == 1
         assert cb.await_count == 1
         assert m.view == "a"

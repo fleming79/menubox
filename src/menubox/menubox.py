@@ -54,14 +54,14 @@ HTML_LOADING = HTMLNoClose("Loading ...")
 class Menubox(HasParent, Panel, Generic[R]):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
-    _MINIMIZED: Final = "Minimized"
+    MINIMIZED: Final = "Minimized"
     _setting_view = False
     _mb_configured = False
     loading_view: traitlets.Instance[defaults.NO_DEFAULT_TYPE | str | None] = traitlets.Any(
         default_value=NO_DEFAULT, read_only=True
     )  # type: ignore
-    _RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (_MINIMIZED,)
-    DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = NO_DEFAULT
+    RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (MINIMIZED,)
+    DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
     _Menubox_init_complete = False
 
@@ -72,9 +72,9 @@ class Menubox(HasParent, Panel, Generic[R]):
     menuviews = StrTuple()
     tabviews = StrTuple()
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
-    views: ClassVar[traitlets.Dict[str, utils.GetWidgetsInputType]] = traitlets.Dict(
+    views: traitlets.Dict[str, utils.GetWidgetsInputType] = traitlets.Dict(
         default_value={}, key_trait=traitlets.Unicode()
-    )  # type: ignore
+    )
     border = traitlets.Unicode(default_value=None, allow_none=True)
     view = traitlets.Unicode(allow_none=True, default_value=None)
     shuffle_button_views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
@@ -172,7 +172,7 @@ class Menubox(HasParent, Panel, Generic[R]):
     def _current_views(self):
         if not self.viewlist and self.views:
             self.viewlist = tuple(self.views)
-        return (*self.viewlist, *self._RESERVED_VIEWNAMES, None)
+        return (*self.viewlist, *self.RESERVED_VIEWNAMES, None)
 
     @property
     def view_active(self) -> bool:
@@ -181,7 +181,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         Returns:
             bool: True if the view is active, False otherwise.
         """
-        return bool(self.view and self.view != self._MINIMIZED)
+        return bool(self.view and self.view != self.MINIMIZED)
 
     def __init__(
         self,
@@ -195,24 +195,27 @@ class Menubox(HasParent, Panel, Generic[R]):
     ):
         if self._Menubox_init_complete:
             return
-        self.observe(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
-        if views is not None:
+        self._initial_view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
+        if views:
             self.views = views
-        if viewlist is not None:
+        if viewlist:
             self.set_trait("viewlist", viewlist)
-        if tabviews is not None:
+        if tabviews:
             self.set_trait("tabviews", tabviews)
-        view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
         self._Menubox_init_complete = True
         super().__init__(parent=parent, **kwargs)
-        if view is not None:
-            self.load_view(view)
+
+    @override
+    async def init_async(self):
+        await super().init_async()
+        if self._initial_view and not self.trait_has_value("loading_view"):
+            self.load_view(self._initial_view)
 
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType):
         views = proposal["value"]
         for view in views:
-            if view in self._RESERVED_VIEWNAMES:
+            if view in self.RESERVED_VIEWNAMES:
                 msg = f"{view=} is a reserved name!"
                 raise NameError(msg)
         return views
@@ -247,38 +250,20 @@ class Menubox(HasParent, Panel, Generic[R]):
         "Remove the widget."
         self.instanceHP_enable_disable(name, False)
 
-    def maximize(self):
-        if self.view_previous and self.view_previous not in (None, self._MINIMIZED):
+    def maximize(self) -> Self:
+        if self.view_previous and self.view_previous not in (None, self.MINIMIZED):
             view = self.view_previous
         else:
-            view = next(v for v in (self._current_views))
-        self.load_view(view)
+            view = self._current_views[0]
+        return self.load_view(view)
 
-    def show(self) -> None:
+    def show(self) -> Self:
         """A non-agressive means to provide an interactive interface."""
         if self.view is None:
             self.maximize()
+        return self
 
-    def hide(self):
-        self.load_view(None)
-
-    def unhide(self):
-        self.show()
-
-    if TYPE_CHECKING:
-
-        @overload
-        def load_view(self) -> asyncio.Task[str | None] | None: ...
-        @overload
-        def load_view(self, *, reload: Literal[True]) -> asyncio.Task[str | None]: ...
-        @overload
-        def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE) -> asyncio.Task[str | None] | None: ...
-        @overload
-        def load_view(
-            self, view: str | None | defaults.NO_DEFAULT_TYPE, *, reload: Literal[True]
-        ) -> asyncio.Task[str | None]: ...
-
-    def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False):
+    def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False) -> Self:
         """Loads a specified view, handling defaults, reloads, and preventing redundant loads.
 
         Args:
@@ -310,10 +295,11 @@ class Menubox(HasParent, Panel, Generic[R]):
         if not reload:
             if self.task_load_view:
                 if self.loading_view == view:
-                    return self.task_load_view
+                    return self
             elif view == self.view:
-                return None
-        return self._load_view(view)
+                return self
+        self._load_view(view)
+        return self
 
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
@@ -362,7 +348,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         """
         return view, self.views.get(view, None)  # type: ignore
 
-    @mb_async.throttle(0.01)
+    @mb_async.throttle(0.05)
     async def mb_refresh(self) -> None:
         """Refreshes the Menubox's display based on its current state.
 
@@ -375,7 +361,6 @@ class Menubox(HasParent, Panel, Generic[R]):
         """
         if not self._Menubox_init_complete or self.closed:
             return
-        await asyncio.sleep(0.03)
         if mb.DEBUG_ENABLED:
             self.enable_widget("button_activate")
         if self.task_load_view and self.loading_view:
@@ -388,7 +373,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             return
         self.update_title()
         self._update_header()
-        if self.view == self._MINIMIZED:
+        if self.view == self.MINIMIZED:
             self.set_trait("children", (self.header,))
         else:
             center = (self.center,)
@@ -404,7 +389,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             self.layout.border = self.border if self.view else ""
 
     def _update_header(self):
-        if self.view == self._MINIMIZED:
+        if self.view == self.MINIMIZED:
             self.enable_widget("header")
             self.enable_widget("button_maximize")
             assert self.header  # noqa: S101
@@ -418,14 +403,13 @@ class Menubox(HasParent, Panel, Generic[R]):
             else:
                 self.disable_widget("header")
 
-    def refresh_view(self) -> asyncio.Task[str | None]:
+    def refresh_view(self) -> Self:
         """Refreshes the view by reloading it.
         Returns:
             asyncio.Task[str | None]: An asynchronous task that reloads the view
             and returns either a string or None.
         """
-
-        return self.load_view(reload=True)  # type: ignore
+        return self.load_view(reload=True)
 
     def get_menu_widgets(self):
         return tuple(self.get_button_loadview(v) for v in self.menuviews if v is not self.view)
@@ -449,7 +433,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             - Updating the tab and shuffle buttons.
             - Calling the super class's mb_configure method if it exists.
         """
-        self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self._MINIMIZED)
+        self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self.MINIMIZED)
         if self._has_maximize_button:
             self.enable_widget("button_minimize")
         if self.menuviews:
@@ -463,9 +447,9 @@ class Menubox(HasParent, Panel, Generic[R]):
             await cb()
         self._mb_configured = True
 
+    @traitlets.observe(*_mb_refresh_traitnames)
     def _observe_mb_refresh(self, change: ChangeType):
         if self.closed:
-            self.unobserve(self._observe_mb_refresh, names=self._mb_refresh_traitnames)
             return
         match change["name"]:
             case "name" | "html_title" | "title_description" | "title_description_tooltip" | "title":
@@ -655,7 +639,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             case self.button_menu_minimize:
                 self.menu_close()
             case self.button_minimize:
-                self.load_view(self._MINIMIZED)
+                self.load_view(self.MINIMIZED)
             case self.button_maximize:
                 self.maximize()
             case self.button_close:
@@ -822,15 +806,18 @@ class Menubox(HasParent, Panel, Generic[R]):
 
     def deactivate(self):
         "Hide and close existing shell connections."
-        self.hide()
+        self.load_view(None)
         for sc in self.connections:
             sc.close()
 
-    async def activate(self, add_to_shell=True, **kwgs: Unpack[ipylab.widgets.AddToShellType]):
+    async def activate(self, *, add_to_shell=False, **kwgs: Unpack[ipylab.widgets.AddToShellType]):
         "Maximize and add to the shell."
-        self.maximize()
+        await self.wait_init_async()
         if add_to_shell:
             await self.add_to_shell(**kwgs)
+        self.maximize()
+        if self.task_load_view:
+            await asyncio.shield(self.task_load_view)
         return self
 
     async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:

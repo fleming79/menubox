@@ -92,8 +92,8 @@ async def test_menuboxvt(home: mb.Home):
 
     assert m._button_template_info
 
-    await m.load_view(m._CONFIGURE_VIEW, reload=True)
-    assert m.view == m._CONFIGURE_VIEW
+    await m.load_view(m.CONFIGURE_VIEW).activate()
+    assert m.view == m.CONFIGURE_VIEW
 
     m.text_name.value = "renamed"
     assert m.name == "renamed"
@@ -102,7 +102,8 @@ async def test_menuboxvt(home: mb.Home):
     assert m.name == "renamed"
     assert m.text_name.value == "renamed"
 
-    await m.load_view("Main", reload=True)
+    await m.load_view("Main").activate()
 
     assert m.box_center
+    await m.wait_tasks()
     assert m.description_viewer in m.box_center.children, 'From view "Main"'
