@@ -9,14 +9,14 @@ import psutil
 import traitlets
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
-from menubox import mb_async, utils
+from menubox import defaults, mb_async, utils
 from menubox import trait_factory as tf
+from menubox.hashome import HasHome
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
 
     from ipywidgets import Button
 
@@ -31,6 +31,7 @@ class Filesystem(MenuboxVT):
 
     box_center = None
     _fs = None
+    _ignore = ()
     startup_dir = utils.joinpaths(pathlib.Path().cwd())
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
     prev_protocol = traitlets.Enum(values=sorted(available_protocols()), default_value="file")
@@ -39,10 +40,12 @@ class Filesystem(MenuboxVT):
     read_only = traitlets.Bool()
     disabled = traitlets.Bool()
     title_description = traitlets.Unicode()
+    home_url = traitlets.Unicode()
     filters = StrTuple()
+    ignore = StrTuple()
     minimized_children = StrTuple("url")
-    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "url", "folders_only", "view")
-    value_traits_persist = NameTuple("protocol", "url", "kw")
+    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
+    value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
     views = traitlets.Dict({"Main": ()})
 
     protocol = tf.Dropdown(
@@ -52,12 +55,16 @@ class Filesystem(MenuboxVT):
         options=sorted(available_protocols()),
         layout={"width": "200px"},
         style={"description_width": "60px"},
+    ).hooks(
+        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
     )
     url = tf.Combobox(
         description="url",
         # continuous_update=False,
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
+    ).hooks(
+        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
     )
     drive = tf.Dropdown(
         cast(Self, None),
@@ -66,14 +73,14 @@ class Filesystem(MenuboxVT):
         layout={"width": "max-content"},
         options=list_drives(),
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(
-            src=(c["parent"].protocol, "value"),
-            target=(c["obj"].layout, "visibility"),
-            transform=lambda protocol: utils.to_visibility(protocol == "file"),
+        on_set=lambda c: (
+            c["parent"].dlink(
+                src=(c["parent"].protocol, "value"),
+                target=(c["obj"].layout, "visibility"),
+                transform=lambda protocol: utils.to_visibility(protocol == "file"),
+            ),
+            c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
         )
-    )
-    sw_main = tf.Select(
-        layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
     )
     kw = tf.TextareaValidate(
         value="{}",
@@ -82,6 +89,11 @@ class Filesystem(MenuboxVT):
         continuous_update=False,
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
+    ).hooks(
+        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "disabled"), target=(c["obj"], "disabled")),
+    )
+    sw_main = tf.Select(
+        layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
     )
     button_update = tf.AsyncRunButton(
         cast(Self, None),
@@ -111,27 +123,6 @@ class Filesystem(MenuboxVT):
         }
     )
 
-    def __init__(self, url="", filters: Iterable[str] = (), ignore: Iterable[str] = (), **kwargs):
-        """
-        Parameters
-        ----------
-        filters : list(str) (optional)
-            File endings to include in the listings. If not included, all files are
-            allowed. Does not affect directories.
-            If given, the endings will appear as checkboxes in the interface
-        ignore : list(str) (optional)
-            Regex(s) of file basename patterns to ignore, e.g., "\\." for typical
-            hidden files on posix
-        """
-        if self._vt_init_complete:
-            return
-        super().__init__(url=utils.joinpaths(url), **kwargs)
-        self.filters = filters
-        self.ignore = tuple(re.compile(i) for i in ignore)
-        if self.protocol.value == "file" and not self.url.value:
-            self.url.value = self.startup_dir
-        self.home_url = self.url.value
-
     @property
     def storage_options(self):
         """Value of the kwargs box as a dictionary"""
@@ -150,18 +141,20 @@ class Filesystem(MenuboxVT):
         """URL of currently selected item"""
         return ((self.protocol.value or "") + "://" + self.sw_main.value) if self.sw_main.value else None
 
+    @override
     async def init_async(self):
-        for w in (self.protocol, self.url, self.sw_main, self.kw):
-            if w:
-                self.dlink((self, "disabled"), (w, "disabled"))
-        self.update_widget_locks()
         await super().init_async()
+        if self.protocol.value == "file" and not self.url.value:
+            self.url.value = self.startup_dir
+        self.home_url = self.url.value
 
     @override
     def load_value(self, data):
-        self.button_update.cancel(message="loading value")
-        with self.ignore_change():
+        if data is not defaults.NO_VALUE and data:
+            self.button_update.cancel(message="loading data into filesystem")
             super().load_value(data)
+            self.home_url = self.url.value
+            self.button_update.start()
 
     @override
     async def get_center(self, view: str | None):
@@ -191,11 +184,11 @@ class Filesystem(MenuboxVT):
         if change["owner"] is self:
             match change["name"]:
                 case "read_only":
-                    self.update_widget_locks()
-                    if self.view:
-                        self.refresh_view()
+                    self.disabled = self.read_only
                 case "view" if self.view_active:
                     self.button_update.start()
+                case "ignore":
+                    self._ignore = tuple(re.compile(i) for i in self.ignore)
         elif self.view_active:
             match change["owner"]:
                 case self.url:
@@ -203,6 +196,7 @@ class Filesystem(MenuboxVT):
                 case self.sw_main:
                     self.button_update.start(url=self.sw_main.value)
 
+    @override
     async def button_clicked(self, b: Button):
         if self.read_only:
             return
@@ -215,11 +209,9 @@ class Filesystem(MenuboxVT):
             case self.button_add:
                 await self.button_update.start_wait(url=self.url.value, create=True)
 
-    def update_widget_locks(self):
-        for widget in (self.url, self.button_up, self.button_home, self.button_add):
-            widget.disabled = self.read_only
-
     async def _button_update_async(self, create=False, url: str | None = None):
+        if (not self.view_active and not create) or self.vt_validating:
+            return
         if self.prev_protocol != self.protocol.value or self.prev_kwargs != self.storage_options:
             self._fs = None  # causes fs to be recreated
             self.prev_protocol = self.protocol.value
@@ -246,11 +238,11 @@ class Filesystem(MenuboxVT):
             try:
                 items = await mb_async.to_thread(fs.ls, url, detail=True)
             except (NotADirectoryError, FileNotFoundError):
-                if not self.read_only and self.view not in self._RESERVED_VIEWNAMES:
+                if not self.read_only and self.view not in self.RESERVED_VIEWNAMES:
                     await self._button_update_async(url=utils.splitname(url)[0])
                 return
             listing = sorted(items, key=lambda x: x["name"])
-            listing = [n for n in listing if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self.ignore)]
+            listing = [n for n in listing if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self._ignore)]
             folders = {}
             files = {}
             if await mb_async.to_thread(fs.isdir, url):
@@ -346,3 +338,16 @@ class RelativePath(Filesystem):
             self.url.value = base
             if await mb_async.to_thread(self.fs.exists, base):
                 await self._button_update_async(url=base)
+
+
+class HasFilesystem(HasHome):
+    filesystem = tf.InstanceHP(cast(Self, None), Filesystem, lambda c: c["parent"].home.filesystem)
+
+    def __new__(cls, *, home=None, parent=None, filesystem: Filesystem | None = None, **kwargs):
+        if not filesystem and cls.SINGLE_BY and "filesystem" not in cls.SINGLE_BY:
+            if isinstance(parent := kwargs.get("parent"), HasFilesystem):
+                filesystem = parent.filesystem
+            else:
+                home = cls.to_home(home, parent)
+                filesystem = home.filesystem
+        return super().__new__(cls, home=home, parent=parent, filesystem=filesystem, **kwargs)
