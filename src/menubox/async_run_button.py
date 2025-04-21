@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Generic, Literal
+from typing import TYPE_CHECKING, Generic, Literal, Self
 
 import ipywidgets as ipw
 import traitlets
@@ -38,7 +38,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     dict.
     """
 
-    parent: Parent[S] = Parent(HasParent)  # type: ignore
+    parent = Parent[Self, S]()
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
     task = tf.Task()
@@ -113,6 +113,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     @property
     def kw(self) -> dict:
+        assert self.parent  # noqa: S101
         return self._kw(self.parent)
 
     @property

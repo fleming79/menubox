@@ -8,7 +8,6 @@ import ipywidgets as ipw
 import pytest
 
 import menubox as mb
-from menubox.repository import Repository
 
 if TYPE_CHECKING:
     import pathlib

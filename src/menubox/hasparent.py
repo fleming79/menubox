@@ -5,8 +5,8 @@ import contextlib
 import functools
 import inspect
 import weakref
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self
+from collections.abc import Callable, Generator, Hashable
+from typing import Any, ClassVar, Generic, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -20,17 +20,13 @@ import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
-from menubox.trait_types import ChangeType, NameTuple, ProposalType, R
+from menubox.instance import IHPChange, InstanceHP
+from menubox.trait_types import SS, ChangeType, NameTuple, ProposalType, S
 
 __all__ = ["HasParent", "Link", "Dlink"]
 
-if TYPE_CHECKING:
-    from collections.abc import Generator, Hashable
 
-    from menubox.instance import IHPChange, InstanceHP
-
-
-class Link:
+class Link(Generic[S]):
     """Link traits from different objects together so they remain in sync.
 
     Modified copy - traitlets.link
@@ -44,17 +40,16 @@ class Link:
         target: tuple[HasTraits, str],
         transform: tuple[Callable[[Any], Any], Callable[[Any], Any]] | None = None,
         *,
-        obj: HasParent,
+        obj: S,
     ):
         traitlets.traitlets._validate_link(source, target)
         self.source, self.target = source, target
-        if obj:
-            if not isinstance(obj, HasParent):
-                msg = f"obj must be an instance of HasParent not {type(obj)}"
-                raise TypeError(msg)
-            if obj.closed:
-                msg = f"{obj=} is closed!"
-                raise RuntimeError(msg)
+        if not isinstance(obj, HasParent):
+            msg = f"obj must be an instance of HasParent not {type(obj)}"
+            raise TypeError(msg)
+        if obj.closed:
+            msg = f"{obj=} is closed!"
+            raise RuntimeError(msg)
         self.obj = obj
         self._transform, self._transform_inv = transform or (self._pass_through,) * 2
         self.link()
@@ -135,7 +130,7 @@ class Link:
             self.target[0].unobserve(self._update_source, names=self.target[1])
 
 
-class Dlink:
+class Dlink(Generic[S]):
     """Link traits from different objects together so they remain in sync.
 
     Modified copy - traitlets.directional_link
@@ -149,18 +144,18 @@ class Dlink:
         target: tuple[HasTraits, str],
         transform: Callable[[Any], Any] | None = None,
         *,
-        obj: HasParent,
+        obj: S,
     ):
         traitlets.traitlets._validate_link(source, target)
         self._transform = transform or self._pass_through
         self.source, self.target = source, target
-        if obj:
-            if not isinstance(obj, HasParent):
-                msg = f"obj must be an instance of HasParent not {type(obj)}"
-                raise TypeError(msg)
-            if obj.closed:
-                msg = f"{obj=} is closed!"
-                raise RuntimeError(msg)
+        # TODO: use weakreferences to obj and same for Link
+        if not isinstance(obj, HasParent):
+            msg = f"obj must be an instance of HasParent not {type(obj)}"
+            raise TypeError(msg)
+        if obj.closed:
+            msg = f"{obj=} is closed!"
+            raise RuntimeError(msg)
         self.obj = obj
         self.link()
 
@@ -218,34 +213,40 @@ class Dlink:
             self.source[0].unobserve(self._update, names=self.source[1])
 
 
-class Parent(traitlets.Instance[R]):
-    klass: type[R]  # type: ignore
+class Parent(InstanceHP[S, SS], Generic[S, SS]):
+    klass: type[SS]  # type: ignore
     allow_none = True
     default_value = None
     read_only = False
+    load_default = False
 
-    def __new__(cls, _klass: str | type[R], /) -> Parent[R | None]:
-        return super().__new__(cls)
+    def __init__(self, _: S | None = None, /, klass: type[SS] | str = "menubox.hasparent.HasParent") -> None:
+        super().__init__(_, klass)
 
-    def __init__(self, _klass: str | type[R], /) -> None:
-        super().__init__(klass=_klass)
+    def _validate(self, obj, value):
+        if not value:
+            return super()._validate(obj, value)
+        p = value
+        while p and p.trait_has_value("parent"):
+            if p is obj:
+                msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
+                raise RuntimeError(msg)
+            p = p.parent  # type: ignore
+        return super()._validate(obj, value)
 
-    def validate(self, obj: R, value: R | None | Any) -> R | None:
-        if value is None:
-            return None
-        if value:
-            p = value
-            while hasattr(p, "parent"):
-                if p is obj:
-                    msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
-                    raise RuntimeError(msg)
-                p = p.parent  # type: ignore
-            return value
-        msg = "Parent must be either an instance of HasParent or None"
-        raise TypeError(msg)
+    @override
+    def finalize(self):
+        if hasattr(self, "klass"):
+            return
+        self._hookmappings["on_replace_close"] = False
+        self._hookmappings["set_parent"] = False
+        super().finalize()
 
+    @override
+    def configure(self, **kwgs):
+        raise NotImplementedError
 
-class HasParent(Singular, HasApp, Generic[R]):
+class HasParent(Singular, HasApp, Generic[S]):
     """A base class for objects that have a parent and can manage links to other objects.
 
     This class provides a foundation for creating objects that exist within a hierarchical
@@ -273,23 +274,17 @@ class HasParent(Singular, HasApp, Generic[R]):
     SINGLE_BY: ClassVar[tuple[str, ...] | None] = None
     _InstanceHP: ClassVar[dict[str, InstanceHP[HasParent, Any]]] = {}
     _HasParent_init_complete = False
-    _prohibited_parent_links: ClassVar[set[str]] = set()
-    _hp_reg_parent_link = traitlets.Set()
-    _hp_reg_parent_dlink = traitlets.Set()
-    _hp_reg_links = traitlets.Set()
-    _hasparent_all_links: traitlets.Dict[Hashable, Link | Dlink] = traitlets.Dict(
-        default_value={},
-        value_trait=traitlets.Union([traitlets.Instance(Link), traitlets.Instance(Dlink)]),
-        key_trait=traitlets.Unicode(),
-        read_only=True,
-    )
+    PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
+    _hp_reg_parent_link = InstanceHP[Self, set[Link[Self]]](klass=set).configure(read_only=False)
+    _hp_reg_parent_dlink = InstanceHP[Self, set[Dlink[Self]]](klass=set).configure(read_only=False)
+    _hasparent_all_links = InstanceHP[Self, dict[Hashable, Link | Dlink]](klass=dict).configure(read_only=False)
     _button_register = Fixed[Self, dict[tuple[str, ipw.Button], Callable]](lambda _: {})
 
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name: traitlets.Unicode[str, str | bytes] = traitlets.Unicode()
-    parent = Parent(HasTraits)
-    tasks = traitlets.Set(traitlets.Instance(asyncio.Task), read_only=True)
+    name = InstanceHP[Self, str](klass=str).configure(read_only=False)
+    parent = Parent[Self, S]()
+    tasks = InstanceHP[Self, set[asyncio.Task[Any]]](klass=set)
 
     def __repr__(self):
         if self.closed:
@@ -297,7 +292,7 @@ class HasParent(Singular, HasApp, Generic[R]):
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
-    def __init__(self, *, parent: R = None, **kwargs):
+    def __init__(self, *, parent: S | None = None, **kwargs):
         """Initialize the HasParent class.
 
         Args:
@@ -316,7 +311,7 @@ class HasParent(Singular, HasApp, Generic[R]):
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
         super().__init__(**kwargs)
-        self.set_trait("parent", parent)
+        self.parent = parent
         for name, v in values.items():
             self.instanceHP_enable_disable(name, v)
         if self.init_async:
@@ -371,7 +366,7 @@ class HasParent(Singular, HasApp, Generic[R]):
 
     @traitlets.validate("parent_link", "parent_dlink")
     def _parent_link_dlink_validate(self, proposal: ProposalType):
-        if prohibited := self._prohibited_parent_links.intersection(proposal["value"]):
+        if prohibited := self.PROHIBITED_PARENT_LINKS.intersection(proposal["value"]):
             msg = f"Prohibited links detected: {prohibited}"
             raise NameError(msg)
         links = []
@@ -392,12 +387,12 @@ class HasParent(Singular, HasApp, Generic[R]):
                 change["new"].observe(self._hp_parent_closed, "closed")
         p_link = set()
         p_dlink = set()
-        if self.parent:
+        if parent := self.parent:
             for n in self.parent_link:
-                if self.parent.has_trait(n):
+                if parent.has_trait(n):
                     p_link.add((self.parent, n))
             for n in self.parent_dlink:
-                if self.parent.has_trait(n):
+                if parent.has_trait(n):
                     p_dlink.add((self.parent, n))
         self._hp_reg_parent_link = p_link
         self._hp_reg_parent_dlink = p_dlink
@@ -533,12 +528,12 @@ class HasParent(Singular, HasApp, Generic[R]):
         """
         if self.closed or (self.KEEP_ALIVE and not force):
             return
-        super().close()
         self.set_trait("parent", None)
         if self.trait_has_value("_hasparent_all_links"):
             for link in self._hasparent_all_links.values():
                 link.unlink()
             self._hasparent_all_links.clear()
+        super().close()
         # Reset the object.
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
             d = getattr(self, n, None)

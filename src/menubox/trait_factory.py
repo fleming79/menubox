@@ -55,7 +55,6 @@ __all__ = [
     "Menubox",
     "Modalbox",
     "MenuboxPersistPool",
-    "Repository",
     "SelectRepository",
     "Task",
     "Text",

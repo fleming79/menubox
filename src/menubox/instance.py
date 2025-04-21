@@ -14,6 +14,7 @@ from typing import (
     Unpack,
     cast,
     overload,
+    override,
 )
 
 import ipylab.common
@@ -22,9 +23,9 @@ from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
 
 import menubox as mb
+import menubox.hasparent as mhp
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
-from menubox.hasparent import HasParent
 from menubox.trait_types import SS, Bunched, P, S, T
 
 if TYPE_CHECKING:
@@ -106,7 +107,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     read_only = True
     load_default = True
     _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
-    _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[HasParent[Any] | Widget, dict]]] = {}
+    _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[mhp.HasParent[Any] | Widget, dict]]] = {}
 
     if TYPE_CHECKING:
         name: str  # type: ignore
@@ -130,14 +131,14 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             cls._close_observers[c["ihp"]] = weakref.WeakKeyDictionary()
         # value closed
         if (old_observer := cls._close_observers[c["ihp"]].pop(c["parent"], {})) and isinstance(
-            c["old"], HasParent | Widget
+            c["old"], mhp.HasParent | Widget
         ):
             try:  # noqa: SIM105
                 c["old"].unobserve(**old_observer)
             except ValueError:
                 pass
 
-        if isinstance(c["new"], HasParent | Widget):
+        if isinstance(c["new"], mhp.HasParent | Widget):
             parent_ref = weakref.ref(c["parent"])
             inst = c["ihp"]
 
@@ -152,13 +153,13 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
                 ) and (old := parent._trait_values.pop(inst.name, None)):
                     inst._value_changed(parent, old, None)
 
-            names = "closed" if isinstance(c["new"], HasParent) else "comm"
+            names = "closed" if isinstance(c["new"], mhp.HasParent) else "comm"
             c["new"].observe(_observe_closed, names)
             cls._close_observers[c["ihp"]][c["parent"]] = {"handler": _observe_closed, "names": names}
 
     @staticmethod
     def _on_replace_close_hook(c: IHPChange[S, T]):
-        if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | HasParent):
+        if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | mhp.HasParent):
             if mb.DEBUG_ENABLED:
                 c["parent"].log.debug(
                     f"Closing replaced item `{c['parent'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"
@@ -187,9 +188,9 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     @staticmethod
     def _set_parent_hook(c: IHPChange[S, T]):
         if c["ihp"]._hookmappings.get("set_parent"):
-            if isinstance(c["old"], HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
+            if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
                 c["old"].parent = None
-            if isinstance(c["new"], HasParent) and not c["parent"].closed:
+            if isinstance(c["new"], mhp.HasParent) and not c["parent"].closed:
                 c["new"].parent = c["parent"]
 
     @staticmethod
@@ -210,15 +211,13 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         if value_changed := c["ihp"]._hookmappings.get("value_changed"):
             value_changed(c)
 
+    @override
     def class_init(self, cls, name):
-        if issubclass(cls, HasParent):
-            cls._InstanceHP[name] = self  # type: ignore # Register
-        else:
-            msg = (
-                f"Setting {cls.__qualname__}.{name} = InstanceHP(...) is invalid "
-                f"because {cls} is not a subclass of HasParent."
-            )
-            raise TypeError(msg)
+        try:
+            cls._InstanceHP[name] = self  # type: ignore # type: type[HasParent]
+        except AttributeError:
+            msg = "InstanceHP can only be used as a trait inmhp. HasParent subclasses!"
+            raise AttributeError(msg) from None
         return super().class_init(cls, name)
 
     def __init__(
@@ -261,11 +260,14 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         if isinstance(value, dict):
             value = self.default(obj, value)
         new_value = self._validate(obj, value)
-        if isinstance(value, HasParent) and self._hookmappings.get("set_parent"):
+        if isinstance(value, mhp.HasParent) and self._hookmappings.get("set_parent"):
             # Do this early in case the parent is invalid.
             value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
+            if obj.SINGLE_BY and self.name in obj.SINGLE_BY and old_value and value and value is not old_value:
+                msg = f"Changing a SINGLE_BY trait is prohibited for {self}"
+                raise ValueError(msg)
         except KeyError:
             old_value = self.default_value
 
@@ -461,7 +463,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         ----------
         on_replace_close: Bool
             Close the previous instance if it is replaced.
-            Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
+            Note:mhp. HasParent will not close if its the property `KEEP_ALIVE` is True.
         allow_none :  bool
             Allow the value to be None.
         set_parent: Bool [True]
@@ -514,13 +516,13 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    **kwargs: Unpack[IHPHookMappings[HasParent, T]],
+    **kwargs: Unpack[IHPHookMappings[mhp.HasParent, T]],
 ):
-    """Wraps the InstanceHP trait for use with HasParent classes.
+    """Wraps the InstanceHP trait for use withmhp. HasParent classes.
 
     This function creates a factory that returns an InstanceHP trait,
     configured with the specified settings. It's designed to be used
-    when adding a trait to a new subclass of HasParent.
+    when adding a trait to a new subclass ofmhp. HasParent.
     Args:
         klass: The class or a string representation of the class to be instantiated by the InstanceHP trait.
         defaults: A dictionary of default keyword arguments to be passed to the class constructor.
@@ -533,7 +535,7 @@ def instanceHP_wrapper(
         function accepts *args and **kwgs which are passed to the constructor of `klass` when the
         trait's default value is requested.
     Usage:
-        Use this function to add an InstanceHP trait to a class that inherits from HasParent.
+        Use this function to add an InstanceHP trait to a class that inherits frommhp. HasParent.
         The returned factory should be assigned as a class-level attribute.  When the trait
         is accessed for the first time on an instance of the class, the InstanceHP trait will
         be instantiated and configured.
@@ -545,7 +547,7 @@ def instanceHP_wrapper(
     def instanceHP_factory(_: SS | None = None, /, *args: P.args, **kwgs: P.kwargs) -> InstanceHP[SS, T]:
         """Returns an InstanceHP[klass] trait.
 
-        Use this to add a trait to new subclass of HasParent.
+        Use this to add a trait to new subclass ofmhp. HasParent.
 
         Specify *args and **kwgs to pass when creating the 'default' (when the trait default is requested).
 

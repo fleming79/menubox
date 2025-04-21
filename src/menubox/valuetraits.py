@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, overload, override
 
 import orjson
 import ruamel.yaml
@@ -67,8 +67,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    if TYPE_CHECKING:
-        parent: Parent[ValueTraits]
+    parent = Parent[Self, "ValueTraits"](klass="menubox.valuetraits.ValueTraits")
     reg: set[tuple[HasTraits, str]] = Set()  # type: ignore
 
     @observe("reg")
@@ -131,7 +130,7 @@ class ValueTraits(HasParent, Generic[R]):
     value = _ValueTraitsValueTrait()
     value_traits = NameTuple()
     value_traits_persist = NameTuple()
-    _prohibited_parent_links: ClassVar[set[str]] = {"home"}
+    PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
     if TYPE_CHECKING:
         _value: Callable
@@ -175,7 +174,7 @@ class ValueTraits(HasParent, Generic[R]):
         super().__init_subclass__(**kwargs)
 
     def _init_CHECK_PARENT(self):
-        if self.parent:
+        if "parent" in self._trait_values:
             msg = "Parent must not be set prior to init of ValueTraits."
             raise RuntimeError(msg)
 
