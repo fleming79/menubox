@@ -85,7 +85,7 @@ async def test_value_traits():
     assert (vt1, "nested") in vt1._vt_reg_value_traits
     assert len(vt1._vt_reg_value_traits) == 1
     assert len(vt1._vt_reg_value_traits_persist) == 2
-    vt1.instanceHP_enable_disable("nested", False)
+    vt1.disable_ihp("nested")
     assert vt1.on_change_counts == 1
     assert vt1.value_change_count == 1
     vt1._reset_trait("nested")

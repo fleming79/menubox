@@ -78,7 +78,7 @@ async def test_children_setter_nested_enable_disable():
     assert cto.plain_box.children == (cto.dropdown,)
 
     # Check enable nested
-    cto.enable_widget("nested", {"dropdown": None})
+    cto.enable_ihp("nested", override={"dropdown": None})
     assert cto.nested
     assert cto.nested.dropdown is None
     assert cs.tasks, "Update debounced should be scheduled"
@@ -101,7 +101,7 @@ async def test_children_setter_builtin():
 async def test_children_setter_enable():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box
-    cto.enable_widget("dd_no_default")
+    cto.enable_ihp("dd_no_default")
     await asyncio.sleep(0.1)
     assert cto.nested
     assert cto.dynamic_box.children == (cto.dd_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)

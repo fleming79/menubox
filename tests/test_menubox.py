@@ -63,7 +63,7 @@ class TestMenubox:
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
         m.title_description = "M"
-        m.enable_widget("button_help")
+        m.enable_ihp("button_help")
         assert m.button_help
         await m.wait_tasks()
         m.refresh_view()
@@ -119,7 +119,7 @@ class TestMenubox:
         await m3.wait_tasks()
         m2.load_view(None)
         assert m2.view is None, "load no view"
-        m3.enable_widget("box_shuffle")
+        m3.enable_ihp("box_shuffle")
         abox = m3.box_shuffle
         assert abox
         m3.put_obj_in_box_shuffle(m2)
@@ -137,7 +137,7 @@ class TestMenubox:
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
         m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
         await m3.wait_tasks()
-        m3.enable_widget("box_shuffle")
+        m3.enable_ihp("box_shuffle")
         for i in range(3):
             m3.put_obj_in_box_shuffle(ipw.HTML(f"{i}"))
 
@@ -146,7 +146,7 @@ class TestMenubox:
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
         m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
         await m3.wait_tasks()
-        m3.enable_widget("box_shuffle")
+        m3.enable_ihp("box_shuffle")
         abox = m3.box_shuffle
         assert abox
         b = ipw.Button(description="Not a Menubox")
@@ -165,7 +165,7 @@ class TestMenubox:
     async def test_menubox_enable_menu_button(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        m2.enable_widget("button_menu")
+        m2.enable_ihp("button_menu")
         assert m2.button_menu
 
     async def test_menubox_default_view(self):
@@ -203,12 +203,12 @@ class TestMenubox:
         m.viewlist = ("a", "b", "c")
         assert m.viewlist == ("a", "b")
 
-    async def test_menubox_enable_disable_widget(self):
+    async def test_menubox_enable_disable_ihp(self):
         m = mb.Menubox()
-        m.enable_widget("button_promote", {"description": "test"})
+        m.enable_ihp("button_promote", override={"description": "test"})
         assert m.button_promote
         assert m.button_promote.description == "test"
-        m.disable_widget("button_promote")
+        m.disable_ihp("button_promote")
         assert m.button_promote is None
 
     async def test_menubox_get_center(self):
@@ -235,7 +235,7 @@ class TestMenubox:
 
     async def test_menubox_menu_open_close(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
-        m.enable_widget("button_menu")
+        m.enable_ihp("button_menu")
         m.menu_open()
         assert m.box_menu
         m.menu_close()
@@ -316,7 +316,7 @@ class TestMenubox:
         m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})
         m.toggleviews = ("a", "b")
         m.set_trait("showbox", showbox)
-        m.enable_widget(name)
+        m.enable_ihp(name)
         await m.wait_tasks()
         b = getattr(m, name)
         assert isinstance(b, ipw.Button)
@@ -355,12 +355,12 @@ class TestMenubox:
             case "button_close":
                 assert m not in showbox.children
                 assert m.closed
-        m.disable_widget(name)
+        m.disable_ihp(name)
         assert not b.comm
 
     async def test_menubox_shuffle_button_on_click(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
-        m.enable_widget("box_shuffle")
+        m.enable_ihp("box_shuffle")
         assert m.box_shuffle
         m.shuffle_button_views = {"a": ipw.HTML("A")}
         m.get_shuffle_button("a")
@@ -384,7 +384,7 @@ class TestMenubox:
 
     async def test_menubox_obj_in_box_shuffle(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
-        m.enable_widget("box_shuffle")
+        m.enable_ihp("box_shuffle")
         widget = ipw.HTML()
         m.put_obj_in_box_shuffle(widget)
         assert m.obj_in_box_shuffle(widget)
@@ -394,7 +394,7 @@ class TestMenubox:
             a = tf.HTML(value="a")
 
         m = MenuboxA(views={"a": ipw.HTML("A")})
-        m.enable_widget("box_shuffle")
+        m.enable_ihp("box_shuffle")
         m.load_shuffle_item("a")
         assert m.box_shuffle
         assert len(m.box_shuffle.children) == 1
@@ -405,7 +405,7 @@ class TestMenubox:
     async def test_menubox_put_obj_in_box_shuffle(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
         m2 = mb.Menubox(views={"a": ipw.HTML("m2")})
-        m.enable_widget("box_shuffle")
+        m.enable_ihp("box_shuffle")
         assert m.box_shuffle
         widget = ipw.HTML()
         m.put_obj_in_box_shuffle(widget)

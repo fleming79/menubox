@@ -23,7 +23,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[R]):
     button_expand = tf.Button_modal()
     button_collapse = tf.Button_modal(disabled=True)
     expanded = traitlets.Bool(False, read_only=True)
-    html_title = tf.HTML_Title().configure(allow_none=True, load_default=False)
+    html_title = tf.HTML_Title()
     header = tf.HBox().configure(allow_none=True).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
@@ -79,18 +79,14 @@ class Modalbox(HasParent, ipw.VBox, Generic[R]):
         fstr = parent.fstr if isinstance(parent, HasParent) else utils.fstr
         title = fstr(title)
         if title:
-            self.instanceHP_enable_disable(
-                "html_title", {"description": f"<b>{title}</b>", "tooltip": fstr(title_tooltip)}
-            )
+            self.html_title.description = fstr("<b>{title}</b>")
+            self.html_title.tooltip = fstr(title_tooltip)
         self.header_children = header_children
-        self.instanceHP_enable_disable(
-            "button_expand",
-            {"description": fstr(button_expand_description or title), "tooltip": fstr(button_expand_tooltip)},
-        )
-        self.instanceHP_enable_disable(
-            "button_collapse",
-            {"description": fstr(button_collapse_description), "tooltip": fstr(button_collapse_tooltip)},
-        )
+        self.button_expand.description = fstr(button_expand_description or title)
+        self.button_expand.tooltip = fstr(button_expand_tooltip)
+        self.button_collapse.description = fstr(button_collapse_description)
+        self.button_collapse.tooltip = fstr(button_collapse_tooltip)
+
         super().__init__(parent=parent, children=(self.button_expand,), **kwargs)
         if orientation == "horizontal":
             self.layout.flex_flow = "row"

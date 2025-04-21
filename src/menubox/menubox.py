@@ -242,14 +242,6 @@ class Menubox(HasParent, Panel, Generic[R]):
     def _default_viewlist(self):
         return tuple(self.views)
 
-    def enable_widget(self, name: str, overrides: dict | None = None) -> None:
-        "Load the widget."
-        self.instanceHP_enable_disable(name, overrides or True)
-
-    def disable_widget(self, name: str) -> None:
-        "Remove the widget."
-        self.instanceHP_enable_disable(name, False)
-
     def maximize(self) -> Self:
         if self.view_previous and self.view_previous not in (None, self.MINIMIZED):
             view = self.view_previous
@@ -362,7 +354,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         if not self._Menubox_init_complete or self.closed:
             return
         if mb.DEBUG_ENABLED:
-            self.enable_widget("button_activate")
+            self.enable_ihp("button_activate")
         if self.task_load_view and self.loading_view:
             self.set_trait("children", (HTML_LOADING,))
             await asyncio.wait([self.task_load_view])
@@ -390,18 +382,18 @@ class Menubox(HasParent, Panel, Generic[R]):
 
     def _update_header(self):
         if self.view == self.MINIMIZED:
-            self.enable_widget("header")
-            self.enable_widget("button_maximize")
+            self.enable_ihp("header")
+            self.enable_ihp("button_maximize")
             assert self.header  # noqa: S101
             self.header.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
         else:
             widgets = tuple(self.get_widgets(*self.header_children))
             if set(widgets).difference((H_FILL, V_FILL)):
-                self.enable_widget("header")
+                self.enable_ihp("header")
                 assert self.header  # noqa: S101
                 self.header.children = widgets
             else:
-                self.disable_widget("header")
+                self.disable_ihp("header")
 
     def refresh_view(self) -> Self:
         """Refreshes the view by reloading it.
@@ -415,7 +407,7 @@ class Menubox(HasParent, Panel, Generic[R]):
         return tuple(self.get_button_loadview(v) for v in self.menuviews if v is not self.view)
 
     def menu_open(self):
-        self.enable_widget("button_menu_minimize")
+        self.enable_ihp("button_menu_minimize")
         assert self.box_menu  # noqa: S101
         self.box_menu.children = tuple(self.get_widgets(*self.box_menu_open_children))
 
@@ -435,11 +427,11 @@ class Menubox(HasParent, Panel, Generic[R]):
         """
         self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self.MINIMIZED)
         if self._has_maximize_button:
-            self.enable_widget("button_minimize")
+            self.enable_ihp("button_minimize")
         if self.menuviews:
-            self.enable_widget("button_menu")
+            self.enable_ihp("button_menu")
         if len(self.toggleviews):
-            self.enable_widget("button_toggleview")
+            self.enable_ihp("button_toggleview")
         self._update_tab_buttons()
         self._update_shuffle_buttons()
         if cb := getattr(super(), "mb_configure", None):
@@ -467,19 +459,19 @@ class Menubox(HasParent, Panel, Generic[R]):
                 return
             case "menuviews":
                 if self.menuviews:
-                    self.enable_widget("button_menu")
+                    self.enable_ihp("button_menu")
                 else:
-                    self.disable_widget("button_menu")
+                    self.disable_ihp("button_menu")
             case "button_menu":
                 if self.button_menu:
-                    self.enable_widget("box_menu")
+                    self.enable_ihp("box_menu")
                 else:
                     self.menu_close()
             case "toggleviews":
                 if len(self.toggleviews) > 1:
-                    self.enable_widget("button_toggleview")
+                    self.enable_ihp("button_toggleview")
                 else:
-                    self.disable_widget("button_toggleview")
+                    self.disable_ihp("button_toggleview")
             case "button_close" if self.button_close:
                 self.button_close.tooltip = f"Close {self}"
             case "button_help" if self.button_help:
@@ -521,9 +513,9 @@ class Menubox(HasParent, Panel, Generic[R]):
         Finally, it updates the label and caption of the title with the cleaned description and tooltip.
         """
         if not self.title_description:
-            self.disable_widget("html_title")
+            self.disable_ihp("html_title")
             return
-        self.enable_widget("html_title")
+        self.enable_ihp("html_title")
         if self.html_title:
             self.html_title.description_allow_html = True
             self.html_title.description = self.get_html_title_description()
@@ -610,9 +602,9 @@ class Menubox(HasParent, Panel, Generic[R]):
     def _onchange_showbox(self, change: IHPChange):
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
-        for name in ("button_exit", "button_promote", "button_demote"):
-            self.instanceHP_enable_disable(name, bool(self.showbox))
         if self.showbox:
+            for name in ("button_exit", "button_promote", "button_demote"):
+                self.enable_ihp(name)
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
                 self.showbox.children = (*self.showbox.children, self)
             self.show()
@@ -791,7 +783,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             if ensure_wrapped and obj is found and isinstance(obj, Menubox) and obj.showbox is self.box_shuffle:
                 obj.set_trait("showbox", None)
             obj_ = found
-        self.enable_widget("box_shuffle")
+        self.enable_ihp("box_shuffle")
         assert self.box_shuffle  # noqa: S101
         if not isinstance(obj_, mb.Menubox) or ensure_wrapped and not isinstance(obj_, MenuboxWrapper):
             obj_ = MenuboxWrapper(obj_)

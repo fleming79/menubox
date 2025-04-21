@@ -318,7 +318,7 @@ class RelativePath(Filesystem):
         return super().__new__(cls, parent=parent, **kwargs)
 
     def __init__(self, parent: Filesystem, **kwargs):
-        self.disable_widget("drive")
+        self.disable_ihp("drive")
         super().__init__(parent=parent, value=parent.to_dict(), **kwargs)
 
     @property

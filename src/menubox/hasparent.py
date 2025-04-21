@@ -272,7 +272,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
     RENAMEABLE = True
     KEEP_ALIVE = False
     SINGLE_BY: ClassVar[tuple[str, ...] | None] = None
-    _InstanceHP: ClassVar[dict[str, InstanceHP[HasParent, Any]]] = {}
+    single_key: tuple[Hashable, ...]
+    _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
     _hp_reg_parent_link = InstanceHP[Self, set[Link[Self]]](klass=set).configure(read_only=False)
@@ -301,23 +302,32 @@ class HasParent(Singular, HasApp, Generic[RP]):
         """
         if self._HasParent_init_complete:
             return
-        if self.SINGLE_BY and "name" in self.SINGLE_BY:
-            name = self.single_key[self.SINGLE_BY.index("name")]
-            self.set_trait("name", name)
-            self.RENAMEABLE = False
-        values = {}
+        if self.SINGLE_BY:
+            assert isinstance(self.single_key, tuple)  # noqa: S101
+        self._init_values = values = {}
         for name in tuple(kwargs):
             if name in self._InstanceHP:
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
         super().__init__(**kwargs)
         self.parent = parent
-        for name, v in values.items():
-            self.instanceHP_enable_disable(name, v)
-        if self.init_async:
-            assert asyncio.iscoroutinefunction(self.init_async)  # noqa: S101
         # Requires a running event loop.
-        self.init_async = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
+        self._init_async_task = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
+
+    async def init_async(self) -> None:
+        """Perform additional initialisation tasks.
+
+        When override this method ensure to call:
+
+        ``` python
+        await super().init_async()
+        ```
+        """
+        if corofunc := getattr(super(), "init_async", None):
+            await corofunc()
+        for name, v in self._init_values.items():
+            self.set_trait(name, v)
+        del self._init_values
 
     def __init_subclass__(cls, **kwargs) -> None:
         if cls.SINGLE_BY:
@@ -349,7 +359,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
                 for name in c._InstanceHP:
                     if name and name not in tn_:
                         tn_[name] = c._InstanceHP[name]
-        cls._InstanceHP = tn_
+        cls._InstanceHP = tn_  # type: ignore
 
     @classmethod
     def validate_name(cls, name: str) -> str:
@@ -490,8 +500,11 @@ class HasParent(Singular, HasApp, Generic[RP]):
             if mb.DEBUG_ENABLED:
                 raise
 
-    def instanceHP_enable_disable(self, name: str, enable: bool | dict):
-        """Enables or disables an InstanceHP trait.
+    def enable_ihp(self, name: str, *, override: dict | None = None):
+        """Enable a InstanceHP trait.
+
+        Passing an override will ensure the 'default' is always called.
+
         Args:
             name: The name of the instance HP to enable or disable.
             enable:
@@ -502,13 +515,14 @@ class HasParent(Singular, HasApp, Generic[RP]):
             KeyError: If the given name is not a valid instance HP.
         """
 
-        if name not in self._InstanceHP:
-            msg = f"{name=} is not an InstanceHP instance in {utils.fullname(self)} {list(self._InstanceHP)}"
-            raise KeyError(msg)
-        if enable in [False, None]:
-            self.set_trait(name, None)
-        elif self._trait_values.get(name) is None:
-            self.set_trait(name, {} if enable is True else enable)
+        ihp = self._InstanceHP[name]
+        if override is not None or getattr(self, name, None) is None:
+            self.set_trait(name, ihp.default(self, override=override or {}))
+
+    def disable_ihp(self, name: str):
+        """Disables an InstanceHP trait."""
+        ihp = self._InstanceHP[name]
+        self.set_trait(name, ihp.default_value)
 
     def _reset_trait(self, name: str):
         """Reset the trait to an unloaded stated."""
@@ -602,29 +616,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if connect:
             self._hasparent_all_links[key] = Dlink(src, target, transform=transform, obj=self)
 
-    async def init_async(self) -> None:
-        """Perform additional initialisation tasks.
-
-        When override this method ensure to call:
-
-        ``` python
-        await super().init_async()
-        ```
-        """
-        if corofunc := getattr(super(), "init_async", None):
-            await corofunc()
 
     async def wait_init_async(self) -> Self:
-        if isinstance(self.init_async, asyncio.Task):
-            try:
-                await asyncio.shield(self.init_async)  # type: ignore
-            except asyncio.CancelledError:
-                if self.init_async.cancelled():
-                    self.log.warning("init_async was cancelled before completing")
-            except Exception as e:
-                if inspect.iscoroutinefunction(self.init_async):
-                    e.add_note("It looks like wait_init_async is being awaited somewhere which could cause a deadlock")
-                raise
+        await asyncio.shield(self._init_async_task)
         return self
 
     def _handle_button_change(self, c: IHPChange[Self, ipw.Button]):

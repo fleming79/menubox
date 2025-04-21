@@ -257,18 +257,20 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     def set(self, obj: S, value) -> None:  # type: ignore
         self.finalize()
-        if isinstance(value, dict):
-            # TODO : get rid of enabling via a dict
-            value = self.default(obj, value)
         new_value = self._validate(obj, value)
         if self._set_parent and isinstance(value, mhp.HasParent):
             # Do this early in case the parent is invalid.
             value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
-            if obj.SINGLE_BY and self.name in obj.SINGLE_BY and old_value and value and value is not old_value:
-                msg = f"Changing a SINGLE_BY trait is prohibited for {self}"
-                raise ValueError(msg)
+            if obj.SINGLE_BY and self.name in obj.SINGLE_BY and new_value not in obj.single_key:
+                try:
+                    raise_error = value != old_value
+                except BaseException:
+                    raise_error = True
+                if raise_error:
+                    msg = f"Changing a SINGLE_BY trait is prohibited for {self}"
+                    raise ValueError(msg)
         except KeyError:
             old_value = self.default_value
 

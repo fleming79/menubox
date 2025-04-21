@@ -73,7 +73,8 @@ class TestInstance:
         assert hp1.a.name == "a"
         assert hp1.a.parent is hp1
 
-        hp2 = HPI2(a=None, b={"b": hp1, "a": None}, home=home)  # Can override values during __init__
+        hp2 = HPI2(a=None, home=home)
+        hp2.enable_ihp("b", override={"b": hp1, "a": None})
         assert not hp2.a, "Disabled during init"
         assert not hp2.b.a, "Disabled during init (nested)"
         assert hp2.e
@@ -96,13 +97,13 @@ class TestInstance:
 
         assert not hp2.c.parent, "Tag specifying no parent succeeded."
 
-        hp1.instanceHP_enable_disable("a", False)
+        hp1.disable_ihp("a")
         assert not hp1.a, "Should have removed (hp2)"
 
         assert isinstance(hp2.e, ipw.Dropdown), "Spawning via instanceHP_wrapper inst."
         assert hp2.e.description == "From a factory"
         assert hp2.e.options == (1, 2, 3), "provided in defaults."
-        hp2.instanceHP_enable_disable("e", False)
+        hp2.disable_ihp("e")
 
     async def test_instance2(self, home: mb.Home):
         hp1 = HPI(name="hp1", a=None)
@@ -123,13 +124,12 @@ class TestInstance:
 
         # Test can regenerate
         assert not hp1.a
-        hp1.instanceHP_enable_disable("a", {"a": None})
+        hp1.enable_ihp("a")
         assert isinstance(hp1.a, HPI), "Re generated"
-        assert not hp1.a.a, "From overrides is disabled"
 
         # Test doesn't overload an existing value
         hp1_a = hp1.a
-        hp1.instanceHP_enable_disable("a", True)
+        hp1.enable_ihp("a")
         assert hp1_a is hp1.a
         hp2b = HPI2(home=home)
         # Test can load a more complex object & and close
