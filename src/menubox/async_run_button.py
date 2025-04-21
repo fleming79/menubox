@@ -38,7 +38,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     dict.
     """
 
-    parent = Parent[Self, S]()
+    parent: Parent[Self, S | None]
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
     task = tf.Task()

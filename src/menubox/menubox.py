@@ -281,7 +281,7 @@ class Menubox(HasParent, Panel, Generic[R]):
             RuntimeError: If the specified view is not in the set of current views.
         """
         if self.closed:
-            return
+            return self
         current = self._current_views
         if view is NO_DEFAULT:
             view = self.view

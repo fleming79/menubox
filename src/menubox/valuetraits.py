@@ -13,6 +13,7 @@ from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, ob
 import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent, Parent
+from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_types import Bunched, ChangeType, NameTuple, R
 
@@ -67,12 +68,15 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = Parent[Self, "ValueTraits"](klass="menubox.valuetraits.ValueTraits")
-    reg: set[tuple[HasTraits, str]] = Set()  # type: ignore
+    parent = Parent[Self, "ValueTraits|None"](klass="menubox.valuetraits.ValueTraits")
+    reg = InstanceHP[Self, set[tuple[HasTraits, str]]](klass=set).configure(
+        read_only=False, allow_none=False, initial_value=set()
+    )
 
     @observe("reg")
     def _observe_reg(self, change: ChangeType):
-        self.parent._vt_observe_vt_reg_value(change)
+        if self.parent:
+            self.parent._vt_observe_vt_reg_value(change)
 
     def change_handler(self, change: ChangeType):
         """"""

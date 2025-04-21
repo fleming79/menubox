@@ -258,9 +258,10 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def set(self, obj: S, value) -> None:  # type: ignore
         self.finalize()
         if isinstance(value, dict):
+            # TODO : get rid of enabling via a dict
             value = self.default(obj, value)
         new_value = self._validate(obj, value)
-        if isinstance(value, mhp.HasParent) and self._hookmappings.get("set_parent"):
+        if self._set_parent and isinstance(value, mhp.HasParent):
             # Do this early in case the parent is invalid.
             value.parent = obj
         try:
@@ -325,6 +326,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         assert inspect.isclass(klass)  # noqa: S101
         self.klass = klass  # type: ignore
         mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, hookmappings=self._hookmappings)
+        self._set_parent = self._hookmappings.get("set_parent", False)
 
     def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
         """Create a default instance of the managed class.
@@ -402,23 +404,43 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
         @overload
         def configure(
-            self, *, read_only: bool = ..., allow_none: Literal[True], load_default: bool | NO_DEFAULT_TYPE = ...
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[True],
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            initial_value=...,
         ) -> InstanceHP[S, T | None]: ...
         @overload
         def configure(
-            self, *, read_only: bool = ..., allow_none: Literal[False], load_default: bool | NO_DEFAULT_TYPE = ...
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[False],
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            initial_value=...,
         ) -> InstanceHP[S, T]: ...
         @overload
         def configure(
-            self, *, read_only: bool = ..., allow_none: bool | NO_DEFAULT_TYPE = ..., load_default: Literal[False]
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: bool | NO_DEFAULT_TYPE = ...,
+            load_default: Literal[False],
+            initial_value=...,
         ) -> InstanceHP[S, T | None]: ...
         @overload
         def configure(
-            self, *, read_only: bool = ..., allow_none: Literal[True] = ..., load_default: bool | NO_DEFAULT_TYPE = ...
+            self,
+            *,
+            read_only: bool = ...,
+            allow_none: Literal[True] = ...,
+            load_default: bool | NO_DEFAULT_TYPE = ...,
+            initial_value=...,
         ) -> InstanceHP[S, T]: ...
         @overload
         def configure(
-            self, *, read_only: bool = ..., allow_none=..., load_default: bool | NO_DEFAULT_TYPE = ...
+            self, *, read_only: bool = ..., allow_none=..., load_default=..., initial_value=...
         ) -> InstanceHP[S, T]: ...
 
     def configure(
@@ -427,6 +449,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         read_only=True,
         allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
         load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
+        initial_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
     ) -> InstanceHP[S, T] | InstanceHP[S, T | None]:
         """Configures the instance with the provided settings.
 
@@ -438,6 +461,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             read_only:  If True, the instance will be read-only. Defaults to True.
             allow_none: If True, None values are permitted. If NO_DEFAULT, defaults to not load_default.
             load_default: If True, default values are loaded. If NO_DEFAULT, the existing value is kept.
+            initial_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
 
         Returns:
             The instance itself (self), with updated configuration. The return type reflects whether None is allowed.
@@ -445,6 +469,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         self.load_default = load_default if load_default is not NO_DEFAULT else self.load_default
         self.allow_none = allow_none if allow_none is not NO_DEFAULT else not load_default
         self.read_only = read_only
+        if initial_value is not NO_DEFAULT:
+            self.default_value = initial_value
         return self  # type: ignore
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
@@ -463,7 +489,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         ----------
         on_replace_close: Bool
             Close the previous instance if it is replaced.
-            Note:mhp. HasParent will not close if its the property `KEEP_ALIVE` is True.
+            Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
         allow_none :  bool
             Allow the value to be None.
         set_parent: Bool [True]

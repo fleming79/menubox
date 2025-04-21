@@ -21,7 +21,7 @@ from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.instance import IHPChange, InstanceHP
-from menubox.trait_types import SS, ChangeType, NameTuple, ProposalType, S
+from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 
 __all__ = ["HasParent", "Link", "Dlink"]
 
@@ -213,14 +213,14 @@ class Dlink(Generic[S]):
             self.source[0].unobserve(self._update, names=self.source[1])
 
 
-class Parent(InstanceHP[S, SS], Generic[S, SS]):
-    klass: type[SS]  # type: ignore
+class Parent(InstanceHP[S, RP], Generic[S, RP]):
+    klass: type[RP]  # type: ignore
     allow_none = True
     default_value = None
     read_only = False
     load_default = False
 
-    def __init__(self, _: S | None = None, /, klass: type[SS] | str = "menubox.hasparent.HasParent") -> None:
+    def __init__(self, _: S | None = None, /, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
         super().__init__(_, klass)
 
     def _validate(self, obj, value):
@@ -246,7 +246,7 @@ class Parent(InstanceHP[S, SS], Generic[S, SS]):
     def configure(self, **kwgs):
         raise NotImplementedError
 
-class HasParent(Singular, HasApp, Generic[S]):
+class HasParent(Singular, HasApp, Generic[RP]):
     """A base class for objects that have a parent and can manage links to other objects.
 
     This class provides a foundation for creating objects that exist within a hierarchical
@@ -282,9 +282,9 @@ class HasParent(Singular, HasApp, Generic[S]):
 
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name = InstanceHP[Self, str](klass=str).configure(read_only=False)
-    parent = Parent[Self, S]()
-    tasks = InstanceHP[Self, set[asyncio.Task[Any]]](klass=set)
+    name = InstanceHP[Self, str](klass=str).configure(read_only=False, initial_value="")
+    parent = Parent[Self, RP]()
+    tasks = InstanceHP[Self, set[asyncio.Task[Any]]](klass=set).configure()
 
     def __repr__(self):
         if self.closed:
@@ -292,7 +292,7 @@ class HasParent(Singular, HasApp, Generic[S]):
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
-    def __init__(self, *, parent: S | None = None, **kwargs):
+    def __init__(self, *, parent: RP = None, **kwargs):
         """Initialize the HasParent class.
 
         Args:
@@ -387,7 +387,7 @@ class HasParent(Singular, HasApp, Generic[S]):
                 change["new"].observe(self._hp_parent_closed, "closed")
         p_link = set()
         p_dlink = set()
-        if parent := self.parent:
+        if (parent := self.parent) is not None:
             for n in self.parent_link:
                 if parent.has_trait(n):
                     p_link.add((self.parent, n))
