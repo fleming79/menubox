@@ -278,6 +278,8 @@ class _Periodic:
                 else:
                     await asyncio.sleep(self.wait)
         except asyncio.CancelledError:
+            if getattr(self.instance, "closed", False):
+                return
             raise
         except Exception as e:
             mb.log.on_error_wrapped(self.wrapped, self.instance, self.mode, e)
