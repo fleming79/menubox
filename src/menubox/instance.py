@@ -570,7 +570,7 @@ def instanceHP_wrapper(
     defaults_ = merge({}, defaults) if defaults else {}
     tags = dict(tags) if tags else {}  # type: ignore
 
-    def instanceHP_factory(_: SS | None = None, /, *args: P.args, **kwgs: P.kwargs) -> InstanceHP[SS, T]:
+    def instanceHP_factory(cast_self: SS | None = None, /, *args: P.args, **kwgs: P.kwargs) -> InstanceHP[SS, T]:  # noqa: ARG001
         """Returns an InstanceHP[klass] trait.
 
         Use this to add a trait to new subclass ofmhp. HasParent.
