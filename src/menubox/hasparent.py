@@ -5,7 +5,7 @@ import contextlib
 import functools
 import weakref
 from collections.abc import Callable, Generator, Hashable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, override
+from typing import Any, ClassVar, Generic, Literal, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -23,193 +23,6 @@ from menubox.instance import IHPChange, InstanceHP
 from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 
 __all__ = ["HasParent", "Link", "Dlink"]
-
-
-class Link(Generic[S]):
-    """Link traits from different objects together so they remain in sync.
-
-    Modified copy - traitlets.link
-    """
-
-    updating = False
-
-    def __init__(
-        self,
-        source: tuple[HasTraits, str],
-        target: tuple[HasTraits, str],
-        transform: tuple[Callable[[Any], Any], Callable[[Any], Any]] | None = None,
-        *,
-        obj: S,
-    ):
-        traitlets.traitlets._validate_link(source, target)
-        self.source, self.target = source, target
-        if not isinstance(obj, HasParent):
-            msg = f"obj must be an instance of HasParent not {type(obj)}"
-            raise TypeError(msg)
-        if obj.closed:
-            msg = f"{obj=} is closed!"
-            raise RuntimeError(msg)
-        self.obj = obj
-        self._transform, self._transform_inv = transform or (self._pass_through,) * 2
-        self.link()
-
-    def __repr__(self) -> str:
-        return (
-            f"Link source={self.source[0].__class__.__qualname__}.{self.source[1]} "
-            f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
-        )
-
-    @contextlib.contextmanager
-    def _busy_updating(self):
-        self.updating = True
-        try:
-            yield
-        finally:
-            self.updating = False
-
-    def _pass_through(self, x):
-        return x
-
-    def _obj_closed_observe(self, _: ChangeType):
-        self.unlink()
-
-    def link(self):
-        setattr(
-            self.target[0],
-            self.target[1],
-            self._transform(getattr(self.source[0], self.source[1])),
-        )
-        self.source[0].observe(self._update_target, names=self.source[1])
-        self.target[0].observe(self._update_source, names=self.target[1])
-        if self.obj:
-            self.obj.observe(self._obj_closed_observe, names="closed")
-
-    def _update_target(self, change: ChangeType):
-        if self.updating or not self._transform:
-            return
-        if self.obj and self.obj.closed:
-            self.unlink()
-            return
-        with self._busy_updating():
-            try:
-                setattr(self.target[0], self.target[1], self._transform(change["new"]))
-                value = getattr(self.source[0], self.source[1])
-                if not self.obj.check_equality(value, change["new"]):
-                    msg = f"Broken link {self}: the source value changed while updating the target."
-                    raise traitlets.TraitError(msg)  # noqa: TRY301
-            except traitlets.TraitError as e:
-                msg = (
-                    f"Link {utils.fullname(self.source[0])}.{self.source[1]}->"
-                    f"{utils.fullname(self.source[0])}.{self.target[1]}"
-                )
-                self.obj.on_error(e, msg, self)
-                if mb.DEBUG_ENABLED:
-                    raise
-
-    def _update_source(self, change: ChangeType):
-        if self.updating or not self._transform:
-            return
-        if self.obj and self.obj.closed:
-            self.unlink()
-            return
-        with self._busy_updating():
-            setattr(self.source[0], self.source[1], self._transform_inv(change["new"]))
-            value = getattr(self.target[0], self.target[1])
-            if not self.obj.check_equality(value, change["new"]):
-                msg = f"Broken link {self}: the target value changed while updating the source."
-                raise traitlets.TraitError(msg)
-
-    def unlink(self):
-        if self.obj:
-            with contextlib.suppress(Exception):
-                self.obj.unobserve(self._obj_closed_observe, names="closed")
-        with contextlib.suppress(Exception):
-            self.source[0].unobserve(self._update_target, names=self.source[1])
-        with contextlib.suppress(Exception):
-            self.target[0].unobserve(self._update_source, names=self.target[1])
-
-
-class Dlink(Generic[S]):
-    """Link traits from different objects together so they remain in sync.
-
-    Modified copy - traitlets.directional_link
-    """
-
-    updating = False
-
-    def __init__(
-        self,
-        source: tuple[HasTraits, str],
-        target: tuple[HasTraits, str],
-        transform: Callable[[Any], Any] | None = None,
-        *,
-        obj: S,
-    ):
-        traitlets.traitlets._validate_link(source, target)
-        self._transform = transform or self._pass_through
-        self.source, self.target = source, target
-        # TODO: use weakreferences to obj and same for Link
-        if not isinstance(obj, HasParent):
-            msg = f"obj must be an instance of HasParent not {type(obj)}"
-            raise TypeError(msg)
-        if obj.closed:
-            msg = f"{obj=} is closed!"
-            raise RuntimeError(msg)
-        self.obj = obj
-        self.link()
-
-    def __repr__(self) -> str:
-        return (
-            f"Dlink source={self.source[0].__class__.__qualname__}.{self.source[1]} "
-            f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
-        )
-
-    @contextlib.contextmanager
-    def _busy_updating(self):
-        self.updating = True
-        try:
-            yield
-        finally:
-            self.updating = False
-
-    def _pass_through(self, x):
-        return x
-
-    def _obj_closed_observe(self, _: ChangeType):
-        self.unlink()
-
-    def link(self):
-        try:
-            setattr(
-                self.target[0],
-                self.target[1],
-                self._transform(getattr(self.source[0], self.source[1])),
-            )
-        finally:
-            self.source[0].observe(self._update, names=self.source[1])
-        if self.obj:
-            self.obj.observe(self._obj_closed_observe, names="closed")
-
-    def _update(self, change):
-        if self.updating or not self._transform:
-            return
-        if self.obj and self.obj.closed:
-            self.unlink()
-            return
-        with self._busy_updating():
-            try:
-                setattr(self.target[0], self.target[1], self._transform(change["new"]))
-            except Exception as e:
-                self.obj.on_error(e, "dlink", self)
-                if mb.DEBUG_ENABLED:
-                    raise
-
-    def unlink(self):
-        if self.obj:
-            with contextlib.suppress(Exception):
-                self.obj.unobserve(self._obj_closed_observe, names="closed")
-        with contextlib.suppress(Exception):
-            self.source[0].unobserve(self._update, names=self.source[1])
 
 
 class Parent(InstanceHP[S, RP], Generic[S, RP]):
@@ -275,13 +88,13 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link = InstanceHP[Self, set[Link[Self]]](klass=set).configure(
+    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]]] = InstanceHP(klass=set).configure(
         read_only=False, allow_none=False, default_value=set()
     )
-    _hp_reg_parent_dlink = InstanceHP[Self, set[Dlink[Self]]](klass=set).configure(
+    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]]] = InstanceHP(klass=set).configure(
         read_only=False, allow_none=False, default_value=set()
     )
-    _hasparent_all_links = InstanceHP[Self, dict[Hashable, Link | Dlink]](klass=dict).configure(
+    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink]] = InstanceHP(klass=dict).configure(
         read_only=False, allow_none=False, default_value={}
     )
     _button_register = Fixed[Self, dict[tuple[str, ipw.Button], Callable]](lambda _: {})
@@ -550,10 +363,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if self.closed or (self.KEEP_ALIVE and not force):
             return
         self.set_trait("parent", None)
-        if self.trait_has_value("_hasparent_all_links"):
-            for link in self._hasparent_all_links.values():
-                link.unlink()
-            self._hasparent_all_links.clear()
+        # if self.trait_has_value("_hasparent_all_links"):
+        #     for link in self._hasparent_all_links.values():
+        #         link.unlink()
+        #     self._hasparent_all_links.clear()
         super().close()
         # Reset the object.
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
@@ -597,10 +410,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
         new source.
         """
         key = key or ("link", target)
-        if key in self._hasparent_all_links:
-            self._hasparent_all_links.pop(key).unlink()
+        if current_link := self._hasparent_all_links.pop(key, None):
+            current_link.close()
         if connect:
-            self._hasparent_all_links[key] = Link(src, target, transform=transform, obj=self)
+            self._hasparent_all_links[key] = Link(src, target, transform=transform, parent=self)
         return None
 
     def dlink(
@@ -618,10 +431,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
         new source.
         """
         key = key or ("dlink", target)
-        if key in self._hasparent_all_links:
-            self._hasparent_all_links.pop(key).unlink()
+        if current_link := self._hasparent_all_links.pop(key, None):
+            current_link.close()
         if connect:
-            self._hasparent_all_links[key] = Dlink(src, target, transform=transform, obj=self)
+            self._hasparent_all_links[key] = Dlink(src, target, transform=transform, parent=self)
 
 
     async def wait_init_async(self) -> Self:
@@ -732,3 +545,120 @@ class HasParent(Singular, HasApp, Generic[RP]):
         """Same as dict.get method."""
         return getattr(self, name, default)
 
+
+class Link(HasParent, Generic[S]):
+    """Link traits from different objects together so they remain in sync.
+
+    Inspiration traitlets.link
+    """
+
+    mode: Literal["link", "dlink"] = "link"
+    parent = Parent[Self, S]()
+    _updating = False
+
+    def __init__(
+        self,
+        source: tuple[HasTraits, str],
+        target: tuple[HasTraits, str],
+        transform: tuple[Callable[[Any], Any], Callable[[Any], Any]] | None = None,
+        *,
+        parent: S,
+    ):
+        traitlets.traitlets._validate_link(source, target)
+        self.source, self.target = source, target
+        if parent.closed:
+            msg = f"{parent=} is closed!"
+            raise RuntimeError(msg)
+        self.obj = parent
+        if transform:
+            self._transform, self._transform_inv = transform
+        super().__init__(parent=parent)
+        setattr(
+            self.target[0],
+            self.target[1],
+            self._transform(getattr(self.source[0], self.source[1])),
+        )
+        self.source[0].observe(self._update_target, names=self.source[1])
+        if self.mode == "link":
+            self.target[0].observe(self._update_source, names=self.target[1])
+
+    def __repr__(self) -> str:
+        return (
+            f"Link source={self.source[0].__class__.__qualname__}.{self.source[1]} "
+            f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
+            f"parent={self.parent!r}"
+        )
+
+    def _transform(self, x, /):
+        return x
+
+    def _transform_inv(self, x, /):
+        return x
+
+    def _update_target(self, change: ChangeType):
+        if self._updating or not self._transform:
+            return
+        if self.closed:
+            return
+        try:
+            self._updating = True
+            setattr(self.target[0], self.target[1], self._transform(change["new"]))
+            value = getattr(self.source[0], self.source[1])
+            if not self.obj.check_equality(value, change["new"]):
+                msg = f"Broken link {self}: the source value changed while updating the target."
+                raise traitlets.TraitError(msg)  # noqa: TRY301
+        except traitlets.TraitError as e:
+            msg = (
+                f"Link {utils.fullname(self.source[0])}.{self.source[1]}->"
+                f"{utils.fullname(self.source[0])}.{self.target[1]}"
+            )
+            self.obj.on_error(e, msg, self)
+            if mb.DEBUG_ENABLED:
+                raise
+        finally:
+            self._updating = False
+
+    def _update_source(self, change: ChangeType):
+        if self._updating:
+            return
+        try:
+            self._updating = True
+            setattr(self.source[0], self.source[1], self._transform_inv(change["new"]))
+            value = getattr(self.target[0], self.target[1])
+            if not self.obj.check_equality(value, change["new"]):
+                msg = f"Broken link {self}: the target value changed while updating the source."
+                raise traitlets.TraitError(msg)
+        finally:
+            self._updating = False
+
+    @override
+    def close(self, force=True):
+        if self.closed:
+            return
+        with contextlib.suppress(Exception):
+            self.source[0].unobserve(self._update_target, names=self.source[1])
+        with contextlib.suppress(Exception):
+            self.target[0].unobserve(self._update_source, names=self.target[1])
+        super().close()
+
+    @override
+    def on_error(self, error: Exception, msg: str, obj: Any = None):
+        msg = f"{self.__class__} error: {msg}"
+        return self.parent.on_error(error, msg, obj)
+
+
+class Dlink(Link, Generic[S]):
+    mode = "dlink"
+    parent = Parent[Self, S]()
+
+    def __init__(
+        self,
+        source: tuple[HasTraits, str],
+        target: tuple[HasTraits, str],
+        transform: Callable[[Any], Any] | None = None,
+        *,
+        parent: S,
+    ):
+        if transform:
+            self._transform = transform
+        super().__init__(source=source, target=target, parent=parent)

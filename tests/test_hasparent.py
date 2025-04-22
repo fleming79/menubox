@@ -98,6 +98,10 @@ class TestHasParent:
         assert hp.a_link2 is not parent.a_link2
         assert hp.a_link2.value == 0.98, "Should also link widget values not the widget"
 
+        assert len(hp._hasparent_all_links) == 4
+        hp.close()
+        assert not hp._hasparent_all_links
+
     async def test_has_parent_cleanup(self):
         hp = HP()
         parent = HP(a_link=2, a_dlink=4)
@@ -114,6 +118,7 @@ class TestHasParent:
         assert parent.a_dlink != hp.a_dlink
         assert parent.a_link2.value != hp.a_link2.value
         assert parent.a_dlink2.value != hp.a_dlink2.value
+
 
     async def test_hasparent_linking_equality(self):
         # Linking checks for equality.
@@ -173,7 +178,7 @@ class TestHasParent:
 
         hps.link((parent, "a_link"), (hps, "a_dlink"))
         hps.dlink((parent, "a_dlink"), (parent, "a_dlink"))
-
+        assert len(hps._hasparent_all_links) == 6
         hps.close()
 
     async def test_hasparent_exceptions(self):
