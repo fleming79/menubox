@@ -253,7 +253,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         super().__init__()
 
     def instance_init(self, obj: S):
-        """Init an instance of InstanceHPTuple."""
+        """Init an instance of InstanceHP."""
         super().instance_init(obj)
         obj.observe(self._on_obj_close, names="closed")
 
@@ -419,7 +419,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     def _on_obj_close(self, change: mb.ChangeType):
         obj = change["owner"]
-        if old := obj._trait_values.pop(self.name, None):
+        if (old := obj._trait_values.pop(self.name, None)) is not None:
             self._value_changed(obj, old, self.default_value)  # type: ignore
 
     if TYPE_CHECKING:

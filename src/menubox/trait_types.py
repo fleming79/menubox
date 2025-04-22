@@ -92,7 +92,7 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
     def __init__(self, *default_value, **kwargs):
         """A Tuple of strings of any length."""
         self._trait = self._trait_klass()
-        super().__init__(default_value, **kwargs)
+        super().__init__(tuple(self._iterate(default_value)), **kwargs)
 
     def validate(self, obj, value):
         return tuple(self._iterate(self._trait._validate(obj, v) for v in value)) if value else ()
