@@ -268,7 +268,8 @@ class _Periodic:
                 elif self._repeat:
                     continue
                 if getattr(self.instance, "closed", False):
-                    asyncio.current_task().cancel(f"{self.instance} is closed!")  # type: ignore
+                    msg = f"{self.instance} is closed!"
+                    raise asyncio.CancelledError(msg)  # noqa: TRY301
                 result = self.wrapped(*self.args, **self.kwargs)
                 while inspect.isawaitable(result):
                     result = await result
@@ -277,7 +278,7 @@ class _Periodic:
                 else:
                     await asyncio.sleep(self.wait)
         except asyncio.CancelledError:
-            return
+            raise
         except Exception as e:
             mb.log.on_error_wrapped(self.wrapped, self.instance, self.mode, e)
             raise

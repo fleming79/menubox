@@ -3,10 +3,9 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import functools
-import inspect
 import weakref
 from collections.abc import Callable, Generator, Hashable
-from typing import Any, ClassVar, Generic, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -214,14 +213,14 @@ class Dlink(Generic[S]):
 
 
 class Parent(InstanceHP[S, RP], Generic[S, RP]):
-    klass: type[RP]  # type: ignore
+    klass: type[RP]
     allow_none = True
     default_value = None
     read_only = False
     load_default = False
 
-    def __init__(self, _: S | None = None, /, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
-        super().__init__(_, klass)
+    def __init__(self, _: S | None = None, /, *, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
+        super().__init__(_, klass=klass)
 
     def _validate(self, obj, value):
         if not value:
@@ -276,16 +275,22 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link = InstanceHP[Self, set[Link[Self]]](klass=set).configure(read_only=False)
-    _hp_reg_parent_dlink = InstanceHP[Self, set[Dlink[Self]]](klass=set).configure(read_only=False)
-    _hasparent_all_links = InstanceHP[Self, dict[Hashable, Link | Dlink]](klass=dict).configure(read_only=False)
+    _hp_reg_parent_link = InstanceHP[Self, set[Link[Self]]](klass=set).configure(
+        read_only=False, allow_none=False, default_value=set()
+    )
+    _hp_reg_parent_dlink = InstanceHP[Self, set[Dlink[Self]]](klass=set).configure(
+        read_only=False, allow_none=False, default_value=set()
+    )
+    _hasparent_all_links = InstanceHP[Self, dict[Hashable, Link | Dlink]](klass=dict).configure(
+        read_only=False, allow_none=False, default_value={}
+    )
     _button_register = Fixed[Self, dict[tuple[str, ipw.Button], Callable]](lambda _: {})
 
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name = InstanceHP[Self, str](klass=str).configure(read_only=False, initial_value="")
+    name = InstanceHP[Self, str](klass=str).configure(read_only=False, allow_none=False, default_value="")
     parent = Parent[Self, RP]()
-    tasks = InstanceHP[Self, set[asyncio.Task[Any]]](klass=set).configure()
+    tasks = InstanceHP[Self, set[asyncio.Task[Any]]](klass=set).configure(read_only=True, allow_none=False)
 
     def __repr__(self):
         if self.closed:
@@ -500,7 +505,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
             if mb.DEBUG_ENABLED:
                 raise
 
-    def enable_ihp(self, name: str, *, override: dict | None = None):
+    def enable_ihp(self, name: str, *, override: dict | None = None) -> Self:
         """Enable a InstanceHP trait.
 
         Passing an override will ensure the 'default' is always called.
@@ -518,11 +523,13 @@ class HasParent(Singular, HasApp, Generic[RP]):
         ihp = self._InstanceHP[name]
         if override is not None or getattr(self, name, None) is None:
             self.set_trait(name, ihp.default(self, override=override or {}))
+        return self
 
-    def disable_ihp(self, name: str):
+    def disable_ihp(self, name: str) -> Self:
         """Disables an InstanceHP trait."""
         ihp = self._InstanceHP[name]
         self.set_trait(name, ihp.default_value)
+        return self
 
     def _reset_trait(self, name: str):
         """Reset the trait to an unloaded stated."""
@@ -618,6 +625,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
 
     async def wait_init_async(self) -> Self:
+        assert asyncio.current_task() is not self._init_async_task  # noqa: S101
         await asyncio.shield(self._init_async_task)
         return self
 

@@ -98,10 +98,17 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         create: An optional callable that is used to create the instance.
         settings: A dictionary to store settings related to the instance.
         info_text: A property that returns a string describing the instance type.
+
+    Type hints:
+    -----------
+    Option 1:
+        Pass `cast(Self, None)` as the first argument to enable type hinting
+        access to the parent class.
+    Option 2:
+        Define both types on the class with InstanceHP[Self, Klass]
     """
 
     klass: type[T]
-    _blank_value = None
     default_value = None
     allow_none = True
     read_only = True
@@ -221,10 +228,15 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         return super().class_init(cls, name)
 
     def __init__(
-        self, _: S | None = None, /, klass: type[T] | str = "", create: Callable[[IHPCreate[S, T]], T] | None = None
+        self,
+        cast_self: S | None = None,
+        /,
+        *,
+        klass: type[T] | str,
+        default: Callable[[IHPCreate[S, T]], T] | None = None,
     ) -> None:
         self._hookmappings = {}
-        self._create = create
+        self._create = default
         if not klass:
             msg = "klass must be specified"
             raise ValueError(msg)
@@ -269,7 +281,9 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
                 except BaseException:
                     raise_error = True
                 if raise_error:
-                    msg = f"Changing a SINGLE_BY trait is prohibited for {self}"
+                    msg = (
+                        f"Changing {obj.__class__.__name__}.{self.name} is prohibited because it is in {obj.SINGLE_BY=}"
+                    )
                     raise ValueError(msg)
         except KeyError:
             old_value = self.default_value
@@ -291,7 +305,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     def get(self, obj: S, cls: Any = None) -> T | None:  # type: ignore
         try:
-            value: T | None = obj._trait_values[self.name]  # type: ignore
+            return obj._trait_values[self.name]  # type: ignore
         except KeyError:
             self.finalize()
             # Obtain the default.
@@ -306,15 +320,21 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             finally:
                 obj._cross_validation_lock = _cross_validation_lock
             obj._trait_values[self.name] = value  # type: ignore
-            self._value_changed(obj, self._blank_value, value)
-            obj._notify_observers(Bunched(name=self.name, old=self._blank_value, new=value, owner=obj, type="change"))
+            dv = self.default_value
+            try:
+                silent = bool(value == dv)
+            except Exception:
+                # if there is an error in comparing, default to notify
+                silent = False
+            if silent is not True:
+                self._value_changed(obj, dv, value)
+                obj._notify_observers(Bunched(name=self.name, old=dv, new=value, owner=obj, type="change"))
             return value  # type: ignore
         except Exception as e:
             # This should never be reached.
             msg = "Unexpected error in TraitType: default value not set properly"
             raise traitlets.TraitError(msg) from e
-        else:
-            return value  # type: ignore
+
 
     def finalize(self):
         """Finalizes the InstanceHP instance by resolving the class and calling the initialization hook.
@@ -400,7 +420,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     def _on_obj_close(self, change: mb.ChangeType):
         obj = change["owner"]
         if old := obj._trait_values.pop(self.name, None):
-            self._value_changed(obj, old, self._blank_value)  # type: ignore
+            self._value_changed(obj, old, self.default_value)  # type: ignore
 
     if TYPE_CHECKING:
 
@@ -408,50 +428,28 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         def configure(
             self,
             *,
-            read_only: bool = ...,
+            read_only: bool = True,
+            allow_none: Literal[False] = False,
+            load_default: bool = True,
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        ) -> InstanceHP[S, T]: ...
+        @overload
+        def configure(
+            self,
+            *,
+            read_only: bool = True,
             allow_none: Literal[True],
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            initial_value=...,
+            load_default: bool = True,
+            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
         ) -> InstanceHP[S, T | None]: ...
-        @overload
-        def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: Literal[False],
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            initial_value=...,
-        ) -> InstanceHP[S, T]: ...
-        @overload
-        def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: bool | NO_DEFAULT_TYPE = ...,
-            load_default: Literal[False],
-            initial_value=...,
-        ) -> InstanceHP[S, T | None]: ...
-        @overload
-        def configure(
-            self,
-            *,
-            read_only: bool = ...,
-            allow_none: Literal[True] = ...,
-            load_default: bool | NO_DEFAULT_TYPE = ...,
-            initial_value=...,
-        ) -> InstanceHP[S, T]: ...
-        @overload
-        def configure(
-            self, *, read_only: bool = ..., allow_none=..., load_default=..., initial_value=...
-        ) -> InstanceHP[S, T]: ...
 
     def configure(
         self,
         *,
         read_only=True,
-        allow_none: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
-        load_default: bool | NO_DEFAULT_TYPE = NO_DEFAULT,
-        initial_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        allow_none=False,
+        load_default=True,
+        default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
     ) -> InstanceHP[S, T] | InstanceHP[S, T | None]:
         """Configures the instance with the provided settings.
 
@@ -463,16 +461,16 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             read_only:  If True, the instance will be read-only. Defaults to True.
             allow_none: If True, None values are permitted. If NO_DEFAULT, defaults to not load_default.
             load_default: If True, default values are loaded. If NO_DEFAULT, the existing value is kept.
-            initial_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
+            default_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
 
         Returns:
             The instance itself (self), with updated configuration. The return type reflects whether None is allowed.
         """
-        self.load_default = load_default if load_default is not NO_DEFAULT else self.load_default
-        self.allow_none = allow_none if allow_none is not NO_DEFAULT else not load_default
+        self.load_default = load_default
+        self.allow_none = allow_none
         self.read_only = read_only
-        if initial_value is not NO_DEFAULT:
-            self.default_value = initial_value
+        if default_value is not NO_DEFAULT:
+            self.default_value = default_value
         return self  # type: ignore
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
@@ -583,7 +581,7 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(_, klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        instance = InstanceHP(klass=klass, default=lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
         if kwargs:
             instance.hooks(**kwargs)  # type: ignore
         if tags:

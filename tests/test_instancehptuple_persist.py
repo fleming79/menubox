@@ -16,7 +16,7 @@ class VTTP(ValueTraits):
 
 
 class HPP(ValueTraits):
-    widgets = InstanceHPTuple[Self, VTTP](traitlets.Instance(VTTP)).hooks(set_parent=True)
+    widgets = InstanceHPTuple[Self, VTTP](trait=traitlets.Instance(VTTP)).hooks(set_parent=True)
     changecount = traitlets.Int(0)
     value_traits_persist = NameTuple("widgets")
 

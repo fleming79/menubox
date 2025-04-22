@@ -283,8 +283,8 @@ class Filesystem(MenuboxVT):
         finally:
             rp.close()
 
-    async def write_async(self, path: str, data: bytes):
-        # write data to path in fs
+    async def write(self, path: str, data: bytes):
+        "Write the file at path inside a thread"
         await mb_async.to_thread(self._write, path, data)
 
     def _write(self, path: str, data: bytes):
@@ -344,13 +344,18 @@ class RelativePath(Filesystem):
 
 
 class HasFilesystem(HasHome):
-    filesystem = tf.InstanceHP(cast(Self, None), Filesystem, lambda c: c["parent"].home.filesystem)
-
+    filesystem = (
+        tf.InstanceHP(cast(Self, None), klass=Filesystem, default=lambda c: c["parent"].home.filesystem)
+        .hooks(on_replace_close=False, set_parent=False)
+        .configure(read_only=False, allow_none=False)
+    )
     def __new__(cls, *, home=None, parent=None, filesystem: Filesystem | None = None, **kwargs):
-        if not filesystem and cls.SINGLE_BY and "filesystem" not in cls.SINGLE_BY:
-            if isinstance(parent := kwargs.get("parent"), HasFilesystem):
+        if not filesystem:
+            if isinstance(parent, HasFilesystem):
                 filesystem = parent.filesystem
             else:
                 home = cls.to_home(home, parent)
                 filesystem = home.filesystem
-        return super().__new__(cls, home=home, parent=parent, filesystem=filesystem, **kwargs)
+        inst = super().__new__(cls, home=home, parent=parent, filesystem=filesystem, **kwargs)
+        inst.filesystem = filesystem
+        return inst

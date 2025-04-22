@@ -56,7 +56,6 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
     """
 
     default_value = ()
-    _blank_value = ()
     info_text = "A tuple that can spawn new instances"  # type: ignore
     validating = False
     if TYPE_CHECKING:
@@ -94,8 +93,8 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
 
     def __init__(
         self,
-        trait: TraitType[T, T],
         *,
+        trait: TraitType[T, T],
         factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
         read_only=False,
         klass: type | None = None,
@@ -109,7 +108,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
-        super().__init__(cast(V, None), klass=klass or trait.klass, create=default)  # type: ignore
+        super().__init__(cast(V, None), klass=klass or trait.klass, default=default)  # type: ignore
         self._factory = factory
         self.read_only = read_only
         self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = weakref.WeakKeyDictionary()  # type: ignore

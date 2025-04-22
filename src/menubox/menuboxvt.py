@@ -11,9 +11,10 @@ import menubox as mb
 from menubox import trait_factory as tf
 from menubox import utils
 from menubox.css import CSScls
+from menubox.hasparent import Parent
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_types import ChangeType, R, StrTuple
+from menubox.trait_types import RP, ChangeType, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
 
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 __all__ = ["MenuboxVT"]
 
 
-class MenuboxVT(Menubox, ValueTraits, Generic[R]):
+class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     """
     MenuboxVT Combines Menubox with ValueTraits and provides additional features such as templates,
     copy/paste settings, configuration view and description rendering.
@@ -45,19 +46,20 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
+    parent = Parent[Self, RP]()
     header = (
         tf.MenuboxHeader()
-        .configure(allow_none=True)
         .hooks(
             add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header),
         )
+        .configure(allow_none=True)
     )
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = tf.InstanceHP(
-        cast(Self, None), ipw.HBox, lambda _: ipw.HBox(layout={"width": "max-content"})
+        cast(Self, None), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -79,8 +81,8 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     )
     text_name = tf.InstanceHP(
         cast(Self, None),
-        ComboboxValidate,
-        lambda c: ComboboxValidate(
+        klass=ComboboxValidate,
+        default=lambda c: ComboboxValidate(
             validate=c["parent"]._validate_name,
             description="Name",
             continuous_update=False,
@@ -101,8 +103,8 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
     description = tf.CodeEditor(description="Description", mime_type="text/x-markdown")
     description_viewer = tf.InstanceHP(
         cast(Self, None),
-        MarkdownOutput,
-        lambda c: MarkdownOutput(
+        klass=MarkdownOutput,
+        default=lambda c: MarkdownOutput(
             layout={"margin": "0px 0px 0px 10px"},
             converter=c["parent"]._convert_description,
         ).add_class(CSScls.resize_vertical),
@@ -121,7 +123,7 @@ class MenuboxVT(Menubox, ValueTraits, Generic[R]):
                 transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
             ),
         )
-        .configure(load_default=False)
+        .configure(load_default=False, allow_none=True)
     )
     button_clip_put = tf.Button_open(description="📎", tooltip="Copy settings to clipboard")
     button_paste = tf.Button_open(description="📋", tooltip="Paste settings from clipboard\n")

@@ -11,14 +11,13 @@ import traitlets
 import menubox
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
-from menubox.async_run_button import AsyncRunButton
 from menubox.filesystem import HasFilesystem
 from menubox.instance import IHPCreate
 from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
-from menubox.trait_types import MP, ChangeType, R, S, StrTuple, TypedTuple
+from menubox.trait_types import MP, ChangeType, S, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from menubox.filesystem import Filesystem
 
 
-class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[R]):
+class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     """Persistence of nested settings in yaml files plus persistence of dataframes using
     filesystem.
 
@@ -94,22 +93,18 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[R]):
             target=(c["obj"], "options"),
         ),
     )
-    button_save_persistence_data = tf.InstanceHP(
+    button_save_persistence_data = tf.AsyncRunButton(
         cast(Self, None),
-        AsyncRunButton,
-        lambda c: AsyncRunButton(
-            parent=c["parent"],
-            cfunc=lambda p: p._button_save_persistence_data_async,
-            description="💾",
-            tooltip="Save persistence data for current version",
-            tasktype=mb_async.TaskType.update,
-        ),
+        cfunc=lambda p: p._button_save_persistence_data_async,
+        description="💾",
+        tooltip="Save persistence data for current version",
+        tasktype=mb_async.TaskType.update,
     )
     version_widget = (
         tf.InstanceHP(
             cast(Self, None),
-            ipw.BoundedIntText,
-            lambda c: ipw.BoundedIntText(
+            klass=ipw.BoundedIntText,
+            default=lambda c: ipw.BoundedIntText(
                 min=1,
                 max=1,
                 step=1,
@@ -519,7 +514,8 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     SINGLE_BY = ("klass", "filesystem")
     RENAMEABLE = False
     pool = InstanceHPTuple[Self, MP](
-        traitlets.Instance(MenuboxPersist), factory=lambda c: c["parent"].factory_pool(**c["kwgs"])
+        trait=traitlets.Instance(MenuboxPersist),
+        factory=lambda c: c["parent"].factory_pool(**c["kwgs"]),
     ).hooks(
         update_item_names=("name", "versions"),
         set_parent=True,

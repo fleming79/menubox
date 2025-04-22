@@ -12,18 +12,18 @@ from menubox.hasparent import HasParent
 class PMB(mb.Menubox):
     ab_main = tf.InstanceHP(
         cast(Self, None),
-        AsyncRunButton,
-        lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
+        klass=AsyncRunButton,
+        default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
     )
     ab_nested = tf.InstanceHP(
         cast(Self, None),
-        AsyncRunButton,
-        lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
+        klass=AsyncRunButton,
+        default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
     )
     ab_nested_sub = tf.InstanceHP(
         cast(Self, None),
-        AsyncRunButton,
-        lambda c: AsyncRunButton(
+        klass=AsyncRunButton,
+        default=lambda c: AsyncRunButton(
             parent=c["parent"], cfunc=lambda p: p.ab_main, description="Sub button", link_button=True
         ),
     )

@@ -154,7 +154,7 @@ MenuboxVT = ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.M
 
 
 def AsyncRunButton(
-    _: S,
+    cast_self: S,
     cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
     description="Start",
     cancel_description="Cancel",
@@ -168,9 +168,9 @@ def AsyncRunButton(
     **kwargs,
 ):
     return InstanceHP(
-        _,
-        menubox.async_run_button.AsyncRunButton,
-        lambda c: menubox.async_run_button.AsyncRunButton(
+        cast_self,
+        klass=menubox.async_run_button.AsyncRunButton,
+        default=lambda c: menubox.async_run_button.AsyncRunButton(
             parent=c["parent"],
             cfunc=cfunc,
             description=description,
@@ -188,7 +188,7 @@ def AsyncRunButton(
 
 
 def Modalbox(
-    _: S,
+    cast_self: S,
     obj: Callable[[S], menubox.utils.GetWidgetsInputType],
     title: str,
     expand=False,
@@ -205,9 +205,9 @@ def Modalbox(
     **kwargs,
 ):
     return InstanceHP(
-        _,
-        cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
-        lambda c: menubox.Modalbox(
+        cast_self,
+        klass=cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
+        default=lambda c: menubox.Modalbox(
             parent=c["parent"],
             obj=obj,
             title=title,
@@ -227,9 +227,9 @@ def Modalbox(
     )
 
 
-def SelectRepository(_: H) -> InstanceHP[H, menubox.repository.SelectRepository[H]]:
+def SelectRepository(cast_self: H) -> InstanceHP[H, menubox.repository.SelectRepository[H]]:
     "Requires parent to have a home"
-    return InstanceHP(_, "menubox.repository.SelectRepository").configure(allow_none=False)
+    return InstanceHP(cast_self, klass="menubox.repository.SelectRepository").configure(allow_none=False)
 
 
 def Task():
@@ -237,7 +237,10 @@ def Task():
 
 
 def MenuboxPersistPool(
-    _: H, obj_cls: type[MP] | str, factory: Callable[[IHPCreate], MP] | None = None, **kwgs
+    cast_self: H,  # noqa: ARG001
+    obj_cls: type[MP] | str,
+    factory: Callable[[IHPCreate], MP] | None = None,
+    **kwgs,
 ) -> ipylab.Fixed[H, menubox.persist.MenuboxPersistPool[H, MP]]:
     """A Fixed Obj shuffle for any Menubox persist object.
 

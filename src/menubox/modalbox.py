@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, override
+from typing import TYPE_CHECKING, Any, Generic, Self, override
 
 import ipywidgets as ipw
 import traitlets
@@ -8,9 +8,9 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.hasparent import HasParent
+from menubox.hasparent import HasParent, Parent
 from menubox.log import log_exceptions
-from menubox.trait_types import ChangeType, R, StrTuple
+from menubox.trait_types import ChangeType, S, StrTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 __all__ = ["Modalbox"]
 
 
-class Modalbox(HasParent, ipw.VBox, Generic[R]):
+class Modalbox(HasParent, ipw.VBox, Generic[S]):
     obj = traitlets.Callable(read_only=True)
     button_expand = tf.Button_modal()
     button_collapse = tf.Button_modal(disabled=True)
@@ -27,24 +27,25 @@ class Modalbox(HasParent, ipw.VBox, Generic[R]):
     header = tf.HBox().configure(allow_none=True).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
+    parent = Parent[Self, S]()
 
     @log_exceptions
     def __init__(
         self,
         *,
-        parent: R,
-        obj: Callable[[R], utils.GetWidgetsInputType],
+        parent: S,
+        obj: Callable[[S], utils.GetWidgetsInputType],
         title: str,
         expand=False,
-        box: Callable[[R], ipw.Box] | None = None,
+        box: Callable[[S], ipw.Box] | None = None,
         title_tooltip="",
         button_expand_description="",
         button_expand_tooltip="Expand",
         button_collapse_description="🗕",
         button_collapse_tooltip="Collapse",
-        header_children: Callable[[R], utils.GetWidgetsInputType] = lambda _: "H_FILL",
-        on_expand: Callable[[R], Any] = lambda _: None,
-        on_collapse: Callable[[R], Any] = lambda _: None,
+        header_children: Callable[[S], utils.GetWidgetsInputType] = lambda _: "H_FILL",
+        on_expand: Callable[[S], Any] = lambda _: None,
+        on_collapse: Callable[[S], Any] = lambda _: None,
         orientation="vertical",
         **kwargs,
     ) -> None:
@@ -100,7 +101,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[R]):
     @property
     def box(self) -> ipw.Box | None:
         if self._box_getter:
-            return self._box_getter(self.parent)  # type: ignore
+            return self._box_getter(self.parent)
         return None
 
     @override

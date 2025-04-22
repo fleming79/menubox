@@ -16,7 +16,6 @@ class ChildrenSetter(ValueTraits):
     SINGLE_BY = ("parent", "name")
     _AUTO_VALUE = False
     _prohibited_value_traits = set()  # noqa: RUF012
-    # parent = Parent[Self, HasParent]().configure(allow_none=False)
     dottednames = Tuple(read_only=True)
     nametuple_name = Unicode(help="The name in the parent of a tuple to obtain the dotted names")
     parent_dlink = NameTuple("log")

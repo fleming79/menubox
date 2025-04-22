@@ -15,7 +15,7 @@ from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent, Parent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
-from menubox.trait_types import Bunched, ChangeType, NameTuple, R
+from menubox.trait_types import RP, Bunched, ChangeType, NameTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable, Iterator
@@ -70,7 +70,7 @@ class _InstanceHPTupleRegister(HasParent):
 
     parent = Parent[Self, "ValueTraits|None"](klass="menubox.valuetraits.ValueTraits")
     reg = InstanceHP[Self, set[tuple[HasTraits, str]]](klass=set).configure(
-        read_only=False, allow_none=False, initial_value=set()
+        read_only=False, allow_none=False, default_value=set()
     )
 
     @observe("reg")
@@ -86,7 +86,7 @@ class _InstanceHPTupleRegister(HasParent):
             pass
 
 
-class ValueTraits(HasParent, Generic[R]):
+class ValueTraits(HasParent, Generic[RP]):
     """ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
 
@@ -136,6 +136,7 @@ class ValueTraits(HasParent, Generic[R]):
     value_traits_persist = NameTuple()
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
+    parent = Parent[Self, RP]()
     if TYPE_CHECKING:
         _value: Callable
 
@@ -185,7 +186,7 @@ class ValueTraits(HasParent, Generic[R]):
     def __init__(
         self,
         *,
-        parent: R = None,
+        parent: RP = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str = None,

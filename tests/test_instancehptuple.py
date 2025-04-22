@@ -23,7 +23,7 @@ class VTT(mb.ValueTraits):
     removed_count = traitlets.Int()
     somelist_count = traitlets.Int()
 
-    somelist = menubox.instancehp_tuple.InstanceHPTuple[Self, ipw.Text](Instance(ipw.Text)).hooks(
+    somelist = menubox.instancehp_tuple.InstanceHPTuple[Self, ipw.Text](trait=Instance(ipw.Text)).hooks(
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
@@ -31,7 +31,7 @@ class VTT(mb.ValueTraits):
         on_remove=lambda c: c["parent"].on_remove(c),
     )
     menuboxvts = menubox.instancehp_tuple.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
-        traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
+        trait=traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
         klass=mb.MenuboxVT,
         factory=lambda c: c["parent"]._new_menubox(**c["kwgs"]),
     ).hooks(
@@ -73,12 +73,12 @@ class VT(VTT):
 
 class VTT2(mb.ValueTraits):
     value_traits_persist = tt.NameTuple("somelist", "somelist2")
-    somelist = menubox.instancehp_tuple.InstanceHPTuple(Instance(ipw.Text), factory=None).hooks(
+    somelist = menubox.instancehp_tuple.InstanceHPTuple(trait=Instance(ipw.Text), factory=None).hooks(
         update_by="description",
         update_item_names=("value",),
     )
     somelist2 = menubox.instancehp_tuple.InstanceHPTuple[Self, VT | mb.Bunched](
-        traitlets.Union([Instance(VT), Instance(mb.Bunched)]),
+        trait=traitlets.Union([Instance(VT), Instance(mb.Bunched)]),
         klass=mb.MenuboxVT,
         factory=lambda c: c["parent"].somelist2_factory(**c["kwgs"]),
     ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
@@ -102,34 +102,36 @@ class TestValueTraits:
 
         assert vt.value() == {"somelist": ()}
         vt.somelist = (item1,)
-        assert vt.change_count == 2
+        assert vt._vt_reg_value_traits_persist == {(vt, "somelist")}
+
+        assert vt.somelist_count == 1
         assert vt.added_count == 1
-        assert vt.somelist_count == 2
+        assert vt.somelist_count == 1
         assert str(vt.value()) == "{'somelist': (Text(value='', description='Item1'),)}"
 
         vt.somelist = (*vt.somelist, item2)
-        assert vt.change_count == 3
+        assert vt.change_count == 2
         assert vt.added_count == 2
-        assert vt.somelist_count == 3
+        assert vt.somelist_count == 2
 
         assert (item1, "value") in vt._vt_tuple_reg["somelist"].reg, "should be registered"
         item1.value = "a new value"
-        assert vt.change_count == 4
+        assert vt.change_count == 3
 
         vt.somelist = (item2,)
-        assert vt.change_count == 5
+        assert vt.change_count == 4
         assert vt.added_count == 2
         assert vt.removed_count == 1
 
         item1.value = "a removed item has changed should not be monitored anymore"
-        assert vt.change_count == 5
+        assert vt.change_count == 4
 
         vt2.somelist = (item2,)
         assert vt2.change_count == 0, "Value traits should only emit when being monitored"
         vt2.add_value_traits("somelist")
         assert vt2.added_count == 1
         item2.value = "item 2 should be monitored by both vt and vt2"
-        assert vt.change_count == 6
+        assert vt.change_count == 5
         assert vt2.change_count == 1
 
     async def test_tuple_obj_and_singleton(self, home: mb.Home):
@@ -154,10 +156,10 @@ class TestValueTraits:
 
         assert vt.added_count == 1
         assert vt.removed_count == 0
-        assert vt.change_count == 2
+        assert vt.change_count == 1
 
         vt.somelist = ()
-        assert vt.change_count == 3
+        assert vt.change_count == 2
         assert vt.removed_count == -10, "Should decrement by 10 each time"
 
     async def test_spawn_new_instances(self):
