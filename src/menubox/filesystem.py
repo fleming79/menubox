@@ -55,7 +55,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     url = tf.Combobox(
         description="url",
@@ -63,7 +63,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     drive = tf.Dropdown(
         cast(Self, None),
@@ -74,11 +74,11 @@ class Filesystem(MenuboxVT):
     ).hooks(
         on_set=lambda c: (
             c["parent"].dlink(
-                src=(c["parent"].protocol, "value"),
+                source=(c["parent"].protocol, "value"),
                 target=(c["obj"].layout, "visibility"),
                 transform=lambda protocol: utils.to_visibility(protocol == "file"),
             ),
-            c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+            c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
         )
     )
     kw = tf.TextareaValidate(
@@ -89,7 +89,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(src=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     sw_main = tf.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},

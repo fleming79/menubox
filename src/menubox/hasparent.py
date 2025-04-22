@@ -362,12 +362,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         """
         if self.closed or (self.KEEP_ALIVE and not force):
             return
-        self.set_trait("parent", None)
-        # if self.trait_has_value("_hasparent_all_links"):
-        #     for link in self._hasparent_all_links.values():
-        #         link.unlink()
-        #     self._hasparent_all_links.clear()
         super().close()
+        self.set_trait("parent", None)
         # Reset the object.
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
             d = getattr(self, n, None)
@@ -393,7 +389,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     def link(
         self,
-        src: tuple[HasTraits, str],
+        source: tuple[HasTraits, str],
         target: tuple[HasTraits, str],
         transform: tuple[
             Callable[[Any], Any],
@@ -413,12 +409,12 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if current_link := self._hasparent_all_links.pop(key, None):
             current_link.close()
         if connect:
-            self._hasparent_all_links[key] = Link(src, target, transform=transform, parent=self)
+            self._hasparent_all_links[key] = Link(source, target, transform=transform, parent=self)
         return None
 
     def dlink(
         self,
-        src: tuple[HasTraits, str],
+        source: tuple[HasTraits, str],
         target: tuple[HasTraits, str],
         transform: Callable[[Any], Any] | None = None,
         connect=True,
@@ -434,7 +430,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if current_link := self._hasparent_all_links.pop(key, None):
             current_link.close()
         if connect:
-            self._hasparent_all_links[key] = Dlink(src, target, transform=transform, parent=self)
+            self._hasparent_all_links[key] = Dlink(source, target, transform=transform, parent=self)
 
 
     async def wait_init_async(self) -> Self:
@@ -564,7 +560,6 @@ class Link(HasParent, Generic[S]):
         *,
         parent: S,
     ):
-        traitlets.traitlets._validate_link(source, target)
         self.source, self.target = source, target
         if parent.closed:
             msg = f"{parent=} is closed!"
@@ -573,14 +568,10 @@ class Link(HasParent, Generic[S]):
         if transform:
             self._transform, self._transform_inv = transform
         super().__init__(parent=parent)
-        setattr(
-            self.target[0],
-            self.target[1],
-            self._transform(getattr(self.source[0], self.source[1])),
-        )
-        self.source[0].observe(self._update_target, names=self.source[1])
+        setattr(target[0], target[1], self._transform(getattr(source[0], source[1])))
+        source[0].observe(self._update_target, names=source[1])
         if self.mode == "link":
-            self.target[0].observe(self._update_source, names=self.target[1])
+            target[0].observe(self._update_source, names=target[1])
 
     def __repr__(self) -> str:
         return (

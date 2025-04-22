@@ -91,9 +91,9 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         ),
     ).hooks(
         on_set=lambda c: (
-            c["parent"].link(src=(c["parent"], "name"), target=(c["obj"], "value")),
+            c["parent"].link(source=(c["parent"], "name"), target=(c["obj"], "value")),
             c["parent"].dlink(
-                src=(c["parent"], "name"),
+                source=(c["parent"], "name"),
                 target=(c["obj"], "disabled"),
                 transform=lambda name: bool(not c["parent"].RENAMEABLE if name else False),
             ),
@@ -110,7 +110,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         ).add_class(CSScls.resize_vertical),
     ).hooks(
         on_set=lambda c: c["parent"].dlink(
-            src=(c["parent"].description, "value"),
+            source=(c["parent"].description, "value"),
             target=(c["obj"], "value"),
         )
     )
@@ -118,7 +118,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         tf.Button_open(cast(Self, None), tooltip="Configure")
         .hooks(
             on_set=lambda c: c["parent"].dlink(
-                src=(c["parent"], "view"),
+                source=(c["parent"], "view"),
                 target=(c["obj"], "description"),
                 transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
             ),

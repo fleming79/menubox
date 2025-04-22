@@ -89,7 +89,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         layout={"width": "max-content"},
     ).hooks(
         on_set=lambda c: c["parent"].dlink(
-            src=(c["parent"], "versions"),
+            source=(c["parent"], "versions"),
             target=(c["obj"], "options"),
         ),
     )
@@ -120,7 +120,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         .hooks(
             on_set=lambda c: (
                 c["parent"].dlink(
-                    src=(c["parent"], "versions"),
+                    source=(c["parent"], "versions"),
                     target=(c["obj"], "max"),
                     transform=lambda versions: 1 if c["parent"].SINGLE_VERSION else max(versions or (0,)) + 1,
                 ),
@@ -524,7 +524,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     obj_name = tf.Combobox(cast(Self, None), placeholder="Enter name or select existing", continuous_update=True).hooks(
         on_set=lambda c: (
             c["parent"].update_names(),
-            c["parent"].dlink(src=(c["parent"], "names"), target=(c["obj"], "options")),
+            c["parent"].dlink(source=(c["parent"], "names"), target=(c["obj"], "options")),
         )
     )
     names = menubox.StrTuple()

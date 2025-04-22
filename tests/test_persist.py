@@ -17,7 +17,7 @@ class MBP(MenuboxPersist):
     a_widget = tf.Text(description="something", value="Using the value")
     just_a_widget = tf.Dropdown(cast(Self, None), description="just_a_widget", options=[1, 2, 3]).hooks(
         on_set=lambda c: c["parent"].dlink(
-            src=(c["parent"], "df"),
+            source=(c["parent"], "df"),
             target=(c["obj"].layout, "visibility"),
             transform=lambda df: mb.utils.to_visibility(df.empty, invert=True),
         ),

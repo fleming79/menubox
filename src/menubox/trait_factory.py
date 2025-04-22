@@ -112,7 +112,7 @@ FileUpload = ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button
 MenuboxHeader = ihpwrap(
     ipw.HBox,
     on_set=lambda c: c["parent"].dlink(
-        src=(c["parent"], "border"),
+        source=(c["parent"], "border"),
         target=(c["obj"].layout, "border_bottom"),
     ),
     add_css_class=(CSScls.Menubox_item, CSScls.box_header),
