@@ -52,6 +52,7 @@ class Parent(InstanceHP[S, RP], Generic[S, RP]):
             return
         self._hookmappings["on_replace_close"] = False
         self._hookmappings["set_parent"] = False
+        self._hookmappings["remove_on_close"] = False
         super().finalize()
 
     @override
@@ -208,11 +209,15 @@ class HasParent(Singular, HasApp, Generic[RP]):
     @traitlets.observe("parent", "parent_link", "parent_dlink")
     def _observe_parent(self, change: ChangeType):
         if change["name"] == "parent":
-            if isinstance(change["old"], HasParent):
-                with contextlib.suppress(Exception):
-                    change["old"].unobserve(self._hp_parent_closed, "closed")
-            if isinstance(change["new"], HasParent):
-                change["new"].observe(self._hp_parent_closed, "closed")
+            if change["old"]:
+                try:  # noqa: SIM105
+                    change["old"].unobserve(self._hp_parent_close_handle, names="closed")
+                except Exception:  # noqa: S110
+                    pass
+            if isinstance(parent := change["new"], HasParent):
+                self._hp_parent_close_handle = utils.weak_observe(
+                    change["new"], self.close, names="closed", pass_change=False
+                )
         p_link = set()
         p_dlink = set()
         if (parent := self.parent) is not None:
@@ -310,13 +315,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
         """
         self.log.exception(msg, obj=obj, exc_info=error)
 
-    def _hp_parent_closed(self, _: ChangeType):
-        try:
-            self.close()
-        except Exception as e:
-            self.on_error(e, "close failed")
-            if mb.DEBUG_ENABLED:
-                raise
 
     def enable_ihp(self, name: str, *, override: dict | None = None) -> Self:
         """Enable a InstanceHP trait.
@@ -363,13 +361,12 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if self.closed or (self.KEEP_ALIVE and not force):
             return
         super().close()
-        self.set_trait("parent", None)
-        # Reset the object.
+        # Make the object mostly un-responsive
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
             d = getattr(self, n, None)
             if isinstance(d, dict):
                 d.clear()
-        self.set_trait("closed", True)  # Need to restore this trait to false.
+        self.set_trait("closed", True)  # Need to restore this trait to True.
 
     def fstr(self, string: str, raise_errors=False, parameters: dict | None = None) -> str:
         """Formats string using fstr type notation.

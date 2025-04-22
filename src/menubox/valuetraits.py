@@ -18,7 +18,7 @@ from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_types import RP, Bunched, ChangeType, NameTuple
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Iterable, Iterator
+    from collections.abc import Collection, Iterable, Iterator
 
     from fsspec import AbstractFileSystem
 
