@@ -224,7 +224,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         try:
             cls._InstanceHP[name] = self  # type: ignore # type: type[HasParent]
         except AttributeError:
-            msg = "InstanceHP can only be used as a trait inmhp. HasParent subclasses!"
+            msg = "InstanceHP can only be used as a trait in HasParent subclasses!"
             raise AttributeError(msg) from None
         return super().class_init(cls, name)
 

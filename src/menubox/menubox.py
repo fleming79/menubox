@@ -73,19 +73,17 @@ class Menubox(HasParent, Panel, Generic[RP]):
     menuviews = StrTuple()
     tabviews = StrTuple()
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
-    views: traitlets.Dict[str, utils.GetWidgetsInputType] = traitlets.Dict(
-        default_value={}, key_trait=traitlets.Unicode()
-    )
-    border = traitlets.Unicode(default_value=None, allow_none=True)
-    view = traitlets.Unicode(allow_none=True, default_value=None)
-    shuffle_button_views = traitlets.Dict(default_value={}, key_trait=traitlets.Unicode())
-    view_previous = traitlets.Unicode(allow_none=True, default_value=None)
-    title_description = traitlets.Unicode()
-    title_description_tooltip = traitlets.Unicode()
-    confirm_close_message = traitlets.Unicode()
-    remover_button_description_confirm = traitlets.Unicode("Confirm")
-    remover_button_description_cancel = traitlets.Unicode("Cancel")
-    remover_button_description_middle = traitlets.Unicode("")
+    views: tf.InstanceHP[Self, dict[str, utils.GetWidgetsInputType]] = tf.Dict()
+    shuffle_button_views: tf.InstanceHP[Self, dict[str, ipw.Widget | Menubox | str]] = tf.Dict()
+    border = tf.Str(cast(Self, None), lambda _: None).configure(read_only=False, allow_none=True)
+    view = tf.Str(cast(Self, None), lambda _: None).configure(read_only=False, allow_none=True)
+    view_previous = tf.Str(cast(Self, None), lambda _: None).configure(allow_none=True)
+    title_description = tf.Str(cast(Self, None))
+    title_description_tooltip = tf.Str(cast(Self, None))
+    confirm_close_message = tf.Str(cast(Self, None))
+    remover_button_description_confirm = tf.Str(cast(Self, None), lambda _: "Confirm")
+    remover_button_description_cancel = tf.Str(cast(Self, None), lambda _: "Cancel")
+    remover_button_description_middle = tf.Str(cast(Self, None), lambda _: "")
     header_left_children = StrTuple("button_exit", "button_minimize", "box_menu", "button_toggleview")
     header_right_children = StrTuple(
         "button_help", "button_activate", "button_promote", "button_demote", "button_close"
@@ -326,7 +324,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             for clsname in self.css_classes:
                 self.remove_class(clsname)
         if view and view != self.view_previous:
-            self.view_previous = view
+            self.set_trait("view_previous", view)
         for b in self._view_buttons:
             (b.add_class if b.description == view else b.remove_class)(CSScls.button_active_view)
         self.menu_close()
@@ -848,7 +846,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
     widget = tf.InstanceHP(cast(Self, None), klass=ipw.Widget).configure(read_only=True, load_default=False)
-    views = traitlets.Dict({"widget": "widget"})
+    views = tf.Dict(cast(Self, None), lambda _: {"widget": "widget"})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):

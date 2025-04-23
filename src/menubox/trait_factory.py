@@ -81,16 +81,39 @@ if TYPE_CHECKING:
 # Basic types
 
 
-def Set(cast_self: S | None = None, /) -> InstanceHP[S, set]:  # noqa: ARG001
-    return InstanceHP(klass=set).configure(read_only=False, allow_none=False, default_value=set())
+def Set(
+    cast_self: S | None = None,  # noqa: ARG001
+    default: Callable[[IHPCreate], set | None] = lambda _: set(),
+) -> InstanceHP[S, set]:
+    return InstanceHP(klass=set, default=default).configure(
+        read_only=False,
+        allow_none=False,
+        default_value=set(),
+    )  # type: ignore
 
 
-def Dict(cast_self: S | None = None, /) -> InstanceHP[S, dict]:  # noqa: ARG001
-    return InstanceHP(klass=dict).configure(read_only=False, allow_none=False, default_value={})
+def Dict(
+    cast_self: S | None = None,  # noqa: ARG001
+    /,
+    default: Callable[[IHPCreate], dict | None] = lambda _: {},
+) -> InstanceHP[S, dict]:
+    return InstanceHP(klass=dict, default=default).configure(
+        read_only=False,
+        allow_none=False,
+        default_value={},
+    )  # type: ignore
 
 
-def Str(cast_self: S | None = None, /) -> InstanceHP[S, str]:  # noqa: ARG001
-    return InstanceHP(klass=str).configure(read_only=False, allow_none=False, default_value="")
+def Str(
+    cast_self: S | None = None,  # noqa: ARG001
+    /,
+    default: Callable[[IHPCreate], str | None] = lambda _: "",
+) -> InstanceHP[S, str]:
+    return InstanceHP(klass=str, default=default).configure(
+        read_only=False,
+        allow_none=False,
+        default_value="",
+    )  # type: ignore
 
 
 # Ipywidgets shortcuts
