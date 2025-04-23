@@ -65,6 +65,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     SINGLE_VERSION = True
     SHOW_TEMPLATE_CONTROLS = True
     DEFAULT_VIEW = None
+    _mbp_async_init_complete = False
+
     title_description = traitlets.Unicode(
         "<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;"
         "{self.name.replace('_',' ').capitalize()}"
@@ -145,21 +147,24 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @override
     async def init_async(self):
-        await super().init_async()
-        if self.SINGLE_VERSION:
-            self.set_trait("version_widget", None)
-            self.drop_value_traits("version_widget")
-        if self.name:
-            await self._update_versions()
-            if self.task_loading_persistence_data:
-                await asyncio.shield(self.task_loading_persistence_data)
-            elif self.menu_load_index:
-                self.menu_load_index.expand()
+        try:
+            await super().init_async()
+            if self.SINGLE_VERSION:
+                self.set_trait("version_widget", None)
+                self.drop_value_traits("version_widget")
+            if self.name:
+                await self._update_versions()
+                if self.versions:
+                    await asyncio.shield(self.load_persistence_data(version=max(self.versions)))
+                elif self.menu_load_index:
+                    self.menu_load_index.expand()
+        finally:
+            self._mbp_async_init_complete = True
 
     @override
     def on_change(self, change: ChangeType) -> None:
         super().on_change(change)
-        if not self._Menubox_init_complete or not self.name:
+        if not self._mbp_async_init_complete or not self.name:
             return
         if change["owner"] is self:
             if self.AUTOLOAD and change["name"] in ["name", "version"] and self.version in self.versions:
