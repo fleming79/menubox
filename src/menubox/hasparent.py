@@ -4,23 +4,26 @@ import asyncio
 import contextlib
 import functools
 import weakref
-from collections.abc import Callable, Generator, Hashable
-from typing import Any, ClassVar, Generic, Literal, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, override
 
 import ipywidgets as ipw
 import pandas as pd
 import toolz
 import traitlets
-from ipylab.common import Fixed, HasApp, Singular
+from ipylab.common import HasApp, Singular
 from traitlets import HasTraits
 
 import menubox
 import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
+from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.instance import IHPChange, InstanceHP
 from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Generator, Hashable
 
 __all__ = ["HasParent", "Link", "Dlink"]
 
@@ -90,21 +93,15 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]]] = InstanceHP(klass=set).configure(
-        read_only=False, allow_none=False, default_value=set()
-    )
-    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]]] = InstanceHP(klass=set).configure(
-        read_only=False, allow_none=False, default_value=set()
-    )
-    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink]] = InstanceHP(klass=dict).configure(
-        read_only=False, allow_none=False, default_value={}
-    )
-    _button_register = Fixed[Self, dict[tuple[str, ipw.Button], Callable]](lambda _: {})
+    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]]] = tf.Set()
+    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]]] = tf.Set()
+    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink]] = tf.Dict()
+    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable]] = tf.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name = InstanceHP[Self, str](klass=str).configure(read_only=False, allow_none=False, default_value="")
+    name = tf.Str(cast(Self, None))
     parent = Parent[Self, RP]()
-    tasks = InstanceHP[Self, set[asyncio.Task[Any]]](klass=set).configure(read_only=True, allow_none=False)
+    tasks: InstanceHP[Self, set[asyncio.Task[Any]]] = tf.Set()
 
     def __repr__(self):
         if self.closed:

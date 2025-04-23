@@ -78,6 +78,21 @@ if TYPE_CHECKING:
     from menubox.trait_types import MP, H, S
 
 
+# Basic types
+
+
+def Set(cast_self: S | None = None, /) -> InstanceHP[S, set]:  # noqa: ARG001
+    return InstanceHP(klass=set).configure(read_only=False, allow_none=False, default_value=set())
+
+
+def Dict(cast_self: S | None = None, /) -> InstanceHP[S, dict]:  # noqa: ARG001
+    return InstanceHP(klass=dict).configure(read_only=False, allow_none=False, default_value={})
+
+
+def Str(cast_self: S | None = None, /) -> InstanceHP[S, str]:  # noqa: ARG001
+    return InstanceHP(klass=str).configure(read_only=False, allow_none=False, default_value="")
+
+
 # Ipywidgets shortcuts
 Box = ihpwrap(ipw.Box)
 VBox = ihpwrap(ipw.VBox)
