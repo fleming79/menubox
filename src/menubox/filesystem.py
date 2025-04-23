@@ -11,7 +11,7 @@ from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import defaults, mb_async, utils
 from menubox import trait_factory as tf
-from menubox.hashome import HasHome
+from menubox.hashome import HasHome, Home
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
@@ -342,10 +342,21 @@ class RelativePath(Filesystem):
             if await mb_async.to_thread(self.fs.exists, base):
                 await self._button_update_async(url=base)
 
+class DefaultFilesystem(HasHome, Filesystem):
+    SINGLE_BY = ("home",)
+    KEEP_ALIVE = True
+    name = tf.InstanceHP(cast(Self, None), klass=str, default=lambda c: f"{c['parent'].home}")
+    read_only = traitlets.Bool(True, read_only=True)
+    parent = None
+
+    @override
+    def __init__(self, *, home: Home):
+        super().__init__()
+
 
 class HasFilesystem(HasHome):
     filesystem = (
-        tf.InstanceHP(cast(Self, None), klass=Filesystem, default=lambda c: c["parent"].home.filesystem)
+        tf.InstanceHP(cast(Self, None), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
         .hooks(on_replace_close=False, set_parent=False)
         .configure(read_only=False, allow_none=False)
     )

@@ -144,9 +144,12 @@ class ValueTraits(HasParent, Generic[RP]):
     def ignore_change(self):
         """Context manager to temporarily ignore changes.
 
-        Increments the ignore change counter before entering the context and
-        decrements it after leaving the context. This is useful when you want
-        to temporarily disable change notifications in `on_change`.
+        **USE SPARINGLY**
+        Tips:
+            Use a reference to the object that the changes should
+            be ignored in incase the object has not being created. Doing
+            so may unexpectedly ignore a change that should have otherwise
+            been propagated.
         """
 
         self._ignore_change_cnt = self._ignore_change_cnt + 1

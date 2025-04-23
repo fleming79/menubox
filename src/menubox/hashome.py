@@ -13,7 +13,7 @@ __all__ = ["HasParent", "Home"]
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from menubox.filesystem import Filesystem  # noqa: F401
+    from menubox.filesystem import DefaultFilesystem  # noqa: F401
 
 
 @final
@@ -25,7 +25,9 @@ class Home(Singular):
     SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     name = traitlets.Unicode(read_only=True)
-    filesystem = Fixed[Self, "Filesystem"](lambda _: import_item("menubox.filesystem.Filesystem")(read_only=True))
+    filesystem = Fixed[Self, "DefaultFilesystem"](
+        lambda c: import_item("menubox.filesystem.DefaultFilesystem")(home=c["owner"])
+    )
 
     @override
     @classmethod

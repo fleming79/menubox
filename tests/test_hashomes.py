@@ -1,4 +1,4 @@
-from menubox.filesystem import Filesystem
+from menubox.filesystem import DefaultFilesystem, Filesystem
 from menubox.hashome import Home
 
 
@@ -12,3 +12,5 @@ async def test_home():
     assert isinstance(home1.filesystem, Filesystem)
     assert home1.filesystem.read_only
     assert home2.filesystem is not home1.filesystem
+
+    assert DefaultFilesystem(home=home1) is home1.filesystem
