@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import sys
 import weakref
 from typing import (
     TYPE_CHECKING,
@@ -414,6 +415,9 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
                     try:
                         hook(change)
                     except Exception as e:
+                        if "pytest" in sys.modules:
+                            # If debugging import `pytest` to make this repeatable
+                            raise
                         parent.on_error(e, str(hook))
 
     def _on_obj_close(self, change: mb.ChangeType):

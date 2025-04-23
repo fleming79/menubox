@@ -3,16 +3,17 @@ from __future__ import annotations
 from typing import Self, cast
 
 import pandas as pd
+import pytest
 import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
-from menubox.persist import MenuboxPersist, MenuboxPersistPool
+from menubox.persist import MenuboxPersist, MenuboxPersistMode, MenuboxPersistPool
 
 
 class MBP(MenuboxPersist):
     _STASH_DEFAULTS = True
-    SINGLE_VERSION = False
+    PERSIST_MODE = MenuboxPersistMode.by_classname_name_version
     new = traitlets.Unicode()
     a_widget = tf.Text(description="something", value="Using the value")
     just_a_widget = tf.Dropdown(cast(Self, None), description="just_a_widget", options=[1, 2, 3]).hooks(
@@ -30,7 +31,55 @@ class MBP(MenuboxPersist):
         return ("just_a_widget",)
 
 
-async def test_persist(home: mb.Home):
+@pytest.mark.parametrize(
+    ("mode", "result"),
+    [
+        (MenuboxPersistMode.by_classname, "test/classname"),
+        (MenuboxPersistMode.by_classname_name, "test/classname/--name--"),
+        (MenuboxPersistMode.by_classname_version, "test/classname_v1"),
+        (MenuboxPersistMode.by_classname_name_version, "test/classname/--name--_v1"),
+    ],
+)
+def test_MenuboxPersistMode_create_base_path(mode: MenuboxPersistMode, result: str):
+    assert MenuboxPersistMode.create_base_path(mode, "classname", "test", "--name--", 1) == result
+
+
+async def test_persist_by_classname(home: mb.Home):
+    class MBPByClass(MBP):
+        PERSIST_MODE = MenuboxPersistMode.by_classname
+
+    p = MBPByClass(parent=None, home=home, name="main")
+    p.just_a_widget.value = 2
+    p.df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
+    await p.button_save_persistence_data.start()
+    assert (await p.get_persistence_versions(p.filesystem)) == (1,)
+    data = await p.get_persistence_data(p.filesystem)
+    df_data = await p.get_dataframes_async(p.filesystem, dotted_names=p.dataframe_persist)
+    df = df_data["df"]
+    assert df.equals(p.df)
+    assert tuple(data) == p.value_traits_persist
+
+
+async def test_persist_by_classname_name(home: mb.Home):
+    class MBPByClassName(MBP):
+        PERSIST_MODE = MenuboxPersistMode.by_classname_name
+
+    p = MBPByClassName(parent=None, home=home, name="main")
+    p.just_a_widget.value = 2
+    p.df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
+    await p.button_save_persistence_data.start()
+    assert (await p.get_persistence_versions(p.filesystem, p.name)) == (1,)
+    data = await p.get_persistence_data(p.filesystem, p.name)
+    df_data = await p.get_dataframes_async(p.filesystem, dotted_names=p.dataframe_persist, name=p.name)
+    df = df_data["df"]
+    assert df.equals(p.df)
+    assert tuple(data) == p.value_traits_persist
+
+    p2 = MBPByClassName(parent=None, home=home, name="main2")
+    assert p2 is not p
+
+
+async def test_persist_by_classname_name_version(home: mb.Home):
     p = MBP(parent=None, home=home, name="main")
     p.just_a_widget.value = 2
     p.df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
@@ -62,6 +111,7 @@ async def test_persist(home: mb.Home):
 
     # version_widget
     assert p.version_widget
+    assert p.version_widget.max == 2
     p.version_widget.value = 2
     assert p.task_loading_persistence_data
     await p.task_loading_persistence_data

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import pathlib
-from typing import TYPE_CHECKING, Generic, Self, cast, final, override
+import enum
+from typing import TYPE_CHECKING, ClassVar, Generic, Self, cast, final, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -21,11 +21,71 @@ from menubox.trait_types import MP, ChangeType, S, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
-    from logging import Logger, LoggerAdapter
 
     from fsspec import AbstractFileSystem
 
     from menubox.filesystem import Filesystem
+
+
+class MenuboxPersistMode(enum.Enum):
+    """Enumerates the different persistence modes for Menubox data.
+    This enum defines how Menubox data is stored and retrieved,
+    allowing for different levels of granularity in the persistence path.
+    The persistence mode determines the structure of the base path used
+    for storing Menubox data, incorporating classname, name, and version
+    information as needed.
+
+    Attributes:
+        by_classname: Persistence based solely on the classname.
+        by_classname_name: Persistence based on classname and name.
+        by_classname_version: Persistence based on classname and version.
+        by_classname_name_version: Persistence based on classname, name, and version.
+    """
+
+    by_classname = enum.auto()
+    by_classname_name = enum.auto()
+    by_classname_version = enum.auto()
+    by_classname_name_version = enum.auto()
+
+    @classmethod
+    def create_base_path(cls, mode: MenuboxPersistMode, classname: str, root: str, name: str, version: int | str):
+        """Create a base path string based on the specified persistence mode.
+
+        The base path is used as the root directory for storing data.
+        The structure of the path depends on the selected persistence mode,
+        incorporating the class name, name, and version as needed.
+
+        Args:
+            mode: The persistence mode to use.
+            classname: The name of the class.
+            root: The root directory for all data.
+            name: The name of the data.
+            version: The version of the data. Must be >= 1 if used in the mode.
+
+        Returns:
+            A string representing the base path.
+
+        Raises:
+            ValueError: If the version is less than 1 when required by the mode.
+            NotImplementedError: If an unsupported persistence mode is provided.
+        """
+        match mode:
+            case MenuboxPersistMode.by_classname:
+                return f"{root}/{classname}".lower()
+            case MenuboxPersistMode.by_classname_name:
+                return f"{root}/{classname}/{name}".lower()
+            case MenuboxPersistMode.by_classname_version:
+                if isinstance(version, int) and version < 1:
+                    msg = f"version must be >= 1 but is {version}"
+                    raise ValueError(msg)
+                return f"{root}/{classname}_v{version}".lower()
+            case MenuboxPersistMode.by_classname_name_version:
+                if isinstance(version, int) and version < 1:
+                    msg = f"version must be >= 1 but is {version}"
+                    raise ValueError(msg)
+                return f"{root}/{classname}/{name}_v{version}".lower()
+            case _:
+                raise NotImplementedError
 
 
 class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
@@ -40,7 +100,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     If persistence data exists, a task is created to load persistence data after init.
 
-    Multiple versions of persistence data may be possible, if `SINGLE_VERSION`
+    Multiple versions of persistence data may be possible, if `PERSIST_MODE`
     is False. Loading of persistence data is possible by selecting the version in the
     version widget.
 
@@ -60,9 +120,11 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     """
 
     SINGLE_BY = ("filesystem", "name")
-    PERSIST_TEMPLATE = "settings/{cls.__name__}/{name}_v{version}"
+    PERSIST_FOLDERNAME = "settings"
+    _extn = ".yaml"
+
     AUTOLOAD = True
-    SINGLE_VERSION = True
+    PERSIST_MODE: ClassVar = cast(MenuboxPersistMode, MenuboxPersistMode.by_classname_name)
     SHOW_TEMPLATE_CONTROLS = True
     DEFAULT_VIEW = None
     _mbp_async_init_complete = False
@@ -70,7 +132,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     title_description = traitlets.Unicode(
         "<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;"
         "{self.name.replace('_',' ').capitalize()}"
-        "{'' if self.SINGLE_VERSION else f' V{self.version}'}</b>"
+        "{'' if self.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value else f' V{self.version}'}</b>"
     )
     version = traitlets.Int(1, read_only=True)
     versions = TypedTuple(traitlets.Int())
@@ -111,12 +173,10 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 max=1,
                 step=1,
                 description="Version",
-                tooltip="Changing the version will switch to the new version dropping"
-                " unsaved changes. \n"
-                "If a new version doesn't exist, the present values are retained and can be"
-                " saved in the new version.",
+                tooltip="Changing the version will switch to the new version dropping unsaved changes. \n"
+                "If a new version doesn't exist, the present values are retained and can be saved in the new version.",
                 layout={"width": "130px"},
-                disabled=c["parent"].SINGLE_VERSION,
+                disabled=c["parent"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
             ),
         )
         .hooks(
@@ -124,7 +184,9 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 c["parent"].dlink(
                     source=(c["parent"], "versions"),
                     target=(c["obj"], "max"),
-                    transform=lambda versions: 1 if c["parent"].SINGLE_VERSION else max(versions or (0,)) + 1,
+                    transform=lambda versions: 1
+                    if c["parent"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
+                    else max(versions or (0,)) + 1,
                 ),
             )
         )
@@ -142,16 +204,19 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return utils.sanatise_filename(name).lower()
 
     async def _update_versions(self) -> None:
-        self.versions = await self.get_persistence_versions(self.filesystem, self.name, self.log)
+        self.versions = await self.get_persistence_versions(self.filesystem, self.name)
 
     @override
     async def init_async(self):
         try:
             await super().init_async()
-            if self.SINGLE_VERSION:
+            if self.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value:
                 self.set_trait("version_widget", None)
                 self.drop_value_traits("version_widget")
-            if self.name:
+            if self.name or self.PERSIST_MODE in [
+                MenuboxPersistMode.by_classname,
+                MenuboxPersistMode.by_classname_version,
+            ]:
                 await self._update_versions()
                 if self.versions:
                     await asyncio.shield(self.load_persistence_data(version=max(self.versions)))
@@ -209,7 +274,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         self.text_name.disabled = True
         return path
 
-    async def save_dataframes_async(self, name: str, version: int) -> None:
+    async def save_dataframes_async(self, name: str, version: int = 1) -> None:
         """Asynchronously saves dataframes to the filesystem.
 
         Iterates through the dataframes specified in `self.dataframe_persist`,
@@ -231,7 +296,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @classmethod
     async def get_dataframes_async(
-        cls, filesystem: Filesystem, name: str, version: int, dotted_names: tuple[str, ...]
+        cls, filesystem: Filesystem, *, dotted_names: tuple[str, ...], name: str = "", version: int = 1
     ) -> dict[str, pd.DataFrame]:
         """Asynchronously retrieves a dictionary of pandas DataFrames.
 
@@ -255,38 +320,24 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return values
 
     @classmethod
-    def _get_persist_name(cls, name: str, version: int | str, extn=".yaml") -> str:
+    def _get_persist_name(cls, name: str = "*", version: int | str = "*") -> str:
         """Get the path for the persistence file."""
 
-        base = cls.get_persistence_base(name, version)
-        return base + extn
+        return cls.get_persistence_base(name, version) + cls._extn
 
     @classmethod
-    def get_persistence_base(cls, name: str, version: int | str) -> str:
-        """Generates a base string for persistence keys.
-
-        The base string incorporates the class name, a provided name, and a version number.
-        It is used as a foundation for constructing keys used to persist and retrieve data.
-
-        Args:
-            cls: The class for which the persistence base is being generated.
-            name: A descriptive name to include in the persistence base.
-            version: An integer or string representing the version of the data structure. Must be >= 1.
-
-        Returns:
-            A string formatted as '{cls.__qualname__}.{name}.v{version}', all lowercased.
-
-        Raises:
-            ValueError: If the version is None, empty, or less than 1.
-        """
-        if not version or not isinstance(version, str) and version < 1:
-            msg = f"version must be >= 1 but is {version}"
-            raise ValueError(msg)
-        return utils.fstr(cls.PERSIST_TEMPLATE, cls=cls, name=name, version=version).lower()
+    def get_persistence_base(cls, name: str = "*", version: int | str = "*") -> str:
+        return MenuboxPersistMode.create_base_path(
+            mode=cls.PERSIST_MODE,
+            classname=cls.__name__,
+            root=cls.PERSIST_FOLDERNAME,
+            name=name,
+            version=version,
+        )
 
     @classmethod
     async def list_stored_datasets(cls, filesystem: Filesystem) -> list[str]:
-        """List the names of all stored datasets in the given home.
+        """List the names of all stored datasets in the given filesystem.
 
         The names are sorted alphabetically.
 
@@ -304,52 +355,26 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @classmethod
     def get_df_filename(cls, name: str, version: int, dotted_name: str) -> str:
-        """Generates the filename for a DataFrame to be persisted.
-
-        Args:
-            name (str): The name of the menu.
-            version (int): The version of the menu.
-            dotted_name (str): The dotted name of the DataFrame.
-
-        Returns:
-            str: The filename for the DataFrame.
-        """
+        """Generates the filename for a DataFrame to be persisted."""
         base = cls.get_persistence_base(name, version)
-        return pathlib.Path(base, utils.sanatise_filename(f"{dotted_name}.parquet")).as_posix()
+        return utils.joinpaths(base, f"{dotted_name}.parquet")
 
     @classmethod
-    async def get_persistence_versions(
-        cls, filesystem: Filesystem, name: str, log: Logger | LoggerAdapter | None = None
-    ) -> tuple[int, ...]:
-        """Get all persistence versions for a given name.
-
-        Args:
-            home: The home directory or a Home object.
-            name: The name of the persisted object.
-            log: An optional logger.
-
-        Returns:
-            A tuple of sorted version numbers.
-            If SINGLE_VERSION is True, returns (1,) if version 1 exists, otherwise ().
-            Returns () if any error occurs.
-        """
-        path = filesystem.to_path(cls._get_persist_name(name, "*"))
-        files = await mb_async.to_thread(filesystem.fs.glob, path)
+    async def get_persistence_versions(cls, filesystem: Filesystem, name: str = "") -> tuple[int, ...]:
+        """Get all persistence versions for a given name."""
+        ptn = cls._get_persist_name(name, version="[1-9]*")
+        path = filesystem.to_path(ptn)
+        files: list[str] = await mb_async.to_thread(filesystem.fs.glob, path)  # type: ignore
+        if cls.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value:
+            return (1,) if files else ()
         versions = set()
+        base_ = utils.stem(ptn).rsplit("v", maxsplit=1)[0]
         for f in files:
-            try:
-                versions.add(int(pathlib.PurePath(f).stem.split("v")[-1]))  # type: ignore
-            except Exception:
-                if log:
-                    log.warning(f"This file is missing a valid version {f}")
-        try:
-            if cls.SINGLE_VERSION:
-                if 1 in versions:
-                    return (1,)
-                return ()
-            return tuple(sorted(versions))
-        except Exception:
-            return ()
+            base, v = utils.stem(f).rsplit("v", maxsplit=1)
+            if base_ != base:
+                continue
+            versions.add(int(v.removesuffix(cls._extn)))  # type: ignore
+        return tuple(sorted(versions))
 
     @override
     async def get_center(self, view: str | None):
@@ -385,7 +410,12 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 version = await self._to_version(version)
                 data = await self.get_persistence_data(self.filesystem, self.name, version)
                 if df_names := self.dataframe_persist:
-                    df_data = await self.get_dataframes_async(self.filesystem, self.name, version, df_names)
+                    df_data = await self.get_dataframes_async(
+                        self.filesystem,
+                        dotted_names=df_names,
+                        name=self.name,
+                        version=version,
+                    )
                     data = df_data | data
             except FileNotFoundError:
                 if quiet:
@@ -405,22 +435,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         self.update_title()
 
     @classmethod
-    async def get_persistence_data(cls, filesystem: Filesystem, name: str, version: int | None = None) -> dict:
-        """
-        Retrieves persistence data for a given name and version from a specified home directory.
-
-        Args:
-            home: The home directory or Home object where the persistence data is stored.
-            name: The name of the persistence data.
-            version: The version of the persistence data to retrieve. If None, the latest version is retrieved.
-
-        Returns:
-            A dictionary containing the persistence data. Returns an empty dictionary if no data is found or if the data is not a dictionary.
-
-        Raises:
-            FileNotFoundError: If the file containing the persistence data is not found.
-            TypeError: If the loaded data is not a dictionary.
-        """
+    async def get_persistence_data(cls, filesystem: Filesystem, name: str = "", version: int | None = None) -> dict:
+        """Retrieves persistence data for a given name and version using the filesystem."""
         versions = await cls.get_persistence_versions(filesystem, name)
         if not versions or version is not None and version not in versions:
             return {}
