@@ -100,7 +100,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
         read_only=False, allow_none=False, default_value={}
     )
     _button_register = Fixed[Self, dict[tuple[str, ipw.Button], Callable]](lambda _: {})
-
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = InstanceHP[Self, str](klass=str).configure(read_only=False, allow_none=False, default_value="")
@@ -132,7 +131,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         super().__init__(**kwargs)
         self.parent = parent
         # Requires a running event loop.
-        self._init_async_task = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)  # type: ignore
+        self._init_async_task = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)
 
     async def init_async(self) -> None:
         """Perform additional initialisation tasks.
