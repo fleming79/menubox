@@ -320,13 +320,13 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return values
 
     @classmethod
-    def _get_persist_name(cls, name: str = "*", version: int | str = "*") -> str:
+    def _get_persist_name(cls, name: str = "*", version: int | str = "[1-9]*") -> str:
         """Get the path for the persistence file."""
 
         return cls.get_persistence_base(name, version) + cls._extn
 
     @classmethod
-    def get_persistence_base(cls, name: str = "*", version: int | str = "*") -> str:
+    def get_persistence_base(cls, name: str = "*", version: int | str = "[1-9]*") -> str:
         return MenuboxPersistMode.create_base_path(
             mode=cls.PERSIST_MODE,
             classname=cls.__name__,
@@ -348,9 +348,11 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             A list of dataset names.
         """
         datasets = set()
-        ptn = filesystem.to_path(cls._get_persist_name("*", "*"))
+        ptn = filesystem.to_path(cls._get_persist_name("*", "[1-9]*"))
+        strip_version = cls.PERSIST_MODE.value >= MenuboxPersistMode.by_classname_version.value
         for f in await mb_async.to_thread(filesystem.fs.glob, ptn):
-            datasets.add(utils.stem(f).rsplit("_v", maxsplit=1)[0])  # type: ignore
+            name = utils.stem(f)  # type: ignore
+            datasets.add(name.rsplit("_v", maxsplit=1)[0] if strip_version else name)
         return sorted(datasets)
 
     @classmethod
