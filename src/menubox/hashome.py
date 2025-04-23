@@ -92,7 +92,7 @@ class HasHome(HasParent):
         if self.closed:
             return super().__repr__()
         cs = "closed: " if self.closed else ""
-        home = self.home
+        home = str(self.home)
         name = self.name
         return f"<{cs}{self.__class__.__name__} {home=} {name=}>"
 
