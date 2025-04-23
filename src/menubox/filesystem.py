@@ -6,7 +6,6 @@ import re
 from typing import TYPE_CHECKING, ClassVar, Self, cast, override
 
 import psutil
-import traitlets
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import defaults, mb_async, utils
@@ -33,21 +32,21 @@ class Filesystem(MenuboxVT):
     _ignore = ()
     startup_dir = utils.joinpaths(pathlib.Path().cwd())
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
-    prev_protocol = traitlets.Enum(values=sorted(available_protocols()), default_value="file")
-    prev_kwargs = traitlets.Dict()
-    folders_only = traitlets.Bool()
-    read_only = traitlets.Bool()
-    title_description = traitlets.Unicode()
-    home_url = traitlets.Unicode()
+    prev_protocol = tf.Str(default=lambda _: "file")
+    prev_kwargs = tf.Dict()
+    folders_only = tf.Bool()
+    read_only = tf.Bool()
+    title_description = tf.Str()
+    home_url = tf.Str()
     filters = StrTuple()
     ignore = StrTuple()
     minimized_children = StrTuple("url")
     value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
-    views = traitlets.Dict({"Main": ()})
+    views = tf.Dict(default=lambda _: {"Main": ()})
 
     protocol = tf.Dropdown(
-        cast(Self, None),
+        cast(Self, 0),
         description="protocol",
         value="file",
         options=sorted(available_protocols()),
@@ -65,7 +64,7 @@ class Filesystem(MenuboxVT):
         on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
     drive = tf.Dropdown(
-        cast(Self, None),
+        cast(Self, 0),
         value=None,
         tooltip="Change drive",
         layout={"width": "max-content"},
@@ -94,7 +93,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
     )
     button_update = tf.AsyncRunButton(
-        cast(Self, None),
+        cast(Self, 0),
         cfunc=lambda p: p._button_update_async,
         description="↻",
         cancel_description="✗",
@@ -111,7 +110,7 @@ class Filesystem(MenuboxVT):
         description="✚",
         tooltip="Create new file or folder",
     )
-    box_settings = tf.HBox(cast(Self, None), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
+    box_settings = tf.HBox(cast(Self, 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children=lambda p: (p.protocol, p.kw),
     )
     control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
@@ -216,7 +215,7 @@ class Filesystem(MenuboxVT):
             return
         if self.prev_protocol != self.protocol.value or self.prev_kwargs != self.storage_options:
             self._fs = None  # causes fs to be recreated
-            self.prev_protocol = self.protocol.value
+            self.set_trait("prev_protocol", self.protocol.value)
             self.prev_kwargs = self.storage_options
         if url is None:
             url = self.root
@@ -304,8 +303,8 @@ class Filesystem(MenuboxVT):
 class RelativePath(Filesystem):
     """A relative filesystem"""
 
-    folders_only = traitlets.Bool(False)
-    box_settings = tf.HBox(cast(Self, None), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
+    folders_only = tf.Bool(default=lambda _: False)
+    box_settings = tf.HBox(cast(Self, 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
         set_children=lambda p: (p.relative_path,)
     )
     relative_path = tf.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
@@ -345,8 +344,8 @@ class RelativePath(Filesystem):
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
-    name = tf.InstanceHP(cast(Self, None), klass=str, default=lambda c: f"{c['parent'].home}")
-    read_only = traitlets.Bool(True, read_only=True)
+    name = tf.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
+    read_only = tf.Bool(default=lambda _: True).configure(read_only=True)
     parent = None
 
     @override
@@ -356,7 +355,7 @@ class DefaultFilesystem(HasHome, Filesystem):
 
 class HasFilesystem(HasHome):
     filesystem = (
-        tf.InstanceHP(cast(Self, None), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
+        tf.InstanceHP(cast(Self, 0), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
         .hooks(on_replace_close=False, set_parent=False)
         .configure(read_only=False, allow_none=False)
     )

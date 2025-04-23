@@ -59,7 +59,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = tf.InstanceHP(
-        cast(Self, None), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
+        cast(Self, 0), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -70,7 +70,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     template_controls = tf.Modalbox(
-        cast(Self, None),
+        cast(Self, 0),
         obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
         button_expand_description="📜",
@@ -80,7 +80,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         allow_none=True,
     )
     text_name = tf.InstanceHP(
-        cast(Self, None),
+        cast(Self, 0),
         klass=ComboboxValidate,
         default=lambda c: ComboboxValidate(
             validate=c["parent"]._validate_name,
@@ -102,7 +102,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     description_preview_label = tf.HTML(value="<b>Description preview</b>")
     description = tf.CodeEditor(description="Description", mime_type="text/x-markdown")
     description_viewer = tf.InstanceHP(
-        cast(Self, None),
+        cast(Self, 0),
         klass=MarkdownOutput,
         default=lambda c: MarkdownOutput(
             layout={"margin": "0px 0px 0px 10px"},
@@ -115,7 +115,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        tf.Button_open(cast(Self, None), tooltip="Configure")
+        tf.Button_open(cast(Self, 0), tooltip="Configure")
         .hooks(
             on_set=lambda c: c["parent"].dlink(
                 source=(c["parent"], "view"),

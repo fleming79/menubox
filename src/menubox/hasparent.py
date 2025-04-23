@@ -99,7 +99,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable]] = tf.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name = tf.Str(cast(Self, None))
+    name = tf.Str(cast(Self, 0))
     parent = Parent[Self, RP]()
     tasks: InstanceHP[Self, set[asyncio.Task[Any]]] = tf.Set()
 

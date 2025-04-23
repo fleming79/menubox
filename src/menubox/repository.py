@@ -53,9 +53,9 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
     box_center = None
-    repository = tf.InstanceHP(cast(Self, None), klass=Repository).configure(load_default=False, allow_none=True)
+    repository = tf.InstanceHP(cast(Self, 0), klass=Repository).configure(load_default=False, allow_none=True)
     repository_name = tf.Combobox(
-        cast(Self, None),
+        cast(Self, 0),
         description="Repository",
         tooltip="Add a new repository using the repository set below",
         layout={"width": "max-content"},

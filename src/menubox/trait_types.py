@@ -123,7 +123,7 @@ class FromParent(TraitType[Callable[[R], T], Callable[[R], T]], Generic[R, T]):
 
         ``` python
         class MyClass(HasTraits):
-            fp = FromParent(cast(Self, None), lambda p: p...)
+            fp = FromParent(cast(Self, 0), lambda p: p...)
 
         ```
         """

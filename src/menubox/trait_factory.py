@@ -81,8 +81,19 @@ if TYPE_CHECKING:
 # Basic types
 
 
+def Bool(
+    cast_self: S | int = 0,  # noqa: ARG001
+    default: Callable[[IHPCreate[S, bool]], bool | None] = lambda _: False,
+) -> InstanceHP[S, bool]:
+    return InstanceHP(klass=bool, default=default).configure(
+        read_only=False,
+        allow_none=False,
+        default_value=False,
+    )
+
+
 def Set(
-    cast_self: S | None = None,  # noqa: ARG001
+    cast_self: S | int = 0,  # noqa: ARG001
     default: Callable[[IHPCreate[S, set]], set | None] = lambda _: set(),
 ) -> InstanceHP[S, set]:
     return InstanceHP(klass=set, default=default).configure(
@@ -93,7 +104,7 @@ def Set(
 
 
 def Dict(
-    cast_self: S | None = None,  # noqa: ARG001
+    cast_self: S | int = 0,  # noqa: ARG001
     /,
     default: Callable[[IHPCreate[S, dict]], dict | None] = lambda _: {},
 ) -> InstanceHP[S, dict]:
@@ -105,7 +116,7 @@ def Dict(
 
 
 def Str(
-    cast_self: S | None = None,  # noqa: ARG001
+    cast_self: S | int = 0,  # noqa: ARG001
     /,
     default: Callable[[IHPCreate[S, str]], str | None] = lambda _: "",
 ) -> InstanceHP[S, str]:
@@ -283,7 +294,7 @@ def MenuboxPersistPool(
     """A Fixed Obj shuffle for any Menubox persist object.
 
     ``` python
-    MenuboxPersistPool(cast(Self, None), obj_cls=MyMenuboxPersistClass)
+    MenuboxPersistPool(cast(Self, 0), obj_cls=MyMenuboxPersistClass)
     ```
     """
 

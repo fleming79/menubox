@@ -103,7 +103,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
     Type hints:
     -----------
     Option 1:
-        Pass `cast(Self, None)` as the first argument to enable type hinting
+        Pass `cast(Self, 0)` as the first argument to enable type hinting
         access to the parent class.
     Option 2:
         Define both types on the class with InstanceHP[Self, Klass]
@@ -230,7 +230,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
 
     def __init__(
         self,
-        cast_self: S | None = None,
+        cast_self: S | int = 0,
         /,
         *,
         klass: type[T] | str,
@@ -579,6 +579,8 @@ def instanceHP_wrapper(
         Use this to add a trait to new subclass ofmhp. HasParent.
 
         Specify *args and **kwgs to pass when creating the 'default' (when the trait default is requested).
+
+        cast_self: Provided specifically for type checking. use: `cast(Self, 0)`
 
         Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
         """

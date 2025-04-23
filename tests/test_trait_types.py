@@ -11,7 +11,7 @@ def test_parent_items():
     class HP(HasTraits):
         a = Unicode("a")
         b = Integer(None, allow_none=True)
-        items = FromParent(cast(Self, None), lambda p: (p.a, p.b))
+        items = FromParent(cast(Self, 0), lambda p: (p.a, p.b))
 
         def get_items(self):
             return self.items(self)

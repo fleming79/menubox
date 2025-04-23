@@ -9,7 +9,7 @@ from menubox.repository import Repository
 
 
 class SelectRepositoryWidget(HasHome, Menubox):
-    select_repository = tf.SelectRepository(cast(Self, None))
+    select_repository = tf.SelectRepository(cast(Self, 0))
     views = traitlets.Dict({"Widgets": "select_repository"})
 
 

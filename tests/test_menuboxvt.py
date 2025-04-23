@@ -16,7 +16,7 @@ mb.MenuboxVT.register_template_root_folder(templates_folder)
 
 class MyNewObj(mb.HasHome, mb.MenuboxVT):
     SHOW_TEMPLATE_CONTROLS = True
-    select_repository = tf.SelectRepository(cast(Self, None))
+    select_repository = tf.SelectRepository(cast(Self, 0))
     a_has_changed = False
     b_has_changed = False
     change_count = 0

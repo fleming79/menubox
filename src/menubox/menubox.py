@@ -55,19 +55,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
     MINIMIZED: Final = "Minimized"
-    _setting_view = False
-    _mb_configured = False
-    loading_view: traitlets.Instance[defaults.NO_DEFAULT_TYPE | str | None] = traitlets.Any(
-        default_value=NO_DEFAULT, read_only=True
-    )  # type: ignore
     RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
     HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
+    _setting_view = False
+    _mb_configured = False
     _Menubox_init_complete = False
-
     # Traits
     parent = Parent[Self, RP]()
-    show_help = tf.InstanceHP(klass=bool).configure(read_only=False, default_value=False)
+    show_help = tf.Bool()
     viewlist = StrTuple()
     toggleviews = StrTuple()
     menuviews = StrTuple()
@@ -75,15 +71,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
     views: tf.InstanceHP[Self, dict[str, utils.GetWidgetsInputType]] = tf.Dict()
     shuffle_button_views: tf.InstanceHP[Self, dict[str, ipw.Widget | Menubox | str]] = tf.Dict()
-    border = tf.Str(cast(Self, None), lambda _: None).configure(read_only=False, allow_none=True)
-    view = tf.Str(cast(Self, None), lambda _: None).configure(read_only=False, allow_none=True)
-    view_previous = tf.Str(cast(Self, None), lambda _: None).configure(allow_none=True)
-    title_description = tf.Str(cast(Self, None))
-    title_description_tooltip = tf.Str(cast(Self, None))
-    confirm_close_message = tf.Str(cast(Self, None))
-    remover_button_description_confirm = tf.Str(cast(Self, None), lambda _: "Confirm")
-    remover_button_description_cancel = tf.Str(cast(Self, None), lambda _: "Cancel")
-    remover_button_description_middle = tf.Str(cast(Self, None), lambda _: "")
+    border = tf.Str().configure(read_only=False, allow_none=True, default_value=None)
+    view = tf.Str(default=lambda _: None).configure(read_only=False, allow_none=True, default_value=None)
+    view_previous = tf.Str(default=lambda _: None).configure(allow_none=True, default_value=None)
+    title_description = tf.Str()
+    title_description_tooltip = tf.Str()
+
     header_left_children = StrTuple("button_exit", "button_minimize", "box_menu", "button_toggleview")
     header_right_children = StrTuple(
         "button_help", "button_activate", "button_promote", "button_demote", "button_close"
@@ -94,8 +87,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_menu_open_children = StrTuple("button_menu_minimize", "get_menu_widgets")
     minimized_children = StrTuple("html_title", "header_right_children")
 
+    loading_view: traitlets.Instance[defaults.NO_DEFAULT_TYPE | str | None] = traitlets.Any(
+        default_value=NO_DEFAULT, read_only=True
+    )  # type: ignore
     # Trait instances
-    center: traitlets.Container[utils.GetWidgetsInputType] = traitlets.Any(read_only=True, allow_none=True)  # type: ignore
+    center: traitlets.TraitType[utils.GetWidgetsInputType, utils.GetWidgetsInputType] = traitlets.TraitType(
+        read_only=True, allow_none=True
+    )
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
@@ -132,7 +130,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
     box_menu = tf.MenuboxMenu().configure(allow_none=True)
     showbox = (
-        tf.InstanceHP(cast(Self, None), klass=ipw.Box)
+        tf.InstanceHP(cast(Self, 0), klass=ipw.Box)
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
         .configure(allow_none=True, load_default=False)
     )
@@ -845,8 +843,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
-    widget = tf.InstanceHP(cast(Self, None), klass=ipw.Widget).configure(read_only=True, load_default=False)
-    views = tf.Dict(cast(Self, None), lambda _: {"widget": "widget"})
+    widget = tf.InstanceHP(klass=ipw.Widget).configure(read_only=True, load_default=False)
+    views = tf.Dict(default=lambda _: {"widget": "widget"})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):
