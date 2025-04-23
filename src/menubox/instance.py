@@ -234,7 +234,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
         /,
         *,
         klass: type[T] | str,
-        default: Callable[[IHPCreate[S, T]], T] | None = None,
+        default: Callable[[IHPCreate[S, T]], T | None] | None = None,
     ) -> None:
         self._hookmappings = {}
         self._create = default

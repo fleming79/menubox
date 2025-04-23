@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, overloa
 
 import orjson
 import ruamel.yaml
-from traitlets import Dict, HasTraits, Set, TraitError, TraitType, Undefined, observe
+from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
+from menubox import trait_factory as tf
 from menubox.hasparent import HasParent, Parent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
@@ -124,9 +125,9 @@ class ValueTraits(HasParent, Generic[RP]):
     _STASH_DEFAULTS = False
     _AUTO_VALUE = True  # Also connects the trait 'value' on the trait if it is found.
     _ignore_change_cnt = 0
-    _vt_reg_value_traits_persist: set[tuple[HasTraits, str]] = Set()  # type: ignore
-    _vt_reg_value_traits: set[tuple[HasTraits, str]] = Set()  # type: ignore
-    _vt_tuple_reg: Dict[str, _InstanceHPTupleRegister] = Dict(read_only=True)
+    _vt_reg_value_traits_persist: InstanceHP[Self, set[tuple[HasTraits, str]]] = tf.Set()
+    _vt_reg_value_traits: InstanceHP[Self, set[tuple[HasTraits, str]]] = tf.Set()
+    _vt_tuple_reg: InstanceHP[Self, dict[str, _InstanceHPTupleRegister]] = tf.Dict().configure(read_only=True)
     _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
     _vt_init_complete = False

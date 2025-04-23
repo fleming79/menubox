@@ -83,37 +83,37 @@ if TYPE_CHECKING:
 
 def Set(
     cast_self: S | None = None,  # noqa: ARG001
-    default: Callable[[IHPCreate], set | None] = lambda _: set(),
+    default: Callable[[IHPCreate[S, set]], set | None] = lambda _: set(),
 ) -> InstanceHP[S, set]:
     return InstanceHP(klass=set, default=default).configure(
         read_only=False,
         allow_none=False,
         default_value=set(),
-    )  # type: ignore
+    )
 
 
 def Dict(
     cast_self: S | None = None,  # noqa: ARG001
     /,
-    default: Callable[[IHPCreate], dict | None] = lambda _: {},
+    default: Callable[[IHPCreate[S, dict]], dict | None] = lambda _: {},
 ) -> InstanceHP[S, dict]:
     return InstanceHP(klass=dict, default=default).configure(
         read_only=False,
         allow_none=False,
         default_value={},
-    )  # type: ignore
+    )
 
 
 def Str(
     cast_self: S | None = None,  # noqa: ARG001
     /,
-    default: Callable[[IHPCreate], str | None] = lambda _: "",
+    default: Callable[[IHPCreate[S, str]], str | None] = lambda _: "",
 ) -> InstanceHP[S, str]:
     return InstanceHP(klass=str, default=default).configure(
         read_only=False,
         allow_none=False,
         default_value="",
-    )  # type: ignore
+    )
 
 
 # Ipywidgets shortcuts
