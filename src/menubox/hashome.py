@@ -22,6 +22,7 @@ class Home(Singular):
 
     Closing Home will also force close all HasHome instances.
     """
+
     SINGLE_BY: ClassVar = ("name",)
     KEEP_ALIVE = True
     name = traitlets.Unicode(read_only=True)
@@ -65,7 +66,6 @@ class Home(Singular):
 
 
 class _HomeTrait(traitlets.TraitType[Home, Home]):
-
     def _validate(self, obj, value: Home | str):
         if not value:
             msg = """`home` is required!
@@ -112,4 +112,3 @@ class HasHome(HasParent):
             return parent
         msg = "'home' or 'parent' (with a home) must be provided for this class. 'home' may be a string."
         raise NameError(msg)
-

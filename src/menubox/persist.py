@@ -137,7 +137,6 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     value_traits_persist = StrTuple("saved_timestamp", "description")
     dataframe_persist = StrTuple()
 
-
     @classmethod
     def validate_name(cls, name: str) -> str:
         return utils.sanatise_filename(name).lower()

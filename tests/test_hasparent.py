@@ -119,7 +119,6 @@ class TestHasParent:
         assert parent.a_link2.value != hp.a_link2.value
         assert parent.a_dlink2.value != hp.a_dlink2.value
 
-
     async def test_hasparent_linking_equality(self):
         # Linking checks for equality.
         # Dataframes need special consideration

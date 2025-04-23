@@ -17,7 +17,6 @@ from menubox.pack import to_dict, to_json_dict
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
 if TYPE_CHECKING:
-
     from ipywidgets import Button
 
 
@@ -342,6 +341,7 @@ class RelativePath(Filesystem):
             if await mb_async.to_thread(self.fs.exists, base):
                 await self._button_update_async(url=base)
 
+
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
@@ -360,6 +360,7 @@ class HasFilesystem(HasHome):
         .hooks(on_replace_close=False, set_parent=False)
         .configure(read_only=False, allow_none=False)
     )
+
     def __new__(cls, *, home=None, parent=None, filesystem: Filesystem | None = None, **kwargs):
         if not filesystem:
             if isinstance(parent, HasFilesystem):

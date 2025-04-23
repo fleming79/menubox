@@ -51,6 +51,7 @@ def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
     if inst._hookmappings.get("set_parent"):
         kwgs["parent"] = parent
 
+
 @hookimpl
 def get_icon(obj: mb.Menubox):  # noqa: ARG001
     return ipylab.Icon()

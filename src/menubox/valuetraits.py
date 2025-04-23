@@ -147,7 +147,7 @@ class ValueTraits(HasParent, Generic[RP]):
         **USE SPARINGLY**
         Tips:
             Use a reference to the object that the changes should
-            be ignored in incase the object has not being created. Doing
+            be ignored in in case the object has not being created. Doing
             so may unexpectedly ignore a change that should have otherwise
             been propagated.
         """

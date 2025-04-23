@@ -59,6 +59,7 @@ class Parent(InstanceHP[S, RP], Generic[S, RP]):
     def configure(self, **kwgs):
         raise NotImplementedError
 
+
 class HasParent(Singular, HasApp, Generic[RP]):
     """A base class for objects that have a parent and can manage links to other objects.
 
@@ -315,7 +316,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
         """
         self.log.exception(msg, obj=obj, exc_info=error)
 
-
     def enable_ihp(self, name: str, *, override: dict | None = None) -> Self:
         """Enable a InstanceHP trait.
 
@@ -428,7 +428,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
             current_link.close()
         if connect:
             self._hasparent_all_links[key] = Dlink(source, target, transform=transform, parent=self)
-
 
     async def wait_init_async(self) -> Self:
         assert asyncio.current_task() is not self._init_async_task  # noqa: S101

@@ -335,7 +335,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T]):
             msg = "Unexpected error in TraitType: default value not set properly"
             raise traitlets.TraitError(msg) from e
 
-
     def finalize(self):
         """Finalizes the InstanceHP instance by resolving the class and calling the initialization hook.
 

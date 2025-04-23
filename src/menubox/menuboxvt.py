@@ -273,4 +273,3 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         super().on_change(change)
         if change["name"] == "visibility" and self.view:
             self.mb_refresh()
-
