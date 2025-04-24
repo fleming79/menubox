@@ -20,7 +20,7 @@ from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.instance import IHPChange, InstanceHP
-from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
+from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, ReadOnly, S
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
@@ -28,12 +28,22 @@ if TYPE_CHECKING:
 __all__ = ["HasParent", "Link", "Dlink"]
 
 
-class Parent(InstanceHP[S, RP], Generic[S, RP]):
+class Parent(InstanceHP[S, RP, RP], Generic[S, RP]):
     klass: type[RP]
     allow_none = True
     default_value = None
     read_only = False
     load_default = False
+
+    if TYPE_CHECKING:
+
+        def __new__(
+            cls,
+            cast_self: S | int = 0,
+            /,
+            *,
+            klass: type[RP] | str = "menubox.hasparent.HasParent",
+        ) -> Parent[S, RP | None]: ...
 
     def __init__(self, _: S | int = 0, /, *, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
         super().__init__(_, klass=klass)
@@ -57,10 +67,6 @@ class Parent(InstanceHP[S, RP], Generic[S, RP]):
         self._hookmappings["set_parent"] = False
         self._hookmappings["remove_on_close"] = False
         super().finalize()
-
-    @override
-    def configure(self, **kwgs):
-        raise NotImplementedError
 
 
 class HasParent(Singular, HasApp, Generic[RP]):
@@ -90,18 +96,20 @@ class HasParent(Singular, HasApp, Generic[RP]):
     KEEP_ALIVE = False
     SINGLE_BY: ClassVar[tuple[str, ...] | None] = None
     single_key: tuple[Hashable, ...]
-    _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
+    _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]]] = tf.Set()
-    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]]] = tf.Set()
-    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink]] = tf.Dict()
-    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable]] = tf.Dict()
+    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]], ReadOnly] = tf.Set()
+    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]], ReadOnly] = tf.Set()
+    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink], ReadOnly] = tf.Dict()
+    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], ReadOnly] = tf.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = tf.Str(cast(Self, 0))
     parent = Parent[Self, RP]()
-    tasks: InstanceHP[Self, set[asyncio.Task[Any]]] = tf.Set()
+    tasks: InstanceHP[Self, set[asyncio.Task[Any]], ReadOnly] = tf.Set(
+        cast(Self, 0),
+    )
 
     def __repr__(self):
         if self.closed:
@@ -430,7 +438,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         await asyncio.shield(self._init_async_task)
         return self
 
-    def _handle_button_change(self, c: IHPChange[Self, ipw.Button]):
+    def _handle_button_change(self, c: IHPChange[Self, ipw.Button, ReadOnly]):
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
             b.on_click(cb, remove=True)
         if b := c["new"]:
@@ -627,7 +635,10 @@ class Link(HasParent, Generic[S]):
     @override
     def on_error(self, error: Exception, msg: str, obj: Any = None):
         msg = f"{self.__class__} error: {msg}"
-        return self.parent.on_error(error, msg, obj)
+        if self.parent:
+            self.parent.on_error(error, msg, obj)
+        else:
+            super().on_error(error, msg, obj)
 
 
 class Dlink(Link, Generic[S]):

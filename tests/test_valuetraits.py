@@ -1,4 +1,4 @@
-from typing import Self, cast, override
+from typing import Self, override
 
 import ipywidgets as ipw
 import pytest
@@ -19,8 +19,8 @@ class Nested(HasParent):
 
 class VT1(ValueTraits):
     value_change_count = 0
-    linked_trait = traitlets.Unicode()
-    nested = tf.InstanceHP(cast(Self, 0), klass=Nested).configure(allow_none=True)
+    linked_trait = tf.Str()
+    nested = tf.InstanceHP(klass=Nested).configure(allow_none=True, read_only=False)
     a = traitlets.Unicode()
     b = traitlets.Int()
     c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))

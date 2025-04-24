@@ -47,7 +47,7 @@ def instancehp_finalize(inst: InstanceHP, hookmappings: IHPHookMappings, klass: 
 
 
 @hookimpl
-def instancehp_default_kwgs(inst: InstanceHP[S, T], parent: S, kwgs: dict):
+def instancehp_default_kwgs(inst: InstanceHP[S, T, T], parent: S, kwgs: dict):
     if inst._hookmappings.get("set_parent"):
         kwgs["parent"] = parent
 

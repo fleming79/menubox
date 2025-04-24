@@ -21,7 +21,7 @@ from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent, Parent
-from menubox.trait_types import RP, ChangeType, ProposalType, StrTuple
+from menubox.trait_types import RP, ChangeType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
@@ -69,11 +69,16 @@ class Menubox(HasParent, Panel, Generic[RP]):
     menuviews = StrTuple()
     tabviews = StrTuple()
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
-    views: tf.InstanceHP[Self, dict[str, utils.GetWidgetsInputType]] = tf.Dict()
-    shuffle_button_views: tf.InstanceHP[Self, dict[str, ipw.Widget | Menubox | str]] = tf.Dict()
+    views = tf.ViewDict(cast(Self, 0))
+    shuffle_button_views: tf.InstanceHP[
+        Self, dict[str, ipw.Widget | Menubox | str], dict[str, ipw.Widget | Menubox | str]
+    ] = tf.Dict().configure(
+        allow_none=False,
+        read_only=False,
+    )
     border = tf.Str().configure(read_only=False, allow_none=True, default_value=None)
     view = tf.Str(default=lambda _: None).configure(read_only=False, allow_none=True, default_value=None)
-    view_previous = tf.Str(default=lambda _: None).configure(allow_none=True, default_value=None)
+    view_previous = tf.Str(default=lambda _: None).configure(read_only=False, allow_none=True, default_value=None)
     title_description = tf.Str()
     title_description_tooltip = tf.Str()
 
@@ -97,45 +102,51 @@ class Menubox(HasParent, Panel, Generic[RP]):
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
-    _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
+    _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
+    _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
     task_load_view = tf.Task()
-    html_title = tf.HTML_Title().configure(load_default=False, allow_none=True)
+    html_title = tf.HTML_Title().configure(allow_none=True, read_only=True, load_default=False)
     out_help = tf.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
-    button_menu = tf.Button_menu(description="☰").configure(load_default=False, allow_none=True)
-    button_toggleview = tf.Button_menu(description="➱").configure(load_default=False, allow_none=True)
-    button_close = tf.Button_dangerous(description="✗", tooltip="Close").configure(load_default=False, allow_none=True)
-    button_minimize = tf.Button_open(description="🗕", tooltip="Minimize").configure(load_default=False, allow_none=True)
-    button_maximize = tf.Button_open(description="🗖", tooltip="Restore").configure(load_default=False, allow_none=True)
-    button_help = tf.Button_open(description="❔").configure(load_default=False, allow_none=True)
+    button_menu = tf.Button_menu(description="☰").configure(read_only=True, allow_none=True)
+    button_toggleview = tf.Button_menu(description="➱").configure(allow_none=True, read_only=True, load_default=False)
+    button_help = tf.Button_open(description="❔").configure(allow_none=True, read_only=True, load_default=False)
+    button_close = tf.Button_dangerous(description="✗", tooltip="Close").configure(
+        allow_none=True, read_only=True, load_default=False
+    )
+    button_minimize = tf.Button_open(description="🗕", tooltip="Minimize").configure(
+        allow_none=True, read_only=True, load_default=False
+    )
+    button_maximize = tf.Button_open(description="🗖", tooltip="Restore").configure(
+        allow_none=True, read_only=True, load_default=False
+    )
     button_exit = tf.Button_open(description="⇡", tooltip="Leave showbox").configure(
-        load_default=False, allow_none=True
+        allow_none=True, read_only=True, load_default=False
     )
     button_promote = tf.Button_open(description="⇖", tooltip="Shift up / left").configure(
-        load_default=False, allow_none=True
+        allow_none=True, read_only=True, load_default=False
     )
     button_demote = tf.Button_open(description="⇘", tooltip="Shift down / right").configure(
-        load_default=False, allow_none=True
+        allow_none=True, load_default=False, read_only=True
     )
     button_menu_minimize = tf.Button_menu(description="↤", tooltip="Hide menu").configure(
-        load_default=False, allow_none=True
+        allow_none=True, read_only=True, load_default=False
     )
     button_activate = tf.Button_open(description="🐑", tooltip="Add to shell").configure(
-        load_default=False, allow_none=True
+        allow_none=True, read_only=True, load_default=False
     )
 
     # Boxes
-    box_shuffle = tf.MenuboxShuffle().configure(allow_none=True)
-    box_menu = tf.MenuboxMenu().configure(allow_none=True)
+    box_shuffle = tf.MenuboxShuffle().configure(allow_none=True, read_only=True)
+    box_menu = tf.MenuboxMenu().configure(allow_none=True, read_only=True)
     showbox = (
         tf.InstanceHP(cast(Self, 0), klass=ipw.Box)
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
-        .configure(allow_none=True, load_default=False)
+        .configure(allow_none=True, load_default=False, read_only=False)
     )
-    header = tf.MenuboxHeader().configure(allow_none=True)
-    box_center = tf.MenuboxCenter().configure(allow_none=True)
+    header = tf.MenuboxHeader().configure(allow_none=True, read_only=True)
+    box_center = tf.MenuboxCenter().configure(allow_none=True, read_only=True)
     _mb_refresh_traitnames = (
         "closed",
         "show_help",
@@ -843,7 +854,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
-    widget = tf.InstanceHP(klass=ipw.Widget).configure(read_only=True, load_default=False)
+    widget = tf.InstanceHP(klass=ipw.Widget).configure(allow_none=False, read_only=True, load_default=False)
     views = tf.ViewDict(default=lambda _: {"widget": "widget"})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 

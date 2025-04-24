@@ -145,6 +145,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         button_expand_tooltip="Save / load persistence settings.",
     ).configure(
         allow_none=True,
+        read_only=True,
     )
     sw_version_load = tf.Dropdown(
         cast(Self, 0),
@@ -190,7 +191,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 ),
             )
         )
-        .configure(allow_none=True)
+        .configure(allow_none=True, read_only=True)
     )
     box_version = tf.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)

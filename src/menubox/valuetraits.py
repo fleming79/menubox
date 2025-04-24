@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, overload, override
 
 import orjson
 import ruamel.yaml
@@ -12,7 +12,6 @@ from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
-from menubox import trait_factory as tf
 from menubox.hasparent import HasParent, Parent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
@@ -69,9 +68,9 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = Parent[Self, "ValueTraits|None"](klass="menubox.valuetraits.ValueTraits")
-    reg = InstanceHP[Self, set[tuple[HasTraits, str]]](klass=set).configure(
-        read_only=False, allow_none=False, default_value=set()
+    parent = Parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
+    reg = InstanceHP(cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)).configure(
+        read_only=True, allow_none=False, default_value=set()
     )
 
     @observe("reg")
@@ -125,9 +124,23 @@ class ValueTraits(HasParent, Generic[RP]):
     _STASH_DEFAULTS = False
     _AUTO_VALUE = True  # Also connects the trait 'value' on the trait if it is found.
     _ignore_change_cnt = 0
-    _vt_reg_value_traits_persist: InstanceHP[Self, set[tuple[HasTraits, str]]] = tf.Set()
-    _vt_reg_value_traits: InstanceHP[Self, set[tuple[HasTraits, str]]] = tf.Set()
-    _vt_tuple_reg: InstanceHP[Self, dict[str, _InstanceHPTupleRegister]] = tf.Dict().configure(read_only=True)
+    _vt_reg_value_traits_persist = InstanceHP(
+        cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)
+    ).configure(
+        allow_none=False,
+        read_only=True,
+        default_value=set(),
+    )
+    _vt_reg_value_traits = InstanceHP(cast(Self, 0), klass=cast("type[set[tuple[HasTraits, str]]]", set)).configure(
+        allow_none=False,
+        read_only=True,
+        default_value=set(),
+    )
+    _vt_tuple_reg = InstanceHP(cast(Self, 0), klass=cast(type[dict[str, _InstanceHPTupleRegister]], dict)).configure(
+        allow_none=False,
+        read_only=True,
+        default_value={},
+    )
     _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
     _vt_init_complete = False

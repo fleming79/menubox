@@ -30,10 +30,10 @@ class InstanceHPTupleHookMappings(IHPHookMappings, Generic[V, T]):
     close_on_remove: NotRequired[bool]
     on_add: NotRequired[Callable[[IHPSet[V, T]], Any]]
     on_remove: NotRequired[Callable[[IHPSet[V, T]], Any]]
-    value_changed: NotRequired[Callable[[IHPChange[V, T]], None]]
+    value_changed: NotRequired[Callable[[IHPChange[V, T, T]], None]]
 
 
-class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
+class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]):
     """A tuple for `ValueTraits` where elements can be spawned and observed.
 
     This class provides a way to manage a tuple of instances within a ValueTraits
@@ -60,6 +60,16 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
     validating = False
     if TYPE_CHECKING:
         _hookmappings: InstanceHPTupleHookMappings[V, T]  # type: ignore
+
+        def __new__(
+            cls,
+            *,
+            trait: TraitType[T, T],
+            factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
+            read_only=False,
+            klass: type | None = None,
+            default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
+        ) -> InstanceHPTuple[V, T]: ...
 
     @contextlib.contextmanager
     def _busy_validating(self):

@@ -196,7 +196,7 @@ class TestMenubox:
             m.view = "invalid_view"
 
         with pytest.raises(NameError):
-            m.views = {"Minimized": ipw.HTML()}
+            m.views = {"Minimized": ipw.HTML()}  # type: ignore
 
     async def test_menubox_viewlist_validation(self):
         m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})

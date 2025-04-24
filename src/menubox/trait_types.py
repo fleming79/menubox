@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 R = TypeVar("R", bound=HasTraits | None)
 RP = TypeVar("RP", bound="HasParent | None")
 T = TypeVar("T")
+W = TypeVar("W")
 S = TypeVar("S", bound="HasParent")
 SS = TypeVar("SS", bound="HasParent")
 H = TypeVar("H", bound="HasHome")

@@ -9,6 +9,7 @@ Factory items include:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import ipylab
@@ -75,58 +76,47 @@ if TYPE_CHECKING:
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, H, S
+    from menubox.trait_types import MP, H, S, T
 
 
 # Basic types
 
 
 def Bool(
-    cast_self: S | int = 0,  # noqa: ARG001
+    cast_self: S | int = 0,
     default: Callable[[IHPCreate[S, bool]], bool | None] = lambda _: False,
-) -> InstanceHP[S, bool]:
-    return InstanceHP(klass=bool, default=default).configure(
-        read_only=False,
-        allow_none=False,
-        default_value=False,
+):
+    return InstanceHP(cast_self, klass=bool, default=default).configure(
+        read_only=False, allow_none=False, default_value=False
     )
 
 
 def Set(
-    cast_self: S | int = 0,  # noqa: ARG001
-    default: Callable[[IHPCreate[S, set]], set | None] = lambda _: set(),
-) -> InstanceHP[S, set]:
-    return InstanceHP(klass=set, default=default).configure(
-        read_only=False,
-        allow_none=False,
-        default_value=set(),
-    )
+    cast_self: S | int = 0,
+    /,
+    default: Callable[[IHPCreate[S, set[T]]], set[T] | None] = lambda _: set(),
+):
+    return InstanceHP(cast_self, klass=set, default=default)
 
 
 def Dict(
-    cast_self: S | int = 0,  # noqa: ARG001
+    cast_self: S | int = 0,
     /,
     default: Callable[[IHPCreate[S, dict]], dict | None] = lambda _: {},
-) -> InstanceHP[S, dict]:
-    return InstanceHP(klass=dict, default=default).configure(
-        read_only=False,
-        allow_none=False,
-        default_value={},
-    )
+):
+    return InstanceHP(cast_self, klass=dict, default=default).configure(default_value={})
 
 
-type ViewDictType = dict[str, utils.GetWidgetsInputType]
+type ViewDictType = Mapping[str, utils.GetWidgetsInputType]
 
 
 def ViewDict(
-    cast_self: S | int = 0,  # noqa: ARG001
+    cast_self: S | int = 0,
     /,
     default: Callable[[IHPCreate[S, ViewDictType]], ViewDictType | None] = lambda _: {},
-) -> InstanceHP[S, ViewDictType]:
-    return InstanceHP(klass=dict, default=default).configure(
-        read_only=False,
-        allow_none=False,
-        default_value={},
+):
+    return InstanceHP(cast_self, klass=cast(type[ViewDictType], dict), default=default).configure(
+        allow_none=False, read_only=False, default_value={}
     )
 
 
@@ -134,7 +124,7 @@ def Str(
     cast_self: S | int = 0,  # noqa: ARG001
     /,
     default: Callable[[IHPCreate[S, str]], str | None] = lambda _: "",
-) -> InstanceHP[S, str]:
+):
     return InstanceHP(klass=str, default=default).configure(
         read_only=False,
         allow_none=False,
@@ -156,7 +146,7 @@ Label = ihpwrap(ipw.Label)
 SelectionSlider = ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
 
 
-def _bchange(c: IHPChange[HasParent, ipw.Button]):
+def _bchange(c: IHPChange[HasParent, ipw.Button, Any]):
     c["parent"]._handle_button_change(c)
 
 
@@ -291,13 +281,16 @@ def Modalbox(
     )
 
 
-def SelectRepository(cast_self: H) -> InstanceHP[H, menubox.repository.SelectRepository[H]]:
+def SelectRepository(cast_self: H):  # type: ignore
     "Requires parent to have a home"
-    return InstanceHP(cast_self, klass="menubox.repository.SelectRepository").configure(allow_none=False)
+    return InstanceHP(
+        cast_self,
+        klass=cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"),
+    )
 
 
 def Task():
-    return InstanceHP(klass=asyncio.Task).configure(allow_none=True, load_default=False)
+    return InstanceHP(klass=asyncio.Task).configure(allow_none=True, read_only=True, load_default=False)
 
 
 def MenuboxPersistPool(
