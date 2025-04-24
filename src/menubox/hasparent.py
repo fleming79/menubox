@@ -35,7 +35,7 @@ class Parent(InstanceHP[S, RP], Generic[S, RP]):
     read_only = False
     load_default = False
 
-    def __init__(self, _: S | None = None, /, *, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
+    def __init__(self, _: S | int = 0, /, *, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
         super().__init__(_, klass=klass)
 
     def _validate(self, obj, value):
@@ -224,8 +224,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
             for n in self.parent_dlink:
                 if parent.has_trait(n):
                     p_dlink.add((self.parent, n))
-        self._hp_reg_parent_link = p_link
-        self._hp_reg_parent_dlink = p_dlink
+        self.set_trait("_hp_reg_parent_link", p_link)
+        self.set_trait("_hp_reg_parent_dlink", p_dlink)
 
     @traitlets.observe("_hp_reg_parent_link", "_hp_reg_parent_dlink")
     def _observe__hp_reg_parent_link(self, change: ChangeType):

@@ -7,7 +7,7 @@ import traitlets
 from ipylab.common import Fixed, Singular, import_item
 
 from menubox.hasparent import HasParent
-from menubox.trait_types import ReadOnlyTrait
+from menubox.trait_types import ReadOnly
 
 __all__ = ["HasParent", "Home"]
 
@@ -66,7 +66,7 @@ class Home(Singular):
                     item.close()
 
 
-class _HomeTrait(traitlets.TraitType[Home, ReadOnlyTrait[Home]]):
+class _HomeTrait(traitlets.TraitType[Home, ReadOnly[Home]]):
     def _validate(self, obj, value: Home | str):
         home = Home(value)
         if obj.trait_has_value("home"):

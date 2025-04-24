@@ -270,8 +270,6 @@ class ValueTraits(HasParent, Generic[RP]):
         for reg in self._vt_tuple_reg.values():
             reg.close()
         self._vt_tuple_reg.clear()
-        self._vt_reg_value_traits = set()
-        self._vt_reg_value_traits_persist = set()
 
     def _get_tuple_register(self, tuplename: str):
         try:
@@ -407,7 +405,7 @@ class ValueTraits(HasParent, Generic[RP]):
             for dotname in self.value_traits:
                 for pair in self._get_observer_pairs(self, dotname):
                     pairs.add(pair)
-            self._vt_reg_value_traits = pairs
+            self.set_trait("_vt_reg_value_traits", pairs)
 
     def _vt_update_reg_value_traits_persist(self):
         pairs = set()
@@ -415,7 +413,7 @@ class ValueTraits(HasParent, Generic[RP]):
             for dotname in self.value_traits_persist:
                 for pair in self._get_observer_pairs(self, dotname):
                     pairs.add(pair)
-            self._vt_reg_value_traits_persist = pairs
+            self.set_trait("_vt_reg_value_traits_persist", pairs)
 
     def _vt_update_reg_tuples(self, tuplename: str):
         if update_item_names := self._InstanceHPTuple[tuplename]._hookmappings.get("update_item_names", ()):
@@ -425,7 +423,7 @@ class ValueTraits(HasParent, Generic[RP]):
                 for dotname in update_item_names:
                     for owner, n in self._get_observer_pairs(obj, dotname):
                         pairs.add((owner, n))
-            self._get_tuple_register(tuplename).reg = pairs
+            self._get_tuple_register(tuplename).set_trait("reg", pairs)
 
     def _vt_value_traits_observe(self, change: ChangeType):
         if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(change["new"]):

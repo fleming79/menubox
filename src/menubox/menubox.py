@@ -204,7 +204,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         self._initial_view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
         if views:
-            self.views = views
+            self.set_trait("views", views)
         if viewlist:
             self.set_trait("viewlist", viewlist)
         if tabviews:

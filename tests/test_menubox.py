@@ -74,13 +74,13 @@ class TestMenubox:
         m = mb.Menubox(views={"a": wa, "b": wb}).load_view(mb.Menubox.MINIMIZED)
         assert m.view == m.MINIMIZED
         m.maximize()
-        m.views = {"A tuple": (ipw.HTML("Item1"), ipw.HTML("Item2"))}
+        m.set_trait("views", {"A tuple": (ipw.HTML("Item1"), ipw.HTML("Item2"))})
         await m.load_view("A tuple").activate()
 
     async def test_menubox_shuffle_buttons(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
-        m.shuffle_button_views = {"d": lambda: ipw.HTML("new")}
+        m.set_trait("shuffle_button_views", {"d": lambda: ipw.HTML("new")})
         assert "_shuffle_buttons" not in m.header_children
         m.load_view()
         await m.wait_tasks()
