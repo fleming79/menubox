@@ -9,7 +9,7 @@ import traitlets
 from menubox import hasparent, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.hasparent import HasParent, Parent
+from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
 from menubox.trait_types import S
 
@@ -38,10 +38,12 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     dict.
     """
 
-    parent: Parent[Self, S | None]
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
     task = tf.Task()
+
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, S, S]
 
     def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
         return super().__new__(cls, parent=parent, cfunc=cfunc, **kwargs)

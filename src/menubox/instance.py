@@ -52,12 +52,12 @@ class IHPSet(TypedDict, Generic[S, T]):
     obj: T
 
 
-class IHPChange(TypedDict, Generic[S, T, W]):
+class IHPChange(TypedDict, Generic[S, T]):
     name: str
     parent: S
     old: T | None
     new: T | None
-    ihp: InstanceHP[S, T, W]
+    ihp: InstanceHP[S, T, Any]
 
 
 class SetChildrenSettings(TypedDict):
@@ -66,7 +66,7 @@ class SetChildrenSettings(TypedDict):
     nametuple_name: NotRequired[str]  # 'monitor_nametuple' `mode` only
 
 
-class IHPHookMappings(TypedDict, Generic[S, T, W]):
+class IHPHookMappings(TypedDict, Generic[S, T]):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
     on_set: NotRequired[Callable[[IHPSet[S, T]], Any]]
@@ -74,7 +74,7 @@ class IHPHookMappings(TypedDict, Generic[S, T, W]):
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     set_children: NotRequired[Callable[[S], utils.GetWidgetsInputType] | SetChildrenSettings]
-    value_changed: NotRequired[Callable[[IHPChange[S, T, W]], None]]
+    value_changed: NotRequired[Callable[[IHPChange[S, T]], T | None]]
 
 
 class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
@@ -119,17 +119,17 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
 
     if TYPE_CHECKING:
         name: str  # type: ignore
-        _hookmappings: IHPHookMappings[S, T, W]
+        _hookmappings: IHPHookMappings[S, T]
 
         def __new__(
             cls,
             cast_self: S | int = 0,
-            cast_setter: W | int = 0,
             /,
             *,
             klass: type[T] | str,
             default: Callable[[IHPCreate[S, T]], T | None] | None = None,
-        ) -> InstanceHP[S, T, ReadOnly[W]]: ...
+            validate: Callable[[S, T | None], T | None] | None = None,
+        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
         def __get__(self, obj, cls: Any) -> T: ...  # type: ignore
 
@@ -149,7 +149,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         cls._change_hooks[name] = hook
 
     @classmethod
-    def _remove_on_close_hook(cls, c: IHPChange[S, T, W]):
+    def _remove_on_close_hook(cls, c: IHPChange[S, T]):
         if c["parent"].closed:
             return
         if c["ihp"] not in cls._close_observers:
@@ -183,7 +183,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             cls._close_observers[c["ihp"]][c["parent"]] = {"handler": _observe_closed, "names": names}
 
     @staticmethod
-    def _on_replace_close_hook(c: IHPChange[S, T, W]):
+    def _on_replace_close_hook(c: IHPChange[S, T]):
         if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | mhp.HasParent):
             if mb.DEBUG_ENABLED:
                 c["parent"].log.debug(
@@ -192,17 +192,17 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             c["old"].close()
 
     @staticmethod
-    def _on_set_hook(c: IHPChange[S, T, W]):
+    def _on_set_hook(c: IHPChange[S, T]):
         if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
             on_set(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["new"]))
 
     @staticmethod
-    def _on_unset_hook(c: IHPChange[S, T, W]):
+    def _on_unset_hook(c: IHPChange[S, T]):
         if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
             on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
 
     @staticmethod
-    def _add_css_class_hook(c: IHPChange[S, T, W]):
+    def _add_css_class_hook(c: IHPChange[S, T]):
         if add_css_class := c["ihp"]._hookmappings.get("add_css_class"):
             for cn in utils.iterflatten(add_css_class):
                 if isinstance(c["new"], DOMWidget):
@@ -211,7 +211,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
                     c["old"].remove_class(cn)
 
     @staticmethod
-    def _set_parent_hook(c: IHPChange[S, T, W]):
+    def _set_parent_hook(c: IHPChange[S, T]):
         if c["ihp"]._hookmappings.get("set_parent"):
             if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
                 c["old"].parent = None  # type: ignore
@@ -219,7 +219,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
                 c["new"].parent = c["parent"]  # type: ignore
 
     @staticmethod
-    def _set_children_hook(c: IHPChange[S, T, W]):
+    def _set_children_hook(c: IHPChange[S, T]):
         import menubox.children_setter
 
         if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
@@ -232,7 +232,12 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
                 c["new"].set_trait("children", children)  # type: ignore
 
     @staticmethod
-    def _value_changed_hook(c: IHPChange[S, T, W]):
+    def _value_changed_hook(c: IHPChange[S, T]):
+        if value_changed := c["ihp"]._hookmappings.get("value_changed"):
+            value_changed(c)
+
+    @staticmethod
+    def _validate_hook(c: IHPChange[S, T]):
         if value_changed := c["ihp"]._hookmappings.get("value_changed"):
             value_changed(c)
 
@@ -248,14 +253,15 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
     def __init__(
         self,
         cast_self: S | int = 0,
-        cast_setter: W | int = 0,
         /,
         *,
         klass: type[T] | str,
         default: Callable[[IHPCreate[S, T]], T | None] | None = None,
+        validate: Callable[[S, T | None], T | None] | None = None,
     ) -> None:
         self._hookmappings = {}
         self._create = default
+        self.validate = validate
         if not klass:
             msg = "klass must be specified"
             raise ValueError(msg)
@@ -412,6 +418,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             raise
 
     def _validate(self, obj: S, value) -> T | None:
+        if validate := self.validate:
+            value = validate(obj, value)
         if value is None:
             if self.allow_none:
                 return value
@@ -469,9 +477,19 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             *,
             allow_none: Literal[True],
             read_only: Literal[False],
-            load_default: bool = True,
+            load_default: Literal[True] = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
         ) -> InstanceHP[S, T | None, T | None | Literal[True]]: ...
+        @overload
+        def configure(
+            self,
+            *,
+            allow_none: Literal[True],
+            read_only: Literal[False],
+            load_default: Literal[False] = False,
+            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        ) -> InstanceHP[S, T | None, T | None]: ...
+
         @overload
         def configure(
             self,
@@ -500,6 +518,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         InstanceHP[S, T, T]
         | InstanceHP[S, T | None, ReadOnly[T]]
         | InstanceHP[S, T, ReadOnly]
+        | InstanceHP[S, T | None, T | None]
         | InstanceHP[S, T | None, T | None | Literal[True]]
     ):
         """Configures the instance with the provided settings.
@@ -522,8 +541,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             When configured with `allow_none=True, read_only=True` you can use the methods `enable_ihp`
             and `disable_ihp` respectively.
 
-            When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled
-            by item assignment of `bool` to enable and `None` to disable.
+            When configured with `allow_none=True, read_only=False, load_default=True` the trait can
+            also be enabled/disabled by item assignment of `True` to enable and `None` to disable.
 
             Because type hints are static, they will continue to reflect the configured state of the
             descriptor. You should always check the the trait is available before working with it.
@@ -549,7 +568,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             self.default_value = default_value
         return self  # type: ignore
 
-    def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T, W]]) -> Self:
+    def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
         """Configure what hooks to use when the instance value changes.
 
         Hooks are merged using a nested replace strategy.
@@ -618,7 +637,7 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    **kwargs: Unpack[IHPHookMappings[mhp.HasParent, T, T]],
+    **kwargs: Unpack[IHPHookMappings[mhp.HasParent, T]],
 ):
     """Wraps the InstanceHP trait for use withmhp. HasParent classes.
 

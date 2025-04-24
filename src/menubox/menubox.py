@@ -20,7 +20,7 @@ from menubox import defaults, log, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
-from menubox.hasparent import HasParent, Parent
+from menubox.hasparent import HasParent
 from menubox.trait_types import RP, ChangeType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
@@ -61,8 +61,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _setting_view = False
     _mb_configured = False
     _Menubox_init_complete = False
+
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, RP, RP]
+
     # Traits
-    parent = Parent[Self, RP]()
     show_help = tf.Bool()
     viewlist = StrTuple()
     toggleviews = StrTuple()

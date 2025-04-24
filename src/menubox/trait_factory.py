@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 import ipylab
 import ipywidgets as ipw
+import traitlets
 
 import menubox.async_run_button
 import menubox.widgets
@@ -76,7 +77,7 @@ if TYPE_CHECKING:
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, H, S, T
+    from menubox.trait_types import MP, SS, H, S, T
 
 
 # Basic types
@@ -132,6 +133,34 @@ def Str(
     )
 
 
+def Parent(
+    cast_self: S | int = 0,  # noqa: ARG001
+    /,
+    klass: type[SS] | str = "menubox.hasparent.HasParent",
+) -> InstanceHP[S, SS | None, SS | None]:
+    """Define a trait as a parent container for a HasParent subclass.
+
+    Use this to customize the behaviour of the has parent
+    """
+
+    def validate_parent(obj: S, value: SS | None):
+        if not value:
+            return None
+        p = value
+        while p and p.trait_has_value("parent"):
+            if p is obj:
+                msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
+                raise traitlets.TraitError(msg)
+            p = p.parent  # type: ignore
+        return value
+
+    return (
+        InstanceHP(klass=klass, validate=validate_parent)
+        .configure(allow_none=True, read_only=False, load_default=False)
+        .hooks(set_parent=False, on_replace_close=False, remove_on_close=False)
+    )
+
+
 # Ipywidgets shortcuts
 Box = ihpwrap(ipw.Box)
 VBox = ihpwrap(ipw.VBox)
@@ -146,7 +175,7 @@ Label = ihpwrap(ipw.Label)
 SelectionSlider = ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
 
 
-def _bchange(c: IHPChange[HasParent, ipw.Button, Any]):
+def _bchange(c: IHPChange[HasParent, ipw.Button]):
     c["parent"]._handle_button_change(c)
 
 

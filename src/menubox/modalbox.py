@@ -8,7 +8,7 @@ import traitlets
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.hasparent import HasParent, Parent
+from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
 from menubox.trait_types import ChangeType, S, StrTuple
 
@@ -27,7 +27,8 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     header = tf.HBox().configure(allow_none=True, read_only=True).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
-    parent = Parent[Self, S]()
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, S, S]
 
     @log_exceptions
     def __init__(

@@ -12,10 +12,11 @@ from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
-from menubox.hasparent import HasParent, Parent
+from menubox import trait_factory as tf
+from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
-from menubox.trait_types import RP, Bunched, ChangeType, NameTuple
+from menubox.trait_types import Bunched, ChangeType, NameTuple, S
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator
@@ -68,25 +69,25 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = Parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
+    parent = tf.Parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg = InstanceHP(cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)).configure(
         read_only=True, allow_none=False, default_value=set()
     )
 
     @observe("reg")
     def _observe_reg(self, change: ChangeType):
-        if self.parent:
-            self.parent._vt_observe_vt_reg_value(change)
+        if parent := self.parent:
+            parent._vt_observe_vt_reg_value(change)
 
     def change_handler(self, change: ChangeType):
         """"""
-        if self.parent:
-            self.parent._vt_on_reg_tuples_change(change, self.name)
+        if parent := self.parent:
+            parent._vt_on_reg_tuples_change(change, self.name)
         else:
             pass
 
 
-class ValueTraits(HasParent, Generic[RP]):
+class ValueTraits(HasParent, Generic[S]):
     """ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
 
@@ -150,7 +151,7 @@ class ValueTraits(HasParent, Generic[RP]):
     value_traits_persist = NameTuple()
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
-    parent = Parent[Self, RP]()
+    parent = tf.Parent(cast(Self, 0), klass=cast(type[S], HasParent))
     if TYPE_CHECKING:
         _value: Callable
 
@@ -203,7 +204,7 @@ class ValueTraits(HasParent, Generic[RP]):
     def __init__(
         self,
         *,
-        parent: RP = None,
+        parent: S | None = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str = None,

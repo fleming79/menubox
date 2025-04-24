@@ -90,7 +90,7 @@ class TestInstance:
         assert hp2.b.parent is hp2
         assert hp2.b.b is hp1
         hp2.log.info("About to test a raised exception.")
-        with pytest.raises(RuntimeError, match="already a parent."):
+        with pytest.raises(TraitError, match="already a parent."):
             hp2.set_trait("b", hp2)
         hp2_b = hp2.b
         hp2.set_trait("b", HPI())

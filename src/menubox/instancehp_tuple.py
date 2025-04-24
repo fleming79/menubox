@@ -30,7 +30,7 @@ class InstanceHPTupleHookMappings(IHPHookMappings, Generic[V, T]):
     close_on_remove: NotRequired[bool]
     on_add: NotRequired[Callable[[IHPSet[V, T]], Any]]
     on_remove: NotRequired[Callable[[IHPSet[V, T]], Any]]
-    value_changed: NotRequired[Callable[[IHPChange[V, T, T]], None]]
+    value_changed: NotRequired[Callable[[IHPChange[V, T]], None]]
 
 
 class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]):

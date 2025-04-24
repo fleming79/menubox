@@ -356,8 +356,8 @@ class DefaultFilesystem(HasHome, Filesystem):
 class HasFilesystem(HasHome):
     filesystem = (
         tf.InstanceHP(cast(Self, 0), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
-        .hooks(on_replace_close=False, set_parent=False)
         .configure(allow_none=False, read_only=False)
+        .hooks(on_replace_close=False, set_parent=False)
     )
 
     def __new__(cls, *, home=None, parent=None, filesystem: Filesystem | None = None, **kwargs):

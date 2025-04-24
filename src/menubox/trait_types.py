@@ -15,12 +15,12 @@ if TYPE_CHECKING:
     from menubox.persist import MenuboxPersist
     from menubox.valuetraits import ValueTraits
 
-R = TypeVar("R", bound=HasTraits | None)
-RP = TypeVar("RP", bound="HasParent | None")
 T = TypeVar("T")
 W = TypeVar("W")
+R = TypeVar("R", bound=HasTraits)
 S = TypeVar("S", bound="HasParent")
 SS = TypeVar("SS", bound="HasParent")
+RP = TypeVar("RP", bound="HasParent | None")
 H = TypeVar("H", bound="HasHome")
 HF = TypeVar("HF", bound="HasFilesystem")
 V = TypeVar("V", bound="ValueTraits")

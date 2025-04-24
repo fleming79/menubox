@@ -11,7 +11,6 @@ import menubox as mb
 from menubox import trait_factory as tf
 from menubox import utils
 from menubox.css import CSScls
-from menubox.hasparent import Parent
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_types import RP, ChangeType, StrTuple
@@ -46,7 +45,10 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
-    parent = Parent[Self, RP]()
+
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, RP, RP]
+
     header = (
         tf.MenuboxHeader()
         .hooks(

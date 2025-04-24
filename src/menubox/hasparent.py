@@ -19,54 +19,14 @@ from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.instance import IHPChange, InstanceHP
 from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, ReadOnly, S
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
 
+    from menubox.instance import IHPChange, InstanceHP
+
 __all__ = ["HasParent", "Link", "Dlink"]
-
-
-class Parent(InstanceHP[S, RP, RP], Generic[S, RP]):
-    klass: type[RP]
-    allow_none = True
-    default_value = None
-    read_only = False
-    load_default = False
-
-    if TYPE_CHECKING:
-
-        def __new__(
-            cls,
-            cast_self: S | int = 0,
-            /,
-            *,
-            klass: type[RP] | str = "menubox.hasparent.HasParent",
-        ) -> Parent[S, RP | None]: ...
-
-    def __init__(self, _: S | int = 0, /, *, klass: type[RP] | str = "menubox.hasparent.HasParent") -> None:
-        super().__init__(_, klass=klass)
-
-    def _validate(self, obj, value):
-        if not value:
-            return super()._validate(obj, value)
-        p = value
-        while p and p.trait_has_value("parent"):
-            if p is obj:
-                msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
-                raise RuntimeError(msg)
-            p = p.parent  # type: ignore
-        return super()._validate(obj, value)
-
-    @override
-    def finalize(self):
-        if hasattr(self, "klass"):
-            return
-        self._hookmappings["on_replace_close"] = False
-        self._hookmappings["set_parent"] = False
-        self._hookmappings["remove_on_close"] = False
-        super().finalize()
 
 
 class HasParent(Singular, HasApp, Generic[RP]):
@@ -106,7 +66,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = tf.Str(cast(Self, 0))
-    parent = Parent[Self, RP]()
+    parent = tf.Parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
     tasks: InstanceHP[Self, set[asyncio.Task[Any]], ReadOnly] = tf.Set(
         cast(Self, 0),
     )
@@ -438,7 +398,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         await asyncio.shield(self._init_async_task)
         return self
 
-    def _handle_button_change(self, c: IHPChange[Self, ipw.Button, ReadOnly]):
+    def _handle_button_change(self, c: IHPChange[Self, ipw.Button]):
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
             b.on_click(cb, remove=True)
         if b := c["new"]:
@@ -549,8 +509,9 @@ class Link(HasParent, Generic[S]):
     """
 
     mode: Literal["link", "dlink"] = "link"
-    parent = Parent[Self, S]()
     _updating = False
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, S, S]
 
     def __init__(
         self,
@@ -643,7 +604,8 @@ class Link(HasParent, Generic[S]):
 
 class Dlink(Link, Generic[S]):
     mode = "dlink"
-    parent = Parent[Self, S]()
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, S, S]
 
     def __init__(
         self,
