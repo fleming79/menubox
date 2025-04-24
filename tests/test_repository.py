@@ -1,7 +1,5 @@
 from typing import Self, cast
 
-import traitlets
-
 import menubox as mb
 from menubox import HasHome, Menubox
 from menubox import trait_factory as tf
@@ -10,7 +8,7 @@ from menubox.repository import Repository
 
 class SelectRepositoryWidget(HasHome, Menubox):
     select_repository = tf.SelectRepository(cast(Self, 0))
-    views = traitlets.Dict({"Widgets": "select_repository"})
+    views = tf.Dict(default=lambda _: {"Widgets": "select_repository"})
 
 
 async def test_select_repository(home: mb.Home):

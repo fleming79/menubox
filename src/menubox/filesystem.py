@@ -43,7 +43,7 @@ class Filesystem(MenuboxVT):
     minimized_children = StrTuple("url")
     value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
-    views = tf.Dict(default=lambda _: {"Main": ()})
+    views = tf.ViewDict(default=lambda _: {"Main": ()})
 
     protocol = tf.Dropdown(
         cast(Self, 0),

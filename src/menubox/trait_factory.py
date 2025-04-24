@@ -16,7 +16,7 @@ import ipywidgets as ipw
 
 import menubox.async_run_button
 import menubox.widgets
-from menubox import mb_async
+from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, InstanceHP
@@ -108,6 +108,21 @@ def Dict(
     /,
     default: Callable[[IHPCreate[S, dict]], dict | None] = lambda _: {},
 ) -> InstanceHP[S, dict]:
+    return InstanceHP(klass=dict, default=default).configure(
+        read_only=False,
+        allow_none=False,
+        default_value={},
+    )
+
+
+type ViewDictType = dict[str, utils.GetWidgetsInputType]
+
+
+def ViewDict(
+    cast_self: S | int = 0,  # noqa: ARG001
+    /,
+    default: Callable[[IHPCreate[S, ViewDictType]], ViewDictType | None] = lambda _: {},
+) -> InstanceHP[S, ViewDictType]:
     return InstanceHP(klass=dict, default=default).configure(
         read_only=False,
         allow_none=False,

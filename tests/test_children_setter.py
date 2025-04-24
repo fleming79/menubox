@@ -4,7 +4,6 @@ import asyncio
 
 import ipywidgets as ipw
 import pytest
-import traitlets
 
 import menubox as mb
 from menubox import trait_factory as tf
@@ -14,8 +13,8 @@ from menubox.trait_types import NameTuple
 
 
 class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
-    views = traitlets.Dict(
-        {
+    views = tf.Dict(
+        default=lambda _: {
             "view a": lambda: (ipw.Button(description="Button"), ipw.HTML("HTML")),
             "view b": ("button", "dropdown"),
         }

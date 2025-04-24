@@ -844,7 +844,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
     widget = tf.InstanceHP(klass=ipw.Widget).configure(read_only=True, load_default=False)
-    views = tf.Dict(default=lambda _: {"widget": "widget"})
+    views = tf.ViewDict(default=lambda _: {"widget": "widget"})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):
