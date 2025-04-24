@@ -133,7 +133,13 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
 
         def __get__(self, obj, cls: Any) -> T: ...  # type: ignore
 
-        def __set__(self, obj, value: W) -> None: ...  # type: ignore
+    def __set__(self, obj, value: W) -> None:  # type: ignore
+        if self.read_only:
+            msg = f'The "{self.name}" trait is read-only.'
+            raise traitlets.TraitError(msg)
+        if value is True and obj._trait_values.get(self.name) is None and self.klass is not bool:
+            value = self.default(obj, None)  # type: ignore
+        self.set(obj, value)  # type: ignore
 
     @classmethod
     def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
@@ -465,7 +471,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             read_only: Literal[False],
             load_default: bool = True,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T]: ...
+        ) -> InstanceHP[S, T | None, T | None | Literal[True]]: ...
         @overload
         def configure(
             self,
@@ -492,9 +498,9 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
     ) -> (
         InstanceHP[S, T, T]
-        | InstanceHP[S, T | None, T]
+        | InstanceHP[S, T | None, ReadOnly[T]]
         | InstanceHP[S, T, ReadOnly]
-        | InstanceHP[S, T | None, ReadOnly]
+        | InstanceHP[S, T | None, T | None | Literal[True]]
     ):
         """Configures the instance with the provided settings.
 
@@ -512,6 +518,26 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             `default_value` is only used as the default with respect to the unset value. It is used for
             comparison when emitting changes and may be used as an the `old` value.
 
+        Enabling/Disabling:
+            When configured with `allow_none=True, read_only=True` you can use the methods `enable_ihp`
+            and `disable_ihp` respectively.
+
+            When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled
+            by item assignment of `bool` to enable and `None` to disable.
+
+            Because type hints are static, they will continue to reflect the configured state of the
+            descriptor. You should always check the the trait is available before working with it.
+
+        Item assignment in lambdas:
+            Attribute assignment isn't permitted in lambda expressions instead, you should can use the
+            methods to perform item assignments instead. To perform multiple ssignments in a lambda just
+            make a tuple of item assignments.
+
+            Assignment expressions are permitted, and can be useful to store intermediate values. Should
+            you need to return a single result, simply access slice the tuple/list as required.
+
+            - [lambda expressions](https://docs.python.org/3.13/reference/expressions.html#lambda)
+            - [Assignment expressions](https://docs.python.org/3.13/reference/expressions.html#assignment-expressions)
 
         Returns:
             The instance itself (self), with updated configuration. The return type reflects whether None is allowed.

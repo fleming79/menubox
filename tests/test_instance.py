@@ -149,6 +149,17 @@ class TestInstance:
         assert hp2b.select_repository, "close should reset so default will load."
         assert not hp2b.select_repository.closed
 
+    async def test_instance_enable_with_bool(self):
+        hpi = HPI()
+        hpi.a = None
+        assert hpi.a is None
+        hpi.a = True
+        assert hpi.a, "Via `InstanceHP.__set__`"
+
+        hpi3 = HPI3()
+        with pytest.raises(TraitError):
+            hpi3.box = True  # type: ignore
+
     async def test_instance_invalid_value(self):
         hpi3 = HPI3()
         with pytest.raises(
