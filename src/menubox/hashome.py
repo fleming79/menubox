@@ -7,6 +7,7 @@ import traitlets
 from ipylab.common import Fixed, Singular, import_item
 
 from menubox.hasparent import HasParent
+from menubox.trait_types import ReadOnlyTrait
 
 __all__ = ["HasParent", "Home"]
 
@@ -65,16 +66,12 @@ class Home(Singular):
                     item.close()
 
 
-class _HomeTrait(traitlets.TraitType[Home, Home]):
+class _HomeTrait(traitlets.TraitType[Home, ReadOnlyTrait[Home]]):
     def _validate(self, obj, value: Home | str):
-        if not value:
-            msg = """`home` is required!
-                Hint: `home` can be specified as a string or inherited from a parent."""
-            raise RuntimeError(msg)
         home = Home(value)
-        if obj.trait_has_value("home") and home is not obj.home:
-            msg = "Changing home is not allowed after it is set current={obj.home} new={home}"
-            raise RuntimeError(msg)
+        if obj.trait_has_value("home"):
+            msg = "Setting home is prohibited!"
+            raise traitlets.TraitError(msg)
         home.instances.add(obj)
         return home
 
@@ -99,8 +96,12 @@ class HasHome(HasParent):
     def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
         home = cls.to_home(home, parent)
         inst = super().__new__(cls, home=home, parent=parent, **kwargs)
-        inst.set_trait("home", home)
+        if not inst.trait_has_value("home"):
+            inst.set_trait("home", home)
         return inst
+
+    def __init__(self, *, home: Home | str | None = None, parent=None, **kwargs):
+        super().__init__(parent=parent, **kwargs)
 
     @classmethod
     def to_home(cls, home: Home | str | None, parent: HasParent | None):

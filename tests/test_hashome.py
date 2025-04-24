@@ -1,5 +1,8 @@
+import pytest
+import traitlets
+
 from menubox.filesystem import DefaultFilesystem, Filesystem
-from menubox.hashome import Home
+from menubox.hashome import HasHome, Home
 
 
 async def test_home():
@@ -14,3 +17,12 @@ async def test_home():
     assert home2.filesystem is not home1.filesystem
 
     assert DefaultFilesystem(home=home1) is home1.filesystem
+
+
+async def test_has_home(home: Home):
+    hh1 = HasHome(home=home)
+    assert hh1.home is home
+    with pytest.raises(traitlets.TraitError):
+        hh1.home = home  # type: ignore
+    hh2 = HasHome(parent=hh1)
+    assert hh2.parent is hh1

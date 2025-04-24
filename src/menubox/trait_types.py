@@ -28,6 +28,10 @@ MP = TypeVar("MP", bound="MenuboxPersist")
 P = ParamSpec("P")
 
 
+class ReadOnlyTrait(Generic[T]):
+    "The value is read only"
+
+
 class ChangeType(TypedDict):
     new: Any
     old: Any

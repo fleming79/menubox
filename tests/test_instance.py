@@ -7,7 +7,7 @@ from typing import Self, cast
 
 import ipywidgets as ipw
 import pytest
-from traitlets import Dict, TraitError
+from traitlets import TraitError
 
 import menubox as mb
 import menubox.trait_factory as tf
@@ -62,8 +62,7 @@ class HPI3(mb.Menubox):
 class HPI4(HasHome):
     hpi = tf.InstanceHP(cast(Self, 0), klass=HPI).configure(allow_none=True)
     hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
-
-    value_changed = Dict()
+    value_changed = tf.Dict()
 
 
 class TestInstance:
