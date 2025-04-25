@@ -76,6 +76,13 @@ class _NoValue(float, enum.Enum):
             return None
 
 
+class _Enable(enum.Enum):
+    token = "Enable"  # noqa: S105
+
+    def __bool__(self) -> Literal[False]:
+        return False
+
+
 class _Index(enum.StrEnum):
     token = "--INDEX--"  # noqa: S105
 
@@ -93,10 +100,12 @@ class _NoDefault(enum.StrEnum):
 NO_DEFAULT = _NoDefault.token
 NO_VALUE = _NoValue.token
 INDEX = _Index.token
+ENABLE = _Enable.token
 
 if TYPE_CHECKING:
     NO_VALUE_TYPE = Literal[NO_VALUE]
     NO_DEFAULT_TYPE = Literal[NO_DEFAULT]
+    ENABLE_TYPE = Literal[ENABLE]
 
 
 class NoCloseBox(ipw.Box):

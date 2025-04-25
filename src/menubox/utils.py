@@ -352,7 +352,7 @@ def joinpaths(*parts):
 sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_")
 
 
-def iterflatten(iterable: Iterable[T]) -> Generator[T, None, None]:
+def iterflatten(iterable: Iterable[T] | Any) -> Generator[T, None, None]:
     """An iterator flattening everything except strings."""
     if isinstance(iterable, str):
         yield iterable  # type: ignore

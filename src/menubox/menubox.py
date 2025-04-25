@@ -6,7 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, overload, override
+from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
 import docstring_to_markdown
 import ipylab.shell
@@ -19,7 +19,7 @@ import menubox as mb
 from menubox import defaults, log, mb_async, utils
 from menubox import trait_factory as tf
 from menubox.css import CSScls
-from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
+from menubox.defaults import ENABLE, H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
 from menubox.trait_types import RP, ChangeType, ProposalType, ReadOnly, StrTuple
 
@@ -72,16 +72,14 @@ class Menubox(HasParent, Panel, Generic[RP]):
     menuviews = StrTuple()
     tabviews = StrTuple()
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
-    views = tf.ViewDict(cast(Self, 0))
-    shuffle_button_views: tf.InstanceHP[
-        Self, dict[str, ipw.Widget | Menubox | str], dict[str, ipw.Widget | Menubox | str]
-    ] = tf.Dict().configure(
-        allow_none=False,
-        read_only=False,
-    )
-    border = tf.Str().configure(read_only=False, allow_none=True, default_value=None)
-    view = tf.Str(default=lambda _: None).configure(read_only=False, allow_none=True, default_value=None)
-    view_previous = tf.Str(default=lambda _: None).configure(read_only=False, allow_none=True, default_value=None)
+
+    views = tf.ViewDict(cast(Self, 0)).configure(allow_none=False, read_only=False)
+    shuffle_button_views = tf.ViewDict(cast(Self, 0)).configure(allow_none=False, read_only=False)
+
+    border = tf.Str().configure(allow_none=True, read_only=False, load_default=False, default_value=None)
+    view = tf.Str().configure(allow_none=True, read_only=False, load_default=False, default_value=None)
+    view_previous = tf.Str().configure(allow_none=True, read_only=False, load_default=False, default_value=None)
+
     title_description = tf.Str()
     title_description_tooltip = tf.Str()
 
@@ -107,42 +105,71 @@ class Menubox(HasParent, Panel, Generic[RP]):
     # Trait factory
     _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
     _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
+
     task_load_view = tf.Task()
-    html_title = tf.HTML_Title().configure(allow_none=True, read_only=True, load_default=False)
+    html_title = tf.HTML_Title().configure(allow_none=True, read_only=False, load_default=False)
     out_help = tf.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
-    button_menu = tf.Button_menu(description="☰").configure(read_only=True, allow_none=True)
-    button_toggleview = tf.Button_menu(description="➱").configure(allow_none=True, read_only=True, load_default=False)
-    button_help = tf.Button_open(description="❔").configure(allow_none=True, read_only=True, load_default=False)
+    button_menu = tf.Button_menu(description="☰").configure(
+        allow_none=True,
+        read_only=False,
+        load_default=False,
+    )
+    button_toggleview = tf.Button_menu(description="➱").configure(
+        allow_none=True,
+        read_only=False,
+        load_default=False,
+    )
+    button_help = tf.Button_open(description="❔").configure(
+        allow_none=True,
+        read_only=False,
+        load_default=False,
+    )
     button_close = tf.Button_dangerous(description="✗", tooltip="Close").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_minimize = tf.Button_open(description="🗕", tooltip="Minimize").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_maximize = tf.Button_open(description="🗖", tooltip="Restore").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_exit = tf.Button_open(description="⇡", tooltip="Leave showbox").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_promote = tf.Button_open(description="⇖", tooltip="Shift up / left").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_demote = tf.Button_open(description="⇘", tooltip="Shift down / right").configure(
-        allow_none=True, load_default=False, read_only=True
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_menu_minimize = tf.Button_menu(description="↤", tooltip="Hide menu").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
     button_activate = tf.Button_open(description="🐑", tooltip="Add to shell").configure(
-        allow_none=True, read_only=True, load_default=False
+        allow_none=True,
+        read_only=False,
+        load_default=False,
     )
 
     # Boxes
-    box_shuffle = tf.MenuboxShuffle().configure(allow_none=True, read_only=True)
-    box_menu = tf.MenuboxMenu().configure(allow_none=True, read_only=True)
+    box_shuffle = tf.MenuboxShuffle().configure(allow_none=False, read_only=False)
+    box_menu = tf.MenuboxMenu().configure(allow_none=True, read_only=False, load_default=False)
     showbox = (
         tf.InstanceHP(cast(Self, 0), klass=ipw.Box)
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
@@ -342,10 +369,10 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self.menu_close()
         if self.button_menu:
             self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
-        if self.button_toggleview and view in self.toggleviews:
+        if (b := self.button_toggleview) and view in self.toggleviews:
             i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
             next_view = self.toggleviews[i]
-            self.button_toggleview.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
+            b.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
         return view
 
     async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
@@ -429,12 +456,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def menu_open(self):
         self.enable_ihp("button_menu_minimize")
-        assert self.box_menu  # noqa: S101
-        self.box_menu.children = tuple(self.get_widgets(*self.box_menu_open_children))
+        if box := self.box_menu:
+            box.children = tuple(self.get_widgets(*self.box_menu_open_children))
 
     def menu_close(self):
-        if self.box_menu:
-            self.box_menu.children = (self.button_menu,) if self.button_menu else ()
+        if box := self.box_menu:
+            box.children = (self.button_menu,) if self.button_menu else ()
 
     async def mb_configure(self) -> None:
         """Configure this widget - called once only when loading the first view.
@@ -450,9 +477,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self._has_maximize_button:
             self.enable_ihp("button_minimize")
         if self.menuviews:
-            self.enable_ihp("button_menu")
-        if len(self.toggleviews):
-            self.enable_ihp("button_toggleview")
+            self.button_menu = ENABLE
+        if len(self.toggleviews) > 1:
+            self.button_toggleview = ENABLE
         self._update_tab_buttons()
         self._update_shuffle_buttons()
         if cb := getattr(super(), "mb_configure", None):
@@ -479,24 +506,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self._update_tab_buttons()
                 return
             case "menuviews":
-                if self.menuviews:
-                    self.enable_ihp("button_menu")
-                else:
-                    self.disable_ihp("button_menu")
+                self.button_menu = ENABLE if self.menuviews else None
             case "button_menu":
-                if self.button_menu:
-                    self.enable_ihp("box_menu")
-                else:
-                    self.menu_close()
+                self.box_menu = ENABLE if self.button_menu else None
             case "toggleviews":
-                if len(self.toggleviews) > 1:
-                    self.enable_ihp("button_toggleview")
-                else:
-                    self.disable_ihp("button_toggleview")
-            case "button_close" if self.button_close:
-                self.button_close.tooltip = f"Close {self}"
-            case "button_help" if self.button_help:
-                self.button_help.tooltip = f"Help for  {utils.fullname(self)}\n"
+                self.button_toggleview = ENABLE if len(self.toggleviews) > 1 else None
+            case "button_close" if b := self.button_close:
+                b.tooltip = f"Close {self}"
+            case "button_help" if b := self.button_help:
+                b.tooltip = f"Help for  {utils.fullname(self)}\n"
             case "shuffle_button_views":
                 self._update_shuffle_buttons()
             case "shuffle_buttons" if change["old"] is not traitlets.Undefined:
@@ -685,7 +703,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def get_shuffle_button(self, name: str) -> ipw.Button:
         """Get an existing shuffle button"""
-        self.shuffle_button_views[name]  # Test
+        if name not in self.shuffle_button_views:
+            msg = f"{name=} not a shuffle button view options = {list[self.shuffle_button_views]}"
+            raise KeyError(msg)
         b = ipw.Button(description=name)
         b.add_class(CSScls.button)
         b.add_class(CSScls.button_type_shuffle)
@@ -693,8 +713,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return b
 
     def obj_in_box_shuffle(self, obj: ipw.Widget) -> ipw.Widget | None:
-        if not self.box_shuffle:
-            return None
         for c in self.box_shuffle.children:
             if c is obj or isinstance(c, MenuboxWrapper) and c.widget is obj:
                 return c
@@ -702,7 +720,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def load_shuffle_item(
         self,
-        obj_or_name: ipw.Widget | Menubox | str,
+        obj: mb.utils.GetWidgetsInputType,
         position: Literal["start", "end"] = "start",
         alt_name="",
         ensure_wrapped=False,
@@ -716,54 +734,14 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """
         if self.closed:
             return None
-        if isinstance(obj_or_name, ipw.Widget):
-            obj = obj_or_name
-        elif callable(obj_or_name):
-            obj = obj_or_name()
-        elif isinstance(obj_or_name, str):
-            obj = utils.getattr_nested(self, obj_or_name, hastrait_value=False)
-        else:
-            msg = f"Unable to load {type(obj_or_name)}"
-            raise TypeError(msg)
-        while callable(obj):
-            obj = obj()
-        if isinstance(obj, ipw.Widget):
-            return self.put_obj_in_box_shuffle(obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped)
-        return None
-
-    if TYPE_CHECKING:
-
-        @overload
-        def put_obj_in_box_shuffle(
-            self,
-            obj: ipw.Widget | mb.Menubox,
-            *,
-            ensure_wrapped: Literal[True],
-            position: Literal["start", "end"] = ...,
-            alt_name=...,
-        ) -> MenuboxWrapper: ...
-        @overload
-        def put_obj_in_box_shuffle(  # type: ignore
-            self,
-            obj: mb.Menubox,
-            *,
-            ensure_wrapped: Literal[False] = ...,
-            position: Literal["start", "end"] = ...,
-            alt_name=...,
-        ) -> Menubox: ...
-        @overload
-        def put_obj_in_box_shuffle(
-            self,
-            obj: ipw.Widget,
-            *,
-            ensure_wrapped: Literal[False] = ...,
-            position: Literal["start", "end"] = ...,
-            alt_name=...,
-        ) -> MenuboxWrapper: ...
+        obj = tuple(self.get_widgets(obj))
+        if len(obj) == 1:
+            obj = obj[0]
+        return self.put_obj_in_box_shuffle(obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped)
 
     def put_obj_in_box_shuffle(
         self,
-        obj: ipw.Widget | mb.Menubox,
+        obj: ipw.Widget | mb.Menubox | tuple[ipw.Widget, ...],
         *,
         ensure_wrapped=False,
         position: Literal["start", "end"] = "end",
@@ -791,29 +769,26 @@ class Menubox(HasParent, Panel, Generic[RP]):
             TypeError: If the object is not a widget.
             RuntimeError: If the object is already in the box shuffle but is not a Menubox.
         """
-        if (isinstance(obj, mb.Menubox) and obj.closed) or (isinstance(obj, ipw.Widget) and not obj.comm):
-            msg = f"The instance of {utils.fullname(obj)} is closed!"
-            raise RuntimeError(msg)
-        if obj is self:
-            msg = f"Adding a menubox to its own shuffle_box is prohibited! {self=}"
-            raise RuntimeError(msg)
-        if not isinstance(obj, ipw.Widget):
-            msg = f"obj of type={type(obj)} is not a widget!"
-            raise TypeError(msg)
+        for obj_ in mb.utils.iterflatten(obj):
+            if obj_ is self:
+                msg = f"Adding a menubox to its own shuffle_box is prohibited! {self=}"
+                raise RuntimeError(msg)
+        if isinstance(obj, tuple):
+            obj = ipw.VBox(children=obj)
         obj_ = obj
+        box = self.box_shuffle
         if found := self.obj_in_box_shuffle(obj):
-            if ensure_wrapped and obj is found and isinstance(obj, Menubox) and obj.showbox is self.box_shuffle:
+            if ensure_wrapped and obj is found and isinstance(obj, Menubox) and obj.showbox is box:
                 obj.set_trait("showbox", None)
             obj_ = found
         self.enable_ihp("box_shuffle")
-        assert self.box_shuffle  # noqa: S101
         if not isinstance(obj_, mb.Menubox) or ensure_wrapped and not isinstance(obj_, MenuboxWrapper):
             obj_ = MenuboxWrapper(obj_)
             alt_name = alt_name or "<b>{self.widget.name}<b>" if isinstance(obj, Menubox) else ""
             obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
-        children = (c for c in self.box_shuffle.children if c not in [obj, obj_])
-        self.box_shuffle.children = (*children, obj_) if position == "end" else (obj_, *children)
-        obj_.set_trait("showbox", self.box_shuffle)
+        children = (c for c in box.children if c not in [obj, obj_])
+        box.children = (*children, obj_) if position == "end" else (obj_, *children)
+        obj_.set_trait("showbox", box)
         if self.button_exit:
             mb.mb_async.call_later(0.1, self.button_exit.focus)
         return obj_

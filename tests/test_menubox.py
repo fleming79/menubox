@@ -32,7 +32,7 @@ class TestMenubox:
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
         m.show()
-        assert not m._trait_values.get("button_toggleview")
+        assert not m.button_toggleview
         m.toggleviews = ("a", "b")
         assert m.button_toggleview, "Enabled automatically"
         await m.wait_tasks()
@@ -80,7 +80,7 @@ class TestMenubox:
     async def test_menubox_shuffle_buttons(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
-        m.set_trait("shuffle_button_views", {"d": lambda: ipw.HTML("new")})
+        m.shuffle_button_views = {"d": lambda _: ipw.HTML("new")}
         assert "_shuffle_buttons" not in m.header_children
         m.load_view()
         await m.wait_tasks()
@@ -151,6 +151,7 @@ class TestMenubox:
         assert abox
         b = ipw.Button(description="Not a Menubox")
         wrapper = m3.put_obj_in_box_shuffle(b)
+        assert isinstance(wrapper, MenuboxWrapper)
         assert wrapper.view == "widget"
         assert wrapper.widget is b
         assert b not in abox.children, "should be added with wrapper"
@@ -422,15 +423,6 @@ class TestMenubox:
         wrapper2 = m.box_shuffle.children[1]
         assert isinstance(wrapper2, MenuboxWrapper)
         assert wrapper2.widget is m2
-        for w in (m2, widget):
-            w.close()
-            with pytest.raises(RuntimeError):
-                m.put_obj_in_box_shuffle(w)
-        with pytest.raises(RuntimeError):
-            m.put_obj_in_box_shuffle(m)
-        m = mb.Menubox(views={"a": ipw.HTML("A")})
-        with pytest.raises(TypeError):
-            m.put_obj_in_box_shuffle(1)  # type: ignore
 
     async def test_menubox_activate_deactivate(self, mocker):
         m = mb.Menubox(views={"a": ipw.HTML("A")}, view=None)

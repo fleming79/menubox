@@ -26,14 +26,14 @@ from mergedeep import Strategy, merge
 import menubox as mb
 import menubox.hasparent as mhp
 from menubox import utils
-from menubox.defaults import NO_DEFAULT
+from menubox.defaults import ENABLE, NO_DEFAULT
 from menubox.trait_types import SS, Bunched, P, ReadOnly, S, T, W
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from menubox.css import CSScls
-    from menubox.defaults import NO_DEFAULT_TYPE
+    from menubox.defaults import ENABLE_TYPE, NO_DEFAULT_TYPE
 
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
@@ -129,7 +129,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             klass: type[T] | str,
             default: Callable[[IHPCreate[S, T]], T | None] | None = None,
             validate: Callable[[S, T | None], T | None] | None = None,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+        ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
 
         def __get__(self, obj, cls: Any) -> T: ...  # type: ignore
 
@@ -137,8 +137,10 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         if self.read_only:
             msg = f'The "{self.name}" trait is read-only.'
             raise traitlets.TraitError(msg)
-        if value is True and obj._trait_values.get(self.name) is None and self.klass is not bool:
-            value = self.default(obj, None)  # type: ignore
+        if value is ENABLE:
+            if obj._trait_values.get(self.name) is not None:
+                return
+            value = self.default(obj, {})  # type: ignore
         self.set(obj, value)  # type: ignore
 
     @classmethod
@@ -287,7 +289,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
     def __repr__(self):
-        return f'InstanceHP<klass={self.klass.__name__}@{utils.fullname(self.this_class)}.{self.name}">'
+        return f'InstanceHP{utils.fullname(self.this_class)}.{self.name}">'
 
     def __str__(self):
         return self.name
@@ -332,7 +334,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         try:
             return obj._trait_values[self.name]  # type: ignore
         except KeyError:
-            self.finalize()
             # Obtain the default.
             default = self.default(obj)
 
@@ -398,6 +399,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             Exception: Any exception raised during instance creation is caught,
             reported to the parent's `on_error` method, and then re-raised.
         """
+        self.finalize()
         try:
             if not self.load_default and override is None:
                 if self.allow_none:
@@ -479,7 +481,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             read_only: Literal[False],
             load_default: Literal[True] = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T | None | Literal[True]]: ...
+        ) -> InstanceHP[S, T | None, T | None | ENABLE_TYPE]: ...
         @overload
         def configure(
             self,
@@ -488,7 +490,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             read_only: Literal[False],
             load_default: Literal[False] = False,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T | None]: ...
+        ) -> InstanceHP[S, T | None, T | None | ENABLE_TYPE]: ...
 
         @overload
         def configure(
@@ -519,7 +521,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         | InstanceHP[S, T | None, ReadOnly[T]]
         | InstanceHP[S, T, ReadOnly]
         | InstanceHP[S, T | None, T | None]
-        | InstanceHP[S, T | None, T | None | Literal[True]]
+        | InstanceHP[S, T | None, T | None | Literal[ENABLE_TYPE]]
     ):
         """Configures the instance with the provided settings.
 
@@ -538,11 +540,10 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             comparison when emitting changes and may be used as an the `old` value.
 
         Enabling/Disabling:
-            When configured with `allow_none=True, read_only=True` you can use the methods `enable_ihp`
-            and `disable_ihp` respectively.
+            When configured with `allow_none=True` you can use the methods `enable_ihp` and `disable_ihp` respectively.
 
-            When configured with `allow_none=True, read_only=False, load_default=True` the trait can
-            also be enabled/disabled by item assignment of `True` to enable and `None` to disable.
+            When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled by
+            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable.
 
             Because type hints are static, they will continue to reflect the configured state of the
             descriptor. You should always check the the trait is available before working with it.
