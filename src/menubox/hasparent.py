@@ -66,7 +66,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = tf.Str(cast(Self, 0))
-    parent = tf.Parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
+    parent = tf.parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
     tasks: InstanceHP[Self, set[asyncio.Task[Any]], ReadOnly] = tf.Set(
         cast(Self, 0),
     )

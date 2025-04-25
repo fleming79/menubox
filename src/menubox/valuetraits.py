@@ -69,7 +69,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = tf.Parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
+    parent = tf.parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg = InstanceHP(cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)).configure(
         read_only=True, allow_none=False, default_value=set()
     )
@@ -151,7 +151,7 @@ class ValueTraits(HasParent, Generic[S]):
     value_traits_persist = NameTuple()
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
-    parent = tf.Parent(cast(Self, 0), klass=cast(type[S], HasParent))
+    parent = tf.parent(cast(Self, 0), klass=cast(type[S], HasParent))
     if TYPE_CHECKING:
         _value: Callable
 

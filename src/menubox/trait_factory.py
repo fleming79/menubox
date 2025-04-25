@@ -64,6 +64,7 @@ __all__ = [
     "TextareaValidate",
     "VBox",
     "MarkdownOutput",
+    "parent",
 ]
 
 if TYPE_CHECKING:
@@ -133,7 +134,7 @@ def Str(
     )
 
 
-def Parent(
+def parent(
     cast_self: S | int = 0,  # noqa: ARG001
     /,
     klass: type[SS] | str = "menubox.hasparent.HasParent",
@@ -155,10 +156,10 @@ def Parent(
         return value
 
     return (
-        InstanceHP(klass=klass, validate=validate_parent)
+        InstanceHP(klass=klass, default=lambda _: None, validate=validate_parent)
         .configure(allow_none=True, read_only=False, load_default=False)
         .hooks(set_parent=False, on_replace_close=False, remove_on_close=False)
-    )
+    )  # type: ignore
 
 
 # Ipywidgets shortcuts
