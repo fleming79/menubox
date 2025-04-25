@@ -175,7 +175,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
     def __repr__(self):
-        return f'InstanceHP{utils.fullname(self.this_class)}.{self.name}">'
+        return f"<InstanceHP: {utils.fullname(self.this_class)}.{self.name}>"
 
     def __str__(self):
         return self.name
@@ -315,7 +315,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         if value is None:
             if self.allow_none:
                 return value
-            msg = f"`None` is not allowed for {self}. Use `.configure(allow_none=True)` to permit it."
+            msg = f"`None` is not allowed for {self!r}. Use `.configure(allow_none=True)` to permit it."
             raise traitlets.TraitError(msg)
         if isinstance(value, self.klass):  # type:ignore[arg-type]
             if obj._cross_validation_lock is False:
