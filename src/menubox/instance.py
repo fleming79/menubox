@@ -327,7 +327,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             try:
                 self._value_changed(obj, old_value, new_value)
             except Exception as e:
-                obj.on_error(e, "Instance configuration error.")
+                obj.on_error(e, f"Instance configuration error for {self!r}.")
             obj._notify_trait(self.name, old_value, new_value)
 
     def get(self, obj: S, cls: Any = None) -> T | None:  # type: ignore
@@ -394,28 +394,16 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         self._set_parent = m.get("set_parent", False)
 
     def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
-        """Create a default instance of the managed class.
-
-        This method attempts to create an instance of the class managed by this
-        `InstanceHP`. It handles cases where a default instance is not explicitly
-        loaded, allows for overriding default keyword arguments, and utilizes
-        plugin hooks for customization.
+        """Create an instance of the class.
 
         Args:
-            parent: The parent object that "owns" this instance.  Used for
-            error reporting and plugin hooks.
-            override: An optional dictionary of keyword arguments to override
-            the default keyword arguments.
-
+            parent: The parent object.
+            override: A dictionary of keyword arguments to override the default keyword arguments.
         Returns:
-            An instance of the managed class `T`, or `None` if `allow_none` is
-            True and no default is loaded.
-
+            An instance of the class, or None if `allow_none` is True and `load_default` is False.
         Raises:
-            RuntimeError: If both `load_default` and `allow_none` are False and
-            no default has been set.
-            Exception: Any exception raised during instance creation is caught,
-            reported to the parent's `on_error` method, and then re-raised.
+            RuntimeError: If both `load_default` and `allow_none` are False and the value is unset.
+            Exception: If instance creation fails.
         """
         self.finalize()
         try:
@@ -432,7 +420,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             return self.klass(**kwgs)
 
         except Exception as e:
-            parent.on_error(e, f'Instance creation failed for "{utils.fullname(parent)}.{self.name}"', self)
+            parent.on_error(e, f"Instance creation failed for {self!r}", self)
             raise
 
     def _validate(self, obj: S, value) -> T | None:
@@ -462,7 +450,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
                         if "pytest" in sys.modules:
                             # If debugging import `pytest` to make this repeatable
                             raise
-                        parent.on_error(e, str(hook))
+                        parent.on_error(e, f"Hook error for {self!r} {hook=}")
 
     def _on_obj_close(self, change: mb.ChangeType):
         obj = change["owner"]
