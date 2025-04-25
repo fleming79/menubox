@@ -557,7 +557,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     button_update_names = tf.Button_main(description="↻", tooltip="Update options")
     box_main = tf.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None
-    views = tf.ViewDict(cast(Self, 0), default=lambda _: {"Main": lambda p: p.box_main})
+    views = tf.ViewDict(cast(Self, 0), default={"Main": lambda p: p.box_main})
 
     @override
     @classmethod

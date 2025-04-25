@@ -23,7 +23,7 @@ class MyNewObj(mb.HasHome, mb.MenuboxVT):
     a = tf.InstanceHP(klass=ipw.FloatText)
     b = tf.InstanceHP(klass=ipw.FloatText)
     c = tf.InstanceHP(klass=ipw.FloatText)
-    views = tf.ViewDict(default=lambda _: {"Main": ("description_viewer", "a", "b", "c")})
+    views = tf.ViewDict(cast(Self, 0), {"Main": ("description_viewer", "a", "b", "c")})
     value_traits_persist = mb.NameTuple(*mb.MenuboxVT.value_traits, "a", "c")
 
     async def init_async(self):

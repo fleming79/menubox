@@ -113,9 +113,12 @@ def Dict(
 def ViewDict(
     cast_self: S | int = 0,  # noqa: ARG001
     /,
-    default: Callable[[IHPCreate[S, ViewDictType[S]]], ViewDictType[S]] = lambda _: {},
+    default: ViewDictType[S] | None = None,
 ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
-    return InstanceHP(klass=dict, default=default).configure(allow_none=False, read_only=False, default_value={})
+    default = default or {}
+    return InstanceHP(klass=dict, default=lambda _: default).configure(
+        allow_none=False, read_only=False, default_value={}
+    )
 
 
 def Str(
