@@ -262,7 +262,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         validate: Callable[[S, T | None], T | None] | None = None,
     ) -> None:
         self._hookmappings = {}
-        self._create = default
+        self._default = default
         self.validate = validate
         if not klass:
             msg = "klass must be specified"
@@ -362,18 +362,36 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             raise traitlets.TraitError(msg) from e
 
     def finalize(self):
-        """Finalizes the InstanceHP instance by resolving the class and calling the initialization hook.
+        """Finalizes the class associated with this instance.
 
-        If the class is already resolved, this method does nothing. Otherwise, it imports the class if necessary,
-        verifies that it is a class, stores it in the instance, and calls the 'instancehp_finalize' hook.
+        This method performs several steps:
+
+        1.  Resolves the class: If `_klass` is a string, it imports the class.
+        2.  Sets `self.klass` to the resolved class.
+        3.  Updates hook mappings based on class properties and inheritance:
+            -   If the class has `KEEP_ALIVE = True`, disables `on_replace_close`.
+            -   Sets default values for `on_replace_close`, `set_parent`, and `remove_on_close`
+            based on whether the class inherits from `HasParent` or `Widget`.
+        4.  Sets the `_set_parent` attribute based on the `set_parent` hook mapping.
         """
         if hasattr(self, "klass"):
             return
         klass = self._klass if inspect.isclass(self._klass) else ipylab.common.import_item(self._klass)
         assert inspect.isclass(klass)  # noqa: S101
         self.klass = klass  # type: ignore
-        mb.plugin_manager.hook.instancehp_finalize(inst=self, klass=klass, hookmappings=self._hookmappings)
-        self._set_parent = self._hookmappings.get("set_parent", False)
+        m = self._hookmappings
+        if getattr(klass, "KEEP_ALIVE", False):
+            m["on_replace_close"] = False
+        if "on_replace_close" not in m:
+            if issubclass(klass, mhp.HasParent):
+                m["on_replace_close"] = not klass.SINGLE_BY
+            elif issubclass(klass, Widget) and "on_replace_close":
+                m["on_replace_close"] = True
+        if issubclass(klass, mhp.HasParent) and "set_parent" not in m:
+            m["set_parent"] = True
+        if "remove_on_close" not in m and issubclass(klass, mhp.HasParent | Widget):
+            m["remove_on_close"] = True
+        self._set_parent = m.get("set_parent", False)
 
     def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
         """Create a default instance of the managed class.
@@ -406,13 +424,11 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
                     return None
                 msg = f"Both `load_default` and `allow_none` are `None` and the value is unset for {self!r}"
                 raise RuntimeError(msg)  # noqa: TRY301
-            kwgs = {}
-            if self._hookmappings:
-                mb.plugin_manager.hook.instancehp_default_kwgs(inst=self, parent=parent, kwgs=kwgs)
+            kwgs = {"parent": parent} if self._set_parent else {}
             if override:
                 kwgs = kwgs | override
-            if self._create:
-                return self._create(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
+            if default := self._default:
+                return default(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
             return self.klass(**kwgs)
 
         except Exception as e:
