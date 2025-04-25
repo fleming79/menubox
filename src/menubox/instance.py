@@ -143,115 +143,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             value = self.default(obj, {})  # type: ignore
         self.set(obj, value)  # type: ignore
 
-    @classmethod
-    def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
-        if not replace and name in cls._change_hooks:
-            msg = f"callback hook {name=} is already registered!"
-            raise KeyError(msg)
-        cls._change_hooks[name] = hook
-
-    @classmethod
-    def _remove_on_close_hook(cls, c: IHPChange[S, T]):
-        if c["parent"].closed:
-            return
-        if c["ihp"] not in cls._close_observers:
-            cls._close_observers[c["ihp"]] = weakref.WeakKeyDictionary()
-        # value closed
-        if (old_observer := cls._close_observers[c["ihp"]].pop(c["parent"], {})) and isinstance(
-            c["old"], mhp.HasParent | Widget
-        ):
-            try:  # noqa: SIM105
-                c["old"].unobserve(**old_observer)
-            except ValueError:
-                pass
-
-        if isinstance(c["new"], mhp.HasParent | Widget):
-            parent_ref = weakref.ref(c["parent"])
-            inst = c["ihp"]
-
-            def _observe_closed(change: mb.ChangeType):
-                # If the c["parent"] has closed, remove it from c["parent"] if appropriate.
-                parent = parent_ref()
-                cname, value = change["name"], change["new"]
-                if (
-                    parent
-                    and ((cname == "closed" and value) or (cname == "comm" and not value))
-                    and parent._trait_values.get(inst.name) is change["owner"]
-                ) and (old := parent._trait_values.pop(inst.name, None)):
-                    inst._value_changed(parent, old, None)
-
-            names = "closed" if isinstance(c["new"], mhp.HasParent) else "comm"
-            c["new"].observe(_observe_closed, names)
-            cls._close_observers[c["ihp"]][c["parent"]] = {"handler": _observe_closed, "names": names}
-
-    @staticmethod
-    def _on_replace_close_hook(c: IHPChange[S, T]):
-        if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | mhp.HasParent):
-            if mb.DEBUG_ENABLED:
-                c["parent"].log.debug(
-                    f"Closing replaced item `{c['parent'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"
-                )
-            c["old"].close()
-
-    @staticmethod
-    def _on_set_hook(c: IHPChange[S, T]):
-        if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
-            on_set(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["new"]))
-
-    @staticmethod
-    def _on_unset_hook(c: IHPChange[S, T]):
-        if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
-            on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
-
-    @staticmethod
-    def _add_css_class_hook(c: IHPChange[S, T]):
-        if add_css_class := c["ihp"]._hookmappings.get("add_css_class"):
-            for cn in utils.iterflatten(add_css_class):
-                if isinstance(c["new"], DOMWidget):
-                    c["new"].add_class(cn)
-                if isinstance(c["old"], DOMWidget):
-                    c["old"].remove_class(cn)
-
-    @staticmethod
-    def _set_parent_hook(c: IHPChange[S, T]):
-        if c["ihp"]._hookmappings.get("set_parent"):
-            if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
-                c["old"].parent = None  # type: ignore
-            if isinstance(c["new"], mhp.HasParent) and not c["parent"].closed:
-                c["new"].parent = c["parent"]  # type: ignore
-
-    @staticmethod
-    def _set_children_hook(c: IHPChange[S, T]):
-        import menubox.children_setter
-
-        if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
-            if isinstance(children, dict):
-                val = {} | children
-                val.pop("mode")
-                menubox.children_setter.ChildrenSetter(parent=c["parent"], name=c["ihp"].name, value=val)
-            else:
-                children = c["parent"].get_widgets(children, skip_hidden=False, show=True)  # type: ignore
-                c["new"].set_trait("children", children)  # type: ignore
-
-    @staticmethod
-    def _value_changed_hook(c: IHPChange[S, T]):
-        if value_changed := c["ihp"]._hookmappings.get("value_changed"):
-            value_changed(c)
-
-    @staticmethod
-    def _validate_hook(c: IHPChange[S, T]):
-        if value_changed := c["ihp"]._hookmappings.get("value_changed"):
-            value_changed(c)
-
-    @override
-    def class_init(self, cls, name):
-        try:
-            cls._InstanceHP[name] = self  # type: ignore # type: type[HasParent]
-        except AttributeError:
-            msg = "InstanceHP can only be used as a trait in HasParent subclasses!"
-            raise AttributeError(msg) from None
-        return super().class_init(cls, name)
-
     def __init__(
         self,
         cast_self: S | int = 0,
@@ -616,6 +507,115 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
+
+    @classmethod
+    def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
+        if not replace and name in cls._change_hooks:
+            msg = f"callback hook {name=} is already registered!"
+            raise KeyError(msg)
+        cls._change_hooks[name] = hook
+
+    @classmethod
+    def _remove_on_close_hook(cls, c: IHPChange[S, T]):
+        if c["parent"].closed:
+            return
+        if c["ihp"] not in cls._close_observers:
+            cls._close_observers[c["ihp"]] = weakref.WeakKeyDictionary()
+        # value closed
+        if (old_observer := cls._close_observers[c["ihp"]].pop(c["parent"], {})) and isinstance(
+            c["old"], mhp.HasParent | Widget
+        ):
+            try:  # noqa: SIM105
+                c["old"].unobserve(**old_observer)
+            except ValueError:
+                pass
+
+        if isinstance(c["new"], mhp.HasParent | Widget):
+            parent_ref = weakref.ref(c["parent"])
+            inst = c["ihp"]
+
+            def _observe_closed(change: mb.ChangeType):
+                # If the c["parent"] has closed, remove it from c["parent"] if appropriate.
+                parent = parent_ref()
+                cname, value = change["name"], change["new"]
+                if (
+                    parent
+                    and ((cname == "closed" and value) or (cname == "comm" and not value))
+                    and parent._trait_values.get(inst.name) is change["owner"]
+                ) and (old := parent._trait_values.pop(inst.name, None)):
+                    inst._value_changed(parent, old, None)
+
+            names = "closed" if isinstance(c["new"], mhp.HasParent) else "comm"
+            c["new"].observe(_observe_closed, names)
+            cls._close_observers[c["ihp"]][c["parent"]] = {"handler": _observe_closed, "names": names}
+
+    @staticmethod
+    def _on_replace_close_hook(c: IHPChange[S, T]):
+        if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | mhp.HasParent):
+            if mb.DEBUG_ENABLED:
+                c["parent"].log.debug(
+                    f"Closing replaced item `{c['parent'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"
+                )
+            c["old"].close()
+
+    @staticmethod
+    def _on_set_hook(c: IHPChange[S, T]):
+        if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
+            on_set(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["new"]))
+
+    @staticmethod
+    def _on_unset_hook(c: IHPChange[S, T]):
+        if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
+            on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
+
+    @staticmethod
+    def _add_css_class_hook(c: IHPChange[S, T]):
+        if add_css_class := c["ihp"]._hookmappings.get("add_css_class"):
+            for cn in utils.iterflatten(add_css_class):
+                if isinstance(c["new"], DOMWidget):
+                    c["new"].add_class(cn)
+                if isinstance(c["old"], DOMWidget):
+                    c["old"].remove_class(cn)
+
+    @staticmethod
+    def _set_parent_hook(c: IHPChange[S, T]):
+        if c["ihp"]._hookmappings.get("set_parent"):
+            if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
+                c["old"].parent = None  # type: ignore
+            if isinstance(c["new"], mhp.HasParent) and not c["parent"].closed:
+                c["new"].parent = c["parent"]  # type: ignore
+
+    @staticmethod
+    def _set_children_hook(c: IHPChange[S, T]):
+        import menubox.children_setter
+
+        if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
+            if isinstance(children, dict):
+                val = {} | children
+                val.pop("mode")
+                menubox.children_setter.ChildrenSetter(parent=c["parent"], name=c["ihp"].name, value=val)
+            else:
+                children = c["parent"].get_widgets(children, skip_hidden=False, show=True)  # type: ignore
+                c["new"].set_trait("children", children)  # type: ignore
+
+    @staticmethod
+    def _value_changed_hook(c: IHPChange[S, T]):
+        if value_changed := c["ihp"]._hookmappings.get("value_changed"):
+            value_changed(c)
+
+    @staticmethod
+    def _validate_hook(c: IHPChange[S, T]):
+        if value_changed := c["ihp"]._hookmappings.get("value_changed"):
+            value_changed(c)
+
+    @override
+    def class_init(self, cls, name):
+        try:
+            cls._InstanceHP[name] = self  # type: ignore # type: type[HasParent]
+        except AttributeError:
+            msg = "InstanceHP can only be used as a trait in HasParent subclasses!"
+            raise AttributeError(msg) from None
+        return super().class_init(cls, name)
 
     @classmethod
     def _register_default_hooks(cls):
