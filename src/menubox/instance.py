@@ -170,11 +170,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             raise TypeError(msg)
         super().__init__()
 
-    def instance_init(self, obj: S):
-        """Init an instance of InstanceHP."""
-        super().instance_init(obj)
-        obj.observe(self._on_obj_close, names="closed")
-
     @property
     def info_text(self):  # type: ignore
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
@@ -343,9 +338,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
                             raise
                         parent.on_error(e, f"Hook error for {self!r} {hook=}")
 
-    def _on_obj_close(self, change: mb.ChangeType):
-        obj = change["owner"]
-        if (old := obj._trait_values.pop(self.name, None)) is not None:
+    def _on_obj_close(self, obj: S):
+        if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
             self._value_changed(obj, old, self.default_value)  # type: ignore
 
     if TYPE_CHECKING:

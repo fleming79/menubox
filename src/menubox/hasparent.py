@@ -59,17 +59,15 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]], ReadOnly] = tf.Set()
-    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]], ReadOnly] = tf.Set()
+    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]], set] = tf.Set()
+    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]], set] = tf.Set()
     _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink], ReadOnly] = tf.Dict()
     _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], ReadOnly] = tf.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = tf.Str(cast(Self, 0))
     parent = tf.parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
-    tasks: InstanceHP[Self, set[asyncio.Task[Any]], ReadOnly] = tf.Set(
-        cast(Self, 0),
-    )
+    tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = tf.Set()
 
     def __repr__(self):
         if self.closed:
@@ -170,6 +168,11 @@ class HasParent(Singular, HasApp, Generic[RP]):
                 raise AttributeError(msg)
             links.append(link)
         return tuple(links)
+
+    @traitlets.observe("closed")
+    def _observe_hasparent_closed(self, _):
+        for inst in self._InstanceHP.values():
+            inst._on_obj_close(self)
 
     @traitlets.observe("parent", "parent_link", "parent_dlink")
     def _observe_parent(self, change: ChangeType):

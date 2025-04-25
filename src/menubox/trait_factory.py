@@ -98,7 +98,9 @@ def Set(
     /,
     default: Callable[[IHPCreate[S, set[T]]], set[T] | None] = lambda _: set(),
 ):
-    return InstanceHP(cast_self, klass=set, default=default)
+    return InstanceHP(cast_self, klass=set, default=default).configure(
+        read_only=False, allow_none=False, default_value=set()
+    )
 
 
 def Dict(
