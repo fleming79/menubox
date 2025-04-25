@@ -10,7 +10,7 @@ from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
-from menubox.trait_types import ChangeType, S, StrTuple
+from menubox.trait_types import ChangeType, GetWidgetsInputType, S, StrTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -35,7 +35,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         self,
         *,
         parent: S,
-        obj: Callable[[S], utils.GetWidgetsInputType],
+        obj: Callable[[S], GetWidgetsInputType[S]],
         title: str,
         expand=False,
         box: Callable[[S], ipw.Box] | None = None,
@@ -44,7 +44,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         button_expand_tooltip="Expand",
         button_collapse_description="🗕",
         button_collapse_tooltip="Collapse",
-        header_children: Callable[[S], utils.GetWidgetsInputType] = lambda _: "H_FILL",
+        header_children: Callable[[S], GetWidgetsInputType[S]] = lambda _: "H_FILL",
         on_expand: Callable[[S], Any] = lambda _: None,
         on_collapse: Callable[[S], Any] = lambda _: None,
         orientation="vertical",

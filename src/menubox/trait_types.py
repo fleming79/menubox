@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Generic, Literal, ParamSpec, TypedDict, TypeVar
 
 import toolz
+from ipywidgets import Widget
 from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
 __all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType", "FromParent"]
@@ -45,6 +46,14 @@ class ProposalType(TypedDict):
     trait: TraitType
     value: Any
     owner: HasTraits
+
+
+type GetWidgetsInputType[T] = (
+    None | str | Widget | Callable[[T], GetWidgetsInputType[T]] | Iterable[GetWidgetsInputType[T]]
+)
+
+
+type ViewDictType[T] = Mapping[str, GetWidgetsInputType[T]]
 
 
 class Bunched(Bunch):

@@ -19,7 +19,7 @@ from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
     from menubox.instance import S
-    from menubox.trait_types import ChangeType, P, T
+    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, T
 
 
 __all__ = [
@@ -366,18 +366,8 @@ def iterflatten(iterable: Iterable[T] | Any) -> Generator[T, None, None]:
             yield iterable  # type: ignore
 
 
-type GetWidgetsInputType = (
-    None
-    | str
-    | Callable[[], GetWidgetsInputType]
-    | Callable[[S], GetWidgetsInputType]  # type: ignore
-    | ipw.Widget
-    | Iterable[GetWidgetsInputType]
-)
-
-
 def get_widgets(
-    *items: GetWidgetsInputType,
+    *items: GetWidgetsInputType[S],
     skip_disabled=False,
     skip_hidden=True,
     show=True,

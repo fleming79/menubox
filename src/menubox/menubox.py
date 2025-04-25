@@ -9,7 +9,6 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
 import docstring_to_markdown
-import ipylab.shell
 import ipylab.widgets
 import traitlets
 from ipylab import Panel, ShellConnection
@@ -21,7 +20,7 @@ from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.defaults import ENABLE, H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
-from menubox.trait_types import RP, ChangeType, ProposalType, ReadOnly, StrTuple
+from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
@@ -97,7 +96,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         default_value=NO_DEFAULT, read_only=True
     )  # type: ignore
     # Trait instances
-    center: traitlets.TraitType[utils.GetWidgetsInputType, utils.GetWidgetsInputType] = traitlets.TraitType(
+    center: traitlets.TraitType[GetWidgetsInputType[RP], ReadOnly] = traitlets.TraitType(
         read_only=True, allow_none=True
     )
     tab_buttons = Buttons(read_only=True)
@@ -236,7 +235,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         *,
         parent: RP = None,
         view=NO_DEFAULT,
-        views: dict[str, utils.GetWidgetsInputType] | None = None,
+        views: dict[str, GetWidgetsInputType[RP]] | None = None,
         viewlist: Iterable[str] | None = None,
         tabviews: Iterable[str] | None = None,
         **kwargs,
@@ -375,7 +374,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             b.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
         return view
 
-    async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
+    async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
         """Override this function to make view loading dynamic.
 
         **DO NOT CALL DIRECTLY**
@@ -417,14 +416,14 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.set_trait("children", (self.header,))
         else:
             center = (self.center,)
-            if self.box_center:
-                self.box_center.children = self.get_widgets(*center)
-                center = (self.box_center,)
+            if box := self.box_center:
+                box.children = self.get_widgets(*center)
+                center = (box,)
             if mb.DEBUG_ENABLED and not self.header:
                 center = (self.button_activate, *center)
             if self.show_help:
-                center = (self._get_help_widget, *center)
-            self.set_trait("children", self.get_widgets(self.header, *center))
+                center = (self._get_help_widget(), *center)
+            self.set_trait("children", self.get_widgets(self.header, center))
         if self.border is not None:
             self.layout.border = self.border if self.view else ""
 
@@ -688,7 +687,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     @log.log_exceptions
     def _shuffle_button_on_click(self, b: ipw.Button):
-        self.load_shuffle_item(self.shuffle_button_views[b.description], alt_name=b.description)
+        widgets = tuple(self.get_widgets(self.shuffle_button_views[b.description]))
+        self.load_shuffle_item(widgets, alt_name=b.description)
         self.menu_close()
 
     def hide_unhide_shuffle_button(self, description: str, hide=True):
@@ -720,7 +720,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def load_shuffle_item(
         self,
-        obj: mb.utils.GetWidgetsInputType,
+        obj: GetWidgetsInputType[RP],
         position: Literal["start", "end"] = "start",
         alt_name="",
         ensure_wrapped=False,
@@ -833,7 +833,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
     widget = tf.InstanceHP(klass=ipw.Widget).configure(allow_none=False, read_only=True, load_default=False)
-    views = tf.ViewDict(default=lambda _: {"widget": "widget"})
+    views = tf.ViewDict(cast(Self, 0), default=lambda _: {"widget": lambda p: p.widget})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):

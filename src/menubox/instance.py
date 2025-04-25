@@ -27,7 +27,7 @@ import menubox as mb
 import menubox.hasparent as mhp
 from menubox import utils
 from menubox.defaults import ENABLE, NO_DEFAULT
-from menubox.trait_types import SS, Bunched, P, ReadOnly, S, T, W
+from menubox.trait_types import SS, Bunched, GetWidgetsInputType, P, ReadOnly, S, T, W
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -73,7 +73,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    set_children: NotRequired[Callable[[S], utils.GetWidgetsInputType] | SetChildrenSettings]
+    set_children: NotRequired[Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], T | None]]
 
 

@@ -13,7 +13,7 @@ from menubox import utils
 from menubox.css import CSScls
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_types import RP, ChangeType, StrTuple
+from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
 
@@ -253,7 +253,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
                 )
 
     @override
-    async def get_center(self, view: str | None) -> tuple[str | None, utils.GetWidgetsInputType]:
+    async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
         if view == self.CONFIGURE_VIEW:
             return view, (self.text_name, self.description, self.description_viewer)
         return await super().get_center(view)

@@ -43,7 +43,7 @@ class Filesystem(MenuboxVT):
     minimized_children = StrTuple("url")
     value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
-    views = tf.ViewDict(default=lambda _: {"Main": ()})
+    views = tf.ViewDict(cast(Self, 0), default=lambda _: {"Main": lambda p: p.prev_protocol})
 
     protocol = tf.Dropdown(
         cast(Self, 0),
@@ -310,7 +310,8 @@ class RelativePath(Filesystem):
     relative_path = tf.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()
-    parent: Filesystem
+    if TYPE_CHECKING:
+        parent: tf.InstanceHP[Self, Filesystem, Filesystem]
 
     def __new__(cls, parent: Filesystem, **kwargs) -> Self:
         return super().__new__(cls, parent=parent, **kwargs)
@@ -346,7 +347,7 @@ class DefaultFilesystem(HasHome, Filesystem):
     KEEP_ALIVE = True
     name = tf.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
     read_only = tf.Bool(default=lambda _: True).configure(allow_none=False, read_only=True)
-    parent = None
+    parent = None  # type: ignore
 
     @override
     def __init__(self, *, home: Home):

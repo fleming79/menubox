@@ -1,4 +1,5 @@
 import pathlib
+from typing import Literal
 
 import pytest
 import traitlets
@@ -27,7 +28,7 @@ def test_utils_joinpaths(paths: tuple[str, ...], expected: str):
         ("hello world", 20, "...", "start", "hello world"),
     ],
 )
-def test_limited_string(obj: str, max_len: int, suffix: str, mode: str, expected: str):
+def test_limited_string(obj: str, max_len: int, suffix: str, mode: Literal["start", "end"], expected: str):
     assert utils.limited_string(obj, max_len, suffix, mode) == expected
 
 

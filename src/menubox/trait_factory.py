@@ -9,7 +9,6 @@ Factory items include:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import ipylab
@@ -18,7 +17,7 @@ import traitlets
 
 import menubox.async_run_button
 import menubox.widgets
-from menubox import mb_async, utils
+from menubox import mb_async
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, InstanceHP
@@ -78,7 +77,7 @@ if TYPE_CHECKING:
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, SS, H, S, T
+    from menubox.trait_types import MP, SS, GetWidgetsInputType, H, S, T, ViewDictType
 
 
 # Basic types
@@ -111,17 +110,12 @@ def Dict(
     return InstanceHP(cast_self, klass=dict, default=default).configure(default_value={})
 
 
-type ViewDictType = Mapping[str, utils.GetWidgetsInputType]
-
-
 def ViewDict(
-    cast_self: S | int = 0,
+    cast_self: S | int = 0,  # noqa: ARG001
     /,
-    default: Callable[[IHPCreate[S, ViewDictType]], ViewDictType | None] = lambda _: {},
-):
-    return InstanceHP(cast_self, klass=cast(type[ViewDictType], dict), default=default).configure(
-        allow_none=False, read_only=False, default_value={}
-    )
+    default: Callable[[IHPCreate[S, ViewDictType[S]]], ViewDictType[S]] = lambda _: {},
+) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
+    return InstanceHP(klass=dict, default=default).configure(allow_none=False, read_only=False, default_value={})
 
 
 def Str(
@@ -275,7 +269,7 @@ def AsyncRunButton(
 
 def Modalbox(
     cast_self: S,
-    obj: Callable[[S], menubox.utils.GetWidgetsInputType],
+    obj: Callable[[S], GetWidgetsInputType[S]],
     title: str,
     expand=False,
     box: Callable[[S], ipw.Box] | None = None,
@@ -284,7 +278,7 @@ def Modalbox(
     button_expand_tooltip="Expand",
     button_collapse_description="🗕",
     button_collapse_tooltip="Collapse",
-    header_children: Callable[[S], menubox.utils.GetWidgetsInputType] = lambda _: "H_FILL",
+    header_children: Callable[[S], GetWidgetsInputType[S]] = lambda _: "H_FILL",
     on_expand: Callable[[S], Any] = lambda _: None,
     on_collapse: Callable[[S], Any] = lambda _: None,
     orientation="vertical",

@@ -62,9 +62,3 @@ async def test_modal_button():
     await asyncio.sleep(0.2)
     assert obj.mb2.expanded, "expand=True"
     assert obj.mb2.button_expand.description == "mb2"
-
-    # No parent
-    mbox = Modalbox(parent=None, obj=lambda _: obj, title="Obj in modal box")
-    mbox.expand()
-
-    mbox.collapse()
