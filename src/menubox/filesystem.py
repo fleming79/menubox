@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from ipywidgets import Button
 
 
+__all__ = ["Filesystem", "HasFilesystem"]
+
+
 def list_drives() -> list[str]:
     "Get a list of the drives in the current filesystem."
     return [p.mountpoint.strip("\\ ") for p in psutil.disk_partitions()]
@@ -122,7 +125,7 @@ class Filesystem(MenuboxVT):
 
     @property
     def root(self):
-        return self.url.value
+        return str(self.url.value)
 
     @property
     def storage_options(self):

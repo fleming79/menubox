@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from menubox.css import CSScls
-    from menubox.defaults import ENABLE_TYPE, NO_DEFAULT_TYPE
+    from menubox.defaults import NO_DEFAULT_TYPE
 
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
@@ -77,7 +77,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     value_changed: NotRequired[Callable[[IHPChange[S, T]], T | None]]
 
 
-class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
+class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     """Descriptor for managing instances of a specific class as a trait.
 
     `InstanceHP` is a trait type that manages instances of a particular class.
@@ -131,9 +131,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             validate: Callable[[S, T | None], T | None] | None = None,
         ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
 
-        def __get__(self, obj, cls: Any) -> T: ...  # type: ignore
-
-    def __set__(self, obj, value: W) -> None:  # type: ignore
+    @override
+    def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
         if self.read_only:
             msg = f'The "{self.name}" trait is read-only.'
             raise traitlets.TraitError(msg)
@@ -370,7 +369,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             read_only: Literal[False],
             load_default: Literal[True] = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T | None | ENABLE_TYPE]: ...
+        ) -> InstanceHP[S, T | None, T | None]: ...
         @overload
         def configure(
             self,
@@ -379,7 +378,7 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             read_only: Literal[False],
             load_default: Literal[False] = False,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T | None | ENABLE_TYPE]: ...
+        ) -> InstanceHP[S, T | None, T | None]: ...
 
         @overload
         def configure(
@@ -410,7 +409,6 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
         | InstanceHP[S, T | None, ReadOnly[T]]
         | InstanceHP[S, T, ReadOnly]
         | InstanceHP[S, T | None, T | None]
-        | InstanceHP[S, T | None, T | None | Literal[ENABLE_TYPE]]
     ):
         """Configures the instance with the provided settings.
 
@@ -432,7 +430,8 @@ class InstanceHP(traitlets.TraitType, Generic[S, T, W]):
             When configured with `allow_none=True` you can use the methods `enable_ihp` and `disable_ihp` respectively.
 
             When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled by
-            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable.
+            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable. Note however
+            that the enable
 
             Because type hints are static, they will continue to reflect the configured state of the
             descriptor. You should always check the the trait is available before working with it.

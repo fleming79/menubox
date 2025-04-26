@@ -676,9 +676,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self.close(force=True)
             case self.button_exit:
                 self.set_trait("showbox", None)
-            case self.button_help:
+            case self.button_help if self.button_help:
                 self.show_help = not self.show_help
-                assert self.button_help  # noqa: S101
                 self.button_help.description = "❓" if self.show_help else "❔"
                 if self.show_help:
                     self.maximize()
@@ -833,7 +832,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
     widget = tf.InstanceHP(klass=ipw.Widget).configure(allow_none=False, read_only=True, load_default=False)
-    views = tf.ViewDict(cast(Self, 0), default={"widget": lambda p: p.widget})
+    views = tf.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):

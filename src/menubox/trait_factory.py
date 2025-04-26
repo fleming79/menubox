@@ -70,14 +70,13 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from types import CoroutineType
 
-    import menubox.filesystem
     import menubox.menubox
     import menubox.modalbox
     import menubox.persist
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, SS, GetWidgetsInputType, H, S, T, ViewDictType
+    from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
 
 
 # Basic types
@@ -106,17 +105,30 @@ def Dict(
     cast_self: S | int = 0,
     /,
     default: Callable[[IHPCreate[S, dict]], dict | None] = lambda _: {},
-):
+) -> InstanceHP[S, dict, ReadOnly[dict]]:
     return InstanceHP(cast_self, klass=dict, default=default).configure(default_value={})
 
 
 def ViewDict(
     cast_self: S | int = 0,  # noqa: ARG001
+    value: ViewDictType[S] | None = None,
     /,
-    default: ViewDictType[S] | None = None,
 ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
-    default = default or {}
-    return InstanceHP(klass=dict, default=lambda _: default).configure(
+    """A function to generate an InstanceHP trait.
+
+    Use this in MenuBox subclasses to define `views` and `shuffle_button_views`
+
+    Use `cast(Self, 0)` to provide type hinting inside the lambda functions, if
+    this is not desired, just pass `0` instead (or any integer).
+
+    Usage:
+
+    ```
+    views = ViewDict(cast(Self, 0), {"view 1": lambda p: p.widget_name})
+    ```
+    """
+    value = value or {}
+    return InstanceHP(klass=dict, default=lambda _: value).configure(
         allow_none=False, read_only=False, default_value={}
     )
 
@@ -125,7 +137,7 @@ def Str(
     cast_self: S | int = 0,  # noqa: ARG001
     /,
     default: Callable[[IHPCreate[S, str]], str | None] = lambda _: "",
-):
+) -> InstanceHP[S, str, str]:
     return InstanceHP(klass=str, default=default).configure(
         read_only=False,
         allow_none=False,

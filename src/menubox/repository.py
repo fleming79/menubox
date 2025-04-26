@@ -28,7 +28,7 @@ class Repository(MenuboxPersist):
     title_description_tooltip = traitlets.Unicode("{self.repository}")
     target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
-    views = tf.ViewDict(cast(Self, 0), default={"Main": lambda p: p.target_filesystem})
+    views = tf.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})
     value_traits_persist = NameTuple("target_filesystem")
 
     def __init__(self, name: str, home: Home | str):
@@ -66,7 +66,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     )
     button_select_repository = tf.Button_menu(description="…", tooltip="Select/create a new repository")
     header_children = StrTuple()
-    views = tf.ViewDict(cast(Self, 0), default={"Main": lambda p: [p.repository_name, p.button_select_repository]})
+    views = tf.ViewDict(cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository]})
     value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name")
 
     @override
