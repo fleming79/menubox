@@ -201,6 +201,111 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     def __str__(self):
         return self.name
 
+    if TYPE_CHECKING:
+
+        @overload
+        def configure(
+            self,
+            mode: Literal[IHPMode.XLR_] = IHPMode.XLR_,
+            /,
+            *,
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+
+        @overload
+        def configure(
+            self,
+            mode: Literal[IHPMode.X_R_,],
+            /,
+            *,
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+
+        @overload
+        def configure(
+            self,
+            mode: Literal[IHPMode.XL__, IHPMode.X___],
+            /,
+            *,
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        ) -> InstanceHP[S, T, T]: ...
+
+        @overload
+        def configure(
+            self,
+            mode: Literal[IHPMode.X__N, IHPMode.XL_N],
+            /,
+            *,
+            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        ) -> InstanceHP[S, T | None, T | None]: ...
+
+        @overload
+        def configure(
+            self,
+            mode: Literal[IHPMode.XLRN, IHPMode.X_RN],
+            /,
+            *,
+            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        ) -> InstanceHP[S, T | None, ReadOnly[T | None]]: ...
+
+    def configure(
+        self,
+        mode: IHPMode = IHPMode.XLR_,
+        /,
+        *,
+        default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+    ) -> (
+        InstanceHP[S, T, T]
+        | InstanceHP[S, T, ReadOnly]
+        | InstanceHP[S, T | None, T | None]
+        | InstanceHP[S, T | None, ReadOnly[T]]
+        | InstanceHP[S, T | None, ReadOnly[T | None]]
+    ):
+        """Configures the instance with the provided settings.
+
+        This method allows configuring the instance's behavior regarding read-only status,
+        allowing None values, and loading default values.  It uses a builder pattern
+        allowing chained calls.
+
+        Args:
+           mode:
+            default_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
+
+        Note:
+            `default_value` is only used as the default with respect to the unset value. It is used for
+            comparison when emitting changes and may be used as an the `old` value.
+
+        Enabling/Disabling:
+            When configured with `allow_none=True` you can use the methods `enable_ihp` and `disable_ihp` respectively.
+
+            When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled by
+            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable. Note however
+            that the enable
+
+            Because type hints are static, they will continue to reflect the configured state of the
+            descriptor. You should always check the the trait is available before working with it.
+
+        Item assignment in lambdas:
+            Attribute assignment isn't permitted in lambda expressions instead, you should can use the
+            methods to perform item assignments instead. To perform multiple ssignments in a lambda just
+            make a tuple of item assignments.
+
+            Assignment expressions are permitted, and can be useful to store intermediate values. Should
+            you need to return a single result, simply access slice the tuple/list as required.
+
+            - [lambda expressions](https://docs.python.org/3.13/reference/expressions.html#lambda)
+            - [Assignment expressions](https://docs.python.org/3.13/reference/expressions.html#assignment-expressions)
+
+        Returns:
+            The instance itself (self), with updated configuration. The return type reflects whether None is allowed.
+        """
+        self.load_default = bool(mode & IHPMode.XL__)
+        self.read_only = bool(mode & IHPMode.X_R_)
+        self.allow_none = bool(mode & IHPMode.X__N)
+        if default_value is not NO_DEFAULT:
+            self.default_value = default_value
+        return self  # type: ignore
+
     def set(self, obj: S, value) -> None:  # type: ignore
         self.finalize()
         new_value = self._validate(obj, value)
@@ -362,111 +467,6 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     def _on_obj_close(self, obj: S):
         if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
             self._value_changed(obj, old, self.default_value)  # type: ignore
-
-    if TYPE_CHECKING:
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.XLR_] = IHPMode.XLR_,
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.X_R_,],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.XL__, IHPMode.X___],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
-        ) -> InstanceHP[S, T, T]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.X__N, IHPMode.XL_N],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T | None]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.XLRN, IHPMode.X_RN],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, ReadOnly[T | None]]: ...
-
-    def configure(
-        self,
-        mode: IHPMode = IHPMode.XLR_,
-        /,
-        *,
-        default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-    ) -> (
-        InstanceHP[S, T, T]
-        | InstanceHP[S, T, ReadOnly]
-        | InstanceHP[S, T | None, T | None]
-        | InstanceHP[S, T | None, ReadOnly[T]]
-        | InstanceHP[S, T | None, ReadOnly[T | None]]
-    ):
-        """Configures the instance with the provided settings.
-
-        This method allows configuring the instance's behavior regarding read-only status,
-        allowing None values, and loading default values.  It uses a builder pattern
-        allowing chained calls.
-
-        Args:
-           mode:
-            default_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
-
-        Note:
-            `default_value` is only used as the default with respect to the unset value. It is used for
-            comparison when emitting changes and may be used as an the `old` value.
-
-        Enabling/Disabling:
-            When configured with `allow_none=True` you can use the methods `enable_ihp` and `disable_ihp` respectively.
-
-            When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled by
-            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable. Note however
-            that the enable
-
-            Because type hints are static, they will continue to reflect the configured state of the
-            descriptor. You should always check the the trait is available before working with it.
-
-        Item assignment in lambdas:
-            Attribute assignment isn't permitted in lambda expressions instead, you should can use the
-            methods to perform item assignments instead. To perform multiple ssignments in a lambda just
-            make a tuple of item assignments.
-
-            Assignment expressions are permitted, and can be useful to store intermediate values. Should
-            you need to return a single result, simply access slice the tuple/list as required.
-
-            - [lambda expressions](https://docs.python.org/3.13/reference/expressions.html#lambda)
-            - [Assignment expressions](https://docs.python.org/3.13/reference/expressions.html#assignment-expressions)
-
-        Returns:
-            The instance itself (self), with updated configuration. The return type reflects whether None is allowed.
-        """
-        self.load_default = bool(mode & IHPMode.XL__)
-        self.read_only = bool(mode & IHPMode.X_R_)
-        self.allow_none = bool(mode & IHPMode.X__N)
-        if default_value is not NO_DEFAULT:
-            self.default_value = default_value
-        return self  # type: ignore
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
         """Configure what hooks to use when the instance value changes.
