@@ -17,8 +17,8 @@ import menubox
 import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
-from menubox import trait_factory as tf
 from menubox.css import CSScls
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, ReadOnly, S
 
 if TYPE_CHECKING:
@@ -59,15 +59,15 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]], set] = tf.Set()
-    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]], set] = tf.Set()
-    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink], ReadOnly] = tf.Dict()
-    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], ReadOnly] = tf.Dict()
+    _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]], set] = TF.Set()
+    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]], set] = TF.Set()
+    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink], ReadOnly] = TF.Dict()
+    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], ReadOnly] = TF.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name = tf.Str(cast(Self, 0))
-    parent = tf.parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
-    tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = tf.Set()
+    name = TF.Str(cast(Self, 0))
+    parent = TF.parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
+    tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = TF.Set()
 
     def __repr__(self):
         if self.closed:
@@ -514,7 +514,7 @@ class Link(HasParent, Generic[S]):
     mode: Literal["link", "dlink"] = "link"
     _updating = False
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, S, S]
+        parent: TF.InstanceHP[Self, S, S]
 
     def __init__(
         self,
@@ -608,7 +608,7 @@ class Link(HasParent, Generic[S]):
 class Dlink(Link, Generic[S]):
     mode = "dlink"
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, S, S]
+        parent: TF.InstanceHP[Self, S, S]
 
     def __init__(
         self,

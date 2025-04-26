@@ -7,10 +7,10 @@ import ipywidgets as ipw
 import traitlets
 
 from menubox import hasparent, mb_async, utils
-from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
+from menubox.trait_factory import TF
 from menubox.trait_types import S
 
 if TYPE_CHECKING:
@@ -40,10 +40,10 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
-    task = tf.Task()
+    task = TF.Task()
 
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, S, S]
+        parent: TF.InstanceHP[Self, S, S]
 
     def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
         return super().__new__(cls, parent=parent, cfunc=cfunc, **kwargs)

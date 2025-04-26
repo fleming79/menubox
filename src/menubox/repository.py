@@ -6,10 +6,10 @@ import traitlets
 from ipylab import Fixed
 
 from menubox import mb_async
-from menubox import trait_factory as tf
 from menubox.filesystem import Filesystem, HasFilesystem
 from menubox.menuboxvt import MenuboxVT
 from menubox.persist import MenuboxPersist
+from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ class Repository(MenuboxPersist):
     title_description_tooltip = traitlets.Unicode("{self.repository}")
     target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
-    views = tf.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})
+    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})
     value_traits_persist = NameTuple("target_filesystem")
 
     def __init__(self, name: str, home: Home | str):
@@ -53,8 +53,8 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
     box_center = None
-    repository = tf.InstanceHP(cast(Self, 0), klass=Repository).configure(tf.IHPMode.X__N)
-    repository_name = tf.Combobox(
+    repository = TF.InstanceHP(cast(Self, 0), klass=Repository).configure(TF.IHPMode.X__N)
+    repository_name = TF.Combobox(
         cast(Self, 0),
         description="Repository",
         tooltip="Add a new repository using the repository set below",
@@ -62,9 +62,9 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     ).hooks(
         on_set=lambda c: c["parent"].update_repository_name_options(),
     )
-    button_select_repository = tf.Button_menu(description="…", tooltip="Select/create a new repository")
+    button_select_repository = TF.Button_menu(description="…", tooltip="Select/create a new repository")
     header_children = StrTuple()
-    views = tf.ViewDict(cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository]})
+    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository]})
     value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name")
 
     @override

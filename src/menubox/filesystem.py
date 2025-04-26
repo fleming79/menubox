@@ -9,10 +9,10 @@ import psutil
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import defaults, mb_async, utils
-from menubox import trait_factory as tf
 from menubox.hashome import HasHome, Home
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
+from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -35,20 +35,20 @@ class Filesystem(MenuboxVT):
     _ignore = ()
     startup_dir = utils.joinpaths(pathlib.Path().cwd())
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
-    prev_protocol = tf.Str(default=lambda _: "file")
-    prev_kwargs = tf.Dict()
-    folders_only = tf.Bool()
-    read_only = tf.Bool()
-    title_description = tf.Str()
-    home_url = tf.Str()
+    prev_protocol = TF.Str(default=lambda _: "file")
+    prev_kwargs = TF.Dict()
+    folders_only = TF.Bool()
+    read_only = TF.Bool()
+    title_description = TF.Str()
+    home_url = TF.Str()
     filters = StrTuple()
     ignore = StrTuple()
     minimized_children = StrTuple("url")
     value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
-    views = tf.ViewDict(cast(Self, 0), {"Main": lambda p: p.prev_protocol})
+    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.prev_protocol})
 
-    protocol = tf.Dropdown(
+    protocol = TF.Dropdown(
         cast(Self, 0),
         description="protocol",
         value="file",
@@ -58,7 +58,7 @@ class Filesystem(MenuboxVT):
     ).hooks(
         on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
-    url = tf.Combobox(
+    url = TF.Combobox(
         description="url",
         # continuous_update=False,
         layout={"flex": "1 0 auto", "width": "auto"},
@@ -66,7 +66,7 @@ class Filesystem(MenuboxVT):
     ).hooks(
         on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
-    drive = tf.Dropdown(
+    drive = TF.Dropdown(
         cast(Self, 0),
         value=None,
         tooltip="Change drive",
@@ -82,7 +82,7 @@ class Filesystem(MenuboxVT):
             c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
         )
     )
-    kw = tf.TextareaValidate(
+    kw = TF.TextareaValidate(
         value="{}",
         description="kw",
         validate=to_json_dict,
@@ -92,31 +92,31 @@ class Filesystem(MenuboxVT):
     ).hooks(
         on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
-    sw_main = tf.Select(
+    sw_main = TF.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
     )
-    button_update = tf.AsyncRunButton(
+    button_update = TF.AsyncRunButton(
         cast(Self, 0),
         cfunc=lambda p: p._button_update_async,
         description="↻",
         cancel_description="✗",
         tasktype=mb_async.TaskType.update,
     )
-    button_home = tf.Button_main(
+    button_home = TF.Button_main(
         description="🏠",
     )
-    button_up = tf.Button_main(
+    button_up = TF.Button_main(
         description="↑",
         tooltip="Navigate up one folder",
     )
-    button_add = tf.Button_main(
+    button_add = TF.Button_main(
         description="✚",
         tooltip="Create new file or folder",
     )
-    box_settings = tf.HBox(cast(Self, 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
+    box_settings = TF.HBox(cast(Self, 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children=lambda p: (p.protocol, p.kw),
     )
-    control_widgets = tf.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
+    control_widgets = TF.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children={
             "dottednames": ("button_home", "button_up", "drive", "url", "button_add", "button_update"),
             "mode": "monitor",
@@ -306,15 +306,15 @@ class Filesystem(MenuboxVT):
 class RelativePath(Filesystem):
     """A relative filesystem"""
 
-    folders_only = tf.Bool(default=lambda _: False)
-    box_settings = tf.HBox(cast(Self, 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
+    folders_only = TF.Bool(default=lambda _: False)
+    box_settings = TF.HBox(cast(Self, 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
         set_children=lambda p: (p.relative_path,)
     )
-    relative_path = tf.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
+    relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, Filesystem, Filesystem]
+        parent: TF.InstanceHP[Self, Filesystem, Filesystem]
 
     def __new__(cls, parent: Filesystem, **kwargs) -> Self:
         return super().__new__(cls, parent=parent, **kwargs)
@@ -348,8 +348,8 @@ class RelativePath(Filesystem):
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
-    name = tf.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
-    read_only = tf.Bool(default=lambda _: True).configure(tf.IHPMode.XLR_)
+    name = TF.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
+    read_only = TF.Bool(default=lambda _: True).configure(TF.IHPMode.XLR_)
     parent = None  # type: ignore
 
     @override
@@ -359,8 +359,8 @@ class DefaultFilesystem(HasHome, Filesystem):
 
 class HasFilesystem(HasHome):
     filesystem = (
-        tf.InstanceHP(cast(Self, 0), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
-        .configure(tf.IHPMode.XL__)
+        TF.InstanceHP(cast(Self, 0), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
+        .configure(TF.IHPMode.XL__)
         .hooks(on_replace_close=False, set_parent=False)
     )
 

@@ -4,13 +4,13 @@ import pytest
 import traitlets
 
 from menubox import mb_async as mba
-from menubox import trait_factory as tf
 from menubox.hasparent import HasParent
+from menubox.trait_factory import TF
 
 
 class MBRunAsync(HasParent):
     my_set = traitlets.Set()
-    my_task = tf.Task()
+    my_task = TF.Task()
 
 
 async def async_function(result, delay=0.0):
@@ -85,7 +85,7 @@ class TestRunAsync:
 
 
 class MBRunAsyncSingular(HasParent):
-    my_task_trait = tf.Task()
+    my_task_trait = TF.Task()
 
     @mba.singular_task(handle="my_task_trait")
     async def async_singular_function(self, *args, **kwgs):

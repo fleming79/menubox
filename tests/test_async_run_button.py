@@ -4,23 +4,23 @@ from typing import Self, cast
 import traitlets
 
 import menubox as mb
-from menubox import trait_factory as tf
 from menubox.async_run_button import AsyncRunButton
 from menubox.hasparent import HasParent
+from menubox.trait_factory import TF
 
 
 class PMB(mb.Menubox):
-    ab_main = tf.InstanceHP(
+    ab_main = TF.InstanceHP(
         cast(Self, 0),
         klass=AsyncRunButton,
         default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
     )
-    ab_nested = tf.InstanceHP(
+    ab_nested = TF.InstanceHP(
         cast(Self, 0),
         klass=AsyncRunButton,
         default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
     )
-    ab_nested_sub = tf.InstanceHP(
+    ab_nested_sub = TF.InstanceHP(
         cast(Self, 0),
         klass=AsyncRunButton,
         default=lambda c: AsyncRunButton(

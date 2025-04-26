@@ -2,8 +2,8 @@ import ipywidgets as ipw
 import pytest
 
 import menubox as mb
-from menubox import trait_factory as tf
 from menubox.menubox import MenuboxWrapper
+from menubox.trait_factory import TF
 
 
 class TestMenubox:
@@ -392,7 +392,7 @@ class TestMenubox:
 
     async def test_menubox_load_shuffle_item(self):
         class MenuboxA(mb.Menubox):
-            a = tf.HTML(value="a")
+            a = TF.HTML(value="a")
 
         m = MenuboxA(views={"a": ipw.HTML("A")})
         m.enable_ihp("box_shuffle")

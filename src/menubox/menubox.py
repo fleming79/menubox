@@ -16,10 +16,10 @@ from ipywidgets import widgets as ipw
 
 import menubox as mb
 from menubox import defaults, log, mb_async, utils
-from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.defaults import ENABLE, H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
@@ -62,25 +62,25 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _Menubox_init_complete = False
 
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, RP, RP]
+        parent: TF.InstanceHP[Self, RP, RP]
 
     # Traits
-    show_help = tf.Bool()
+    show_help = TF.Bool()
     viewlist = StrTuple()
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
 
-    views = tf.ViewDict(cast(Self, 0)).configure(tf.IHPMode.XL__)
-    shuffle_button_views = tf.ViewDict(cast(Self, 0)).configure(tf.IHPMode.XL__)
+    views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
+    shuffle_button_views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
 
-    border = tf.Str().configure(tf.IHPMode.X__N, default_value=None)
-    view = tf.Str().configure(tf.IHPMode.X__N, default_value=None)
-    view_previous = tf.Str().configure(tf.IHPMode.X__N, default_value=None)
+    border = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
+    view = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
+    view_previous = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
 
-    title_description = tf.Str()
-    title_description_tooltip = tf.Str()
+    title_description = TF.Str()
+    title_description_tooltip = TF.Str()
 
     header_left_children = StrTuple("button_exit", "button_minimize", "box_menu", "button_toggleview")
     header_right_children = StrTuple(
@@ -102,36 +102,36 @@ class Menubox(HasParent, Panel, Generic[RP]):
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
-    _tab_buttons = tf.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
+    _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
+    _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
-    task_load_view = tf.Task()
-    html_title = tf.HTML_Title().configure(tf.IHPMode.X__N)
-    out_help = tf.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
+    task_load_view = TF.Task()
+    html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
+    out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
-    button_menu = tf.Button_menu(description="☰").configure(tf.IHPMode.X__N)
-    button_toggleview = tf.Button_menu(description="➱").configure(tf.IHPMode.X__N)
-    button_help = tf.Button_open(description="❔").configure(tf.IHPMode.X__N)
-    button_close = tf.Button_dangerous(description="✗", tooltip="Close").configure(tf.IHPMode.X__N)
-    button_minimize = tf.Button_open(description="🗕", tooltip="Minimize").configure(tf.IHPMode.X__N)
-    button_maximize = tf.Button_open(description="🗖", tooltip="Restore").configure(tf.IHPMode.X__N)
-    button_exit = tf.Button_open(description="⇡", tooltip="Leave showbox").configure(tf.IHPMode.X__N)
-    button_promote = tf.Button_open(description="⇖", tooltip="Shift up / left").configure(tf.IHPMode.X__N)
-    button_demote = tf.Button_open(description="⇘", tooltip="Shift down / right").configure(tf.IHPMode.X__N)
-    button_menu_minimize = tf.Button_menu(description="↤", tooltip="Hide menu").configure(tf.IHPMode.X__N)
-    button_activate = tf.Button_open(description="🐑", tooltip="Add to shell").configure(tf.IHPMode.X__N)
+    button_menu = TF.Button_menu(description="☰").configure(TF.IHPMode.X__N)
+    button_toggleview = TF.Button_menu(description="➱").configure(TF.IHPMode.X__N)
+    button_help = TF.Button_open(description="❔").configure(TF.IHPMode.X__N)
+    button_close = TF.Button_dangerous(description="✗", tooltip="Close").configure(TF.IHPMode.X__N)
+    button_minimize = TF.Button_open(description="🗕", tooltip="Minimize").configure(TF.IHPMode.X__N)
+    button_maximize = TF.Button_open(description="🗖", tooltip="Restore").configure(TF.IHPMode.X__N)
+    button_exit = TF.Button_open(description="⇡", tooltip="Leave showbox").configure(TF.IHPMode.X__N)
+    button_promote = TF.Button_open(description="⇖", tooltip="Shift up / left").configure(TF.IHPMode.X__N)
+    button_demote = TF.Button_open(description="⇘", tooltip="Shift down / right").configure(TF.IHPMode.X__N)
+    button_menu_minimize = TF.Button_menu(description="↤", tooltip="Hide menu").configure(TF.IHPMode.X__N)
+    button_activate = TF.Button_open(description="🐑", tooltip="Add to shell").configure(TF.IHPMode.X__N)
 
     # Boxes
-    box_shuffle = tf.MenuboxShuffle().configure(tf.IHPMode.XL__)
-    box_menu = tf.MenuboxMenu().configure(tf.IHPMode.X__N)
+    box_shuffle = TF.MenuboxShuffle().configure(TF.IHPMode.XL__)
+    box_menu = TF.MenuboxMenu().configure(TF.IHPMode.X__N)
     showbox = (
-        tf.InstanceHP(cast(Self, 0), klass=ipw.Box)
+        TF.InstanceHP(cast(Self, 0), klass=ipw.Box)
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
-        .configure(tf.IHPMode.X__N)
+        .configure(TF.IHPMode.X__N)
     )
-    header = tf.MenuboxHeader().configure(tf.IHPMode.X_RN)
-    box_center = tf.MenuboxCenter().configure(tf.IHPMode.XLRN)
+    header = TF.MenuboxHeader().configure(TF.IHPMode.X_RN)
+    box_center = TF.MenuboxCenter().configure(TF.IHPMode.XLRN)
     _mb_refresh_traitnames = (
         "closed",
         "show_help",
@@ -787,8 +787,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
-    widget = tf.InstanceHP(klass=ipw.Widget).configure(tf.IHPMode.X_R_)
-    views = tf.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget})
+    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_R_)
+    views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):

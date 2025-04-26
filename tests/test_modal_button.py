@@ -4,19 +4,19 @@ from typing import Self, cast, override
 import ipywidgets as ipw
 
 import menubox as mb
-from menubox import trait_factory as tf
 from menubox.modalbox import Modalbox
+from menubox.trait_factory import TF
 
 
 class PMBB(mb.MenuboxVT):
-    task_button_run = tf.Task()
-    task_update = tf.Task()
-    count = tf.InstanceHP(klass=ipw.FloatText)
-    slider = tf.InstanceHP(klass=ipw.IntSlider)
-    box_extra = tf.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.count,))
-    box_mb2 = tf.VBox()
-    mb1 = tf.Modalbox(cast(Self, 0), obj=lambda p: p.box_extra, title="mb1 open")
-    mb2 = tf.Modalbox(
+    task_button_run = TF.Task()
+    task_update = TF.Task()
+    count = TF.InstanceHP(klass=ipw.FloatText)
+    slider = TF.InstanceHP(klass=ipw.IntSlider)
+    box_extra = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.count,))
+    box_mb2 = TF.VBox()
+    mb1 = TF.Modalbox(cast(Self, 0), obj=lambda p: p.box_extra, title="mb1 open")
+    mb2 = TF.Modalbox(
         cast(Self, 0),
         obj=lambda p: p.get_mb2_widgets(),
         box=lambda p: p.box_mb2,

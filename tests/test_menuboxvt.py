@@ -4,7 +4,7 @@ from typing import Self, cast, override
 import ipywidgets as ipw
 
 import menubox as mb
-from menubox import trait_factory as tf
+from menubox.trait_factory import TF
 
 templates_folder = pathlib.Path(__file__).parent.joinpath("templates")
 assert templates_folder.exists()
@@ -15,15 +15,15 @@ mb.MenuboxVT.register_template_root_folder(templates_folder)
 
 class MyNewObj(mb.HasHome, mb.MenuboxVT):
     SHOW_TEMPLATE_CONTROLS = True
-    select_repository = tf.SelectRepository(cast(Self, 0))
+    select_repository = TF.SelectRepository(cast(Self, 0))
     a_has_changed = False
     b_has_changed = False
     change_count = 0
 
-    a = tf.InstanceHP(klass=ipw.FloatText)
-    b = tf.InstanceHP(klass=ipw.FloatText)
-    c = tf.InstanceHP(klass=ipw.FloatText)
-    views = tf.ViewDict(cast(Self, 0), {"Main": ("description_viewer", "a", "b", "c")})
+    a = TF.InstanceHP(klass=ipw.FloatText)
+    b = TF.InstanceHP(klass=ipw.FloatText)
+    c = TF.InstanceHP(klass=ipw.FloatText)
+    views = TF.ViewDict(cast(Self, 0), {"Main": ("description_viewer", "a", "b", "c")})
     value_traits_persist = mb.NameTuple(*mb.MenuboxVT.value_traits, "a", "c")
 
     async def init_async(self):

@@ -10,13 +10,13 @@ import traitlets
 
 import menubox
 from menubox import mb_async, utils
-from menubox import trait_factory as tf
 from menubox.filesystem import HasFilesystem
 from menubox.instance import IHPCreate
 from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
+from menubox.trait_factory import TF
 from menubox.trait_types import MP, ChangeType, S, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
@@ -137,16 +137,16 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     version = traitlets.Int(1, read_only=True)
     versions = TypedTuple(traitlets.Int())
     saved_timestamp = traitlets.Unicode()
-    menu_load_index = tf.Modalbox(
+    menu_load_index = TF.Modalbox(
         cast(Self, 0),
         obj=lambda p: p._get_version_box(),
         title="Persistence",
         button_expand_description="⇵",
         button_expand_tooltip="Save / load persistence settings.",
     ).configure(
-        tf.IHPMode.XLRN,
+        TF.IHPMode.XLRN,
     )
-    sw_version_load = tf.Dropdown(
+    sw_version_load = TF.Dropdown(
         cast(Self, 0),
         description="Load from",
         index=None,
@@ -157,7 +157,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             target=(c["obj"], "options"),
         ),
     )
-    button_save_persistence_data = tf.AsyncRunButton(
+    button_save_persistence_data = TF.AsyncRunButton(
         cast(Self, 0),
         cfunc=lambda p: p._button_save_persistence_data_async,
         description="💾",
@@ -165,7 +165,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         tasktype=mb_async.TaskType.update,
     )
     version_widget = (
-        tf.InstanceHP(
+        TF.InstanceHP(
             cast(Self, 0),
             klass=ipw.BoundedIntText,
             default=lambda c: ipw.BoundedIntText(
@@ -190,11 +190,11 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 ),
             )
         )
-        .configure(tf.IHPMode.XLRN)
+        .configure(TF.IHPMode.XLRN)
     )
-    box_version = tf.Box()
+    box_version = TF.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
-    task_loading_persistence_data = tf.Task()
+    task_loading_persistence_data = TF.Task()
     value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load", "version_widget")
     value_traits_persist = StrTuple("saved_timestamp", "description")
     dataframe_persist = StrTuple()
@@ -543,7 +543,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         set_parent=True,
         close_on_remove=False,
     )
-    obj_name = tf.Combobox(cast(Self, 0), placeholder="Enter name or select existing", continuous_update=True).hooks(
+    obj_name = TF.Combobox(cast(Self, 0), placeholder="Enter name or select existing", continuous_update=True).hooks(
         on_set=lambda c: (
             c["parent"].update_names(),
             c["parent"].dlink(source=(c["parent"], "names"), target=(c["obj"], "options")),
@@ -551,12 +551,12 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     )
     names = menubox.StrTuple()
     title_description = traitlets.Unicode("<b>{self.klass.__qualname__.replace('_','').capitalize()} set</b>")
-    html_info = tf.HTML()
-    info_html_title = tf.HTML(layout={"margin": "0px 20px 0px 40px"})
-    button_update_names = tf.Button_main(description="↻", tooltip="Update options")
-    box_main = tf.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
+    html_info = TF.HTML()
+    info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
+    button_update_names = TF.Button_main(description="↻", tooltip="Update options")
+    box_main = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None
-    views = tf.ViewDict(cast(Self, 0), {"Main": lambda p: p.box_main})
+    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.box_main})
 
     @override
     @classmethod

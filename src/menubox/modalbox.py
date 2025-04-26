@@ -6,10 +6,10 @@ import ipywidgets as ipw
 import traitlets
 
 from menubox import mb_async, utils
-from menubox import trait_factory as tf
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
+from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, GetWidgetsInputType, S, StrTuple
 
 if TYPE_CHECKING:
@@ -20,15 +20,15 @@ __all__ = ["Modalbox"]
 
 class Modalbox(HasParent, ipw.VBox, Generic[S]):
     obj = traitlets.Callable(read_only=True)
-    button_expand = tf.Button_modal()
-    button_collapse = tf.Button_modal(disabled=True)
+    button_expand = TF.Button_modal()
+    button_collapse = TF.Button_modal(disabled=True)
     expanded = traitlets.Bool(False, read_only=True)
-    html_title = tf.HTML_Title()
-    header = tf.HBox().configure(tf.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
+    html_title = TF.HTML_Title()
+    header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, S, S]
+        parent: TF.InstanceHP[Self, S, S]
 
     @log_exceptions
     def __init__(

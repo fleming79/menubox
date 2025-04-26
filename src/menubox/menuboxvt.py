@@ -8,11 +8,11 @@ import ipywidgets as ipw
 import traitlets
 
 import menubox as mb
-from menubox import trait_factory as tf
 from menubox import utils
 from menubox.css import CSScls
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
@@ -47,20 +47,20 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
 
     if TYPE_CHECKING:
-        parent: tf.InstanceHP[Self, RP, RP]
+        parent: TF.InstanceHP[Self, RP, RP]
 
     header = (
-        tf.MenuboxHeader()
+        TF.MenuboxHeader()
         .hooks(
             add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header),
         )
-        .configure(tf.IHPMode.XLRN)
+        .configure(TF.IHPMode.XLRN)
     )
-    _sw_template = tf.Dropdown(
+    _sw_template = TF.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
-    box_template_controls = tf.InstanceHP(
+    box_template_controls = TF.InstanceHP(
         cast(Self, 0), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
     ).hooks(
         set_children=lambda p: (
@@ -71,15 +71,15 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             p._button_template_info,
         )
     )
-    template_controls = tf.Modalbox(
+    template_controls = TF.Modalbox(
         cast(Self, 0),
         obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
         button_expand_description="📜",
         button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
         on_expand=lambda p: p._on_template_controls_expand(),
-    ).configure(tf.IHPMode.XLRN)
-    text_name = tf.InstanceHP(
+    ).configure(TF.IHPMode.XLRN)
+    text_name = TF.InstanceHP(
         cast(Self, 0),
         klass=ComboboxValidate,
         default=lambda c: ComboboxValidate(
@@ -99,9 +99,9 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             ),
         ),
     )
-    description_preview_label = tf.HTML(value="<b>Description preview</b>")
-    description = tf.CodeEditor(description="Description", mime_type="text/x-markdown")
-    description_viewer = tf.InstanceHP(
+    description_preview_label = TF.HTML(value="<b>Description preview</b>")
+    description = TF.CodeEditor(description="Description", mime_type="text/x-markdown")
+    description_viewer = TF.InstanceHP(
         cast(Self, 0),
         klass=MarkdownOutput,
         default=lambda c: MarkdownOutput(
@@ -115,7 +115,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        tf.Button_open(cast(Self, 0), tooltip="Configure")
+        TF.Button_open(cast(Self, 0), tooltip="Configure")
         .hooks(
             on_set=lambda c: c["parent"].dlink(
                 source=(c["parent"], "view"),
@@ -123,18 +123,18 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
                 transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
             ),
         )
-        .configure(tf.IHPMode.X_RN)
+        .configure(TF.IHPMode.X_RN)
     )
-    button_clip_put = tf.Button_open(description="📎", tooltip="Copy settings to clipboard")
-    button_paste = tf.Button_open(description="📋", tooltip="Paste settings from clipboard\n")
-    _button_load_template = tf.Button_main(
+    button_clip_put = TF.Button_open(description="📎", tooltip="Copy settings to clipboard")
+    button_paste = TF.Button_open(description="📋", tooltip="Paste settings from clipboard\n")
+    _button_load_template = TF.Button_main(
         description="Load",
         tooltip="Overwrite existing settings with template.\nExisting settings will be overwritten without warning.",
     )
-    _button_template_info = tf.Button_main(
+    _button_template_info = TF.Button_main(
         description="Info", tooltip="Show template details in a read only text editor."
     )
-    subpath = tf.ComboboxValidate(
+    subpath = TF.ComboboxValidate(
         validate=utils.sanatise_filename,
         description="Subpath",
         value="",

@@ -6,43 +6,43 @@ import ipywidgets as ipw
 import pytest
 
 import menubox as mb
-from menubox import trait_factory as tf
 from menubox import utils
 from menubox.children_setter import ChildrenSetter
+from menubox.trait_factory import TF
 from menubox.trait_types import NameTuple
 
 
 class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
-    views = tf.Dict(
+    views = TF.Dict(
         default=lambda _: {
             "view a": lambda: (ipw.Button(description="Button"), ipw.HTML("HTML")),
             "view b": ("button", "dropdown"),
         }
     )
-    button = tf.Button_main(description="nested button")
-    dropdown = tf.Dropdown(description="nested dropdown").configure(tf.IHPMode.XLRN)
-    label = tf.Label(value="Nested Label")
+    button = TF.Button_main(description="nested button")
+    dropdown = TF.Dropdown(description="nested dropdown").configure(TF.IHPMode.XLRN)
+    label = TF.Label(value="Nested Label")
 
 
 class ChildrenSetterTester(mb.MenuboxVT):
-    dropdown = tf.Dropdown(description="dropdown")
-    label = tf.Label(value="Label")
-    dd_no_default = tf.Dropdown(description="Label no default").configure(tf.IHPMode.X_RN)
-    nested = tf.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(tf.IHPMode.XLRN)
-    dynamic_box = tf.Box().hooks(
+    dropdown = TF.Dropdown(description="dropdown")
+    label = TF.Label(value="Label")
+    dd_no_default = TF.Dropdown(description="Label no default").configure(TF.IHPMode.X_RN)
+    nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(TF.IHPMode.XLRN)
+    dynamic_box = TF.Box().hooks(
         set_children={
             "mode": "monitor",
             "dottednames": ("dd_no_default", "dropdown", "nested.dropdown", "nested.button"),
         },
     )
     dynamic_box_nametuple_children = NameTuple("label")
-    dynamic_box_nametuple = tf.Box().hooks(
+    dynamic_box_nametuple = TF.Box().hooks(
         set_children={
             "mode": "monitor_nametuple",
             "nametuple_name": "dynamic_box_nametuple_children",
         },
     )
-    plain_box = tf.Box()
+    plain_box = TF.Box()
 
 
 @pytest.mark.parametrize(

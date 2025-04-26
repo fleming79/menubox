@@ -7,16 +7,16 @@ import pytest
 import traitlets
 
 import menubox as mb
-from menubox import trait_factory as tf
 from menubox.persist import MenuboxPersist, MenuboxPersistMode, MenuboxPersistPool
+from menubox.trait_factory import TF
 
 
 class MBP(MenuboxPersist):
     _STASH_DEFAULTS = True
     PERSIST_MODE = MenuboxPersistMode.by_classname_name_version
     new = traitlets.Unicode()
-    a_widget = tf.Text(description="something", value="Using the value")
-    just_a_widget = tf.Dropdown(cast(Self, 0), description="just_a_widget", options=[1, 2, 3]).hooks(
+    a_widget = TF.Text(description="something", value="Using the value")
+    just_a_widget = TF.Dropdown(cast(Self, 0), description="just_a_widget", options=[1, 2, 3]).hooks(
         on_set=lambda c: c["parent"].dlink(
             source=(c["parent"], "df"),
             target=(c["obj"].layout, "visibility"),

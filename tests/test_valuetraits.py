@@ -7,20 +7,20 @@ from ipylab.common import Fixed
 
 import menubox
 from menubox import HasParent, ValueTraits
-from menubox import trait_factory as tf
+from menubox.trait_factory import TF
 from menubox.trait_types import NameTuple
 
 # ruff: noqa: PLR2004
 
 
 class Nested(HasParent):
-    number = tf.InstanceHP(klass=ipw.FloatText)
+    number = TF.InstanceHP(klass=ipw.FloatText)
 
 
 class VT1(ValueTraits):
     value_change_count = 0
-    linked_trait = tf.Str()
-    nested = tf.InstanceHP(klass=Nested).configure(tf.IHPMode.XL_N)
+    linked_trait = TF.Str()
+    nested = TF.InstanceHP(klass=Nested).configure(TF.IHPMode.XL_N)
     a = traitlets.Unicode()
     b = traitlets.Int()
     c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))

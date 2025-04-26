@@ -10,9 +10,9 @@ import pytest
 from traitlets import TraitError
 
 import menubox as mb
-import menubox.trait_factory as tf
 from menubox.hashome import HasHome
 from menubox.instance import InstanceHP, instanceHP_wrapper
+from menubox.trait_factory import TF
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
@@ -20,12 +20,12 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 class HPI(mb.Menubox):
     a = InstanceHP(
         cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])
-    ).configure(tf.IHPMode.XL_N)
+    ).configure(TF.IHPMode.XL_N)
     b = InstanceHP(
         cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])
-    ).configure(tf.IHPMode.X___)
-    my_button = tf.Button_main(description="A button")
-    box = tf.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
+    ).configure(TF.IHPMode.X___)
+    my_button = TF.Button_main(description="A button")
+    box = TF.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
 
     async def button_clicked(self, b: ipw.Button):
@@ -38,9 +38,9 @@ class HPI(mb.Menubox):
 
 class HPI2(HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(cast(Self, 0), klass=HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
-    e = Dropdown(description="From a factory").configure(tf.IHPMode.XLRN)
-    select_repository = tf.SelectRepository(cast(Self, 0))
-    button = tf.AsyncRunButton(cast(Self, 0), cfunc=lambda p: p._button_async)
+    e = Dropdown(description="From a factory").configure(TF.IHPMode.XLRN)
+    select_repository = TF.SelectRepository(cast(Self, 0))
+    button = TF.AsyncRunButton(cast(Self, 0), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     async def _button_async(self):
@@ -48,15 +48,15 @@ class HPI2(HasHome, HPI, mb.MenuboxVT):
 
 
 class HPI3(mb.Menubox):
-    box = tf.Box().configure(tf.IHPMode.XLRN)
-    menubox = tf.Menubox(views={"main": None}).configure(tf.IHPMode.XLRN)
-    hpi2 = tf.InstanceHP(cast(Self, 0), klass=HPI2, default=lambda _: HPI2(home="test")).configure(tf.IHPMode.XLRN)
+    box = TF.Box().configure(TF.IHPMode.XLRN)
+    menubox = TF.Menubox(views={"main": None}).configure(TF.IHPMode.XLRN)
+    hpi2 = TF.InstanceHP(cast(Self, 0), klass=HPI2, default=lambda _: HPI2(home="test")).configure(TF.IHPMode.XLRN)
 
 
 class HPI4(HasHome):
-    hpi = tf.InstanceHP(cast(Self, 0), klass=HPI).configure(tf.IHPMode.XLRN)
+    hpi = TF.InstanceHP(cast(Self, 0), klass=HPI).configure(TF.IHPMode.XLRN)
     hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
-    value_changed = tf.Dict()
+    value_changed = TF.Dict()
 
 
 class TestInstance:

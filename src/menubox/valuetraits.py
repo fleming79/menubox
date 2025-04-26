@@ -12,10 +12,10 @@ from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
-from menubox import trait_factory as tf
 from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
+from menubox.trait_factory import TF
 from menubox.trait_types import Bunched, ChangeType, NameTuple, ReadOnly, S
 
 if TYPE_CHECKING:
@@ -69,9 +69,9 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = tf.parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
+    parent = TF.parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg = InstanceHP(cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)).configure(
-        tf.IHPMode.XLR_, default_value=set()
+        TF.IHPMode.XLR_, default_value=set()
     )
 
     @observe("reg")
@@ -125,9 +125,9 @@ class ValueTraits(HasParent, Generic[S]):
     _STASH_DEFAULTS = False
     _AUTO_VALUE = True  # Also connects the trait 'value' on the trait if it is found.
     _ignore_change_cnt = 0
-    _vt_reg_value_traits_persist = tf.Set(cast(Self, 0)).configure(tf.IHPMode.XLR_)
-    _vt_reg_value_traits = tf.Set(cast(Self, 0)).configure(tf.IHPMode.XLR_)
-    _vt_tuple_reg: tf.InstanceHP[Self, dict[str, _InstanceHPTupleRegister], ReadOnly[dict]] = tf.Dict()
+    _vt_reg_value_traits_persist = TF.Set(cast(Self, 0)).configure(TF.IHPMode.XLR_)
+    _vt_reg_value_traits = TF.Set(cast(Self, 0)).configure(TF.IHPMode.XLR_)
+    _vt_tuple_reg: TF.InstanceHP[Self, dict[str, _InstanceHPTupleRegister], ReadOnly[dict]] = TF.Dict()
     _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
     _vt_init_complete = False
@@ -137,7 +137,7 @@ class ValueTraits(HasParent, Generic[S]):
     value_traits_persist = NameTuple()
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
-    parent = tf.parent(cast(Self, 0), klass=cast(type[S], HasParent))
+    parent = TF.parent(cast(Self, 0), klass=cast(type[S], HasParent))
     if TYPE_CHECKING:
         _value: Callable
 
