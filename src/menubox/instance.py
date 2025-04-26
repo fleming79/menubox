@@ -646,7 +646,7 @@ def instanceHP_wrapper(
     defaults: None | dict[str, Any] = None,
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
-    **kwargs: Unpack[IHPHookMappings[mhp.HasParent, T]],
+    **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
 ):
     """Wraps the InstanceHP trait for use withmhp. HasParent classes.
 
@@ -659,7 +659,7 @@ def instanceHP_wrapper(
         strategy: The merging strategy to use when combining defaults with instance-specific keyword arguments.
                   Defaults to Strategy.REPLACE.
         tags: A dictionary of tags to be applied to the InstanceHP trait.
-        **kwargs: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
+        **hooks: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
     Returns:
         A factory function that, when called, returns an InstanceHP trait instance.  The factory
         function accepts *args and **kwgs which are passed to the constructor of `klass` when the
@@ -688,8 +688,8 @@ def instanceHP_wrapper(
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
         instance = InstanceHP(klass=klass, default=lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
-        if kwargs:
-            instance.hooks(**kwargs)  # type: ignore
+        if hooks:
+            instance.hooks(**hooks)  # type: ignore
         if tags:
             instance.tag(**tags)
         return cast(InstanceHP[SS, T, T], instance)

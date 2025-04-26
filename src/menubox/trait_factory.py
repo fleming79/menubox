@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
 
 
-def _bchange(c: IHPChange[HasParent, ipw.Button]):
+def v_b_change(c: IHPChange[HasParent, ipw.Button]):
     c["parent"]._handle_button_change(c)
 
 
@@ -170,28 +170,28 @@ class TF:
 
     # Button
     Button_main = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_main))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_main))
     )
     Button_open = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_open))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_open))
     )
     Button_cancel = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_cancel))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_cancel))
     )
     Button_dangerous = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_dangerous))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_dangerous))
     )
     Button_modal = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_modal))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_modal))
     )
     Button_menu = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_menu))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_menu))
     )
     Button_toggle = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_toggle))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_toggle))
     )
     Button_shuffle = staticmethod(
-        ihpwrap(ipw.Button, value_changed=_bchange, add_css_class=(CSScls.button, CSScls.button_type_shuffle))
+        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_shuffle))
     )
     FileUpload = staticmethod(ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_type_main)))
 
