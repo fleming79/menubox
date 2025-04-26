@@ -20,17 +20,10 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 class HPI(mb.Menubox):
     a = InstanceHP(
         cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])
-    ).configure(
-        allow_none=True,
-        read_only=False,
-    )
+    ).configure(tf.IHPMode.XL_N)
     b = InstanceHP(
         cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])
-    ).configure(
-        load_default=False,
-        allow_none=False,
-        read_only=False,
-    )
+    ).configure(tf.IHPMode.X___)
     my_button = tf.Button_main(description="A button")
     box = tf.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
@@ -45,7 +38,7 @@ class HPI(mb.Menubox):
 
 class HPI2(HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(cast(Self, 0), klass=HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
-    e = Dropdown(description="From a factory").configure(allow_none=True, read_only=True)
+    e = Dropdown(description="From a factory").configure(tf.IHPMode.XLRN)
     select_repository = tf.SelectRepository(cast(Self, 0))
     button = tf.AsyncRunButton(cast(Self, 0), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
@@ -55,15 +48,13 @@ class HPI2(HasHome, HPI, mb.MenuboxVT):
 
 
 class HPI3(mb.Menubox):
-    box = tf.Box().configure(allow_none=True, read_only=True)
-    menubox = tf.Menubox(views={"main": None}).configure(allow_none=True, read_only=True)
-    hpi2 = tf.InstanceHP(cast(Self, 0), klass=HPI2, default=lambda _: HPI2(home="test")).configure(
-        allow_none=True, read_only=True
-    )
+    box = tf.Box().configure(tf.IHPMode.XLRN)
+    menubox = tf.Menubox(views={"main": None}).configure(tf.IHPMode.XLRN)
+    hpi2 = tf.InstanceHP(cast(Self, 0), klass=HPI2, default=lambda _: HPI2(home="test")).configure(tf.IHPMode.XLRN)
 
 
 class HPI4(HasHome):
-    hpi = tf.InstanceHP(cast(Self, 0), klass=HPI).configure(allow_none=True, read_only=True)
+    hpi = tf.InstanceHP(cast(Self, 0), klass=HPI).configure(tf.IHPMode.XLRN)
     hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
     value_changed = tf.Dict()
 

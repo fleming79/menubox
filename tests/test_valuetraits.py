@@ -20,7 +20,7 @@ class Nested(HasParent):
 class VT1(ValueTraits):
     value_change_count = 0
     linked_trait = tf.Str()
-    nested = tf.InstanceHP(klass=Nested).configure(allow_none=True, read_only=False)
+    nested = tf.InstanceHP(klass=Nested).configure(tf.IHPMode.XL_N)
     a = traitlets.Unicode()
     b = traitlets.Int()
     c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))

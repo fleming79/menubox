@@ -20,7 +20,7 @@ import menubox.widgets
 from menubox import mb_async
 from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
-from menubox.instance import IHPChange, IHPCreate, InstanceHP
+from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
 
 __all__ = [
@@ -86,9 +86,7 @@ def Bool(
     cast_self: S | int = 0,
     default: Callable[[IHPCreate[S, bool]], bool | None] = lambda _: False,
 ):
-    return InstanceHP(cast_self, klass=bool, default=default).configure(
-        read_only=False, allow_none=False, default_value=False
-    )
+    return InstanceHP(cast_self, klass=bool, default=default).configure(IHPMode.XL__, default_value=False)
 
 
 def Set(
@@ -96,9 +94,7 @@ def Set(
     /,
     default: Callable[[IHPCreate[S, set[T]]], set[T] | None] = lambda _: set(),
 ):
-    return InstanceHP(cast_self, klass=set, default=default).configure(
-        read_only=False, allow_none=False, default_value=set()
-    )
+    return InstanceHP(cast_self, klass=set, default=default).configure(IHPMode.XL__, default_value=set())
 
 
 def Dict(
@@ -128,9 +124,7 @@ def ViewDict(
     ```
     """
     value = value or {}
-    return InstanceHP(klass=dict, default=lambda _: value).configure(
-        allow_none=False, read_only=False, default_value={}
-    )
+    return InstanceHP(klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
 
 
 def Str(
@@ -138,11 +132,7 @@ def Str(
     /,
     default: Callable[[IHPCreate[S, str]], str | None] = lambda _: "",
 ) -> InstanceHP[S, str, str]:
-    return InstanceHP(klass=str, default=default).configure(
-        read_only=False,
-        allow_none=False,
-        default_value="",
-    )
+    return InstanceHP(klass=str, default=default).configure(IHPMode.XL__, default_value="")
 
 
 def parent(
@@ -168,7 +158,7 @@ def parent(
 
     return (
         InstanceHP(klass=klass, default=lambda _: None, validate=validate_parent)
-        .configure(allow_none=True, read_only=False, load_default=False)
+        .configure(IHPMode.X__N)
         .hooks(set_parent=False, on_replace_close=False, remove_on_close=False)
     )  # type: ignore
 
@@ -331,7 +321,7 @@ def SelectRepository(cast_self: H):  # type: ignore
 
 
 def Task():
-    return InstanceHP(klass=asyncio.Task).configure(allow_none=True, read_only=True, load_default=False)
+    return InstanceHP(klass=asyncio.Task).configure(IHPMode.X_RN)
 
 
 def MenuboxPersistPool(

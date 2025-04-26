@@ -16,7 +16,7 @@ from menubox import trait_factory as tf
 from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
-from menubox.trait_types import Bunched, ChangeType, NameTuple, S
+from menubox.trait_types import Bunched, ChangeType, NameTuple, ReadOnly, S
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator
@@ -71,7 +71,7 @@ class _InstanceHPTupleRegister(HasParent):
 
     parent = tf.parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg = InstanceHP(cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)).configure(
-        read_only=True, allow_none=False, default_value=set()
+        tf.IHPMode.XLR_, default_value=set()
     )
 
     @observe("reg")
@@ -125,23 +125,9 @@ class ValueTraits(HasParent, Generic[S]):
     _STASH_DEFAULTS = False
     _AUTO_VALUE = True  # Also connects the trait 'value' on the trait if it is found.
     _ignore_change_cnt = 0
-    _vt_reg_value_traits_persist = InstanceHP(
-        cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)
-    ).configure(
-        allow_none=False,
-        read_only=True,
-        default_value=set(),
-    )
-    _vt_reg_value_traits = InstanceHP(cast(Self, 0), klass=cast("type[set[tuple[HasTraits, str]]]", set)).configure(
-        allow_none=False,
-        read_only=True,
-        default_value=set(),
-    )
-    _vt_tuple_reg = InstanceHP(cast(Self, 0), klass=cast(type[dict[str, _InstanceHPTupleRegister]], dict)).configure(
-        allow_none=False,
-        read_only=True,
-        default_value={},
-    )
+    _vt_reg_value_traits_persist = tf.Set(cast(Self, 0)).configure(tf.IHPMode.XLR_)
+    _vt_reg_value_traits = tf.Set(cast(Self, 0)).configure(tf.IHPMode.XLR_)
+    _vt_tuple_reg: tf.InstanceHP[Self, dict[str, _InstanceHPTupleRegister], ReadOnly[dict]] = tf.Dict()
     _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
     _vt_init_complete = False

@@ -54,7 +54,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         .hooks(
             add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header),
         )
-        .configure(allow_none=True, read_only=True)
+        .configure(tf.IHPMode.XLRN)
     )
     _sw_template = tf.Dropdown(
         value=None, description="Templates", style={"description_width": "initial"}, layout={"width": "max-content"}
@@ -78,7 +78,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         button_expand_description="📜",
         button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
         on_expand=lambda p: p._on_template_controls_expand(),
-    ).configure(allow_none=True, read_only=True)
+    ).configure(tf.IHPMode.XLRN)
     text_name = tf.InstanceHP(
         cast(Self, 0),
         klass=ComboboxValidate,
@@ -123,7 +123,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
                 transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
             ),
         )
-        .configure(allow_none=True, read_only=True, load_default=False)
+        .configure(tf.IHPMode.X_RN)
     )
     button_clip_put = tf.Button_open(description="📎", tooltip="Copy settings to clipboard")
     button_paste = tf.Button_open(description="📋", tooltip="Paste settings from clipboard\n")

@@ -15,6 +15,7 @@
     },
     "python.experiments.optInto": [
         "pythonTestAdapter"
-    ]
+    ],
+    "python.analysis.diagnosticMode": "workspace"
 }
 // https://code.visualstudio.com/docs/editor/variables-reference

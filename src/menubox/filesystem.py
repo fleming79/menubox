@@ -349,7 +349,7 @@ class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
     name = tf.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
-    read_only = tf.Bool(default=lambda _: True).configure(allow_none=False, read_only=True)
+    read_only = tf.Bool(default=lambda _: True).configure(tf.IHPMode.XLR_)
     parent = None  # type: ignore
 
     @override
@@ -360,7 +360,7 @@ class DefaultFilesystem(HasHome, Filesystem):
 class HasFilesystem(HasHome):
     filesystem = (
         tf.InstanceHP(cast(Self, 0), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
-        .configure(allow_none=False, read_only=False)
+        .configure(tf.IHPMode.XL__)
         .hooks(on_replace_close=False, set_parent=False)
     )
 

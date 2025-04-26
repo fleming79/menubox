@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import inspect
 import sys
 import weakref
@@ -37,6 +38,29 @@ if TYPE_CHECKING:
 
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
+
+
+class IHPMode(enum.IntEnum):
+    """The configured modes for the Instance HP instance.
+
+    `XCRN` - X is a common prefix. Underscores indicate the setting is disabled.
+
+    - `C` : **load_default** - call the `default` function passed at initialization. If not enabled, `default_value` is returned.
+    - `R` : **read_only** - configure as read-only.
+    - `N` : **allow_none** - configure as allow none.
+
+    The letters are code for enabling of feature. If the letter is not shown
+    in that position, it is the disabled mode.
+    """
+
+    X___ = 0  #       load_default
+    XL__ = 1  #       load_default
+    X__N = 2  #       allow_none
+    X_R_ = 4  #       read_only
+    XL_N = 1 | 2  #   load_default - allow_none
+    XLR_ = 1 | 4  #   load_default - read_only
+    X_RN = 2 | 4  #   read_only - allow_none
+    XLRN = 1 | 2 | 4  # load_default - read_only - allow_none
 
 
 class IHPCreate(TypedDict, Generic[S, T]):
@@ -94,7 +118,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         default_value: The default value for the trait. Defaults to None.
         allow_none: Whether None is a valid value for the trait. Defaults to True.
         read_only: Whether the trait is read-only. Defaults to True.
-        load_default: Whether to load a default instance if no value is provided.
+        load_default: Whether to call the `default` instance when retrieving an unset value.
             Defaults to True.
         create: An optional callable that is used to create the instance.
         settings: A dictionary to store settings related to the instance.
@@ -111,9 +135,6 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     klass: type[T]
     default_value = None
-    allow_none = False
-    read_only = True
-    load_default = True
     _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
     _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[mhp.HasParent[Any] | Widget, dict]]] = {}
 
@@ -168,6 +189,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
         super().__init__()
+        self.configure()
 
     @property
     def info_text(self):  # type: ignore
@@ -346,69 +368,60 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def configure(
             self,
+            mode: Literal[IHPMode.XLR_] = IHPMode.XLR_,
+            /,
             *,
-            allow_none: Literal[False],
-            read_only: Literal[True],
-            load_default: bool = True,
             default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+
         @overload
         def configure(
             self,
+            mode: Literal[IHPMode.X_R_,],
+            /,
             *,
-            allow_none: Literal[True],
-            read_only: Literal[True],
-            load_default: bool = True,
-            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, ReadOnly[T]]: ...
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+
         @overload
         def configure(
             self,
+            mode: Literal[IHPMode.XL__, IHPMode.X___],
+            /,
             *,
-            allow_none: Literal[True],
-            read_only: Literal[False],
-            load_default: Literal[True] = ...,
-            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        ) -> InstanceHP[S, T | None, T | None]: ...
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        ) -> InstanceHP[S, T, T]: ...
+
         @overload
         def configure(
             self,
+            mode: Literal[IHPMode.X__N, IHPMode.XL_N],
+            /,
             *,
-            allow_none: Literal[True],
-            read_only: Literal[False],
-            load_default: Literal[False] = False,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
         ) -> InstanceHP[S, T | None, T | None]: ...
 
         @overload
         def configure(
             self,
+            mode: Literal[IHPMode.XLRN, IHPMode.X_RN],
+            /,
             *,
-            allow_none: Literal[False],
-            read_only: Literal[False],
-            load_default: bool = True,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
-        ) -> InstanceHP[S, T, T]: ...
-        @overload
-        def configure(
-            self,
-            *,
-            load_default: bool = ...,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        ) -> InstanceHP[S, T | None, ReadOnly[T | None]]: ...
 
     def configure(
         self,
+        mode: IHPMode = IHPMode.XLR_,
+        /,
         *,
-        allow_none: bool = False,
-        read_only: bool = True,
-        load_default=True,
         default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
     ) -> (
         InstanceHP[S, T, T]
-        | InstanceHP[S, T | None, ReadOnly[T]]
         | InstanceHP[S, T, ReadOnly]
         | InstanceHP[S, T | None, T | None]
+        | InstanceHP[S, T | None, ReadOnly[T]]
+        | InstanceHP[S, T | None, ReadOnly[T | None]]
     ):
         """Configures the instance with the provided settings.
 
@@ -417,9 +430,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         allowing chained calls.
 
         Args:
-            read_only:  If True, the instance will be read-only. Defaults to True.
-            allow_none: If True, None values are permitted. If NO_DEFAULT, defaults to not load_default.
-            load_default: If True, default values are loaded. If NO_DEFAULT, the existing value is kept.
+           mode:
             default_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
 
         Note:
@@ -450,9 +461,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         Returns:
             The instance itself (self), with updated configuration. The return type reflects whether None is allowed.
         """
-        self.load_default = load_default
-        self.allow_none = allow_none
-        self.read_only = read_only
+        self.load_default = bool(mode & IHPMode.XL__)
+        self.read_only = bool(mode & IHPMode.X_R_)
+        self.allow_none = bool(mode & IHPMode.X__N)
         if default_value is not NO_DEFAULT:
             self.default_value = default_value
         return self  # type: ignore

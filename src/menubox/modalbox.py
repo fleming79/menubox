@@ -24,7 +24,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     button_collapse = tf.Button_modal(disabled=True)
     expanded = traitlets.Bool(False, read_only=True)
     html_title = tf.HTML_Title()
-    header = tf.HBox().configure(allow_none=True, read_only=True).hooks(add_css_class=CSScls.ModalboxHeader)
+    header = tf.HBox().configure(tf.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
     if TYPE_CHECKING:
