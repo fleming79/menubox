@@ -50,7 +50,6 @@ class TestHasParent:
         assert isinstance(hp.log, logging.Logger | logging.LoggerAdapter)
 
         parent = HP(a_link=2, a_dlink=4)
-
         hp.parent = parent
 
         assert len(hp._hp_reg_parent_link) == 2

@@ -13,10 +13,9 @@ from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent
-from menubox.instance import InstanceHP
 from menubox.pack import json_default_converter, to_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import Bunched, ChangeType, NameTuple, ReadOnly, S
+from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, ReadOnly
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator
@@ -70,9 +69,7 @@ class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
     parent = TF.parent(cast(Self, 0), klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
-    reg = InstanceHP(cast(Self, 0), klass=cast(type[set[tuple[HasTraits, str]]], set)).configure(
-        TF.IHPMode.XLR_, default_value=set()
-    )
+    reg: TF.InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
 
     @observe("reg")
     def _observe_reg(self, change: ChangeType):
@@ -87,7 +84,7 @@ class _InstanceHPTupleRegister(HasParent):
             pass
 
 
-class ValueTraits(HasParent, Generic[S]):
+class ValueTraits(HasParent, Generic[RP]):
     """ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
 
@@ -125,8 +122,8 @@ class ValueTraits(HasParent, Generic[S]):
     _STASH_DEFAULTS = False
     _AUTO_VALUE = True  # Also connects the trait 'value' on the trait if it is found.
     _ignore_change_cnt = 0
-    _vt_reg_value_traits_persist = TF.Set(cast(Self, 0)).configure(TF.IHPMode.XLR_)
-    _vt_reg_value_traits = TF.Set(cast(Self, 0)).configure(TF.IHPMode.XLR_)
+    _vt_reg_value_traits_persist = TF.Set()
+    _vt_reg_value_traits = TF.Set()
     _vt_tuple_reg: TF.InstanceHP[Self, dict[str, _InstanceHPTupleRegister], ReadOnly[dict]] = TF.Dict()
     _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
@@ -137,9 +134,9 @@ class ValueTraits(HasParent, Generic[S]):
     value_traits_persist = NameTuple()
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
-    parent = TF.parent(cast(Self, 0), klass=cast(type[S], HasParent))
     if TYPE_CHECKING:
         _value: Callable
+        parent: TF.InstanceHP[Self, RP, RP]
 
     @contextlib.contextmanager
     def ignore_change(self):
@@ -190,7 +187,7 @@ class ValueTraits(HasParent, Generic[S]):
     def __init__(
         self,
         *,
-        parent: S | None = None,
+        parent: RP = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str = None,
@@ -408,12 +405,12 @@ class ValueTraits(HasParent, Generic[S]):
             self.set_trait("_vt_reg_value_traits", pairs)
 
     def _vt_update_reg_value_traits_persist(self):
-        pairs = set()
+        pairs: set[tuple[HasTraits, str]] = set()
         if not self.closed:
             for dotname in self.value_traits_persist:
                 for pair in self._get_observer_pairs(self, dotname):
                     pairs.add(pair)
-            self.set_trait("_vt_reg_value_traits_persist", pairs)
+            self._vt_reg_value_traits_persist = pairs
 
     def _vt_update_reg_tuples(self, tuplename: str):
         if update_item_names := self._InstanceHPTuple[tuplename]._hookmappings.get("update_item_names", ()):

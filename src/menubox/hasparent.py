@@ -65,7 +65,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], ReadOnly] = TF.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
-    name = TF.Str(cast(Self, 0))
+    name = TF.Str()
     parent = TF.parent(cast(Self, 0), cast(type[RP], "menubox.hasparent.HasParent"))
     tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = TF.Set()
 

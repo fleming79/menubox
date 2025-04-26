@@ -8,7 +8,7 @@ from menubox.trait_factory import TF
 
 class SelectRepositoryWidget(HasHome, Menubox):
     select_repository = TF.SelectRepository(cast(Self, 0))
-    views = TF.Dict(default=lambda _: {"Widgets": "select_repository"})
+    views = TF.ViewDict(cast(Self, 0), {"Widgets": lambda p: p.select_repository})
 
 
 async def test_select_repository(home: mb.Home):

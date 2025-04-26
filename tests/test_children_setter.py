@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Self, cast
 
 import ipywidgets as ipw
 import pytest
@@ -13,11 +14,12 @@ from menubox.trait_types import NameTuple
 
 
 class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
-    views = TF.Dict(
-        default=lambda _: {
-            "view a": lambda: (ipw.Button(description="Button"), ipw.HTML("HTML")),
-            "view b": ("button", "dropdown"),
-        }
+    views = TF.ViewDict(
+        cast(Self, 0),
+        {
+            "view a": lambda _: (ipw.Button(description="Button"), ipw.HTML("HTML")),
+            "view b": lambda p: (p.button, p.dropdown),
+        },
     )
     button = TF.Button_main(description="nested button")
     dropdown = TF.Dropdown(description="nested dropdown").configure(TF.IHPMode.XLRN)

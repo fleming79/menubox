@@ -134,6 +134,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     """
 
     klass: type[T]
+    _default_override = None
+    validate = None
     default_value = None
     _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
     _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[mhp.HasParent[Any] | Widget, dict]]] = {}
@@ -148,8 +150,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             /,
             *,
             klass: type[T] | str,
-            default: Callable[[IHPCreate[S, T]], T | None] | None = None,
-            validate: Callable[[S, T | None], T | None] | None = None,
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
         ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
 
     @override
@@ -169,12 +172,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         /,
         *,
         klass: type[T] | str,
-        default: Callable[[IHPCreate[S, T]], T | None] | None = None,
-        validate: Callable[[S, T | None], T | None] | None = None,
+        default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+        default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
     ) -> None:
         self._hookmappings = {}
-        self._default = default
-        self.validate = validate
         if not klass:
             msg = "klass must be specified"
             raise ValueError(msg)
@@ -189,7 +191,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
         super().__init__()
-        self.configure()
+        self.configure(default_value=default_value, default=default, validate=validate)
 
     @property
     def info_text(self):  # type: ignore
@@ -209,7 +211,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             mode: Literal[IHPMode.XLR_] = IHPMode.XLR_,
             /,
             *,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+            default_value: NO_DEFAULT_TYPE | T | None = ...,
+            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
         @overload
@@ -218,7 +222,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             mode: Literal[IHPMode.X_R_,],
             /,
             *,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+            default_value: NO_DEFAULT_TYPE | T = ...,
+            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
         @overload
@@ -227,7 +233,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             mode: Literal[IHPMode.XL__, IHPMode.X___],
             /,
             *,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+            default_value: NO_DEFAULT_TYPE | T = ...,
+            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
         ) -> InstanceHP[S, T, T]: ...
 
         @overload
@@ -236,7 +244,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             mode: Literal[IHPMode.X__N, IHPMode.XL_N],
             /,
             *,
-            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+            default_value: NO_DEFAULT_TYPE | T | None = ...,
+            default: Callable[[IHPCreate[S, T]], T | None] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], T | None] | NO_DEFAULT_TYPE = ...,
         ) -> InstanceHP[S, T | None, T | None]: ...
 
         @overload
@@ -245,7 +255,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             mode: Literal[IHPMode.XLRN, IHPMode.X_RN],
             /,
             *,
-            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+            default_value: NO_DEFAULT_TYPE | T | None = ...,
+            default: Callable[[IHPCreate[S, T]], T | None] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], T | None] | NO_DEFAULT_TYPE = ...,
         ) -> InstanceHP[S, T | None, ReadOnly[T | None]]: ...
 
     def configure(
@@ -253,7 +265,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         mode: IHPMode = IHPMode.XLR_,
         /,
         *,
-        default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        default_value: T | None | NO_DEFAULT_TYPE = NO_DEFAULT,
+        default: Callable[[IHPCreate[S, T]], T | None] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        validate: Callable[[S, T | None], T | None] | NO_DEFAULT_TYPE = NO_DEFAULT,
     ) -> (
         InstanceHP[S, T, T]
         | InstanceHP[S, T, ReadOnly]
@@ -302,8 +316,12 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         self.load_default = bool(mode & IHPMode.XL__)
         self.read_only = bool(mode & IHPMode.X_R_)
         self.allow_none = bool(mode & IHPMode.X__N)
+        if default is not NO_DEFAULT:
+            self._default_override = default
         if default_value is not NO_DEFAULT:
             self.default_value = default_value
+        if validate is not NO_DEFAULT:
+            self.validate = validate
         return self  # type: ignore
 
     def set(self, obj: S, value) -> None:  # type: ignore
@@ -427,7 +445,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             kwgs = {"parent": parent} if self._set_parent else {}
             if override:
                 kwgs = kwgs | override
-            if default := self._default:
+            if default := self._default_override:
                 return default(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
             return self.klass(**kwgs)
 

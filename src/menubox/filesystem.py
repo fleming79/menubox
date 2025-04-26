@@ -35,7 +35,7 @@ class Filesystem(MenuboxVT):
     _ignore = ()
     startup_dir = utils.joinpaths(pathlib.Path().cwd())
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
-    prev_protocol = TF.Str(default=lambda _: "file")
+    prev_protocol = TF.Str("file")
     prev_kwargs = TF.Dict()
     folders_only = TF.Bool()
     read_only = TF.Bool()
@@ -306,7 +306,7 @@ class Filesystem(MenuboxVT):
 class RelativePath(Filesystem):
     """A relative filesystem"""
 
-    folders_only = TF.Bool(default=lambda _: False)
+    folders_only = TF.Bool()
     box_settings = TF.HBox(cast(Self, 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
         set_children=lambda p: (p.relative_path,)
     )
@@ -349,7 +349,7 @@ class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
     name = TF.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
-    read_only = TF.Bool(default=lambda _: True).configure(TF.IHPMode.XLR_)
+    read_only = TF.Bool(True).configure(TF.IHPMode.XLR_)
     parent = None  # type: ignore
 
     @override

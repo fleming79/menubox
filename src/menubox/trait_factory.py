@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     import menubox.repository
     import menubox.widgets
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
+    from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, ViewDictType
 
 
 def v_b_change(c: IHPChange[HasParent, ipw.Button]):
@@ -74,28 +74,28 @@ class TF:
     IHPMode = IHPMode
 
     # Basic types
-    @staticmethod
-    def Bool(
-        cast_self: S | int = 0,
-        default: Callable[[IHPCreate[S, bool]], bool | None] = lambda _: False,
-    ):
-        return InstanceHP(cast_self, klass=bool, default=default).configure(IHPMode.XL__, default_value=False)
 
     @staticmethod
-    def Set(
-        cast_self: S | int = 0,
-        /,
-        default: Callable[[IHPCreate[S, set[T]]], set[T] | None] = lambda _: set(),
-    ):
-        return InstanceHP(cast_self, klass=set, default=default).configure(IHPMode.XL__, default_value=set())
+    def Str(default_value="", /) -> InstanceHP[S, str, str]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=str).configure(
+            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
+        )
 
     @staticmethod
-    def Dict(
-        cast_self: S | int = 0,
-        /,
-        default: Callable[[IHPCreate[S, dict]], dict | None] = lambda _: {},
-    ) -> InstanceHP[S, dict, ReadOnly[dict]]:
-        return InstanceHP(cast_self, klass=dict, default=default).configure(default_value={})
+    def Bool(default_value=False, /) -> InstanceHP[S, bool, bool]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=bool).configure(
+            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
+        )
+
+    @staticmethod
+    def Set() -> InstanceHP[S, set, set]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
+
+    @staticmethod
+    def Dict() -> InstanceHP[S, dict, ReadOnly[dict]]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=dict).configure(default_value={}, default=lambda _: {})
+
+    # Custom types
 
     @staticmethod
     def ViewDict(
@@ -118,14 +118,6 @@ class TF:
         """
         value = value or {}
         return InstanceHP(klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
-
-    @staticmethod
-    def Str(
-        cast_self: S | int = 0,  # noqa: ARG004
-        /,
-        default: Callable[[IHPCreate[S, str]], str | None] = lambda _: "",
-    ) -> InstanceHP[S, str, str]:
-        return InstanceHP(klass=str, default=default).configure(IHPMode.XL__, default_value="")
 
     @staticmethod
     def parent(
