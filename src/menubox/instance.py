@@ -281,20 +281,16 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         allowing None values, and loading default values.  It uses a builder pattern
         allowing chained calls.
 
-        Args:
-           mode:
-            default_value: A value to use instead of `default_value` (used when the trait is unset as old_value).
-
-        Note:
-            `default_value` is only used as the default with respect to the unset value. It is used for
-            comparison when emitting changes and may be used as an the `old` value.
+        When the option `load_default` is unset; default_value will be used as the default, except
+        if  when explicitly enabled as described below.
 
         Enabling/Disabling:
-            When configured with `allow_none=True` you can use the methods `enable_ihp` and `disable_ihp` respectively.
+            When configured with `allow_none` you can use the methods `enable_ihp` and `disable_ihp` respectively.
 
-            When configured with `allow_none=True, read_only=False` the trait can also be enabled/disabled by
-            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable. Note however
-            that the enable
+            When configured with `read_only allow_none` the trait can also be enabled/disabled by
+            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable. Note
+            that direct assignment (`value = ENABLE`) can cause odd behaviour with type checkers. So it
+            is recommended to use `setattr` (`enable_ihp`/`disable_ihp`) instead.
 
             Because type hints are static, they will continue to reflect the configured state of the
             descriptor. You should always check the the trait is available before working with it.
@@ -440,8 +436,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             if not self.load_default and override is None:
                 if self.allow_none:
                     return None
-                msg = f"Both `load_default` and `allow_none` are `None` and the value is unset for {self!r}"
-                raise RuntimeError(msg)  # noqa: TRY301
+                return self.default_value
             kwgs = {"parent": parent} if self._set_parent else {}
             if override:
                 kwgs = kwgs | override

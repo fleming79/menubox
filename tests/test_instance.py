@@ -67,8 +67,8 @@ class TestInstance:
         assert hp1.a.name
         # Spawn from Class name
         assert isinstance(hp1.a, HPI)
-        with pytest.raises(RuntimeError):
-            assert not hp1.b, "Tag load_default=False & allow_none=False"
+        with pytest.raises(TraitError):
+            assert not hp1.b, "`None` is not allowed for"
         assert hp1.a.name == "a"
         assert hp1.a.parent is hp1
 
