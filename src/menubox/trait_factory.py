@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     import menubox.modalbox
     import menubox.persist
     import menubox.repository
-    import menubox.widgets
     from menubox.hasparent import HasParent
     from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, ViewDictType
 
