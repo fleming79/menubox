@@ -595,10 +595,10 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         return self.get_tuple_obj("pool", name=name)
 
     @override
-    async def activate(self):  # type: ignore
-        result = await self.show_in_dialog()
+    async def activate(self, *, add_to_shell=False, **kwgs):  # type: ignore
+        result = await self.show_in_dialog(kwgs.get("title") or self.get_title_label())
         if result["value"] is False:
             raise asyncio.CancelledError
         obj = self.get_obj(self.obj_name.value)
         self.obj_name.value = ""
-        return await obj.activate()
+        return await obj.activate(add_to_shell=add_to_shell)

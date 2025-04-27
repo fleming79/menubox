@@ -758,12 +758,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     async def activate(self, *, add_to_shell=False, **kwgs: Unpack[ipylab.widgets.AddToShellType]):
         "Maximize and add to the shell."
-        await self.wait_init_async()
+        self.maximize()
         if add_to_shell:
             await self.add_to_shell(**kwgs)
-        self.maximize()
         if self.task_load_view:
             await asyncio.shield(self.task_load_view)
+        await self.wait_init_async()
         return self
 
     async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:
