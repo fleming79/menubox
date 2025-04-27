@@ -13,6 +13,7 @@ class TestTraitFactory:
             float = TF.Float()
             dict = TF.Dict()
             set = TF.Set()
+            tuple = TF.Tuple()
 
         base = BaseTest()
         assert isinstance(base.str, str)
@@ -20,6 +21,7 @@ class TestTraitFactory:
         assert isinstance(base.float, float)
         assert isinstance(base.dict, dict)
         assert isinstance(base.set, set)
+        assert isinstance(base.tuple, tuple)
 
     async def test_parent(self):
         p = HasParent()

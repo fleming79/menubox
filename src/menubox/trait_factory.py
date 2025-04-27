@@ -100,6 +100,10 @@ class TF:
         )
 
     @staticmethod
+    def Tuple(default_value=(), /) -> InstanceHP[S, tuple, tuple]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=tuple).configure(IHPMode.XL__, default_value=default_value)
+
+    @staticmethod
     def Set() -> InstanceHP[S, set, set]:  # pyright: ignore  [reportInvalidTypeVarUse]
         return InstanceHP(klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
