@@ -356,7 +356,6 @@ class DefaultFilesystem(HasHome, Filesystem):
     KEEP_ALIVE = True
     name = TF.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
     read_only = TF.Bool(True).configure(TF.IHPMode.XLR_)
-    parent = None  # type: ignore
 
     @override
     def __init__(self, *, home: Home):
