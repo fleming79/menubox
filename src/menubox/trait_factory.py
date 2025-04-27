@@ -9,6 +9,7 @@ Factory items include:
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import ipylab
@@ -83,6 +84,18 @@ class TF:
     @staticmethod
     def Bool(default_value=False, /) -> InstanceHP[S, bool, bool]:  # pyright: ignore  [reportInvalidTypeVarUse]
         return InstanceHP(klass=bool).configure(
+            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
+        )
+
+    @staticmethod
+    def Int(default_value=0, /) -> InstanceHP[S, int, int]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=int).configure(
+            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
+        )
+
+    @staticmethod
+    def Float(default_value=math.nan, /) -> InstanceHP[S, float, float]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(klass=float).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
