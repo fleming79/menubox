@@ -256,6 +256,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """A non-agressive means to provide an interactive interface."""
         if self.view is None:
             self.maximize()
+        else:
+            self.refresh_view()
         return self
 
     def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False) -> Self:
