@@ -1,11 +1,3 @@
-"""A collection of InstanceHP factories.
-
-Factory items include:
-* Popular widgets
-* Imported widgets to avoid circular imports
-* Factories with custom default
-"""
-
 from __future__ import annotations
 
 import asyncio
