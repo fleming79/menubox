@@ -103,7 +103,7 @@
     ],
     "compounds": [
         {
-            "name": "Debug JupyterLab with firefox",
+            "name": "Debug Ipylab with firefox",
             "configurations": [
                 "Ipylab",
                 "Ipylab frontend with Firefox"

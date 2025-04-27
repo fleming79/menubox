@@ -67,21 +67,25 @@ class Filesystem(MenuboxVT):
     ).hooks(
         on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
     )
-    drive = TF.Dropdown(
-        cast(Self, 0),
-        value=None,
-        tooltip="Change drive",
-        layout={"width": "max-content"},
-        options=list_drives(),
-    ).hooks(
-        on_set=lambda c: (
-            c["parent"].dlink(
-                source=(c["parent"].protocol, "value"),
-                target=(c["obj"].layout, "visibility"),
-                transform=lambda protocol: utils.to_visibility(protocol == "file"),
-            ),
-            c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+    drive = (
+        TF.Dropdown(
+            cast(Self, 0),
+            value=None,
+            tooltip="Change drive",
+            layout={"width": "max-content"},
+            options=list_drives(),
         )
+        .hooks(
+            on_set=lambda c: (
+                c["parent"].dlink(
+                    source=(c["parent"].protocol, "value"),
+                    target=(c["obj"].layout, "visibility"),
+                    transform=lambda protocol: utils.to_visibility(protocol == "file"),
+                ),
+                c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+            )
+        )
+        .configure(TF.IHPMode.XL_N)
     )
     kw = TF.TextareaValidate(
         value="{}",
@@ -185,7 +189,7 @@ class Filesystem(MenuboxVT):
                 self.url.value = ""
                 if self.protocol.value == "file" and self.drive:
                     self.drive.options = list_drives()
-            case self.drive:
+            case self.drive if self.drive:
                 if drive := self.drive.value:
                     self.drive.value = None
                     self.url.value = drive
@@ -278,7 +282,7 @@ class Filesystem(MenuboxVT):
 
         rp = RelativePath(parent=self)
         try:
-            title = title or f"Path relative to filesystem '{self.name}''"
+            title = title or f"Relative path {self.name}'"
             result = await rp.show_in_dialog(title)
             if not result["value"]:
                 raise asyncio.CancelledError
