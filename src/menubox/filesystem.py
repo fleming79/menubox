@@ -47,6 +47,7 @@ class Filesystem(MenuboxVT):
     value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
     views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.prev_protocol})
+    html_info = TF.HTML()
 
     protocol = TF.Dropdown(
         cast(Self, 0),
@@ -165,7 +166,8 @@ class Filesystem(MenuboxVT):
         if view == "Main":
             if self.read_only:
                 self.tooltip = "This filesystem ({self.name}) is read only."
-                return view, self.sw_main
+                self.html_info.value = f"<b>{self.tooltip}</b>"
+                return view, self.html_info
             return view, (self.control_widgets, self.box_settings, self.sw_main)
         return await super().get_center(view)
 
@@ -359,8 +361,8 @@ class DefaultFilesystem(HasHome, Filesystem):
 
 class HasFilesystem(HasHome):
     filesystem = (
-        TF.InstanceHP(cast(Self, 0), klass=Filesystem, default=lambda c: DefaultFilesystem(home=c["parent"].home))
-        .configure(TF.IHPMode.XL__)
+        TF.InstanceHP(cast(Self, 0), klass=Filesystem)
+        .configure(TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["parent"].home))
         .hooks(on_replace_close=False, set_parent=False)
     )
 

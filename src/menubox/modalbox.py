@@ -81,7 +81,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         fstr = parent.fstr if isinstance(parent, HasParent) else utils.fstr
         title = fstr(title)
         if title:
-            self.html_title.description = fstr("<b>{title}</b>")
+            self.html_title.description = f"<b>{title}</b>"
             self.html_title.tooltip = fstr(title_tooltip)
         self.header_children = header_children
         self.button_expand.description = fstr(button_expand_description or title)
