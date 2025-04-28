@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import ipylab
 import ipywidgets as ipw
 import traitlets
+from IPython import display as ipd
 
 import menubox.async_run_button
 import menubox.widgets
@@ -35,17 +36,17 @@ def v_b_change(c: IHPChange[HasParent, ipw.Button]):
 
 
 class TF:
-    """A class that provides static methods for creating various types of traits,
-    particularly for use with the MenuBox library. It offers shortcuts for
+    """A class that provides static methods for creating various types of InstanceHP
+    traits, particularly for use with the MenuBox library. It offers shortcuts for
     creating traits based on basic Python types, ipywidgets, and custom MenuBox
-    components. These traits are configured using the InstanceHP class (or its
+    components. These traits are configured using the InstanceHP class (or
     variants like Fixed) to define their behavior within the MenuBox framework.
     The class includes methods for:
     - Basic type traits (Bool, Set, Dict, Str) with default values.
     - A special ViewDict trait for defining views in MenuBox subclasses.
     - A parent trait for establishing hierarchical relationships between
         HasParent subclasses.
-    - Shortcuts for common ipywidgets (Box, VBox, HBox, HTML, Dropdown, etc.).
+    - Traits for ipywidgets and ipylab.
     - Button traits with predefined styles.
     - Traits for MenuBox layout components (MenuboxHeader, MenuboxCenter, etc.).
     - Traits for validated input widgets (TextareaValidate, ComboboxValidate, etc.).
@@ -65,6 +66,9 @@ class TF:
     IHPCreate = IHPCreate
     IHPMode = IHPMode
 
+    ipd = ipd
+    ipw = ipw
+    ipylab = ipylab
     # Basic types
 
     @staticmethod
@@ -168,6 +172,26 @@ class TF:
     Label = staticmethod(ihpwrap(ipw.Label))
     SelectionSlider = staticmethod(ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)}))
 
+    Accordion = staticmethod(ihpwrap(ipw.Accordion))
+    IntText = staticmethod(ihpwrap(ipw.IntText))
+    RadioButtons = staticmethod(ihpwrap(ipw.RadioButtons))
+    Checkbox = staticmethod(ihpwrap(ipw.Checkbox))
+    Textarea = staticmethod(ihpwrap(ipw.Textarea))
+    GridBox = staticmethod(ihpwrap(ipw.GridBox))
+    SelectMultiple = staticmethod(ihpwrap(ipw.SelectMultiple))
+    ValueWidget = staticmethod(ihpwrap(ipw.ValueWidget))
+    BoundedIntText = staticmethod(ihpwrap(ipw.BoundedIntText))
+    FloatText = staticmethod(ihpwrap(ipw.FloatText))
+    FloatSlider = staticmethod(ihpwrap(ipw.FloatSlider))
+    FloatRangeSlider = staticmethod(ihpwrap(ipw.FloatRangeSlider))
+    FloatLogSlider = staticmethod(ihpwrap(ipw.FloatLogSlider))
+    FloatProgress = staticmethod(ihpwrap(ipw.FloatProgress))
+    IntSlider = staticmethod(ihpwrap(ipw.IntSlider))
+    Play = staticmethod(ihpwrap(ipw.Play))
+    BoundedFloatText = staticmethod(ihpwrap(ipw.BoundedFloatText))
+    SelectionRangeSlider = staticmethod(ihpwrap(ipw.SelectionRangeSlider))
+    ColorPicker = staticmethod(ihpwrap(ipw.ColorPicker))
+
     # Button
     Button_main = staticmethod(
         ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_main))
@@ -242,6 +266,7 @@ class TF:
 
     CodeEditor = staticmethod(ihpwrap(ipylab.CodeEditor))
     SimpleOutput = staticmethod(ihpwrap(ipylab.SimpleOutput))
+    SplitPanel = staticmethod(ihpwrap(ipylab.SplitPanel))
 
     @staticmethod
     def AsyncRunButton(
