@@ -14,7 +14,6 @@ from typing import (
     Self,
     TypedDict,
     Unpack,
-    cast,
     overload,
     override,
 )
@@ -687,7 +686,12 @@ def instanceHP_wrapper(
     defaults_ = merge({}, defaults) if defaults else {}
     tags = dict(tags) if tags else {}  # type: ignore
 
-    def instanceHP_factory(cast_self: SS | None = None, /, *args: P.args, **kwgs: P.kwargs) -> InstanceHP[SS, T, T]:  # noqa: ARG001
+    def instanceHP_factory(
+        cast_self: SS | None = None,  # noqa: ARG001
+        /,
+        *args: P.args,
+        **kwgs: P.kwargs,
+    ) -> InstanceHP[SS, T, ReadOnly[T]]:
         """Returns an InstanceHP[klass] trait.
 
         Use this to add a trait to new subclass ofmhp. HasParent.
@@ -705,6 +709,6 @@ def instanceHP_wrapper(
             instance.hooks(**hooks)  # type: ignore
         if tags:
             instance.tag(**tags)
-        return cast(InstanceHP[SS, T, T], instance)
+        return instance
 
     return instanceHP_factory
