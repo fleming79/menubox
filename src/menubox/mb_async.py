@@ -260,7 +260,6 @@ class _Periodic:
 
     async def _periodic_async(self):
         try:
-            await asyncio.sleep(0)
             while self._repeat:
                 self._repeat = False
                 if self.mode is PeriodicMode.debounce:

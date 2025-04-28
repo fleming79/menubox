@@ -225,8 +225,6 @@ class TF:
         )
     )
 
-    CodeEditor = staticmethod(ihpwrap(ipylab.CodeEditor))
-
     TextareaValidate = staticmethod(ihpwrap(menubox.widgets.TextareaValidate, defaults={"value": ""}))
     ComboboxValidate = staticmethod(ihpwrap(menubox.widgets.ComboboxValidate, defaults={"value": ""}))
     TextValidate = staticmethod(ihpwrap(menubox.widgets.TextValidate, defaults={"value": ""}))
@@ -239,6 +237,11 @@ class TF:
 
     Menubox = staticmethod(ihpwrap(cast(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox")))
     MenuboxVT = staticmethod(ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT")))
+
+    # ipylab
+
+    CodeEditor = staticmethod(ihpwrap(ipylab.CodeEditor))
+    SimpleOutput = staticmethod(ihpwrap(ipylab.SimpleOutput))
 
     @staticmethod
     def AsyncRunButton(

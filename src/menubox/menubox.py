@@ -8,10 +8,11 @@ import weakref
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
+import anyio
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
-from ipylab import Panel, ShellConnection
+from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
 
 import menubox as mb
@@ -45,9 +46,6 @@ class Buttons(traitlets.TraitType[tuple[ipw.Button, ...], Iterable[ipw.Button]])
 class HTMLNoClose(ipw.HTML):
     def close(self):
         return
-
-
-HTML_LOADING = HTMLNoClose("Loading ...")
 
 
 class Menubox(HasParent, Panel, Generic[RP]):
@@ -99,6 +97,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     center: traitlets.TraitType[GetWidgetsInputType[RP], ReadOnly] = traitlets.TraitType(
         read_only=True, allow_none=True
     )
+    _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     # Trait factory
@@ -106,6 +105,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
     task_load_view = TF.Task()
+    task_mb_refresh = TF.Task()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
@@ -260,6 +260,30 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.refresh_view()
         return self
 
+    @contextlib.contextmanager
+    def simple_output(self):
+        """A context manager that yields an a SimpleOutput.
+
+        The SimpleOutput has no content and will be closed once the context is exited.
+
+        This function is designed to manage a shared output object that might be
+        expensive to initialize or load. It yields a SimpleOutput where the user
+        can push any desired output. The output is closed once the view
+        is loaded, hence only useful for slow loading views, or could also be used
+        as a box for a dialog.
+
+        Yields:
+            SimpleOutput.
+        """
+        out = SimpleOutput()
+        out.add_to_tuple(self, "_simple_outputs")
+        self.set_trait("children", self._simple_outputs)
+        try:
+            yield out
+        finally:
+            out.close()
+            self.set_trait("children", self._simple_outputs)
+
     def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False) -> Self:
         """Loads a specified view, handling defaults, reloads, and preventing redundant loads.
 
@@ -301,7 +325,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
         self.set_trait("loading_view", view)
-        self.mb_refresh()
         if view and not self._mb_configured:
             await self.mb_configure()
         try:
@@ -345,60 +368,65 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """
         return view, self.views.get(view, None)  # type: ignore
 
-    @mb_async.throttle(0.05)
+    @mb_async.throttle(0.05, tasktype=mb_async.TaskType.update, handle="task_mb_refresh")
     async def mb_refresh(self) -> None:
-        """Refreshes the Menubox's display based on its current state.
+        """Refreshes the menubox content based on its current state.
 
-        This method updates the Menubox's children widgets to reflect changes
-        in the view, title, and header. It handles loading states, minimized
-        views, and debug mode configurations.
-
-        Returns:
-            None
+        This method updates the menubox's children widgets based on several factors:
+        - Whether the menubox is initialized and not closed.
+        - If a simple output is set, it displays that output and waits for it to close before refreshing again.
+        - The current view state (minimized or normal).
+        - The presence of a header, center widgets, and help widget.
+        - Whether a box layout is used for the center widgets.
+        - Applies the border if the view is not minimized.
         """
         if not self._Menubox_init_complete or self.closed:
-            return
-        if mb.DEBUG_ENABLED:
-            self.enable_ihp("button_activate")
-        if self.task_load_view and self.loading_view:
-            self.set_trait("children", (HTML_LOADING,))
-            await asyncio.wait([self.task_load_view])
-            self.mb_refresh()
             return
         if not self.view:
             self.set_trait("children", ())
             return
-        self.update_title()
-        self._update_header()
-        if self.view == self.MINIMIZED:
-            self.set_trait("children", (self.header,))
-        else:
-            center = (self.center,)
+        if outputs := self._simple_outputs:
+            out = outputs[-1]
+            ec = anyio.Event()
+            out.observe(lambda _: ec.set(), "closed")
+            await ec.wait()
+            self.mb_refresh()
+            return
+        if mb.DEBUG_ENABLED:
+            self.enable_ihp("button_activate")
+        children = (header,) if (header := self.get_header()) else ()
+        if self.view != self.MINIMIZED:
+            center = self.get_widgets(self.center)
+            if self.show_help and (help_widget := self._get_help_widget()):
+                children = (*children, help_widget)
             if box := self.box_center:
-                box.children = self.get_widgets(*center)
-                center = (box,)
-            if mb.DEBUG_ENABLED and not self.header:
-                center = (self.button_activate, *center)
-            if self.show_help:
-                center = (self._get_help_widget(), *center)
-            self.set_trait("children", self.get_widgets(self.header, center))
-        if self.border is not None:
-            self.layout.border = self.border if self.view else ""
+                box.children = center
+                children = (*children, box)
+            else:
+                children = (*children, *center)
+        if self._simple_outputs:
+            self.mb_refresh()
+        else:
+            self.set_trait("children", children)
+            if self.border is not None:
+                self.layout.border = self.border if self.view else ""
 
-    def _update_header(self):
+    def get_header(self):
+        self.update_title()
         if self.view == self.MINIMIZED:
             self.enable_ihp("header")
             self.enable_ihp("button_maximize")
-            assert self.header  # noqa: S101
-            self.header.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
+            if header := self.header:
+                header.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
         else:
             widgets = tuple(self.get_widgets(*self.header_children))
             if set(widgets).difference((H_FILL, V_FILL)):
                 self.enable_ihp("header")
-                assert self.header  # noqa: S101
-                self.header.children = widgets
+                if header := self.header:
+                    header.children = widgets
             else:
                 self.disable_ihp("header")
+        return self.header or self.button_activate
 
     def refresh_view(self) -> Self:
         """Refreshes the view by reloading it.

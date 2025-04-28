@@ -1,3 +1,4 @@
+import ipylab
 import ipywidgets as ipw
 import pytest
 
@@ -223,7 +224,7 @@ class TestMenubox:
         m = mb.Menubox(views={"a": ipw.HTML("A")}, viewlist=())
         m.header_children = ("html_title",)
         await m.wait_tasks()
-        m._update_header()
+        m.get_header()
 
     async def test_menubox_get_menu_widgets(self):
         m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})
@@ -441,3 +442,15 @@ class TestMenubox:
         await m.show_in_dialog("test")
         assert cb.call_count == 1
         assert cb.await_count == 1
+
+    async def test_menubox_simple_output(self):
+        m = mb.Menubox(views={"a": ipw.HTML("A")})
+        with m.simple_output() as out:
+            assert isinstance(out, ipylab.SimpleOutput)
+            with m.simple_output() as out1:
+                assert out1 is not out
+                assert m.children == (out, out1)
+            assert out1.closed
+            assert m.children == (out,)
+        assert out.closed
+        assert not m._simple_outputs
