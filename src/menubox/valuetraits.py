@@ -298,6 +298,8 @@ class ValueTraits(HasParent, Generic[RP]):
                 `_vt_reg_value_traits`, `_vt_reg_value_traits_persist`, or a
                 `_TypedTupleRegister`.
         """
+        if self.closed:
+            return
         if change["name"] == "_vt_reg_value_traits":
             handler = self._vt_on_reg_value_traits_change
         elif change["name"] == "_vt_reg_value_traits_persist":
@@ -482,7 +484,7 @@ class ValueTraits(HasParent, Generic[RP]):
                 f"{utils.limited_string(repr(change['old']))} ➮ {utils.limited_string(repr(change['new']))}  "
                 f"{f'ignored (context={self._ignore_change_cnt})' if self._ignore_change_cnt else ''}"
             )
-        if self._ignore_change_cnt:
+        if self._ignore_change_cnt or self.closed:
             return
         # `value` updated after "leaving context" (originally using context but only used here.)
         self.vt_updating = True
