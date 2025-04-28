@@ -325,7 +325,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         new_value = self._validate(obj, value)
         if self._set_parent and isinstance(value, mhp.HasParent):
             # Do this early in case the parent is invalid.
-            value.parent = obj  # type: ignore
+            value.set_trait("parent", obj)
         try:
             old_value = obj._trait_values[self.name]
             if obj.SINGLE_BY and self.name in obj.SINGLE_BY and new_value not in obj.single_key:

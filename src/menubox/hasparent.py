@@ -19,7 +19,7 @@ from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, ReadOnly, S
+from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
@@ -61,8 +61,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
     _hp_reg_parent_link: InstanceHP[Self, set[Link[Self]], set] = TF.Set()
     _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink[Self]], set] = TF.Set()
-    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink], ReadOnly] = TF.Dict()
-    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], ReadOnly] = TF.Dict()
+    _hasparent_all_links: InstanceHP[Self, dict[Hashable, Link | Dlink], TF.ReadOnly] = TF.Dict()
+    _button_register: InstanceHP[Self, dict[tuple[str, ipw.Button], Callable], TF.ReadOnly] = TF.Dict()
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()

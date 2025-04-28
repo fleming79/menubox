@@ -16,6 +16,7 @@ from menubox.css import CSScls
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
+from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, ViewDictType
 
 __all__ = ["IHPCreate", "InstanceHP", "TF"]
 
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
     import menubox.persist
     import menubox.repository
     from menubox.hasparent import HasParent
-    from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, ViewDictType
 
 
 def v_b_change(c: IHPChange[HasParent, ipw.Button]):
@@ -65,6 +65,13 @@ class TF:
     IHPChange = IHPChange
     IHPCreate = IHPCreate
     IHPMode = IHPMode
+    ReadOnly = ReadOnly
+    GetWidgetsInputType = GetWidgetsInputType
+    ViewDictType = ViewDictType
+    MP = MP
+    SS = SS
+    H = H
+    S = S
 
     ipd = ipd
     ipw = ipw
@@ -104,8 +111,8 @@ class TF:
         return InstanceHP(klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
     @staticmethod
-    def Dict() -> InstanceHP[S, dict, ReadOnly[dict]]:  # pyright: ignore  [reportInvalidTypeVarUse]
-        return InstanceHP(klass=dict).configure(default_value={}, default=lambda _: {})
+    def Dict(cast_self: S | int = 0) -> InstanceHP[S, dict, ReadOnly[dict]]:  # pyright: ignore  [reportInvalidTypeVarUse]
+        return InstanceHP(cast_self, klass=dict).configure(default_value={}, default=lambda _: {})
 
     # Custom types
 

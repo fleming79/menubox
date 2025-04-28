@@ -144,7 +144,7 @@ class TestInstance:
         hpi = HPI()
         hpi.a = None
         assert hpi.a is None
-        hpi.a = mb.defaults.ENABLE
+        hpi.a = mb.defaults.ENABLE  # type: ignore
         assert hpi.a, "Via `InstanceHP.__set__`"
 
         hpi3 = HPI3()
