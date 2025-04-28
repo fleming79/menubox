@@ -65,7 +65,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             cls,
             *,
             trait: TraitType[T, T],
-            factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
+            factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),  # type: ignore
             read_only=False,
             klass: type | None = None,
             default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),

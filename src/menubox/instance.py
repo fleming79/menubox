@@ -4,6 +4,7 @@ import enum
 import inspect
 import sys
 import weakref
+from types import UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -134,6 +135,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     klass: type[T]
     _default_override = None
+    _type = None
     validate = None
     default_value = None
     _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
@@ -143,7 +145,19 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         name: str  # type: ignore
         _hookmappings: IHPHookMappings[S, T]
 
-        def __new__(
+        @overload
+        def __new__(  # type: ignore
+            cls,
+            cast_self: S | int = 0,
+            /,
+            *,
+            klass: UnionType,
+            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+            default: Callable[[IHPCreate[S, T]], T],
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
+        @overload
+        def __new__(  # type: ignore
             cls,
             cast_self: S | int = 0,
             /,
@@ -154,7 +168,6 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
         ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
 
-    @override
     def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
         if self.read_only:
             msg = f'The "{self.name}" trait is read-only.'
@@ -170,7 +183,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         cast_self: S | int = 0,
         /,
         *,
-        klass: type[T] | str,
+        klass: type[T] | str | UnionType,
         default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
         default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
         validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
@@ -186,6 +199,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             self._klass = klass
         elif inspect.isclass(klass):
             self._klass = klass
+        elif type(klass) is UnionType:
+            self._type = klass
+            if default is NO_DEFAULT:
+                msg = "default must be provided when klass is specified as a union"
+                raise TypeError(msg)
         else:
             msg = f"{klass=} must be either a class,  or the full path to the class!"
             raise TypeError(msg)
@@ -401,21 +419,25 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         """
         if hasattr(self, "klass"):
             return
-        klass = self._klass if inspect.isclass(self._klass) else ipylab.common.import_item(self._klass)
-        assert inspect.isclass(klass)  # noqa: S101
-        self.klass = klass  # type: ignore
         m = self._hookmappings
-        if getattr(klass, "KEEP_ALIVE", False):
-            m["on_replace_close"] = False
-        if "on_replace_close" not in m:
-            if issubclass(klass, mhp.HasParent):
-                m["on_replace_close"] = not klass.SINGLE_BY
-            elif issubclass(klass, Widget) and "on_replace_close":
-                m["on_replace_close"] = True
-        if issubclass(klass, mhp.HasParent) and "set_parent" not in m:
-            m["set_parent"] = True
-        if "remove_on_close" not in m and issubclass(klass, mhp.HasParent | Widget):
-            m["remove_on_close"] = True
+        if self._type:
+            self.klass = object  # type: ignore
+        else:
+            klass = self._klass if inspect.isclass(self._klass) else ipylab.common.import_item(self._klass)
+            assert inspect.isclass(klass)  # noqa: S101
+            self.klass = klass  # type: ignore
+            self._type = klass
+            if getattr(klass, "KEEP_ALIVE", False):
+                m["on_replace_close"] = False
+            if "on_replace_close" not in m:
+                if issubclass(klass, mhp.HasParent):
+                    m["on_replace_close"] = not klass.SINGLE_BY
+                elif issubclass(klass, Widget) and "on_replace_close":
+                    m["on_replace_close"] = True
+            if issubclass(klass, mhp.HasParent) and "set_parent" not in m:
+                m["set_parent"] = True
+            if "remove_on_close" not in m and issubclass(klass, mhp.HasParent | Widget):
+                m["remove_on_close"] = True
         self._set_parent = m.get("set_parent", False)
 
     def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
@@ -455,7 +477,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 return value
             msg = f"`None` is not allowed for {self!r}. Use `.configure(allow_none=True)` to permit it."
             raise traitlets.TraitError(msg)
-        if isinstance(value, self.klass):  # type:ignore[arg-type]
+        if isinstance(value, self._type):  # type:ignore[arg-type]
             if obj._cross_validation_lock is False:
                 value = self._cross_validate(obj, value)
             return value

@@ -11,6 +11,7 @@ from traitlets import TraitError
 
 import menubox as mb
 from menubox.hashome import HasHome
+from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP, instanceHP_wrapper
 from menubox.trait_factory import TF
 
@@ -139,6 +140,25 @@ class TestInstance:
         assert not hp2b.trait_has_value("select_repository")
         assert hp2b.select_repository, "close should reset so default will load."
         assert not hp2b.select_repository.closed
+
+    async def test_instancehp_union(self):
+        class TestUnion(HasParent):
+            union = InstanceHP(
+                cast(Self, 0),
+                klass=str | int,
+                default=lambda _: 2,
+                validate=lambda _, value: min(value, 10) if isinstance(value, int) else value,
+            )
+
+        obj = TestUnion()
+        assert obj.union == 2
+        with pytest.raises(TraitError, match="read-only"):
+            obj.union = "abc"  # type: ignore
+        assert obj.union == 2
+        obj.set_trait("union", "abc")
+        assert obj.union == "abc"
+        obj.set_trait("union", 20)
+        assert obj.union == 10, "by validation"
 
     async def test_instance_enable_by_asignment(self):
         hpi = HPI()
