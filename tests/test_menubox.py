@@ -41,8 +41,10 @@ class TestMenubox:
         assert m.button_toggleview in m.header.children, "Should be added"
         assert m.view == "a"
         m.button_toggleview.click()
+        await m.wait_tasks()
         assert m.view == "b"
         m.button_toggleview.click()
+        await m.wait_tasks()
         assert m.view == "a"
 
     async def test_menubox_menu_views(self):
@@ -334,6 +336,7 @@ class TestMenubox:
                 assert m.button_menu_minimize
                 assert b not in m.box_menu.children
                 m.button_menu_minimize.click()
+                await m.wait_tasks()
                 assert b in m.box_menu.children
             case "button_promote":
                 assert m is showbox.children[0]
@@ -344,6 +347,7 @@ class TestMenubox:
             case "button_maximize":
                 m.load_view(m.MINIMIZED)
                 b.click()
+                await m.wait_tasks()
                 assert m.view == "a"
             case "button_help":
                 assert len(m.children) == 3  # type: ignore

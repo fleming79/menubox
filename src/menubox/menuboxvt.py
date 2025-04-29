@@ -115,7 +115,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        TF.Button_open(cast(Self, 0), tooltip="Configure")
+        TF.Button(cast(Self, 0), TF.CSScls.button_open, tooltip="Configure")
         .hooks(
             on_set=lambda c: c["parent"].dlink(
                 source=(c["parent"], "view"),
@@ -125,15 +125,17 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
         .configure(TF.IHPMode.X_RN)
     )
-    button_clip_put = TF.Button_open(description="📎", tooltip="Copy settings to clipboard")
-    button_paste = TF.Button_open(description="📋", tooltip="Paste settings from clipboard\n")
-    _button_load_template = TF.Button_main(
+    button_clip_put = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, description="📎", tooltip="Copy settings to clipboard"
+    )
+    button_paste = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, description="📋", tooltip="Paste settings from clipboard\n"
+    )
+    _button_load_template = TF.Button(
         description="Load",
         tooltip="Overwrite existing settings with template.\nExisting settings will be overwritten without warning.",
     )
-    _button_template_info = TF.Button_main(
-        description="Info", tooltip="Show template details in a read only text editor."
-    )
+    _button_template_info = TF.Button(description="Info", tooltip="Show template details in a read only text editor.")
     subpath = TF.ComboboxValidate(
         validate=utils.sanatise_filename,
         description="Subpath",

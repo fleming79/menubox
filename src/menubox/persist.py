@@ -553,7 +553,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     title_description = traitlets.Unicode("<b>{self.klass.__qualname__.replace('_','').capitalize()} set</b>")
     html_info = TF.HTML()
     info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
-    button_update_names = TF.Button_main(description="↻", tooltip="Update options")
+    button_update_names = TF.Button(description="↻", tooltip="Update options")
     box_main = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None
     views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.box_main})

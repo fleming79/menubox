@@ -99,7 +99,7 @@ def run_async(
     if not restart and not name:
         msg = "A name must be provided if `restart=False`!"
         raise TypeError(msg)
-    current = _get_task(name, obj) if name else None
+    current = get_task(name, obj) if name else None
     if current:
         if not restart and not current.cancelling() and not current.done():
             return current
@@ -192,7 +192,7 @@ def singular_task(restart=True, **kw) -> Callable[..., Callable[..., asyncio.Tas
     return _run_as_singular  # type: ignore
 
 
-def _get_task(name: str, obj: HasParent | None):
+def get_task(name: str, obj: HasParent | None):
     """Return the task if it exists.
 
     If obj is provided, obj tasks will be searched, otherwise the background

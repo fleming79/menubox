@@ -21,7 +21,7 @@ class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
             "view b": lambda p: (p.button, p.dropdown),
         },
     )
-    button = TF.Button_main(description="nested button")
+    button = TF.Button(description="nested button")
     dropdown = TF.Dropdown(description="nested dropdown").configure(TF.IHPMode.XLRN)
     label = TF.Label(value="Nested Label")
 

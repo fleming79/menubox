@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import enum
 import math
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -28,11 +29,12 @@ if TYPE_CHECKING:
     import menubox.modalbox
     import menubox.persist
     import menubox.repository
-    from menubox.hasparent import HasParent
 
 
-def v_b_change(c: IHPChange[HasParent, ipw.Button]):
-    c["parent"]._handle_button_change(c)
+class ButtonMode(enum.Enum):
+    restart = enum.auto()
+    cancel = enum.auto()
+    disable = enum.auto()
 
 
 class TF:
@@ -68,6 +70,8 @@ class TF:
     ReadOnly = ReadOnly
     GetWidgetsInputType = GetWidgetsInputType
     ViewDictType = ViewDictType
+    ButtonMode = ButtonMode
+    CSScls = CSScls
     MP = MP
     SS = SS
     H = H
@@ -200,31 +204,25 @@ class TF:
     ColorPicker = staticmethod(ihpwrap(ipw.ColorPicker))
 
     # Button
-    Button_main = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_main))
-    )
-    Button_open = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_open))
-    )
-    Button_cancel = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_cancel))
-    )
-    Button_dangerous = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_dangerous))
-    )
-    Button_modal = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_modal))
-    )
-    Button_menu = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_menu))
-    )
-    Button_toggle = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_toggle))
-    )
-    Button_shuffle = staticmethod(
-        ihpwrap(ipw.Button, value_changed=v_b_change, add_css_class=(CSScls.button, CSScls.button_type_shuffle))
-    )
-    FileUpload = staticmethod(ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_type_main)))
+
+    @staticmethod
+    def Button(
+        cast_self: S | int = 0,
+        css_class=CSScls.button_main,
+        mode=ButtonMode.restart,
+        **kwargs,
+    ) -> InstanceHP[S, ipw.Button, ReadOnly[ipw.Button]]:
+        "Kwargs are passed to the button init"
+        return (
+            InstanceHP(cast_self, klass=ipw.Button)
+            .configure(default=lambda c: ipw.Button(**kwargs | c["kwgs"]))
+            .hooks(
+                value_changed=lambda c: c["parent"]._handle_button_change(c, mode),
+                add_css_class=(CSScls.button, css_class),
+            )
+        )
+
+    FileUpload = staticmethod(ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main)))
 
     MenuboxHeader = staticmethod(
         ihpwrap(

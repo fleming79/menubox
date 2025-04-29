@@ -401,26 +401,39 @@ class HasParent(Singular, HasApp, Generic[RP]):
         await asyncio.shield(self._init_async_task)
         return self
 
-    def _handle_button_change(self, c: IHPChange[Self, ipw.Button]):
+    def _handle_button_change(self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode):
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
             b.on_click(cb, remove=True)
         if b := c["new"]:
             taskname = f"button_clicked[{id(b)}] → {self.__class__.__name__}.{c['name']}"
             self._button_register[(c["name"], b)] = on_click = functools.partial(
-                self._on_click, weakref.ref(self), taskname
+                self._on_click, weakref.ref(self), taskname, mode
             )
             b.on_click(on_click)
 
     @classmethod
-    def _on_click(cls, ref: weakref.ref[HasParent], taskname: str, b: ipw.Button):
+    def _on_click(cls, ref: weakref.ref[HasParent], taskname: str, mode: TF.ButtonMode, b: ipw.Button):
         if self_ := ref():
-            mb.mb_async.run_async(lambda: self_._button_clicked(b), name=taskname, obj=self_)
+            if mode is TF.ButtonMode.cancel and (task := mb_async.get_task(taskname, self_)):
+                task.cancel()
+                return
+            mb.mb_async.run_async(lambda: self_._button_clicked(b, mode), name=taskname, obj=self_)
 
-    async def _button_clicked(self, b: ipw.Button):
+    async def _button_clicked(self, b: ipw.Button, mode: TF.ButtonMode):
+        description = b.description
+        b.add_class(CSScls.button_is_busy)
+        if mode is TF.ButtonMode.cancel:
+            b.description = "Cancel"
+        elif mode is TF.ButtonMode.disable:
+            b.disabled = True
         try:
-            b.add_class(CSScls.button_is_busy)
+            await asyncio.sleep(0)  # Ensure this a task (eager task)
             await self.button_clicked(b)
         finally:
+            if mode is TF.ButtonMode.disable:
+                b.disabled = False
+            if mode is TF.ButtonMode.cancel:
+                b.description = description
             b.remove_class(CSScls.button_is_busy)
 
     async def button_clicked(self, b: ipw.Button):

@@ -25,7 +25,7 @@ class HPI(mb.Menubox):
     b = InstanceHP(
         cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])
     ).configure(TF.IHPMode.X___)
-    my_button = TF.Button_main(description="A button")
+    my_button = TF.Button(description="A button")
     box = TF.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
 

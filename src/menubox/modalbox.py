@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, Self, override
+from typing import TYPE_CHECKING, Any, Generic, Self, cast, override
 
 import ipywidgets as ipw
 import traitlets
@@ -20,8 +20,8 @@ __all__ = ["Modalbox"]
 
 class Modalbox(HasParent, ipw.VBox, Generic[S]):
     obj = traitlets.Callable(read_only=True)
-    button_expand = TF.Button_modal()
-    button_collapse = TF.Button_modal(disabled=True)
+    button_expand = TF.Button(cast(Self, 0), TF.CSScls.button_modal)
+    button_collapse = TF.Button(cast(Self, 0), TF.CSScls.button_modal, disabled=True)
     expanded = traitlets.Bool(False, read_only=True)
     html_title = TF.HTML_Title()
     header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)

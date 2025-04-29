@@ -64,15 +64,15 @@ class CSScls(enum.StrEnum):
     ModalboxHeader = f"{PREFIX}-Modalbox-header"
 
     button = f"{PREFIX}-button"
-    button_type_modal = "mod-modal"
-    button_type_main = "mod-main"
-    button_type_menu = "mod-menu"
-    button_type_open = "mod-open"
-    button_type_tab = "mod-tab"
-    button_type_cancel = "mod-cancel"
-    button_type_dangerous = "mod-dangerous"
-    button_type_toggle = "mod-toggle"
-    button_type_shuffle = "mod-shuffle"
+    button_modal = "mod-modal"
+    button_main = "mod-main"
+    button_menu = "mod-menu"
+    button_open = "mod-open"
+    button_tab = "mod-tab"
+    button_cancel = "mod-cancel"
+    button_dangerous = "mod-dangerous"
+    button_toggle = "mod-toggle"
+    button_shuffle = "mod-shuffle"
 
     button_is_busy = "mod-button-busy"
     button_active_view = "mod-active-view"
@@ -116,39 +116,39 @@ STYLESHEET = f"""
 
 .{CSScls.button} {{width: max-content; flex: 0 0 auto;}}
 
-.{CSScls.button}.{CSScls.button_type_main} {{
+.{CSScls.button}.{CSScls.button_main} {{
     color: var({CSSvar.button_main_color});
     background-color: var({CSSvar.button_main_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_menu} {{
+.{CSScls.button}.{CSScls.button_menu} {{
     color: var({CSSvar.button_menu_color});
     background-color: var({CSSvar.button_menu_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_open} {{
+.{CSScls.button}.{CSScls.button_open} {{
     color: var({CSSvar.button_open_color});
     background-color: var({CSSvar.button_open_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_modal} {{
+.{CSScls.button}.{CSScls.button_modal} {{
     color: var({CSSvar.button_modal_color});
     background-color: var({CSSvar.button_modal_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_cancel} {{
+.{CSScls.button}.{CSScls.button_cancel} {{
     color: var({CSSvar.button_cancel_color});
     background-color: var({CSSvar.button_cancel_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_dangerous} {{
+.{CSScls.button}.{CSScls.button_dangerous} {{
     color: var({CSSvar.button_dangerous_color});
     background-color: var({CSSvar.button_dangerous_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_toggle} {{
+.{CSScls.button}.{CSScls.button_toggle} {{
     color: var({CSSvar.button_toggle_color});
     background-color: var({CSSvar.button_toggle_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_shuffle} {{
+.{CSScls.button}.{CSScls.button_shuffle} {{
     color: var({CSSvar.button_shuffle_color});
     background-color: var({CSSvar.button_shuffle_background_color});
 }}
-.{CSScls.button}.{CSScls.button_type_tab} {{
+.{CSScls.button}.{CSScls.button_tab} {{
     color: var({CSSvar.button_tab_color});
     background-color: var({CSSvar.button_tab_background_color});
 }}

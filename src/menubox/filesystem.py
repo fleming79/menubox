@@ -107,14 +107,14 @@ class Filesystem(MenuboxVT):
         cancel_description="✗",
         tasktype=mb_async.TaskType.update,
     )
-    button_home = TF.Button_main(
+    button_home = TF.Button(
         description="🏠",
     )
-    button_up = TF.Button_main(
+    button_up = TF.Button(
         description="↑",
         tooltip="Navigate up one folder",
     )
-    button_add = TF.Button_main(
+    button_add = TF.Button(
         description="✚",
         tooltip="Create new file or folder",
     )

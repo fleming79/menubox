@@ -62,7 +62,12 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     ).hooks(
         on_set=lambda c: c["parent"].update_repository_name_options(),
     )
-    button_select_repository = TF.Button_menu(description="…", tooltip="Select/create a new repository")
+    button_select_repository = TF.Button(
+        cast(Self, 0),
+        TF.CSScls.button_menu,
+        description="…",
+        tooltip="Select/create a new repository",
+    )
     header_children = StrTuple()
     views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository]})
     value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name")
