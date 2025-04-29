@@ -8,7 +8,7 @@ import menubox as mb
 class IpylabPlugin:
     def observe_ipylab_log_level(self, change: mb.ChangeType):
         def refresh_all_menuboxes():
-            for inst in mb.Menubox._instances.values():
+            for inst in tuple(mb.Menubox._instances.values()):
                 if isinstance(inst, mb.Menubox) and not inst.closed and inst.view:
                     inst.mb_refresh()
 
