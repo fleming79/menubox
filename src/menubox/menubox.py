@@ -90,13 +90,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_menu_open_children = StrTuple("button_menu_minimize", "get_menu_widgets")
     minimized_children = StrTuple("html_title", "header_right_children")
 
-    loading_view: traitlets.Instance[defaults.NO_DEFAULT_TYPE | str | None] = traitlets.Any(
-        default_value=NO_DEFAULT, read_only=True
-    )  # type: ignore
+    loading_view = TF.InstanceHP(
+        cast(Self, 0), klass=str | None | defaults._NoDefault, default=lambda _: defaults.NO_DEFAULT
+    ).configure(TF.IHPMode.XLRN)
+
     # Trait instances
-    center: traitlets.TraitType[GetWidgetsInputType[RP], ReadOnly] = traitlets.TraitType(
-        read_only=True, allow_none=True
-    )
+    center: TF.InstanceHP[Self, tuple[GetWidgetsInputType, ...], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
     _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
@@ -341,10 +340,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
         self.set_trait("loading_view", view)
+        self.mb_refresh()
         if view and not self._mb_configured:
             await self.mb_configure()
         try:
             view, center = await self.get_center(view)
+            center = tuple(self.get_widgets(center, skip_hidden=False))
             self._setting_view = True
             self.view = view
             self._setting_view = False
@@ -408,6 +409,17 @@ class Menubox(HasParent, Panel, Generic[RP]):
             await ec.wait()
             self.mb_refresh()
             return
+        if task := self.task_load_view:
+            await asyncio.sleep(0)
+            if self.task_load_view:
+                with self.simple_output() as out:
+                    button_cancel = TF.ipw.Button(description="Cancel")
+                    button_cancel.on_click(lambda _: task.cancel())
+                    out.push(f"<b>Loading view {self.view}", button_cancel)
+                    await asyncio.wait([task])
+                    button_cancel.close()
+                    self.mb_refresh()
+                    return
         if mb.DEBUG_ENABLED:
             self.enable_ihp("button_activate")
         children = (header,) if (header := self.get_header()) else ()
