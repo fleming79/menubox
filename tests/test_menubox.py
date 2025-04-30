@@ -14,7 +14,7 @@ class TestMenubox:
         m.show()
         assert m.view == "a", "autoload selects first view"
         await m.wait_tasks()
-        assert wa in m.center
+        assert wa is m.center
         m.load_view(None)
         assert m.view is None, "load no view"
         m.load_view()
@@ -27,7 +27,7 @@ class TestMenubox:
         m.load_view()
         await m.wait_tasks()
         assert m.view == "b", "loading first shouldn't override load in progress"
-        assert wb in m.center
+        assert wb is m.center
 
     async def test_menubox_toggle_views(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")

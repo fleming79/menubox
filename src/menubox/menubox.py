@@ -95,7 +95,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     ).configure(TF.IHPMode.XLRN)
 
     # Trait instances
-    center: TF.InstanceHP[Self, tuple[GetWidgetsInputType, ...], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
+    center = traitlets.Any()
     _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
@@ -345,7 +345,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
             await self.mb_configure()
         try:
             view, center = await self.get_center(view)
-            center = tuple(self.get_widgets(center, skip_hidden=False))
             self._setting_view = True
             self.view = view
             self._setting_view = False

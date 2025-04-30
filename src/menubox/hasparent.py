@@ -397,8 +397,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
             self._hasparent_all_links[key] = Dlink(source, target, transform=transform, parent=self)
 
     async def wait_init_async(self) -> Self:
-        assert asyncio.current_task() is not self._init_async_task  # noqa: S101
-        await asyncio.shield(self._init_async_task)
+        while not (task := getattr(self, "_init_async_task", None)):
+            self.log.debug("Init async task not yet started")
+            await asyncio.sleep(0)
+        await asyncio.shield(task)
         return self
 
     def _handle_button_change(self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode):
