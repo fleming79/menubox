@@ -129,12 +129,10 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     DEFAULT_VIEW = None
     _mbp_async_init_complete = False
 
-    title_description = traitlets.Unicode(
-        "<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;"
-        "{self.name.replace('_',' ').capitalize()}"
-        "{'' if self.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value else f' V{self.version}'}</b>"
+    title_description = TF.Str(
+        "<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name.replace('_',' ').capitalize()}"
     )
-    version = traitlets.Int(1, read_only=True)
+    version = TF.Int(1).configure(TF.IHPMode.XLR_)
     versions = TypedTuple(traitlets.Int())
     saved_timestamp = traitlets.Unicode()
     menu_load_index = TF.Modalbox(
@@ -550,7 +548,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         )
     )
     names = menubox.StrTuple()
-    title_description = traitlets.Unicode("<b>{self.klass.__qualname__.replace('_','').capitalize()} set</b>")
+    title_description = traitlets.Unicode("<b>{self.klass.__name__.replace('_','').capitalize()} pool</b>")
     html_info = TF.HTML()
     info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
     button_update_names = TF.Button(description="↻", tooltip="Update options")
