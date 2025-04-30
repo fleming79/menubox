@@ -812,13 +812,20 @@ class Menubox(HasParent, Panel, Generic[RP]):
         for sc in self.connections:
             sc.close()
 
-    async def activate(self, *, add_to_shell=False, **kwgs: Unpack[ipylab.widgets.AddToShellType]):
+    async def activate(
+        self,
+        *,
+        add_to_shell=False,
+        view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT,
+        **kwgs: Unpack[ipylab.widgets.AddToShellType],
+    ):
         "Maximize and add to the shell."
-        self.maximize()
+        self.load_view(view)
+        task = self.task_load_view
         if add_to_shell:
             await self.add_to_shell(**kwgs)
-        if self.task_load_view:
-            await asyncio.shield(self.task_load_view)
+        if task and not task.done():
+            await asyncio.shield(task)
         await self.wait_init_async()
         return self
 
