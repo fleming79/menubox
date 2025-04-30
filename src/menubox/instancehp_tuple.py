@@ -271,7 +271,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         obj._vt_update_reg_tuples(self.name)
         new, old = change["new"], change["old"]
 
-        for value in (v for v in old if v not in new):
+        for value in set(old).difference(new):
             self._on_remove(obj, value)
-        for value in (v for v in new if v not in old):
+        for value in set(new).difference(old):
             self._on_add(obj, value)
