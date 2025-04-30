@@ -414,7 +414,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             if self.task_load_view:
                 with self.simple_output() as out:
                     button_cancel = TF.ipw.Button(description="Cancel")
-                    button_cancel.on_click(lambda _: task.cancel())
+                    button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
                     out.push(f"<b>Loading view {self.view}", button_cancel)
                     await asyncio.wait([task])
                     button_cancel.close()

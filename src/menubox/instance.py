@@ -589,7 +589,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @staticmethod
     def _on_replace_close_hook(c: IHPChange[S, T]):
-        if c["ihp"]._hookmappings.get("on_replace_close") and isinstance(c["old"], Widget | mhp.HasParent):
+        if (
+            c["ihp"]._hookmappings.get("on_replace_close")
+            and isinstance(c["old"], Widget | mhp.HasParent)
+            and not getattr(c["old"], "KEEP_ALIVE", False)
+        ):
             if mb.DEBUG_ENABLED:
                 c["parent"].log.debug(
                     f"Closing replaced item `{c['parent'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"

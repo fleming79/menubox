@@ -415,7 +415,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     def _on_click(cls, ref: weakref.ref[HasParent], taskname: str, mode: TF.ButtonMode, b: ipw.Button):
         if self_ := ref():
             if mode is TF.ButtonMode.cancel and (task := mb_async.get_task(taskname, self_)):
-                task.cancel()
+                task.cancel("Button click to cancel (cancel mode)")
                 return
             mb.mb_async.run_async(lambda: self_._button_clicked(b, mode), name=taskname, obj=self_)
 

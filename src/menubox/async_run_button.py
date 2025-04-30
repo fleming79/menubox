@@ -133,7 +133,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     def _on_click(self, _: ipw.Button):  # type: ignore
         if self.task:
-            self.cancel()
+            self.cancel(message="Button clicked to cancel")
         else:
             self.start()
 
