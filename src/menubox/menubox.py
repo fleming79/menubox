@@ -104,7 +104,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
     task_load_view = TF.Task()
-    task_mb_refresh = TF.Task()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
@@ -384,7 +383,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """
         return view, self.views.get(view, None)  # type: ignore
 
-    @mb_async.throttle(0.05, tasktype=mb_async.TaskType.update, handle="task_mb_refresh")
+    @mb_async.throttle(0.05, tasktype=mb_async.TaskType.update)
     async def mb_refresh(self) -> None:
         """Refreshes the menubox content based on its current state.
 
@@ -695,7 +694,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 if self.show_help:
                     self.maximize()
             case self.button_activate:
-                await self.activate()
+                await self.activate(add_to_shell=True)
 
     @log.log_exceptions
     def _shuffle_button_on_click(self, b: ipw.Button):

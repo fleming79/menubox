@@ -273,5 +273,5 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     @override
     def on_change(self, change: ChangeType):
         super().on_change(change)
-        if change["name"] == "visibility" and self.view:
+        if change["name"] == "visibility" and self.view_active:
             self.mb_refresh()

@@ -264,18 +264,13 @@ class _Periodic:
                 self._repeat = False
                 if self.mode is PeriodicMode.debounce:
                     await asyncio.sleep(self.wait)
-                elif self._repeat:
-                    continue
                 if getattr(self.instance, "closed", False):
                     msg = f"{self.instance} is closed!"
                     raise asyncio.CancelledError(msg)  # noqa: TRY301
                 result = self.wrapped(*self.args, **self.kwargs)
                 while inspect.isawaitable(result):
                     result = await result
-                if self.mode is PeriodicMode.debounce:
-                    await asyncio.sleep(0)
-                else:
-                    await asyncio.sleep(self.wait)
+                await asyncio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
         except asyncio.CancelledError:
             if getattr(self.instance, "closed", False):
                 return

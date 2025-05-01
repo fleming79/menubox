@@ -15,8 +15,6 @@ from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 if TYPE_CHECKING:
     from ipywidgets import Button
 
-    from menubox.hashome import Home
-
 
 class Repository(MenuboxPersist):
     SINGLE_BY = ("home", "name")
@@ -31,7 +29,7 @@ class Repository(MenuboxPersist):
     views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})
     value_traits_persist = NameTuple("target_filesystem")
 
-    def __init__(self, name: str, home: Home | str):
+    def __init__(self, name: str, **kwgs):
         if self._repository_init_called:
             return
         self._repository_init_called = True
@@ -52,7 +50,7 @@ class Repository(MenuboxPersist):
 class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
-    box_center = None
+    box_center = TF.HBox()
     repository = TF.InstanceHP(cast(Self, 0), klass=Repository).configure(TF.IHPMode.X__N)
     repository_name = TF.Combobox(
         cast(Self, 0),
@@ -93,4 +91,4 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         match b:
             case self.button_select_repository:
                 repository = Repository(name=self.repository_name.value, home=self.home)
-                await repository.activate()
+                await repository.activate(add_to_shell=True)
