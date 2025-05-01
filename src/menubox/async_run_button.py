@@ -163,7 +163,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             if isinstance(aw, asyncio.Task):
                 task = aw
         else:
-            aw = self._get_runner(cfunc, kw)
+            aw = cfunc(**kw)
         if not task:
             task = mb_async.run_async_singular(
                 aw, obj=self, tasktype=self._tasktype, name=self._taskname, restart=restart
@@ -179,12 +179,6 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             self.tasks.add(task)
             task.add_done_callback(self.tasks.discard)
         return (aw() if callable(aw) else aw) if coro_mode else task
-
-    def _get_runner(self, coro, kw: dict):
-        async def _run_async(kw=kw):
-            return await coro(**kw)
-
-        return _run_async
 
     def start(self, restart=True, **kwargs) -> asyncio.Task:
         """Start always unless restart=False.
