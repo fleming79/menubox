@@ -160,17 +160,6 @@ class TestInstance:
         obj.set_trait("union", 20)
         assert obj.union == 10, "by validation"
 
-    async def test_instance_enable_by_asignment(self):
-        hpi = HPI()
-        hpi.a = None
-        assert hpi.a is None
-        hpi.a = mb.defaults.ENABLE  # type: ignore
-        assert hpi.a, "Via `InstanceHP.__set__`"
-
-        hpi3 = HPI3()
-        with pytest.raises(TraitError, match="read-only"):
-            hpi3.box = True  # type: ignore
-
     async def test_instance_invalid_value(self):
         hpi3 = HPI3()
         with pytest.raises(

@@ -27,7 +27,7 @@ from mergedeep import Strategy, merge
 import menubox as mb
 import menubox.hasparent as mhp
 from menubox import utils
-from menubox.defaults import ENABLE, NO_DEFAULT
+from menubox.defaults import NO_DEFAULT
 from menubox.trait_types import SS, Bunched, GetWidgetsInputType, P, ReadOnly, S, T, W
 
 if TYPE_CHECKING:
@@ -172,10 +172,6 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if self.read_only:
             msg = f'The "{self.name}" trait is read-only.'
             raise traitlets.TraitError(msg)
-        if value is ENABLE:
-            if obj._trait_values.get(self.name) is not None:
-                return
-            value = self.default(obj, {})  # type: ignore
         self.set(obj, value)  # type: ignore
 
     def __init__(
@@ -303,14 +299,6 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
         Enabling/Disabling:
             When configured with `allow_none` you can use the methods `enable_ihp` and `disable_ihp` respectively.
-
-            When configured with `read_only allow_none` the trait can also be enabled/disabled by
-            item assignment with the `ENABLE` token (from defaults) to enable and `None` to disable. Note
-            that direct assignment (`value = ENABLE`) can cause odd behaviour with type checkers. So it
-            is recommended to use `setattr` (`enable_ihp`/`disable_ihp`) instead.
-
-            Because type hints are static, they will continue to reflect the configured state of the
-            descriptor. You should always check the the trait is available before working with it.
 
         Item assignment in lambdas:
             Attribute assignment isn't permitted in lambda expressions instead, you should can use the

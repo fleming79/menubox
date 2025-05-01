@@ -18,7 +18,7 @@ from ipywidgets import widgets as ipw
 import menubox as mb
 from menubox import defaults, log, mb_async, utils
 from menubox.css import CSScls
-from menubox.defaults import ENABLE, H_FILL, NO_DEFAULT, V_FILL
+from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
@@ -442,6 +442,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self.view == self.MINIMIZED:
             self.enable_ihp("header")
             self.enable_ihp("button_maximize")
+            self.enable_ihp("button_minimize")
             if header := self.header:
                 header.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
         else:
@@ -484,13 +485,10 @@ class Menubox(HasParent, Panel, Generic[RP]):
             - Updating the tab and shuffle buttons.
             - Calling the super class's mb_configure method if it exists.
         """
-        self._has_maximize_button = bool(self.button_maximize or self.DEFAULT_VIEW == self.MINIMIZED)
-        if self._has_maximize_button:
-            self.enable_ihp("button_minimize")
         if self.menuviews:
-            self.button_menu = ENABLE
+            self.enable_ihp("button_menu")
         if len(self.toggleviews) > 1:
-            self.button_toggleview = ENABLE
+            self.enable_ihp("button_toggleview")
         self._update_tab_buttons()
         self._update_shuffle_buttons()
         if cb := getattr(super(), "mb_configure", None):
@@ -517,11 +515,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self._update_tab_buttons()
                 return
             case "menuviews":
-                self.button_menu = ENABLE if self.menuviews else None
+                (self.enable_ihp if self.menuviews else self.disable_ihp)("button_menu")
             case "button_menu":
-                self.box_menu = ENABLE if self.button_menu else None
+                (self.enable_ihp if self.button_menu else self.disable_ihp)("box_menu")
             case "toggleviews":
-                self.button_toggleview = ENABLE if len(self.toggleviews) > 1 else None
+                (self.enable_ihp if len(self.toggleviews) > 1 else self.disable_ihp)("button_toggleview")
             case "button_close" if b := self.button_close:
                 b.tooltip = f"Close {self}"
             case "button_help" if b := self.button_help:
