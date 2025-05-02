@@ -124,6 +124,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     _extn = ".yaml"
 
     AUTOLOAD = True
+    ASK_SAVE = True
     PERSIST_MODE: ClassVar = cast(MenuboxPersistMode, MenuboxPersistMode.by_classname_name)
     SHOW_TEMPLATE_CONTROLS = True
     DEFAULT_VIEW = None
@@ -193,7 +194,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     box_version = TF.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
     task_loading_persistence_data = TF.Task()
-    value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load", "version_widget")
+    value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load", "version_widget", "connections")
     value_traits_persist = StrTuple("saved_timestamp", "description")
     dataframe_persist = StrTuple()
 
@@ -203,6 +204,9 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     async def _update_versions(self) -> None:
         self.versions = await self.get_persistence_versions(self.filesystem, self.name)
+
+    def __str(self):
+        return self._get_persist_name(self.name, self.version)
 
     @override
     async def init_async(self):
@@ -231,6 +235,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         if change["owner"] is self:
             if self.AUTOLOAD and change["name"] in ["name", "version"] and self.version in self.versions:
                 self.load_persistence_data(self.version, set_version=True)
+            if self.ASK_SAVE and change["name"] == "connections" and not self.connections:
+                self.ask_save()
         else:
             match change["owner"]:
                 case self.sw_version_load if (version := self.sw_version_load.value) in self.versions:
@@ -469,6 +475,15 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         if version < 0:
             version = await self.get_latest_version()
         return version
+
+    @mb_async.singular_task(restart=False)
+    async def ask_save(self):
+        fname = self.filesystem.to_path(self._get_persist_name(self.name, self.version))
+        content = await mb_async.to_thread(self.filesystem.fs.cat_file, fname)
+        if (self.to_yaml() != content) and await utils.yes_no_dialog(
+            self.app, "Save changes", f"Save changes for {self}?"
+        ):
+            await self.button_save_persistence_data.start_wait()
 
     @classmethod
     def save_dataframe(cls, df: pd.DataFrame, fs: AbstractFileSystem, path: str):

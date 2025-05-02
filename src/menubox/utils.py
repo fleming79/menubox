@@ -33,6 +33,7 @@ __all__ = [
     "sanatise_filename",
     "iterflatten",
     "weak_observe",
+    "yes_no_dialog",
 ]
 
 
@@ -549,3 +550,37 @@ def download_button(buffer, filename: str, button_description: str):
     </html>
     """
     return ipw.HTML(html_button)
+
+
+async def yes_no_dialog(app: ipylab.App, title: str, body: str | ipw.Widget = ""):
+    result = await app.dialog.show_dialog(
+        title,
+        body=body,
+        options={
+            "buttons": [
+                {
+                    "ariaLabel": "Yes",
+                    "label": "Yes",
+                    "iconClass": "",
+                    "iconLabel": "",
+                    "caption": "",
+                    "className": "",
+                    "accept": True,
+                    "actions": [],
+                    "displayType": "default",
+                },
+                {
+                    "ariaLabel": "No",
+                    "label": "No",
+                    "iconClass": "",
+                    "iconLabel": "",
+                    "caption": "No",
+                    "className": "",
+                    "accept": False,
+                    "actions": [],
+                    "displayType": "warn",
+                },
+            ],
+        },
+    )
+    return result["value"]
