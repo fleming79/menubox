@@ -66,9 +66,12 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         description="…",
         tooltip="Select/create a new repository",
     )
+    title_description = TF.Str("root:{self.filesystem.root}")
     header_children = StrTuple()
-    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository]})
-    value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name")
+    views = TF.ViewDict(
+        cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository, p.html_title]}
+    )
+    value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name", "filesystem.url")
 
     @override
     def on_change(self, change: ChangeType):
@@ -80,6 +83,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         if change["name"] == "repository":
             filesystem: Filesystem = getattr(self.repository, "target_filesystem", None) or self.filesystem
             self.set_trait("filesystem", filesystem)
+        self.mb_refresh()
 
     @mb_async.debounce(0.1)
     async def update_repository_name_options(self):
@@ -90,5 +94,8 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         await super().button_clicked(b)
         match b:
             case self.button_select_repository:
-                repository = Repository(name=self.repository_name.value, home=self.home)
+                if not (name := self.repository_name.value):
+                    await self.app.dialog.show_error_message("Select repository", "A name is required")
+                    return
+                repository = Repository(name=name, home=self.home)
                 await repository.activate(add_to_shell=True)
