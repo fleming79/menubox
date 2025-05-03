@@ -9,7 +9,7 @@ import pandas as pd
 import traitlets
 
 import menubox
-from menubox import mb_async, utils
+from menubox import mb_async, pack, utils
 from menubox.filesystem import HasFilesystem
 from menubox.instance import IHPCreate
 from menubox.instancehp_tuple import InstanceHPTuple
@@ -478,9 +478,11 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @mb_async.singular_task(restart=False)
     async def ask_save(self):
-        fname = self.filesystem.to_path(self._get_persist_name(self.name, self.version))
-        content = await mb_async.to_thread(self.filesystem.fs.cat_file, fname)
-        if (self.to_yaml() != content) and await utils.yes_no_dialog(
+        existing = await self.get_persistence_data(self.filesystem, self.name, self.version)
+        existing.pop("saved_timestamp", None)
+        current = pack.to_dict(self.to_yaml())
+        current.pop("saved_timestamp", None)
+        if str(existing) != str(current) and await utils.yes_no_dialog(
             self.app, "Save changes", f"Save changes for {self}?"
         ):
             await self.button_save_persistence_data.start_wait()
