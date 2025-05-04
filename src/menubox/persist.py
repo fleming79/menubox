@@ -236,7 +236,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             if self.AUTOLOAD and change["name"] in ["name", "version"] and self.version in self.versions:
                 self.load_persistence_data(self.version, set_version=True)
             if self.ASK_SAVE and change["name"] == "connections" and not self.connections:
-                self.ask_save()
+                self.ask_save_close()
         else:
             match change["owner"]:
                 case self.sw_version_load if (version := self.sw_version_load.value) in self.versions:
@@ -477,7 +477,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return version
 
     @mb_async.singular_task(restart=False)
-    async def ask_save(self):
+    async def ask_save_close(self):
         existing = await self.get_persistence_data(self.filesystem, self.name, self.version)
         existing.pop("saved_timestamp", None)
         current = pack.to_dict(self.to_yaml())
@@ -486,6 +486,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             self.app, "Save changes", f"Save changes for {self}?"
         ):
             await self.button_save_persistence_data.start_wait()
+        if await utils.yes_no_dialog(self.app, "Close", f"Close {self}"):
+            self.close(force=True)
 
     @classmethod
     def save_dataframe(cls, df: pd.DataFrame, fs: AbstractFileSystem, path: str):
