@@ -477,7 +477,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return version
 
     @mb_async.singular_task(restart=False)
-    async def ask_save_close(self):
+    async def ask_save_close(self, ask_close=True):
         existing = await self.get_persistence_data(self.filesystem, self.name, self.version)
         existing.pop("saved_timestamp", None)
         current = pack.to_dict(self.to_yaml())
@@ -486,7 +486,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             self.app, "Save changes", f"Save changes for {self}?"
         ):
             await self.button_save_persistence_data.start_wait()
-        if await utils.yes_no_dialog(self.app, "Close", f"Close {self}"):
+        if ask_close and await utils.yes_no_dialog(self.app, "Close", f"Close {self}"):
             self.close(force=True)
 
     @classmethod
