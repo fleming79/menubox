@@ -472,8 +472,6 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         self.error(obj, value)  # noqa: RET503
 
     def _value_changed(self, parent: S, old: T | None, new: T | None):
-        if new is None and old is None:
-            return
         if hookmappings := self._hookmappings:
             change = IHPChange(name=self.name, parent=parent, old=old, new=new, ihp=self)
             for hookname in hookmappings:
@@ -590,11 +588,15 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @staticmethod
     def _on_set_hook(c: IHPChange[S, T]):
+        if c["parent"].closed:
+            return
         if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
             on_set(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["new"]))
 
     @staticmethod
     def _on_unset_hook(c: IHPChange[S, T]):
+        if c["parent"].closed:
+            return
         if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
             on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
 
@@ -619,6 +621,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     def _set_children_hook(c: IHPChange[S, T]):
         import menubox.children_setter
 
+        if c["parent"].closed:
+            return
         if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             if isinstance(children, dict):
                 val = {} | children
