@@ -705,7 +705,7 @@ def instanceHP_wrapper(
     tags = dict(tags) if tags else {}  # type: ignore
 
     def instanceHP_factory(
-        cast_self: SS | None = None,  # noqa: ARG001
+        cast_self: SS | int = 0,  # noqa: ARG001
         /,
         *args: P.args,
         **kwgs: P.kwargs,
