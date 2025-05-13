@@ -91,7 +91,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     minimized_children = StrTuple("html_title", "header_right_children")
 
     loading_view = TF.InstanceHP(
-        cast(Self, 0), klass=str | None | defaults._NoDefault, default=lambda _: defaults.NO_DEFAULT
+        cast(Self, 0), klass=str | None, default=lambda _: defaults.NO_DEFAULT, validate=lambda _, value: value
     ).configure(TF.IHPMode.XLRN)
 
     # Trait instances
