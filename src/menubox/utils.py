@@ -34,6 +34,7 @@ __all__ = [
     "iterflatten",
     "weak_observe",
     "yes_no_dialog",
+    "now",
 ]
 
 
@@ -552,29 +553,29 @@ def download_button(buffer, filename: str, button_description: str):
     return ipw.HTML(html_button)
 
 
-async def yes_no_dialog(app: ipylab.App, title: str, body: str | ipw.Widget = ""):
+async def yes_no_dialog(app: ipylab.App, title: str, body: str | ipw.Widget = "", *, names=("Yes", "No")):
     result = await app.dialog.show_dialog(
         title,
         body=body,
         options={
             "buttons": [
                 {
-                    "ariaLabel": "Yes",
-                    "label": "Yes",
+                    "ariaLabel": names[0],
+                    "label": names[0],
                     "iconClass": "",
                     "iconLabel": "",
-                    "caption": "",
+                    "caption": names[0],
                     "className": "",
                     "accept": True,
                     "actions": [],
                     "displayType": "default",
                 },
                 {
-                    "ariaLabel": "No",
-                    "label": "No",
+                    "ariaLabel": names[1],
+                    "label": names[1],
                     "iconClass": "",
                     "iconLabel": "",
-                    "caption": "No",
+                    "caption": names[1],
                     "className": "",
                     "accept": False,
                     "actions": [],
@@ -582,5 +583,11 @@ async def yes_no_dialog(app: ipylab.App, title: str, body: str | ipw.Widget = ""
                 },
             ],
         },
+        has_close=False,
     )
     return result["value"]
+
+
+def now():
+    "The timestamp for now using this timezone"
+    return pd.Timestamp.now(mb.log.TZ)
