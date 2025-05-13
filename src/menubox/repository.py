@@ -55,8 +55,10 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     repository_name = TF.Combobox(
         cast(Self, 0),
         description="Repository",
-        tooltip="Add a new repository using the repository set below",
+        placeholder="Home repository",
+        tooltip="Enter the name of the repository to use. A blank name is the home default repository.",
         layout={"width": "max-content"},
+        continuous_update=False,
     ).hooks(
         on_set=lambda c: c["parent"].update_repository_name_options(),
     )
@@ -80,6 +82,8 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
             case self.repository_name:
                 if name := self.repository_name.value:
                     self.set_trait("repository", Repository(name=name, home=self.home))
+                else:
+                    self.set_trait("repository", self.repository)
         if change["name"] == "repository":
             filesystem: Filesystem = getattr(self.repository, "target_filesystem", None) or self.filesystem
             self.set_trait("filesystem", filesystem)
@@ -95,7 +99,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         match b:
             case self.button_select_repository:
                 if not (name := self.repository_name.value):
-                    await self.app.dialog.show_error_message("Select repository", "A name is required")
+                    self.update_repository_name_options()
                     return
                 repository = Repository(name=name, home=self.home)
                 await repository.activate(add_to_shell=True)
