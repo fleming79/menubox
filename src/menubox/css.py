@@ -207,6 +207,7 @@ STYLESHEET = f"""
     flex-flow: row wrap;
     border: var({CSSvar.menubox_border});}}
 .{CSScls.nested_borderbox} {{
+    flex: 0 0 auto;
     margin: 5px 5px 5px 5px;
     padding: 5px 5px 5px 5px;
     border: var({CSSvar.menubox_border});}}
