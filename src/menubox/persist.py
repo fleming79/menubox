@@ -384,7 +384,10 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @override
     async def get_center(self, view: str | None):
-        if not self.name:
+        if not self.name and self.PERSIST_MODE not in [
+            MenuboxPersistMode.by_classname_name,
+            MenuboxPersistMode.by_classname_name_version,
+        ]:
             view = self.CONFIGURE_VIEW
         return await super().get_center(view)
 
