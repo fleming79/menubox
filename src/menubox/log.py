@@ -104,7 +104,7 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
         except Exception as e:
             if callcount > 1:
                 raise
-            on_error_wrapped(wrapped, instance, loginfo, e)
+            on_error_wrapped(wrapped, instance, f"{e} <{loginfo}>", e)
             raise
         finally:
             callcount -= 1
