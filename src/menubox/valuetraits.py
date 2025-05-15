@@ -346,17 +346,17 @@ class ValueTraits(HasParent, Generic[RP]):
             for i, n in enumerate(parts, 1):
                 if n in obj._traits:
                     yield (obj, n)
-                elif (obj_ := getattr(obj, n, None)) and isinstance(obj_, HasTraits):
+                elif (obj_ := getattr(obj, n, defaults.NO_VALUE)) is not defaults.NO_VALUE:
                     # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
-                    obj = obj_
-                    if cls._AUTO_VALUE and i == segments and obj.has_trait("value"):
-                        yield (obj, "value")
-                    continue
+                    if isinstance(obj_, HasTraits):
+                        obj = obj_
+                        if cls._AUTO_VALUE and i == segments and obj.has_trait("value"):
+                            yield (obj, "value")
+                        continue
+                    else:
+                        break
                 else:
-                    msg = (
-                        f"`{n}` is not a trait of {utils.fullname(obj)} and {utils.fullname(obj)} "
-                        f"is not an instance of HasTraits so is an invalid part of {dotname=}."
-                    )
+                    msg = f"`{n}` is not a trait or attribute of {utils.fullname(obj)}"
                     raise TypeError(msg)
                 if n in obj._trait_values:
                     obj = obj._trait_values[n]
