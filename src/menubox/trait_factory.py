@@ -191,6 +191,7 @@ class TF:
     GridBox = staticmethod(ihpwrap(ipw.GridBox))
     SelectMultiple = staticmethod(ihpwrap(ipw.SelectMultiple))
     ValueWidget = staticmethod(ihpwrap(ipw.ValueWidget))
+    Widget = staticmethod(ihpwrap(ipw.Widget))
     BoundedIntText = staticmethod(ihpwrap(ipw.BoundedIntText))
     FloatText = staticmethod(ihpwrap(ipw.FloatText))
     FloatSlider = staticmethod(ihpwrap(ipw.FloatSlider))
