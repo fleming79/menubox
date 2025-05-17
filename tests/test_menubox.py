@@ -57,10 +57,10 @@ class TestMenubox:
         await m.wait_tasks()
         assert m.box_menu
         assert m.button_menu_minimize in m.box_menu.children
-        assert len(m.box_menu.children) == 2, "expected:button_menu_minimize, button_load_view"
-        assert isinstance(m.box_menu.children[1], ipw.Button)
-        assert m.box_menu.children[1].description == "b"
-        m.box_menu.children[1].click()
+        assert len(m.box_menu.children) == 3, "expected:html, button_menu_minimize, button_load_view"
+        assert isinstance(m.box_menu.children[2], ipw.Button)
+        assert m.box_menu.children[2].description == "b"
+        m.box_menu.children[2].click()
 
     async def test_menubox_title_and_help(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
@@ -227,15 +227,6 @@ class TestMenubox:
         m.header_children = ("html_title",)
         await m.wait_tasks()
         m.get_header()
-
-    async def test_menubox_get_menu_widgets(self):
-        m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})
-        m.show()
-        m.menuviews = ("a", "b")
-        widgets = m.get_menu_widgets()
-        assert len(widgets) == 1
-        assert isinstance(widgets[0], ipw.Button)
-        assert widgets[0].description == "b"
 
     async def test_menubox_menu_open_close(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})

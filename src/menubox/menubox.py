@@ -464,7 +464,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return self.load_view(reload=True)
 
     def get_menu_widgets(self):
-        return tuple(self.get_button_loadview(v) for v in self.menuviews if v is not self.view)
+        b = self.get_button_loadview(self.view).add_class(TF.CSScls.button_active_view)
+        b.tooltip = "This is the current view"
+        return (b, *(self.get_button_loadview(v) for v in self.menuviews if v is not self.view))
 
     def menu_open(self):
         self.enable_ihp("button_menu_minimize")
