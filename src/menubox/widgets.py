@@ -71,7 +71,7 @@ class ValidateWidget(ipw.ValueWidget):
             if inspect.ismethod(validate):
                 self._bi_validate = weakref.WeakMethod(validate)
             else:
-                self._bi_validate = weakref.ref(validate)
+                self._bi_validate = lambda: validate  # type: ignore
 
         super().__init__(**kwargs)
 
