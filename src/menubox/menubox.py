@@ -464,18 +464,23 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return self.load_view(reload=True)
 
     def get_menu_widgets(self):
-        b = self.get_button_loadview(self.view).add_class(TF.CSScls.button_active_view)
-        b.tooltip = "This is the current view"
-        return (b, *(self.get_button_loadview(v) for v in self.menuviews if v is not self.view))
+        view = self.loading_view if self.loading_view is not NO_DEFAULT else self.view
+        buttons = [self.get_button_loadview(v) for v in self.menuviews]
+        for b in buttons:
+            if b.description == view:
+                b.add_class(TF.CSScls.button_active_view)
+        return buttons
 
     def menu_open(self):
         self.enable_ihp("button_menu_minimize")
         if box := self.box_menu:
             box.children = tuple(self.get_widgets(*self.box_menu_open_children))
+            box.layout.border = "var(CSSvar.menubox_border)"
 
     def menu_close(self):
         if box := self.box_menu:
             box.children = (self.button_menu,) if self.button_menu else ()
+            box.layout.border = ""
 
     async def mb_configure(self) -> None:
         """Configure this widget - called once only when loading the first view.
