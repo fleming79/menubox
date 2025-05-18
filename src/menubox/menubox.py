@@ -469,6 +469,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         for b in buttons:
             if b.description == view:
                 b.add_class(TF.CSScls.button_active_view)
+                b.tooltip = "This is the current view - click to refresh the view."
         return buttons
 
     def menu_open(self):
