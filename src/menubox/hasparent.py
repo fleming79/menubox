@@ -260,11 +260,15 @@ class HasParent(Singular, HasApp, Generic[RP]):
         else:
             setattr(obj, name, value)
 
-    def check_equality(self, a, b) -> bool:
+    @staticmethod
+    def check_equality(a, b) -> bool:
         """Check objects are equal. Special handling for DataFrame."""
-        if isinstance(a, pd.DataFrame):
-            return a.equals(b)
-        return a == b
+        try:
+            return bool(a == b)
+        except ValueError:
+            if isinstance(a, pd.DataFrame):
+                return a.equals(b)
+        return False
 
     @property
     def repr_log(self):
