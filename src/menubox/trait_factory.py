@@ -13,7 +13,7 @@ from IPython import display as ipd
 import menubox.async_run_button
 import menubox.widgets
 from menubox import mb_async
-from menubox.css import CSScls
+from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
@@ -71,6 +71,7 @@ class TF:
     GetWidgetsInputType = GetWidgetsInputType
     ViewDictType = ViewDictType
     ButtonMode = ButtonMode
+    CSSvar = CSSvar
     CSScls = CSScls
     MP = MP
     SS = SS

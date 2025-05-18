@@ -475,7 +475,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self.enable_ihp("button_menu_minimize")
         if box := self.box_menu:
             box.children = tuple(self.get_widgets(*self.box_menu_open_children))
-            box.layout.border = "var(CSSvar.menubox_border)"
+            box.layout.border = f"var({TF.CSSvar.menubox_border})"
 
     def menu_close(self):
         if box := self.box_menu:
