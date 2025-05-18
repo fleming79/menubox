@@ -345,16 +345,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                     raise ValueError(msg)
         except KeyError:
             old_value = self.default_value
-
         obj._trait_values[self.name] = new_value
-        try:
-            silent = bool(old_value == new_value)
-        except Exception:
-            # if there is an error in comparing, default to notify
-            silent = False
-        if silent is not True:
-            # we explicitly compare silent to True just in case the equality
-            # comparison above returns something other than True/False
+        if not obj.check_equality(old_value, new_value):
             try:
                 self._value_changed(obj, old_value, new_value)
             except Exception as e:
@@ -378,12 +370,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 obj._cross_validation_lock = _cross_validation_lock
             obj._trait_values[self.name] = value  # type: ignore
             dv = self.default_value
-            try:
-                silent = bool(value == dv)
-            except Exception:
-                # if there is an error in comparing, default to notify
-                silent = False
-            if silent is not True:
+            if not obj.check_equality(value, dv):
                 self._value_changed(obj, dv, value)
                 obj._notify_observers(Bunched(name=self.name, old=dv, new=value, owner=obj, type="change"))
             return value  # type: ignore
