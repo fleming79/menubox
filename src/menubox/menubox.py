@@ -68,7 +68,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
-    css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view is not None.")
+    css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view_active.")
 
     views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
     shuffle_button_views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
@@ -193,12 +193,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     @property
     def view_active(self) -> bool:
-        """Check if the view is currently active (not minimized).
-
-        Returns:
-            bool: True if the view is active, False otherwise.
-        """
-        return bool(self.view and self.view != self.MINIMIZED)
+        """Indicate the view is not None."""
+        return self.view is not None
 
     def __init__(
         self,
