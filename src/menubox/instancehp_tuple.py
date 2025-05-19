@@ -157,6 +157,10 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                     except Exception as e:
                         if isinstance(val, dict):
                             val = self.update_or_create_inst(obj, val, i)
+                        elif self._hookmappings.get("update_by") == defaults.INDEX:
+                            values = getattr(obj, self.name)
+                            obj.setter(values[i], "value", v)
+                            continue
                         else:
                             e.add_note(f"`{obj.__class__.__name__}.{self.name}` {obj=}")
                             raise
@@ -226,6 +230,25 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         return None
 
     def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:  # type: ignore
+        """Hooks to modify the behaviour of the tuple analogous to hooks in InstanceHP.
+
+        kwgs
+        ----
+
+        - update_by: An optional string specifying the attribute to use when updating items.
+        - update_item_names: An optional tuple of strings specifying the item names to update.
+        set_parent: An optional boolean indicating whether to set the parent of added items.
+        - close_on_remove: An optional boolean indicating whether to close items when they are removed.
+        - on_add: An optional callable that is executed when an item is added to the tuple.
+               It takes the IHPSet as an argument.
+        - on_remove: An optional callable that is executed when an item is removed from the tuple.
+                  It takes the IHPSet as an argument.
+        - value_changed: An optional callable that is executed when the value of an tuple changes.
+                       It takes an IHPChange object as an argument.
+
+        Tip:
+            To support restoring values by index for a instances of objects that aren't subclassed
+            from ValueTraits, but have a `value` trait: use the hook `update_by = menubox.defaults.INDEX`."""
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
         return self
