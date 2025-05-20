@@ -58,7 +58,7 @@ class Home(Singular):
     @traitlets.observe("closed")
     def _home_observe_closed(self, _):
         if self.closed:
-            for item in self.instances:
+            for item in tuple(self.instances):
                 try:
                     item.close(force=True)
                 except TypeError:
