@@ -84,35 +84,35 @@ class TF:
     # Basic types
 
     @staticmethod
-    def Str(default_value="", /) -> InstanceHP[S, str, str]:  # pyright: ignore  [reportInvalidTypeVarUse]
+    def Str(cast_self: S | int = 0, default_value="") -> InstanceHP[S, str, str]:  # noqa: ARG004
         return InstanceHP(klass=str).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Bool(default_value=False, /) -> InstanceHP[S, bool, bool]:  # pyright: ignore  [reportInvalidTypeVarUse]
+    def Bool(cast_self: S | int = 0, /, default_value=False) -> InstanceHP[S, bool, bool]:  # noqa: ARG004
         return InstanceHP(klass=bool).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Int(default_value=0, /) -> InstanceHP[S, int, int]:  # pyright: ignore  [reportInvalidTypeVarUse]
+    def Int(cast_self: S | int = 0, /, default_value=0) -> InstanceHP[S, int, int]:  # noqa: ARG004
         return InstanceHP(klass=int).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Float(default_value=math.nan, /) -> InstanceHP[S, float, float]:  # pyright: ignore  [reportInvalidTypeVarUse]
+    def Float(cast_self: S | int = 0, /, default_value=math.nan) -> InstanceHP[S, float, float]:  # noqa: ARG004
         return InstanceHP(klass=float).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Tuple(default_value=(), /) -> InstanceHP[S, tuple, tuple]:  # pyright: ignore  [reportInvalidTypeVarUse]
+    def Tuple(cast_self: S | int = 0, /, default_value=()) -> InstanceHP[S, tuple, tuple]:  # noqa: ARG004
         return InstanceHP(klass=tuple).configure(IHPMode.XL__, default_value=default_value)
 
     @staticmethod
-    def Set() -> InstanceHP[S, set, set]:  # pyright: ignore  [reportInvalidTypeVarUse]
+    def Set(cast_self: S | int = 0) -> InstanceHP[S, set, set]:  # noqa: ARG004
         return InstanceHP(klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
     @staticmethod

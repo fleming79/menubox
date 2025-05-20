@@ -68,7 +68,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         description="…",
         tooltip="Select/create a new repository",
     )
-    title_description = TF.Str("root: {self.filesystem.root}")
+    title_description = TF.Str(cast(Self, 0), "root: {self.filesystem.root}")
     header_children = StrTuple()
     views = TF.ViewDict(
         cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository, p.html_title]}

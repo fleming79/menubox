@@ -131,9 +131,9 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     _mbp_async_init_complete = False
 
     title_description = TF.Str(
-        "<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name.replace('_',' ').capitalize()}"
+        cast(Self, 0), "<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name.replace('_',' ').capitalize()}"
     )
-    version = TF.Int(1).configure(TF.IHPMode.XLR_)
+    version = TF.Int(cast(Self, 0), 1).configure(TF.IHPMode.XLR_)
     versions = TypedTuple(traitlets.Int())
     saved_timestamp = traitlets.Unicode()
     menu_load_index = TF.Modalbox(

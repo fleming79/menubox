@@ -35,7 +35,7 @@ class Filesystem(MenuboxVT):
     _ignore = ()
     startup_dir = utils.joinpaths(pathlib.Path().cwd())
     _fs_defaults: ClassVar[dict] = {"auto_mkdir": True}
-    prev_protocol = TF.Str("file")
+    prev_protocol = TF.Str(cast(Self, 0), "file")
     prev_kwargs = TF.Dict()
     folders_only = TF.Bool()
     read_only = TF.Bool()
@@ -355,7 +355,7 @@ class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
     name = TF.InstanceHP(cast(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
-    read_only = TF.Bool(True).configure(TF.IHPMode.XLR_)
+    read_only = TF.Bool(cast(Self, 0), True).configure(TF.IHPMode.XLR_)
 
     @override
     def __init__(self, *, home: Home):
