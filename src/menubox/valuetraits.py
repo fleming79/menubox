@@ -13,7 +13,7 @@ from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent
-from menubox.pack import json_default_converter, to_yaml
+from menubox.pack import json_default, to_yaml
 from menubox.trait_factory import TF
 from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, ReadOnly
 
@@ -51,7 +51,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
         new_value = self._validate(obj, value)
         assert self.name  # noqa: S101
         obj._trait_values[self.name] = new_value
-        obj._notify_trait(self.name, obj._value, new_value)
+        obj._notify_trait(self.name, obj.json_default, new_value)
 
     def _validate(self, obj: ValueTraits, value):
         if obj.vt_validating:
@@ -60,7 +60,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
         obj.vt_validating = True
         try:
             obj._load_value(value)
-            return obj._value
+            return obj.json_default
         finally:
             obj.vt_validating = False
 
@@ -135,7 +135,7 @@ class ValueTraits(HasParent, Generic[RP]):
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
     if TYPE_CHECKING:
-        _value: Callable
+        json_default: Callable
         parent: TF.InstanceHP[Self, RP, RP]
 
     @contextlib.contextmanager
@@ -571,7 +571,7 @@ class ValueTraits(HasParent, Generic[RP]):
             names = self.value_traits_persist
         return {n: utils.getattr_nested(self, n, hastrait_value=hastrait_value) for n in names}
 
-    _value = to_dict  # Alias provided to allow for easy overloading
+    json_default = to_dict  # for serialization
 
     if TYPE_CHECKING:
 
@@ -607,13 +607,13 @@ class ValueTraits(HasParent, Generic[RP]):
             if names:
                 self.log.warning(f"Ignored {names=}", stack_info=True)
         try:
-            data = orjson.dumps(data, default=json_default_converter, option=option)
+            data = orjson.dumps(data, default=json_default, option=option)
             if decode:
                 return data.decode()
         except TypeError:
             raise
         except Exception:
-            return json.dumps(data, default=json_default_converter)
+            return json.dumps(data, default=json_default)
         else:
             return data
 

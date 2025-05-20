@@ -450,7 +450,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if value is None:
             if self.allow_none:
                 return value
-            msg = f"`None` is not allowed for {self!r}. Use `.configure(allow_none=True)` to permit it."
+            msg = f"`None` is not allowed for {self!r}"
             raise traitlets.TraitError(msg)
         if isinstance(value, self._type):  # type:ignore[arg-type]
             if obj._cross_validation_lock is False:

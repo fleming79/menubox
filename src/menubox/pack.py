@@ -11,7 +11,6 @@ import numpy as np
 import orjson
 import pandas as pd
 import ruamel.yaml.scalarstring
-import traitlets
 
 from menubox import utils
 from menubox.defaults import NO_VALUE, is_no_value
@@ -24,7 +23,7 @@ if TYPE_CHECKING:
 # ruff: noqa: UP038
 
 __all__ = [
-    "json_default_converter",
+    "json_default",
     "to_dict",
     "to_list",
     "to_json_dict",
@@ -37,19 +36,20 @@ __all__ = [
 ]
 
 
-def json_default_converter(obj, unknown_to_str=False):
+def json_default(obj, unknown_to_str=False):
     """Converters for value_traits and numpy arrays. Also checks for _to_dict and
     name.
 
     usage:
 
-    json.dumps(my_dict, default=json_default_converter)
+    json.dumps(my_dict, default=json_default)
     """
-    if isinstance(obj, traitlets.HasTraits):
-        if callable(v := getattr(obj, "_value", None)):
-            return v()
-        if obj.has_trait("value"):
-            return obj.value  # type: ignore
+    if callable(v := getattr(obj, "json_default", None)):
+        return v()
+    if callable(obj):
+        while callable(obj):
+            obj = obj()
+        return obj
     if isinstance(obj, np.integer):
         return int(obj)
     if isinstance(obj, np.floating):
@@ -73,10 +73,6 @@ def json_default_converter(obj, unknown_to_str=False):
         return obj.as_posix()
     if hasattr(obj, "_repr_keys"):
         return {k: getattr(obj, k) for k in obj._repr_keys()}  # type: ignore
-    if callable(obj):
-        while callable(obj):
-            obj = obj()
-        return obj
     if isinstance(obj, bytes):
         try:
             return orjson.loads(obj)
@@ -160,13 +156,13 @@ def to_list(x) -> list:
 def to_json_dict(value, option=orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_INDENT_2) -> str:
     """Validate proposal text with json formatting, converting to a dict first where possible."""
     data = to_dict(value)
-    return orjson.dumps(data, default=json_default_converter, option=option).decode()
+    return orjson.dumps(data, default=json_default, option=option).decode()
 
 
 def to_json_list(value, option=orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_INDENT_2) -> str:
     """Validate proposal text with json formatting, converting to a list first where possible."""
     data = to_list(value)
-    return orjson.dumps(data, default=json_default_converter, option=option).decode()
+    return orjson.dumps(data, default=json_default, option=option).decode()
 
 
 def to_yaml_dict(value) -> str | NO_VALUE_TYPE:
@@ -231,7 +227,5 @@ def to_yaml(data: Any, walkstring=True, fs: AbstractFileSystem | None = None, pa
 
 def deep_copy[T](obj: T, unknown_to_str=False) -> T:
     """Deep copy by orjson roundtrip."""
-    _default_convert = functools.partial(
-        getattr(obj, "json_default_converter", json_default_converter), unknown_to_str=unknown_to_str
-    )
-    return orjson.loads(orjson.dumps(obj, default=_default_convert, option=orjson.OPT_SERIALIZE_NUMPY))
+    _json_default = functools.partial(json_default, unknown_to_str=unknown_to_str)
+    return orjson.loads(orjson.dumps(obj, default=_json_default, option=orjson.OPT_SERIALIZE_NUMPY))

@@ -196,7 +196,7 @@ async def test_value_trait_load_bytes():
     import orjson
 
     v = VT1()
-    val = orjson.dumps(v, menubox.pack.json_default_converter)
+    val = orjson.dumps(v, menubox.pack.json_default)
     v2 = VT1(value=val)
     assert v.to_json() == v2.to_json()
 
