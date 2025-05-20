@@ -192,6 +192,15 @@ async def test_value_traits():
     assert vt2vt1.closed, "Should close when parent closes"
 
 
+async def test_value_trait_load_bytes():
+    import orjson
+
+    v = VT1()
+    val = orjson.dumps(v, menubox.pack.json_default_converter)
+    v2 = VT1(value=val)
+    assert v.to_json() == v2.to_json()
+
+
 async def test_vt1_fixed_widget():
     v = VT1(value_traits_persist=["c"])
     assert v.value() == {"c": None}

@@ -377,6 +377,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         Returns:
             A tuple containing the name of the view and the center.
         """
+        # If you encounter a recursion error, add an await call in a subclss override.
         return view, self.views.get(view, None)  # type: ignore
 
     @mb_async.throttle(0.05, tasktype=mb_async.TaskType.update)
@@ -451,13 +452,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self.disable_ihp("header")
         return self.header or self.button_activate
 
-    def refresh_view(self) -> Self:
-        """Refreshes the view by reloading it.
-        Returns:
-            asyncio.Task[str | None]: An asynchronous task that reloads the view
-            and returns either a string or None.
-        """
-        return self.load_view(reload=True)
+    def refresh_view(self, force=False) -> Self:
+        """Refreshes the view by reloading if the view isn't already loading."""
+        if force or not self.task_load_view:
+            self.load_view(reload=True)
+        return self
 
     def get_menu_widgets(self):
         view = self.loading_view if self.loading_view is not NO_DEFAULT else self.view

@@ -190,7 +190,7 @@ class ValueTraits(HasParent, Generic[RP]):
         parent: RP = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
-        value: dict | Callable[[], dict] | None | str = None,
+        value: dict | Callable[[], dict] | None | str | bytes = None,
         **kwargs,
     ):
         """Initializes the ValueTraits object.
@@ -223,14 +223,7 @@ class ValueTraits(HasParent, Generic[RP]):
         for v in (*self.value_traits_persist, *self.value_traits, *self._InstanceHPTuple):
             if v not in vts:
                 vts.append(v)
-        if callable(value):
-            value = value()
-        if isinstance(value, str):
-            value = ruamel.yaml.YAML(typ="safe").load(value)
-        if not isinstance(value, dict):
-            msg = "Expected a dict"
-            raise TypeError(msg)
-        self._init_value = value = dict(value)
+        self._init_value = value = mb.pack.to_dict(value)
         # Extract kwargs that overlap with value_traits/persist in order or vts
         for n in vts:
             name = n

@@ -45,6 +45,11 @@ def json_default_converter(obj, unknown_to_str=False):
 
     json.dumps(my_dict, default=json_default_converter)
     """
+    if isinstance(obj, traitlets.HasTraits):
+        if callable(v := getattr(obj, "_value", None)):
+            return v()
+        if obj.has_trait("value"):
+            return obj.value  # type: ignore
     if isinstance(obj, np.integer):
         return int(obj)
     if isinstance(obj, np.floating):
@@ -60,10 +65,8 @@ def json_default_converter(obj, unknown_to_str=False):
         df.columns = df.columns.astype(str)
         df.index = df.index.astype(str)
         return df.to_dict()
-    if hasattr(obj, "to_dict"):
-        return obj.to_dict()
-    if isinstance(obj, traitlets.HasTraits) and hasattr(obj, "value"):
-        return obj.value  # type: ignore
+    if callable(v := getattr(obj, "to_dict", None)):
+        return v()
     if pd.isna(obj):  # type: ignore
         return None
     if isinstance(obj, pathlib.Path):
@@ -74,6 +77,11 @@ def json_default_converter(obj, unknown_to_str=False):
         while callable(obj):
             obj = obj()
         return obj
+    if isinstance(obj, bytes):
+        try:
+            return orjson.loads(obj)
+        except Exception:
+            return load_yaml(obj)
     if unknown_to_str:
         return str(obj)
     msg = f"Conversion of {utils.fullname(obj)} to json is unknown"
@@ -93,13 +101,23 @@ def to_dict(x) -> dict:
         if not x:
             return {}
         try:
-            val = load_yaml(x)
+            val = orjson.loads(x)
         except Exception:
-            val = ast.literal_eval(x)
+            try:
+                val = load_yaml(x)
+            except Exception:
+                val = ast.literal_eval(x)
         if isinstance(val, dict):
             return val
     if is_no_value(x, include_na=True):
         return {}
+    if isinstance(x, bytes):
+        try:
+            if isinstance(val := orjson.loads(x), dict):
+                return val
+        except Exception:  # noqa: S110
+            pass
+        x = load_yaml(x)
     return dict(x)  # type: ignore
 
 
@@ -126,6 +144,13 @@ def to_list(x) -> list:
         if isinstance(val, (list, tuple, dict)):
             return list(val)
         return [x]
+    if isinstance(x, bytes):
+        try:
+            if isinstance(val := orjson.loads(x), list):
+                return val
+        except Exception:  # noqa: S110
+            pass
+        return to_list(load_yaml(x))
     try:
         return list(x)  # type: ignore
     except Exception:
