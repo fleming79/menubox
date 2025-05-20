@@ -99,14 +99,17 @@ def run_async(
     if not restart and not name:
         msg = "A name must be provided if `restart=False`!"
         raise TypeError(msg)
-    current = get_task(name, obj) if name else None
-    if current:
-        if not restart and not current.cancelling() and not current.done():
-            return current
-        current.cancel(f"Restarting task {name=}")
+    if (
+        (current := get_task(name, obj) if name else None)
+        and not restart
+        and not current.done()
+        and not current.cancelling()
+    ):
+        return current
 
     async def _run_async_wrapper(aw_=aw):
         if current and not current.done():
+            current.cancel(f"Restarting task {name=}")
             await asyncio.wait([current])
         try:
             if callable(aw_):
