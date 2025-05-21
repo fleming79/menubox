@@ -47,7 +47,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
 
-    parent = TF.parent(z(Self, 0), z(type[RP], HasParent)).configure(TF.IHPMode.X__N)
+    parent = TF.parent(z(type[RP], HasParent)).configure(TF.IHPMode.X__N)
 
     header = (
         TF.MenuboxHeader()

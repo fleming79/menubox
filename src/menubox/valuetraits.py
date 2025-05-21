@@ -68,7 +68,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = TF.parent(z(Self, 0), klass=z("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
+    parent = TF.parent(klass=z("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg: TF.InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
 
     @observe("reg")

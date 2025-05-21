@@ -144,10 +144,8 @@ class TF:
 
     @staticmethod
     def parent(
-        z: S,  # noqa: ARG004
-        /,
         klass: type[SS] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[S, SS, SS]:
+    ) -> InstanceHP[S, SS, SS]:  # type: ignore
         """Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent

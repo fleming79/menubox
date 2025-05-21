@@ -66,7 +66,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
-    parent = TF.parent(z(Self, 0), z(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
+    parent = TF.parent(z(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
     tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = TF.Set()
 
     def __repr__(self):
