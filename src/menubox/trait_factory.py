@@ -86,39 +86,39 @@ class TF:
 
     @staticmethod
     def Str(default_value: str = "", /, *, z: S | Any = None) -> InstanceHP[S, str, str]:
-        return InstanceHP(z, klass=str).configure(
+        return InstanceHP(str, z=z).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
     def Bool(default_value: bool, /, *, z: S | Any = None) -> InstanceHP[S, bool, bool]:  # noqa: FBT001
-        return InstanceHP(z, klass=bool).configure(
+        return InstanceHP(bool, z=z).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
     def Int(default_value: int, /, *, z: S | Any = None) -> InstanceHP[S, int, int]:
-        return InstanceHP(z, klass=int).configure(
+        return InstanceHP(int, z=z).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
     def Float(default_value=math.nan, /, *, z: S | Any = None) -> InstanceHP[S, float, float]:
-        return InstanceHP(z, klass=float).configure(
+        return InstanceHP(float, z=z).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
     def Tuple(default_value=(), /, *, z: S | Any = None) -> InstanceHP[S, tuple, tuple]:
-        return InstanceHP(z, klass=tuple).configure(IHPMode.XL__, default_value=default_value)
+        return InstanceHP(tuple, z=z).configure(IHPMode.XL__, default_value=default_value)
 
     @staticmethod
     def Set(*, z: S | Any = None) -> InstanceHP[S, set, set]:
-        return InstanceHP(z, klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
+        return InstanceHP(set, z=z).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
     @staticmethod
     def Dict(*, klass: type[T] = dict, z: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
-        return InstanceHP(z, klass=klass).configure(default_value=klass(), default=lambda _: klass())
+        return InstanceHP(klass, z=z).configure(default_value=klass(), default=lambda _: klass())
 
     # Custom types
 
@@ -140,7 +140,7 @@ class TF:
         ```
         """
         value = value or {}
-        return InstanceHP(z, klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
+        return InstanceHP(dict, default=lambda _: value, z=z).configure(IHPMode.XL__, default_value={})
 
     @staticmethod
     def parent(
@@ -213,7 +213,7 @@ class TF:
     ) -> InstanceHP[S, ipw.Button, ReadOnly[ipw.Button]]:
         "Kwargs are passed to the button init"
         return (
-            InstanceHP(z, klass=ipw.Button)
+            InstanceHP(ipw.Button, z=z)
             .hooks(
                 value_changed=lambda c: c["parent"]._handle_button_change(c, mode),
                 add_css_class=(CSScls.button, css_class),
@@ -289,9 +289,8 @@ class TF:
         **kwargs,
     ):
         return InstanceHP(
-            z,
-            klass=menubox.async_run_button.AsyncRunButton,
-            default=lambda c: menubox.async_run_button.AsyncRunButton(
+            menubox.async_run_button.AsyncRunButton,
+            lambda c: menubox.async_run_button.AsyncRunButton(
                 parent=c["parent"],
                 cfunc=cfunc,
                 description=description,
@@ -305,6 +304,7 @@ class TF:
                 tasktype=tasktype,
                 **kwargs,
             ),
+            z=z,
         )
 
     @staticmethod
@@ -327,9 +327,8 @@ class TF:
         **kwargs,
     ):
         return InstanceHP(
-            z,
-            klass=cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
-            default=lambda c: menubox.Modalbox(
+            cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
+            lambda c: menubox.Modalbox(
                 parent=c["parent"],
                 obj=obj,
                 title=title,
@@ -346,14 +345,14 @@ class TF:
                 orientation=orientation,
                 **kwargs,
             ),
+            z=z,
         )
 
     @staticmethod
     def SelectRepository(z: H):  # type: ignore
         "Requires parent to have a home"
         return InstanceHP(
-            z,
-            klass=cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"),
+            cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"), z=z
         )
 
     @staticmethod

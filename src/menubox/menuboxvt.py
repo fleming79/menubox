@@ -61,7 +61,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = TF.InstanceHP(
-        z(Self, 0), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
+        ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"}), z=z(Self, 0)
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -80,8 +80,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         on_expand=lambda p: p._on_template_controls_expand(),
     ).configure(TF.IHPMode.XLRN)
     text_name = TF.InstanceHP(
-        z(Self, 0),
-        klass=ComboboxValidate,
+        ComboboxValidate,
         default=lambda c: ComboboxValidate(
             validate=c["parent"]._validate_name,
             description="Name",
@@ -89,6 +88,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
             style={"description_width": "initial"},
         ),
+        z=z(Self, 0),
     ).hooks(
         on_set=lambda c: (
             c["parent"].link(source=(c["parent"], "name"), target=(c["obj"], "value")),
@@ -102,12 +102,12 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     description_preview_label = TF.HTML(value="<b>Description preview</b>")
     description = TF.CodeEditor(description="Description", mime_type="text/x-markdown")
     description_viewer = TF.InstanceHP(
-        z(Self, 0),
-        klass=MarkdownOutput,
+        MarkdownOutput,
         default=lambda c: MarkdownOutput(
             layout={"margin": "0px 0px 0px 10px"},
             converter=c["parent"]._convert_description,
         ).add_class(CSScls.resize_vertical),
+        z=z(Self, 0),
     ).hooks(
         on_set=lambda c: c["parent"].dlink(
             source=(c["parent"].description, "value"),

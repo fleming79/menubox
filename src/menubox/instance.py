@@ -148,24 +148,22 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def __new__(  # type: ignore
             cls,
-            z: S = ...,
-            /,
-            *,
             klass: UnionType,
-            default_value: NO_DEFAULT_TYPE | T = ...,
             default: Callable[[IHPCreate[S, T]], T],
+            *,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
+            default_value: NO_DEFAULT_TYPE | T | None = ...,
+            z: S = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
         @overload
         def __new__(  # type: ignore
             cls,
-            z: S = ...,
-            /,
-            *,
             klass: type[T] | str,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
             default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
+            *,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
+            default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+            z: S = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
     def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
@@ -176,13 +174,12 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def __init__(
         self,
-        z: S | Any = None,
-        /,
-        *,
         klass: type[T] | str | UnionType,
-        default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
         default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        *,
         validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        z: S | Any = None,
     ) -> None:
         self._hookmappings = {}
         if not klass:
@@ -709,7 +706,7 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(z, klass=klass, default=lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), z=z)  # type: ignore
         if hooks:
             instance.hooks(**hooks)  # type: ignore
         if tags:

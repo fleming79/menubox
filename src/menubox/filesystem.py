@@ -353,7 +353,7 @@ class RelativePath(Filesystem):
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
-    name = TF.InstanceHP(z(Self, 0), klass=str, default=lambda c: f"{c['parent'].home}")
+    name = TF.InstanceHP(str, default=lambda c: f"{c['parent'].home}", z=z(Self, 0))
     read_only = TF.Bool(True).configure(TF.IHPMode.XLR_)
 
     @override
@@ -363,7 +363,7 @@ class DefaultFilesystem(HasHome, Filesystem):
 
 class HasFilesystem(HasHome):
     filesystem = (
-        TF.InstanceHP(z(Self, 0), klass=Filesystem)
+        TF.InstanceHP(Filesystem, z=z(Self, 0))
         .configure(TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["parent"].home))
         .hooks(on_replace_close=False, set_parent=False)
     )

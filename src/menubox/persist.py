@@ -165,8 +165,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     )
     version_widget = (
         TF.InstanceHP(
-            z(Self, 0),
-            klass=ipw.BoundedIntText,
+            ipw.BoundedIntText,
             default=lambda c: ipw.BoundedIntText(
                 min=1,
                 max=1,
@@ -177,6 +176,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 layout={"width": "130px"},
                 disabled=c["parent"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
             ),
+            z=z(Self, 0),
         )
         .hooks(
             on_set=lambda c: (

@@ -11,21 +11,21 @@ from menubox.trait_factory import TF, z
 
 class PMB(mb.Menubox):
     ab_main = TF.InstanceHP(
-        z(Self, 0),
-        klass=AsyncRunButton,
-        default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
+        AsyncRunButton,
+        lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
+        z=z(Self, 0),
     )
     ab_nested = TF.InstanceHP(
-        z(Self, 0),
-        klass=AsyncRunButton,
+        AsyncRunButton,
         default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
+        z=z(Self, 0),
     )
     ab_nested_sub = TF.InstanceHP(
-        z(Self, 0),
-        klass=AsyncRunButton,
-        default=lambda c: AsyncRunButton(
+        AsyncRunButton,
+        lambda c: AsyncRunButton(
             parent=c["parent"], cfunc=lambda p: p.ab_main, description="Sub button", link_button=True
         ),
+        z=z(Self, 0),
     )
     data = traitlets.Dict()
 

@@ -90,7 +90,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     minimized_children = StrTuple("html_title", "header_right_children")
 
     loading_view = TF.InstanceHP(
-        z(Self, 0), klass=str | None, default=lambda _: defaults.NO_DEFAULT, validate=lambda _, value: value
+        str | None, default=lambda _: defaults.NO_DEFAULT, validate=lambda _, value: value
     ).configure(TF.IHPMode.XLRN)
 
     # Trait instances
@@ -139,7 +139,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_shuffle = TF.MenuboxShuffle().configure(TF.IHPMode.XL__)
     box_menu = TF.MenuboxMenu().configure(TF.IHPMode.X__N)
     showbox = (
-        TF.InstanceHP(z(Self, 0), klass=ipw.Box)
+        TF.InstanceHP(ipw.Box)
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
         .configure(TF.IHPMode.X__N)
     )
