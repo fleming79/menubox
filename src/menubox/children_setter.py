@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import override
+from typing import ClassVar, override
 
 from ipywidgets import Box
 from traitlets import Tuple, Unicode
@@ -15,7 +15,7 @@ class ChildrenSetter(ValueTraits):
 
     SINGLE_BY = ("parent", "name")
     _AUTO_VALUE = False
-    _prohibited_value_traits = set()  # noqa: RUF012
+    _prohibited_value_traits: ClassVar = set()
     dottednames = Tuple(read_only=True)
     nametuple_name = Unicode(help="The name in the parent of a tuple to obtain the dotted names")
     parent_dlink = NameTuple("log")
