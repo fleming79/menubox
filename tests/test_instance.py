@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import gc
 import weakref
-from typing import Self
+from typing import Self, cast
 
 import ipywidgets as ipw
 import pytest
@@ -13,7 +13,7 @@ import menubox as mb
 from menubox.hashome import HasHome
 from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP, instanceHP_wrapper
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
@@ -36,8 +36,8 @@ class HPI(mb.Menubox):
 class HPI2(HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(TF.IHPMode.XLRN)
-    select_repository = TF.SelectRepository(z(Self, 0))
-    button = TF.AsyncRunButton(z(Self, 0), cfunc=lambda p: p._button_async)
+    select_repository = TF.SelectRepository(cast(Self, 0))
+    button = TF.AsyncRunButton(cast(Self, 0), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     async def _button_async(self):
@@ -143,7 +143,7 @@ class TestInstance:
                 str | int,
                 lambda _: 2,
                 validate=lambda _, value: min(value, 10) if isinstance(value, int) else value,
-                z=z(Self, 0),
+                owner=cast(Self, 0),
             )
 
         obj = TestUnion()

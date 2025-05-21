@@ -6,7 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, override
+from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
 import anyio
 import docstring_to_markdown
@@ -20,7 +20,7 @@ from menubox import defaults, log, mb_async, utils
 from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _mb_configured = False
     _Menubox_init_complete = False
 
-    parent = TF.parent(z(type[RP], HasParent)).configure(TF.IHPMode.X__N)
+    parent = TF.parent(cast(type[RP], HasParent)).configure(TF.IHPMode.X__N)
 
     # Traits
     show_help = TF.Bool(False)
@@ -69,8 +69,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
     tabviews = StrTuple()
     css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view_active.")
 
-    views = TF.ViewDict(z(Self, 0)).configure(TF.IHPMode.XL__)
-    shuffle_button_views = TF.ViewDict(z(Self, 0)).configure(TF.IHPMode.XL__)
+    views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
+    shuffle_button_views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
 
     border = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
     view = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
@@ -107,33 +107,33 @@ class Menubox(HasParent, Panel, Generic[RP]):
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
-    button_menu = TF.Button(z(Self, 0), TF.CSScls.button_menu, description="☰").configure(TF.IHPMode.X__N)
-    button_toggleview = TF.Button(z(Self, 0), TF.CSScls.button_menu, description="➱").configure(TF.IHPMode.X__N)
-    button_help = TF.Button(z(Self, 0), TF.CSScls.button_open, description="❔").configure(TF.IHPMode.X__N)
-    button_close = TF.Button(z(Self, 0), TF.CSScls.button_dangerous, description="✗", tooltip="Close").configure(
+    button_menu = TF.Button(cast(Self, 0), TF.CSScls.button_menu, description="☰").configure(TF.IHPMode.X__N)
+    button_toggleview = TF.Button(cast(Self, 0), TF.CSScls.button_menu, description="➱").configure(TF.IHPMode.X__N)
+    button_help = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="❔").configure(TF.IHPMode.X__N)
+    button_close = TF.Button(cast(Self, 0), TF.CSScls.button_dangerous, description="✗", tooltip="Close").configure(
         TF.IHPMode.X__N
     )
-    button_minimize = TF.Button(z(Self, 0), TF.CSScls.button_open, description="🗕", tooltip="Minimize").configure(
+    button_minimize = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="🗕", tooltip="Minimize").configure(
         TF.IHPMode.X__N
     )
-    button_maximize = TF.Button(z(Self, 0), TF.CSScls.button_open, description="🗖", tooltip="Restore").configure(
+    button_maximize = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="🗖", tooltip="Restore").configure(
         TF.IHPMode.X__N
     )
-    button_exit = TF.Button(z(Self, 0), TF.CSScls.button_open, description="⇡", tooltip="Leave showbox").configure(
+    button_exit = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="⇡", tooltip="Leave showbox").configure(
         TF.IHPMode.X__N
     )
-    button_promote = TF.Button(z(Self, 0), TF.CSScls.button_open, description="⇖", tooltip="Shift up / left").configure(
-        TF.IHPMode.X__N
-    )
-    button_demote = TF.Button(
-        z(Self, 0), TF.CSScls.button_open, description="⇘", tooltip="Shift down / right"
+    button_promote = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, description="⇖", tooltip="Shift up / left"
     ).configure(TF.IHPMode.X__N)
-    button_menu_minimize = TF.Button(z(Self, 0), TF.CSScls.button_menu, description="↤", tooltip="Hide menu").configure(
-        TF.IHPMode.X__N
-    )
-    button_activate = TF.Button(z(Self, 0), TF.CSScls.button_open, description="🐑", tooltip="Add to shell").configure(
-        TF.IHPMode.X__N
-    )
+    button_demote = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, description="⇘", tooltip="Shift down / right"
+    ).configure(TF.IHPMode.X__N)
+    button_menu_minimize = TF.Button(
+        cast(Self, 0), TF.CSScls.button_menu, description="↤", tooltip="Hide menu"
+    ).configure(TF.IHPMode.X__N)
+    button_activate = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, description="🐑", tooltip="Add to shell"
+    ).configure(TF.IHPMode.X__N)
 
     # Boxes
     box_shuffle = TF.MenuboxShuffle().configure(TF.IHPMode.XL__)
@@ -851,7 +851,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
     widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_R_)
-    views = TF.ViewDict(z(Self, 0), {"widget": lambda p: p.widget})
+    views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
     def __init__(self, widget: ipw.Widget):

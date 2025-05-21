@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import pathlib
 import re
-from typing import TYPE_CHECKING, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, cast, override
 
 import psutil
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
@@ -12,7 +12,7 @@ from menubox import defaults, mb_async, utils
 from menubox.hashome import HasHome, Home
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import to_dict, to_json_dict
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -46,11 +46,11 @@ class Filesystem(MenuboxVT):
     minimized_children = StrTuple("url")
     value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
     value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
-    views = TF.ViewDict(z(Self, 0), {"Main": lambda p: p.prev_protocol})
+    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.prev_protocol})
     html_info = TF.HTML()
 
     protocol = TF.Dropdown(
-        z(Self, 0),
+        cast(Self, 0),
         description="protocol",
         value="file",
         options=sorted(available_protocols()),
@@ -69,7 +69,7 @@ class Filesystem(MenuboxVT):
     )
     drive = (
         TF.Dropdown(
-            z(Self, 0),
+            cast(Self, 0),
             value=None,
             tooltip="Change drive",
             layout={"width": "max-content"},
@@ -101,7 +101,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
     )
     button_update = TF.AsyncRunButton(
-        z(Self, 0),
+        cast(Self, 0),
         cfunc=lambda p: p._button_update_async,
         description="↻",
         cancel_description="✗",
@@ -118,7 +118,7 @@ class Filesystem(MenuboxVT):
         description="✚",
         tooltip="Create new file or folder",
     )
-    box_settings = TF.HBox(z(Self, 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
+    box_settings = TF.HBox(cast(Self, 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children=lambda p: (p.protocol, p.kw),
     )
     control_widgets = TF.HBox(layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
@@ -313,7 +313,7 @@ class RelativePath(Filesystem):
     """A relative filesystem"""
 
     folders_only = TF.Bool(False)
-    box_settings = TF.HBox(z(Self, 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
+    box_settings = TF.HBox(cast(Self, 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
         set_children=lambda p: (p.relative_path,)
     )
     relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
@@ -353,7 +353,7 @@ class RelativePath(Filesystem):
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
-    name = TF.InstanceHP(str, default=lambda c: f"{c['parent'].home}", z=z(Self, 0))
+    name = TF.InstanceHP(str, default=lambda c: f"{c['parent'].home}", owner=cast(Self, 0))
     read_only = TF.Bool(True).configure(TF.IHPMode.XLR_)
 
     @override
@@ -363,7 +363,7 @@ class DefaultFilesystem(HasHome, Filesystem):
 
 class HasFilesystem(HasHome):
     filesystem = (
-        TF.InstanceHP(Filesystem, z=z(Self, 0))
+        TF.InstanceHP(Filesystem, owner=cast(Self, 0))
         .configure(TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["parent"].home))
         .hooks(on_replace_close=False, set_parent=False)
     )

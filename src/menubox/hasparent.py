@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import functools
 import weakref
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -18,7 +18,7 @@ import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 
 if TYPE_CHECKING:
@@ -66,7 +66,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
-    parent = TF.parent(z(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
+    parent = TF.parent(cast(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
     tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = TF.Set()
 
     def __repr__(self):

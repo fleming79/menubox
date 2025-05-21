@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import enum
-from typing import TYPE_CHECKING, ClassVar, Generic, Self, final, override
+from typing import TYPE_CHECKING, ClassVar, Generic, Self, cast, final, override
 
 import ipywidgets as ipw
 import pandas as pd
@@ -16,7 +16,7 @@ from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import MP, ChangeType, S, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
@@ -125,7 +125,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     AUTOLOAD = True
     ASK_SAVE = True
-    PERSIST_MODE: ClassVar = z(MenuboxPersistMode, MenuboxPersistMode.by_classname_name)
+    PERSIST_MODE: ClassVar = cast(MenuboxPersistMode, MenuboxPersistMode.by_classname_name)
     SHOW_TEMPLATE_CONTROLS = True
     DEFAULT_VIEW = None
     _mbp_async_init_complete = False
@@ -137,7 +137,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     versions = TypedTuple(traitlets.Int())
     saved_timestamp = traitlets.Unicode()
     menu_load_index = TF.Modalbox(
-        z(Self, 0),
+        cast(Self, 0),
         obj=lambda p: p._get_version_box(),
         title="Persistence",
         button_expand_description="⇵",
@@ -146,7 +146,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         TF.IHPMode.XLRN,
     )
     sw_version_load = TF.Dropdown(
-        z(Self, 0),
+        cast(Self, 0),
         description="Load from",
         index=None,
         layout={"width": "max-content"},
@@ -157,7 +157,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         ),
     )
     button_save_persistence_data = TF.AsyncRunButton(
-        z(Self, 0),
+        cast(Self, 0),
         cfunc=lambda p: p._button_save_persistence_data_async,
         description="💾",
         tooltip="Save persistence data for current version",
@@ -176,7 +176,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 layout={"width": "130px"},
                 disabled=c["parent"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
             ),
-            z=z(Self, 0),
+            owner=cast(Self, 0),
         )
         .hooks(
             on_set=lambda c: (
@@ -563,7 +563,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         set_parent=True,
         close_on_remove=False,
     )
-    obj_name = TF.Combobox(z(Self, 0), placeholder="Enter name or select existing", continuous_update=True).hooks(
+    obj_name = TF.Combobox(cast(Self, 0), placeholder="Enter name or select existing", continuous_update=True).hooks(
         on_set=lambda c: (
             c["parent"].update_names(),
             c["parent"].dlink(source=(c["parent"], "names"), target=(c["obj"], "options")),
@@ -574,9 +574,9 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     html_info = TF.HTML()
     info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
     button_update_names = TF.Button(description="↻", tooltip="Update options")
-    box_main = TF.HBox(z(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
+    box_main = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None
-    views = TF.ViewDict(z(Self, 0), {"Main": lambda p: p.box_main})
+    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.box_main})
 
     @override
     @classmethod

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, cast, override
 
 import ipylab
 import ipywidgets as ipw
@@ -13,7 +13,7 @@ from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
@@ -47,7 +47,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
 
-    parent = TF.parent(z(type[RP], HasParent)).configure(TF.IHPMode.X__N)
+    parent = TF.parent(cast(type[RP], HasParent)).configure(TF.IHPMode.X__N)
 
     header = (
         TF.MenuboxHeader()
@@ -61,7 +61,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = TF.InstanceHP(
-        ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"}), z=z(Self, 0)
+        ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"}), owner=cast(Self, 0)
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -72,7 +72,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     template_controls = TF.Modalbox(
-        z(Self, 0),
+        cast(Self, 0),
         obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
         button_expand_description="📜",
@@ -88,7 +88,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
             style={"description_width": "initial"},
         ),
-        z=z(Self, 0),
+        owner=cast(Self, 0),
     ).hooks(
         on_set=lambda c: (
             c["parent"].link(source=(c["parent"], "name"), target=(c["obj"], "value")),
@@ -107,7 +107,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             layout={"margin": "0px 0px 0px 10px"},
             converter=c["parent"]._convert_description,
         ).add_class(CSScls.resize_vertical),
-        z=z(Self, 0),
+        owner=cast(Self, 0),
     ).hooks(
         on_set=lambda c: c["parent"].dlink(
             source=(c["parent"].description, "value"),
@@ -115,7 +115,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        TF.Button(z(Self, 0), TF.CSScls.button_open, tooltip="Configure")
+        TF.Button(cast(Self, 0), TF.CSScls.button_open, tooltip="Configure")
         .hooks(
             on_set=lambda c: c["parent"].dlink(
                 source=(c["parent"], "view"),
@@ -126,10 +126,10 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         .configure(TF.IHPMode.X_RN)
     )
     button_clip_put = TF.Button(
-        z(Self, 0), TF.CSScls.button_open, description="📎", tooltip="Copy settings to clipboard"
+        cast(Self, 0), TF.CSScls.button_open, description="📎", tooltip="Copy settings to clipboard"
     )
     button_paste = TF.Button(
-        z(Self, 0), TF.CSScls.button_open, description="📋", tooltip="Paste settings from clipboard\n"
+        cast(Self, 0), TF.CSScls.button_open, description="📋", tooltip="Paste settings from clipboard\n"
     )
     _button_load_template = TF.Button(
         description="Load",

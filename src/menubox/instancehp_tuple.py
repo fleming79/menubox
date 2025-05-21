@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Generic, NotRequired, Unpack, cast
+from typing import TYPE_CHECKING, Any, Generic, NotRequired, Self, Unpack, cast
 
 from ipywidgets import Widget
 from mergedeep import Strategy, merge
@@ -18,7 +18,7 @@ from menubox.valuetraits import ValueTraits
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
-    from typing import Self
+    from typing import Self, cast
 
     from menubox.trait_types import ChangeType
 
@@ -118,7 +118,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
-        super().__init__(klass or trait.klass, default, z=cast(V, 0))  # type: ignore
+        super().__init__(klass or trait.klass, default, owner=cast(V, 0))  # type: ignore
         self._factory = factory
         self.read_only = read_only
         self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = weakref.WeakKeyDictionary()  # type: ignore

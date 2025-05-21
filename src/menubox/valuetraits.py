@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, overload, override
 
 import orjson
 import ruamel.yaml
@@ -14,7 +14,7 @@ import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent
 from menubox.pack import json_default, to_yaml
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, ReadOnly
 
 if TYPE_CHECKING:
@@ -68,7 +68,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = TF.parent(klass=z("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
+    parent = TF.parent(klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg: TF.InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
 
     @observe("reg")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Generic, Literal
+from typing import TYPE_CHECKING, Generic, Literal, cast
 
 import ipywidgets as ipw
 import traitlets
@@ -10,7 +10,7 @@ from menubox import hasparent, mb_async, utils
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import S
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     description = traitlets.Unicode(read_only=True).tag(sync=True)
     task = TF.Task()
 
-    parent = TF.parent(z(type[S], HasParent))
+    parent = TF.parent(cast(type[S], HasParent))
 
     def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
         return super().__new__(cls, parent=parent, cfunc=cfunc, **kwargs)

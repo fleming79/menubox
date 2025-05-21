@@ -127,7 +127,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     Type hints:
     -----------
     Option 1:
-        Pass `z(Self, 0)` as the first argument to enable type hinting
+        Pass `cast(Self, 0)` as the first argument to enable type hinting
         access to the parent class.
     Option 2:
         Define both types on the class with InstanceHP[Self, Klass, SetType]
@@ -153,7 +153,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             *,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = ...,
-            z: S = ...,
+            owner: S = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
         @overload
         def __new__(  # type: ignore
@@ -163,7 +163,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             *,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-            z: S = ...,
+            owner: S = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
     def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
@@ -179,7 +179,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         *,
         validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
         default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        z: S | Any = None,
+        owner: S | Any = None,
     ) -> None:
         self._hookmappings = {}
         if not klass:
@@ -689,7 +689,7 @@ def instanceHP_wrapper(
     tags = dict(tags) if tags else {}  # type: ignore
 
     def instanceHP_factory(
-        z: SS | Any = None,
+        cast: SS | Any = None,
         /,
         *args: P.args,
         **kwgs: P.kwargs,
@@ -700,13 +700,13 @@ def instanceHP_wrapper(
 
         Specify *args and **kwgs to pass when creating the 'default' (when the trait default is requested).
 
-        z: Provided specifically for type checking. use: `c(Self, c)`
+        cast: Provided specifically for type checking. use: `c(Self, c)`
 
         Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), z=z)  # type: ignore
+        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), owner=cast)  # type: ignore
         if hooks:
             instance.hooks(**hooks)  # type: ignore
         if tags:

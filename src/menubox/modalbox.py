@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, Self, override
+from typing import TYPE_CHECKING, Any, Generic, Self, cast, override
 
 import ipywidgets as ipw
 import traitlets
@@ -9,7 +9,7 @@ from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
-from menubox.trait_factory import TF, z
+from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, GetWidgetsInputType, S, StrTuple
 
 if TYPE_CHECKING:
@@ -20,14 +20,14 @@ __all__ = ["Modalbox"]
 
 class Modalbox(HasParent, ipw.VBox, Generic[S]):
     obj = traitlets.Callable(read_only=True)
-    button_expand = TF.Button(z(Self, 0), TF.CSScls.button_modal)
-    button_collapse = TF.Button(z(Self, 0), TF.CSScls.button_modal, disabled=True)
+    button_expand = TF.Button(cast(Self, 0), TF.CSScls.button_modal)
+    button_collapse = TF.Button(cast(Self, 0), TF.CSScls.button_modal, disabled=True)
     expanded = traitlets.Bool(False, read_only=True)
     html_title = TF.HTML_Title()
     header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
-    parent = TF.parent(z(type[S], HasParent))
+    parent = TF.parent(cast(type[S], HasParent))
 
     @log_exceptions
     def __init__(
