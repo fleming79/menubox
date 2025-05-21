@@ -144,10 +144,10 @@ class TF:
 
     @staticmethod
     def parent(
-        z: S | Any = None,  # noqa: ARG004
+        z: S,  # noqa: ARG004
         /,
         klass: type[SS] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[S, SS | None, SS | None]:
+    ) -> InstanceHP[S, SS, SS]:
         """Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent
@@ -157,17 +157,17 @@ class TF:
             if not value:
                 return None
             p = value
-            while p is not None and p.trait_has_value("parent"):
+            while p is not None:
                 if p is obj:
                     msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
                     raise traitlets.TraitError(msg)
-                p = p.parent  # type: ignore
+                p = p.parent if p.trait_has_value("parent") else None
             return value
 
         return (
             InstanceHP(klass=klass, default=lambda _: None, validate=validate_parent)
             .hooks(set_parent=False, on_replace_close=False, remove_on_close=False)
-            .configure(IHPMode.X__N)
+            .configure(IHPMode.X___)
         )  # type: ignore
 
     # Ipywidgets shortcuts

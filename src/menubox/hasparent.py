@@ -66,7 +66,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
-    parent = TF.parent(z(Self, 0), z(type[RP], "menubox.hasparent.HasParent"))
+    parent = TF.parent(z(Self, 0), z(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
     tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = TF.Set()
 
     def __repr__(self):
@@ -75,7 +75,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
-    def __init__(self, *, parent: RP = None, **kwargs):
+    def __init__(self, *, parent: RP | None = None, **kwargs):
         """Initialize the HasParent class.
 
         Args:
@@ -92,7 +92,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
         super().__init__(**kwargs)
-        self.parent = parent
+        if parent:
+            self.parent = parent
         # Requires a running event loop.
         self._init_async_task = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)
 

@@ -319,8 +319,7 @@ class RelativePath(Filesystem):
     relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()
-    if TYPE_CHECKING:
-        parent: TF.InstanceHP[Self, Filesystem, Filesystem]
+    parent = TF.parent(z(Self, 0), klass=Filesystem)
 
     def __new__(cls, parent: Filesystem, **kwargs) -> Self:
         return super().__new__(cls, parent=parent, **kwargs)

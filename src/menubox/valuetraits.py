@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, overload, override
 
 import orjson
 import ruamel.yaml
@@ -84,7 +84,7 @@ class _InstanceHPTupleRegister(HasParent):
             pass
 
 
-class ValueTraits(HasParent, Generic[RP]):
+class ValueTraits(HasParent):
     """ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
 
@@ -134,9 +134,9 @@ class ValueTraits(HasParent, Generic[RP]):
     value_traits_persist = NameTuple()
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
+
     if TYPE_CHECKING:
         json_default: Callable
-        parent: TF.InstanceHP[Self, RP, RP]
 
     @contextlib.contextmanager
     def ignore_change(self):
@@ -187,7 +187,7 @@ class ValueTraits(HasParent, Generic[RP]):
     def __init__(
         self,
         *,
-        parent: RP = None,
+        parent: RP = None,  # type: ignore
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str | bytes = None,

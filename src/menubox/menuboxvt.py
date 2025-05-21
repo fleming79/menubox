@@ -10,6 +10,7 @@ import traitlets
 import menubox as mb
 from menubox import utils
 from menubox.css import CSScls
+from menubox.hasparent import HasParent
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_factory import TF, z
@@ -46,8 +47,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
 
-    if TYPE_CHECKING:
-        parent: TF.InstanceHP[Self, RP, RP]
+    parent = TF.parent(z(Self, 0), z(type[RP], HasParent)).configure(TF.IHPMode.X__N)
 
     header = (
         TF.MenuboxHeader()

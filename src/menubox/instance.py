@@ -148,25 +148,25 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def __new__(  # type: ignore
             cls,
-            z: S | Any = None,
+            z: S = ...,
             /,
             *,
             klass: UnionType,
-            default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
+            default_value: NO_DEFAULT_TYPE | T = ...,
             default: Callable[[IHPCreate[S, T]], T],
-            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
-        ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
+        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
         @overload
         def __new__(  # type: ignore
             cls,
-            z: S | Any = None,
+            z: S = ...,
             /,
             *,
             klass: type[T] | str,
             default_value: NO_DEFAULT_TYPE | T = NO_DEFAULT,
-            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
-            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
-        ) -> InstanceHP[S, T, ReadOnly[Any]]: ...
+            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
+        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
     def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
         if self.read_only:
@@ -598,7 +598,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @staticmethod
     def _set_parent_hook(c: IHPChange[S, T]):
-        if c["ihp"]._hookmappings.get("set_parent"):
+        if (not c["parent"].closed) and c["ihp"]._hookmappings.get("set_parent"):
             if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
                 c["old"].parent = None  # type: ignore
             if isinstance(c["new"], mhp.HasParent) and not c["parent"].closed:

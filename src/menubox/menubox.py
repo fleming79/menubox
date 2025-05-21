@@ -59,8 +59,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _mb_configured = False
     _Menubox_init_complete = False
 
-    if TYPE_CHECKING:
-        parent: TF.InstanceHP[Self, RP, RP]
+    parent = TF.parent(z(Self, 0), z(type[RP], HasParent)).configure(TF.IHPMode.X__N)
 
     # Traits
     show_help = TF.Bool(False)
