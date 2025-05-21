@@ -84,46 +84,46 @@ class TF:
     # Basic types
 
     @staticmethod
-    def Str(default_value: str = "", /, *, owner: S | Any = None) -> InstanceHP[S, str, str]:
-        return InstanceHP(str, owner=owner).configure(
+    def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str, str]:
+        return InstanceHP(str, co_=co_).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Bool(default_value: bool, /, *, owner: S | Any = None) -> InstanceHP[S, bool, bool]:  # noqa: FBT001
-        return InstanceHP(bool, owner=owner).configure(
+    def Bool(default_value: bool, /, *, co_: S | Any = None) -> InstanceHP[S, bool, bool]:  # noqa: FBT001
+        return InstanceHP(bool, co_=co_).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Int(default_value: int, /, *, owner: S | Any = None) -> InstanceHP[S, int, int]:
-        return InstanceHP(int, owner=owner).configure(
+    def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int, int]:
+        return InstanceHP(int, co_=co_).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Float(default_value=math.nan, /, *, owner: S | Any = None) -> InstanceHP[S, float, float]:
-        return InstanceHP(float, owner=owner).configure(
+    def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float, float]:
+        return InstanceHP(float, co_=co_).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Tuple(default_value=(), /, *, owner: S | Any = None) -> InstanceHP[S, tuple, tuple]:
-        return InstanceHP(tuple, owner=owner).configure(IHPMode.XL__, default_value=default_value)
+    def Tuple(default_value=(), /, *, co_: S | Any = None) -> InstanceHP[S, tuple, tuple]:
+        return InstanceHP(tuple, co_=co_).configure(IHPMode.XL__, default_value=default_value)
 
     @staticmethod
-    def Set(*, owner: S | Any = None) -> InstanceHP[S, set, set]:
-        return InstanceHP(set, owner=owner).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
+    def Set(*, co_: S | Any = None) -> InstanceHP[S, set, set]:
+        return InstanceHP(set, co_=co_).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
     @staticmethod
-    def Dict(*, klass: type[T] = dict, owner: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
-        return InstanceHP(klass, owner=owner).configure(default_value=klass(), default=lambda _: klass())
+    def Dict(*, klass: type[T] = dict, co_: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
+        return InstanceHP(klass, co_=co_).configure(default_value=klass(), default=lambda _: klass())
 
     # Custom types
 
     @staticmethod
     def ViewDict(
-        owner: S | Any = None, value: ViewDictType[S] | None = None, /
+        co_: S | Any = None, value: ViewDictType[S] | None = None, /
     ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
         """A function to generate an InstanceHP trait.
 
@@ -139,7 +139,7 @@ class TF:
         ```
         """
         value = value or {}
-        return InstanceHP(dict, default=lambda _: value, owner=owner).configure(IHPMode.XL__, default_value={})
+        return InstanceHP(dict, default=lambda _: value, co_=co_).configure(IHPMode.XL__, default_value={})
 
     @staticmethod
     def parent(
@@ -205,11 +205,11 @@ class TF:
 
     @staticmethod
     def Button(
-        owner: S | Any = None, css_class=CSScls.button_main, mode=ButtonMode.restart, **kwargs
+        co_: S | Any = None, css_class=CSScls.button_main, mode=ButtonMode.restart, **kwargs
     ) -> InstanceHP[S, ipw.Button, ReadOnly[ipw.Button]]:
         "Kwargs are passed to the button init"
         return (
-            InstanceHP(ipw.Button, owner=owner)
+            InstanceHP(ipw.Button, co_=co_)
             .hooks(
                 value_changed=lambda c: c["owner"]._handle_button_change(c, mode),
                 add_css_class=(CSScls.button, css_class),
@@ -270,7 +270,7 @@ class TF:
 
     @staticmethod
     def AsyncRunButton(
-        owner: S,
+        co_: S,
         /,
         cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
         description="Start",
@@ -300,12 +300,12 @@ class TF:
                 tasktype=tasktype,
                 **kwargs,
             ),
-            owner=owner,
+            co_=co_,
         )
 
     @staticmethod
     def Modalbox(
-        owner: S,
+        co_: S,
         /,
         obj: Callable[[S], GetWidgetsInputType[S]],
         title: str,
@@ -341,14 +341,14 @@ class TF:
                 orientation=orientation,
                 **kwargs,
             ),
-            owner=owner,
+            co_=co_,
         )
 
     @staticmethod
-    def SelectRepository(owner: H):  # type: ignore
+    def SelectRepository(co_: H, /):  # type: ignore
         "Requires parent to have a home"
         return InstanceHP(
-            cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"), owner=owner
+            cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"), co_=co_
         )
 
     @staticmethod
@@ -357,7 +357,8 @@ class TF:
 
     @staticmethod
     def MenuboxPersistPool(
-        owner: H,  # noqa: ARG004
+        co_: H,  # noqa: ARG004
+        /,
         obj_cls: type[MP] | str,
         factory: Callable[[IHPCreate], MP] | None = None,
         **kwgs,

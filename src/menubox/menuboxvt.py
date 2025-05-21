@@ -61,7 +61,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = TF.InstanceHP(
-        ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"}), owner=cast(Self, 0)
+        ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"}), co_=cast(Self, 0)
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -88,7 +88,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
             style={"description_width": "initial"},
         ),
-        owner=cast(Self, 0),
+        co_=cast(Self, 0),
     ).hooks(
         on_set=lambda c: (
             c["owner"].link(source=(c["owner"], "name"), target=(c["obj"], "value")),
@@ -107,7 +107,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             layout={"margin": "0px 0px 0px 10px"},
             converter=c["owner"]._convert_description,
         ).add_class(CSScls.resize_vertical),
-        owner=cast(Self, 0),
+        co_=cast(Self, 0),
     ).hooks(
         on_set=lambda c: c["owner"].dlink(
             source=(c["owner"].description, "value"),

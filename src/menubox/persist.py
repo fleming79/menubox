@@ -176,7 +176,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 layout={"width": "130px"},
                 disabled=c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
             ),
-            owner=cast(Self, 0),
+            co_=cast(Self, 0),
         )
         .hooks(
             on_set=lambda c: (

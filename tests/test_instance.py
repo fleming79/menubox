@@ -143,7 +143,7 @@ class TestInstance:
                 str | int,
                 lambda _: 2,
                 validate=lambda _, value: min(value, 10) if isinstance(value, int) else value,
-                owner=cast(Self, 0),
+                co_=cast(Self, 0),
             )
 
         obj = TestUnion()

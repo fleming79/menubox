@@ -118,7 +118,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
-        super().__init__(klass or trait.klass, default, owner=cast(V, 0))  # type: ignore
+        super().__init__(klass or trait.klass, default, co_=cast(V, 0))  # type: ignore
         self._factory = factory
         self.read_only = read_only
         self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = weakref.WeakKeyDictionary()  # type: ignore

@@ -113,6 +113,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     are created and managed as traits within a `HasParent` object. It supports
     lazy instantiation, default value loading, and allows customization through
     plugin hooks.
+
     Attributes:
         klass: The class to be managed. Can be a class type or a string
             representing the full path to the class.
@@ -124,6 +125,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         create: An optional callable that is used to create the instance.
         settings: A dictionary to store settings related to the instance.
         info_text: A property that returns a string describing the instance type.
+        `co_`: Pass `co_=cast(Self, 0)` during init to provide extended type hinting for 'owner'.
 
     Type hints:
     -----------
@@ -154,7 +156,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             *,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = ...,
-            owner: S = ...,
+            co_: S = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
         @overload
         def __new__(  # type: ignore
@@ -164,7 +166,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             *,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-            owner: S = ...,
+            co_: S = ...,
         ) -> InstanceHP[S, T, ReadOnly[T]]: ...
 
     def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
@@ -180,7 +182,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         *,
         validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
         default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
-        owner: S | Any = None,
+        co_: S | Any = None,
     ) -> None:
         self._hookmappings = {}
         if not klass:
@@ -710,7 +712,7 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), owner=cast)  # type: ignore
+        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), co_=cast)  # type: ignore
         if hooks:
             instance.hooks(**hooks)  # type: ignore
         if tags:
