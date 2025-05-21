@@ -15,6 +15,7 @@ from typing import (
     Self,
     TypedDict,
     Unpack,
+    cast,
     overload,
     override,
 )
@@ -327,7 +328,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         new_value = self._validate(obj, value)
         if self._set_parent and isinstance(value, mhp.HasParent):
             # Do this early in case the parent is invalid.
-            value.set_trait("parent", obj)
+            value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
             if obj.SINGLE_BY and self.name in obj.SINGLE_BY and new_value not in obj.single_key:
@@ -344,8 +345,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             old_value = self.default_value
         obj._trait_values[self.name] = new_value
         if not obj.check_equality(old_value, new_value):
+            change = Bunched(name=self.name, old=old_value, new=new_value, owner=obj, type="change", ihp=self)
             try:
-                self._value_changed(obj, old_value, new_value)
+                self._value_changed(cast(IHPChange, change))
             except Exception as e:
                 obj.on_error(e, f"Instance configuration error for {self!r}.")
             obj._notify_trait(self.name, old_value, new_value)
@@ -368,8 +370,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             obj._trait_values[self.name] = value  # type: ignore
             dv = self.default_value
             if not obj.check_equality(value, dv):
-                self._value_changed(obj, dv, value)
-                obj._notify_observers(Bunched(name=self.name, old=dv, new=value, owner=obj, type="change"))
+                change = Bunched(name=self.name, old=dv, new=value, owner=obj, type="change", ihp=self)
+                self._value_changed(cast(IHPChange, change))
+                obj._notify_observers(change)
             return value  # type: ignore
         except Exception as e:
             # This should never be reached.
@@ -455,9 +458,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             return value
         self.error(obj, value)  # noqa: RET503
 
-    def _value_changed(self, owner: S, old: T | None, new: T | None):
+    def _value_changed(self, change: IHPChange[S, T]):
         if hookmappings := self._hookmappings:
-            change = IHPChange(name=self.name, owner=owner, old=old, new=new, ihp=self)
             for hookname in hookmappings:
                 if hook := self._change_hooks.get(hookname):
                     try:
@@ -466,11 +468,12 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                         if "pytest" in sys.modules:
                             # If debugging import `pytest` to make this repeatable
                             raise
-                        owner.on_error(e, f"Hook error for {self!r} {hook=}")
+                        change["owner"].on_error(e, f"Hook error for {self!r} {hook=}")
 
     def _on_obj_close(self, obj: S):
         if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
-            self._value_changed(obj, old, self.default_value)  # type: ignore
+            change = Bunched(name=self.name, old=old, new=self.default_value, owner=obj, type="change", ihp=self)
+            self._value_changed(cast(IHPChange, change))
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
         """Configure what hooks to use when the instance value changes.
@@ -539,19 +542,20 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 pass
 
         if isinstance(c["new"], mhp.HasParent | Widget):
-            parent_ref = weakref.ref(c["owner"])
-            inst = c["ihp"]
+            owner_ref = weakref.ref(c["owner"])
+            ihp = c["ihp"]
 
             def _observe_closed(change: mb.ChangeType):
                 # If the c["owner"] has closed, remove it from c["owner"] if appropriate.
-                parent = parent_ref()
+                owner = owner_ref()
                 cname, value = change["name"], change["new"]
                 if (
-                    parent
+                    owner
                     and ((cname == "closed" and value) or (cname == "comm" and not value))
-                    and parent._trait_values.get(inst.name) is change["owner"]
-                ) and (old := parent._trait_values.pop(inst.name, None)):
-                    inst._value_changed(parent, old, None)
+                    and owner._trait_values.get(ihp.name) is change["owner"]
+                ) and (old := owner._trait_values.pop(ihp.name, None)):
+                    change_ = Bunched(name=ihp.name, old=old, new=None, owner=owner, type="change", ihp=ihp)
+                    ihp._value_changed(cast(IHPChange, change_))
 
             names = "closed" if isinstance(c["new"], mhp.HasParent) else "comm"
             c["new"].observe(_observe_closed, names)
