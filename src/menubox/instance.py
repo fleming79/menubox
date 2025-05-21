@@ -148,7 +148,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def __new__(  # type: ignore
             cls,
-            cast_self: S | int = 0,
+            cast_self: S | Any = 0,
             /,
             *,
             klass: UnionType,
@@ -159,7 +159,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def __new__(  # type: ignore
             cls,
-            cast_self: S | int = 0,
+            cast_self: S | Any = 0,
             /,
             *,
             klass: type[T] | str,
@@ -176,7 +176,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def __init__(
         self,
-        cast_self: S | int = 0,
+        cast_self: S | Any = 0,
         /,
         *,
         klass: type[T] | str | UnionType,
@@ -692,7 +692,7 @@ def instanceHP_wrapper(
     tags = dict(tags) if tags else {}  # type: ignore
 
     def instanceHP_factory(
-        cast_self: SS | int = 0,  # noqa: ARG001
+        cast_self: SS | Any = 0,  # noqa: ARG001
         /,
         *args: P.args,
         **kwgs: P.kwargs,
@@ -703,7 +703,7 @@ def instanceHP_wrapper(
 
         Specify *args and **kwgs to pass when creating the 'default' (when the trait default is requested).
 
-        cast_self: Provided specifically for type checking. use: `cast(Self, 0)`
+        cast_self: Provided specifically for type checking. use: `c(Self, c)`
 
         Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
         """

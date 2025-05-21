@@ -17,7 +17,7 @@ from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
-from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
+from menubox.trait_types import MP, RP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
 
 __all__ = ["IHPCreate", "InstanceHP", "TF"]
 
@@ -84,48 +84,46 @@ class TF:
     # Basic types
 
     @staticmethod
-    def Str(cast_self: S | int = 0, default_value="") -> InstanceHP[S, str, str]:  # noqa: ARG004
-        return InstanceHP(klass=str).configure(
+    def Str(cast_self: S | Any = 0, default_value="") -> InstanceHP[S, str, str]:
+        return InstanceHP(cast_self, klass=str).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Bool(cast_self: S | int = 0, /, default_value=False) -> InstanceHP[S, bool, bool]:  # noqa: ARG004
-        return InstanceHP(klass=bool).configure(
+    def Bool(cast_self: S | Any = 0, /, default_value=False) -> InstanceHP[S, bool, bool]:
+        return InstanceHP(cast_self, klass=bool).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Int(cast_self: S | int = 0, /, default_value=0) -> InstanceHP[S, int, int]:  # noqa: ARG004
-        return InstanceHP(klass=int).configure(
+    def Int(cast_self: S | Any = 0, /, default_value=0) -> InstanceHP[S, int, int]:
+        return InstanceHP(cast_self, klass=int).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Float(cast_self: S | int = 0, /, default_value=math.nan) -> InstanceHP[S, float, float]:  # noqa: ARG004
-        return InstanceHP(klass=float).configure(
+    def Float(cast_self: S | Any = 0, /, default_value=math.nan) -> InstanceHP[S, float, float]:
+        return InstanceHP(cast_self, klass=float).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Tuple(cast_self: S | int = 0, /, default_value=()) -> InstanceHP[S, tuple, tuple]:  # noqa: ARG004
-        return InstanceHP(klass=tuple).configure(IHPMode.XL__, default_value=default_value)
+    def Tuple(cast_self: S | Any = 0, /, default_value=()) -> InstanceHP[S, tuple, tuple]:
+        return InstanceHP(cast_self, klass=tuple).configure(IHPMode.XL__, default_value=default_value)
 
     @staticmethod
-    def Set(cast_self: S | int = 0) -> InstanceHP[S, set, set]:  # noqa: ARG004
-        return InstanceHP(klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
+    def Set(cast_self: S | Any = 0) -> InstanceHP[S, set, set]:
+        return InstanceHP(cast_self, klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
     @staticmethod
-    def Dict(cast_self: S | int = 0, *, klass: type[T] = dict) -> InstanceHP[S, T, ReadOnly[T]]:
+    def Dict(cast_self: S | Any = 0, /, *, klass: type[T] = dict) -> InstanceHP[S, T, ReadOnly[T]]:
         return InstanceHP(cast_self, klass=klass).configure(default_value=klass(), default=lambda _: klass())
 
     # Custom types
 
     @staticmethod
     def ViewDict(
-        cast_self: S | int = 0,  # noqa: ARG004
-        value: ViewDictType[S] | None = None,
-        /,
+        cast_self: S | Any = 0, value: ViewDictType[S] | None = None, /
     ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
         """A function to generate an InstanceHP trait.
 
@@ -141,24 +139,24 @@ class TF:
         ```
         """
         value = value or {}
-        return InstanceHP(klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
+        return InstanceHP(cast_self, klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
 
     @staticmethod
     def parent(
-        cast_self: S | int = 0,  # noqa: ARG004
+        cast_self: S | Any = 0,  # noqa: ARG004
         /,
-        klass: type[SS] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[S, SS | None, SS | None]:
+        klass: type[RP] | str = "menubox.hasparent.HasParent",
+    ) -> InstanceHP[S, RP, RP]:
         """Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent
         """
 
-        def validate_parent(obj: S, value: SS | None):
+        def validate_parent(obj: S, value: SS | None):  # type: ignore
             if not value:
                 return None
             p = value
-            while p and p.trait_has_value("parent"):
+            while p is not None and p.trait_has_value("parent"):
                 if p is obj:
                     msg = f"Unable to set parent of {value!r} because {obj!r} is already a parent or ancestor!"
                     raise traitlets.TraitError(msg)
@@ -167,8 +165,8 @@ class TF:
 
         return (
             InstanceHP(klass=klass, default=lambda _: None, validate=validate_parent)
-            .configure(IHPMode.X__N)
             .hooks(set_parent=False, on_replace_close=False, remove_on_close=False)
+            .configure(IHPMode.X__N)
         )  # type: ignore
 
     # Ipywidgets shortcuts
@@ -209,7 +207,7 @@ class TF:
 
     @staticmethod
     def Button(
-        cast_self: S | int = 0,
+        cast_self: S | Any = 0,
         css_class=CSScls.button_main,
         mode=ButtonMode.restart,
         **kwargs,
@@ -217,11 +215,11 @@ class TF:
         "Kwargs are passed to the button init"
         return (
             InstanceHP(cast_self, klass=ipw.Button)
-            .configure(default=lambda c: ipw.Button(**kwargs | c["kwgs"]))
             .hooks(
                 value_changed=lambda c: c["parent"]._handle_button_change(c, mode),
                 add_css_class=(CSScls.button, css_class),
             )
+            .configure(default=lambda c: ipw.Button(**kwargs | c["kwgs"]))
         )
 
     FileUpload = staticmethod(ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main)))
@@ -277,7 +275,8 @@ class TF:
 
     @staticmethod
     def AsyncRunButton(
-        cast_self: S,
+        cast_self: S | Any,
+        /,
         cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
         description="Start",
         cancel_description="Cancel",
@@ -311,7 +310,8 @@ class TF:
 
     @staticmethod
     def Modalbox(
-        cast_self: S,
+        cast_self: S | Any,
+        /,
         obj: Callable[[S], GetWidgetsInputType[S]],
         title: str,
         expand=False,
