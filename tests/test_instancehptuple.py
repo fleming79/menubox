@@ -27,19 +27,19 @@ class VTT(mb.ValueTraits):
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
-        on_add=lambda c: c["parent"].on_add(c),
-        on_remove=lambda c: c["parent"].on_remove(c),
+        on_add=lambda c: c["owner"].on_add(c),
+        on_remove=lambda c: c["owner"].on_remove(c),
     )
     menuboxvts = menubox.instancehp_tuple.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
         trait=traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
         klass=mb.MenuboxVT,
-        factory=lambda c: c["parent"]._new_menubox(**c["kwgs"]),
+        factory=lambda c: c["owner"]._new_menubox(**c["kwgs"]),
     ).hooks(
         update_by="name",
         update_item_names=("value",),
         set_parent=False,
-        on_add=lambda c: c["parent"].on_add(c),
-        on_remove=lambda c: c["parent"].on_remove(c),
+        on_add=lambda c: c["owner"].on_add(c),
+        on_remove=lambda c: c["owner"].on_remove(c),
     )
 
     @override
@@ -80,7 +80,7 @@ class VTT2(mb.ValueTraits):
     somelist2 = menubox.instancehp_tuple.InstanceHPTuple[Self, VT | mb.Bunched](
         trait=traitlets.Union([Instance(VT), Instance(mb.Bunched)]),
         klass=mb.MenuboxVT,
-        factory=lambda c: c["parent"].somelist2_factory(**c["kwgs"]),
+        factory=lambda c: c["owner"].somelist2_factory(**c["kwgs"]),
     ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
 
     def somelist2_factory(self, **kwargs):

@@ -65,20 +65,20 @@ class IHPMode(enum.IntEnum):
 
 class IHPCreate(TypedDict, Generic[S, T]):
     name: str
-    parent: S
+    owner: S
     klass: type[T]
     kwgs: dict
 
 
 class IHPSet(TypedDict, Generic[S, T]):
     name: str
-    parent: S
+    owner: S
     obj: T
 
 
 class IHPChange(TypedDict, Generic[S, T]):
     name: str
-    parent: S
+    owner: S
     old: T | None
     new: T | None
     ihp: InstanceHP[S, T, Any]
@@ -412,11 +412,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 m["remove_on_close"] = True
         self._set_parent = m.get("set_parent", False)
 
-    def default(self, parent: S, override: None | dict = None) -> T | None:  # type: ignore
+    def default(self, owner: S, override: None | dict = None) -> T | None:  # type: ignore
         """Create an instance of the class.
 
         Args:
-            parent: The parent object.
+            owner: The owning object.
             override: A dictionary of keyword arguments to override the default keyword arguments.
         Returns:
             An instance of the class, or None if `allow_none` is True and `load_default` is False.
@@ -430,15 +430,15 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 if self.allow_none:
                     return None
                 return self.default_value
-            kwgs = {"parent": parent} if self._set_parent else {}
+            kwgs = {"parent": owner} if self._set_parent else {}
             if override:
                 kwgs = kwgs | override
             if default := self._default_override:
-                return default(IHPCreate(parent=parent, name=self.name, klass=self.klass, kwgs=kwgs))
+                return default(IHPCreate(owner=owner, name=self.name, klass=self.klass, kwgs=kwgs))
             return self.klass(**kwgs)
 
         except Exception as e:
-            parent.on_error(e, f"Instance creation failed for {self!r}", self)
+            owner.on_error(e, f"Instance creation failed for {self!r}", self)
             raise
 
     def _validate(self, obj: S, value) -> T | None:
@@ -455,9 +455,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             return value
         self.error(obj, value)  # noqa: RET503
 
-    def _value_changed(self, parent: S, old: T | None, new: T | None):
+    def _value_changed(self, owner: S, old: T | None, new: T | None):
         if hookmappings := self._hookmappings:
-            change = IHPChange(name=self.name, parent=parent, old=old, new=new, ihp=self)
+            change = IHPChange(name=self.name, owner=owner, old=old, new=new, ihp=self)
             for hookname in hookmappings:
                 if hook := self._change_hooks.get(hookname):
                     try:
@@ -466,7 +466,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                         if "pytest" in sys.modules:
                             # If debugging import `pytest` to make this repeatable
                             raise
-                        parent.on_error(e, f"Hook error for {self!r} {hook=}")
+                        owner.on_error(e, f"Hook error for {self!r} {hook=}")
 
     def _on_obj_close(self, obj: S):
         if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
@@ -525,12 +525,12 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @classmethod
     def _remove_on_close_hook(cls, c: IHPChange[S, T]):
-        if c["parent"].closed:
+        if c["owner"].closed:
             return
         if c["ihp"] not in cls._close_observers:
             cls._close_observers[c["ihp"]] = weakref.WeakKeyDictionary()
         # value closed
-        if (old_observer := cls._close_observers[c["ihp"]].pop(c["parent"], {})) and isinstance(
+        if (old_observer := cls._close_observers[c["ihp"]].pop(c["owner"], {})) and isinstance(
             c["old"], mhp.HasParent | Widget
         ):
             try:  # noqa: SIM105
@@ -539,11 +539,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 pass
 
         if isinstance(c["new"], mhp.HasParent | Widget):
-            parent_ref = weakref.ref(c["parent"])
+            parent_ref = weakref.ref(c["owner"])
             inst = c["ihp"]
 
             def _observe_closed(change: mb.ChangeType):
-                # If the c["parent"] has closed, remove it from c["parent"] if appropriate.
+                # If the c["owner"] has closed, remove it from c["owner"] if appropriate.
                 parent = parent_ref()
                 cname, value = change["name"], change["new"]
                 if (
@@ -555,7 +555,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
             names = "closed" if isinstance(c["new"], mhp.HasParent) else "comm"
             c["new"].observe(_observe_closed, names)
-            cls._close_observers[c["ihp"]][c["parent"]] = {"handler": _observe_closed, "names": names}
+            cls._close_observers[c["ihp"]][c["owner"]] = {"handler": _observe_closed, "names": names}
 
     @staticmethod
     def _on_replace_close_hook(c: IHPChange[S, T]):
@@ -565,24 +565,24 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             and not getattr(c["old"], "KEEP_ALIVE", False)
         ):
             if mb.DEBUG_ENABLED:
-                c["parent"].log.debug(
-                    f"Closing replaced item `{c['parent'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"
+                c["owner"].log.debug(
+                    f"Closing replaced item `{c['owner'].__class__.__name__}.{c['ihp'].name}` {c['old'].__class__}"
                 )
             c["old"].close()
 
     @staticmethod
     def _on_set_hook(c: IHPChange[S, T]):
-        if c["parent"].closed:
+        if c["owner"].closed:
             return
         if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
-            on_set(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["new"]))
+            on_set(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["new"]))
 
     @staticmethod
     def _on_unset_hook(c: IHPChange[S, T]):
-        if c["parent"].closed:
+        if c["owner"].closed:
             return
         if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
-            on_unset(IHPSet(name=c["ihp"].name, parent=c["parent"], obj=c["old"]))
+            on_unset(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["old"]))
 
     @staticmethod
     def _add_css_class_hook(c: IHPChange[S, T]):
@@ -595,25 +595,25 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @staticmethod
     def _set_parent_hook(c: IHPChange[S, T]):
-        if (not c["parent"].closed) and c["ihp"]._hookmappings.get("set_parent"):
-            if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["parent"]:
+        if (not c["owner"].closed) and c["ihp"]._hookmappings.get("set_parent"):
+            if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["owner"]:
                 c["old"].parent = None  # type: ignore
-            if isinstance(c["new"], mhp.HasParent) and not c["parent"].closed:
-                c["new"].parent = c["parent"]  # type: ignore
+            if isinstance(c["new"], mhp.HasParent) and not c["owner"].closed:
+                c["new"].parent = c["owner"]  # type: ignore
 
     @staticmethod
     def _set_children_hook(c: IHPChange[S, T]):
         import menubox.children_setter
 
-        if c["parent"].closed:
+        if c["owner"].closed:
             return
         if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             if isinstance(children, dict):
                 val = {} | children
                 val.pop("mode")
-                menubox.children_setter.ChildrenSetter(parent=c["parent"], name=c["ihp"].name, value=val)
+                menubox.children_setter.ChildrenSetter(parent=c["owner"], name=c["ihp"].name, value=val)
             else:
-                children = c["parent"].get_widgets(children, skip_hidden=False, show=True)  # type: ignore
+                children = c["owner"].get_widgets(children, skip_hidden=False, show=True)  # type: ignore
                 c["new"].set_trait("children", children)  # type: ignore
 
     @staticmethod

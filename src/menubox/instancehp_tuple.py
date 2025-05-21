@@ -191,7 +191,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             raise RuntimeError(msg)
         kw = {"parent": obj} | kw if self._hookmappings.get("set_parent", False) else kw
         klass: type[T] = getattr(self._trait, "klass", None)  # type: ignore
-        c = IHPCreate(name=self.name, parent=obj, klass=klass, kwgs=kw)
+        c = IHPCreate(name=self.name, owner=obj, klass=klass, kwgs=kw)
         inst = self._factory(c)
         self._trait._validate(obj, inst)
         return inst
@@ -262,7 +262,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             self._close_observers[value] = handle, names
         if on_add := self._hookmappings.get("on_add"):
             try:
-                on_add(IHPSet(name=self.name, parent=obj, obj=value))
+                on_add(IHPSet(name=self.name, owner=obj, obj=value))
             except Exception as e:
                 obj.on_error(e, f"on_add callback for {self!r}")
 
@@ -273,7 +273,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             value.close()  # type: ignore
         if on_remove := self._hookmappings.get("on_remove"):
             try:
-                on_remove(IHPSet(name=self.name, parent=obj, obj=value))
+                on_remove(IHPSet(name=self.name, owner=obj, obj=value))
             except Exception as e:
                 obj.on_error(e, f"on_remove callback for {self!r}")
 

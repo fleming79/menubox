@@ -140,7 +140,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_menu = TF.MenuboxMenu().configure(TF.IHPMode.X__N)
     showbox = (
         TF.InstanceHP(ipw.Box)
-        .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["parent"]._onchange_showbox(c))
+        .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["owner"]._onchange_showbox(c))
         .configure(TF.IHPMode.X__N)
     )
     header = TF.MenuboxHeader().configure(TF.IHPMode.X_RN)

@@ -52,7 +52,7 @@ class HPI3(mb.Menubox):
 
 class HPI4(HasHome):
     hpi = TF.InstanceHP(HPI).configure(TF.IHPMode.XLRN)
-    hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
+    hpi.hooks(value_changed=lambda c: c["owner"].set_trait("value_changed", c))
     value_changed = TF.Dict()
 
 

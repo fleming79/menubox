@@ -57,7 +57,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     url = TF.Combobox(
         description="url",
@@ -65,7 +65,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     drive = (
         TF.Dropdown(
@@ -77,12 +77,12 @@ class Filesystem(MenuboxVT):
         )
         .hooks(
             on_set=lambda c: (
-                c["parent"].dlink(
-                    source=(c["parent"].protocol, "value"),
+                c["owner"].dlink(
+                    source=(c["owner"].protocol, "value"),
                     target=(c["obj"].layout, "visibility"),
                     transform=lambda protocol: utils.to_visibility(protocol == "file"),
                 ),
-                c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+                c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
             )
         )
         .configure(TF.IHPMode.XL_N)
@@ -95,7 +95,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(source=(c["parent"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     sw_main = TF.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
@@ -353,7 +353,7 @@ class RelativePath(Filesystem):
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
-    name = TF.InstanceHP(str, default=lambda c: f"{c['parent'].home}", owner=cast(Self, 0))
+    name = TF.InstanceHP(str, default=lambda c: f"{c['owner'].home}", owner=cast(Self, 0))
     read_only = TF.Bool(True).configure(TF.IHPMode.XLR_)
 
     @override
@@ -364,7 +364,7 @@ class DefaultFilesystem(HasHome, Filesystem):
 class HasFilesystem(HasHome):
     filesystem = (
         TF.InstanceHP(Filesystem, owner=cast(Self, 0))
-        .configure(TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["parent"].home))
+        .configure(TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["owner"].home))
         .hooks(on_replace_close=False, set_parent=False)
     )
 

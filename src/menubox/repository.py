@@ -60,7 +60,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         layout={"width": "max-content"},
         continuous_update=False,
     ).hooks(
-        on_set=lambda c: c["parent"].update_repository_name_options(),
+        on_set=lambda c: c["owner"].update_repository_name_options(),
     )
     button_select_repository = TF.Button(
         cast(Self, 0),

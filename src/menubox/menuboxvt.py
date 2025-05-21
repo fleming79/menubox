@@ -82,7 +82,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     text_name = TF.InstanceHP(
         ComboboxValidate,
         default=lambda c: ComboboxValidate(
-            validate=c["parent"]._validate_name,
+            validate=c["owner"]._validate_name,
             description="Name",
             continuous_update=False,
             layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px", "max_width": "600px"},
@@ -91,11 +91,11 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         owner=cast(Self, 0),
     ).hooks(
         on_set=lambda c: (
-            c["parent"].link(source=(c["parent"], "name"), target=(c["obj"], "value")),
-            c["parent"].dlink(
-                source=(c["parent"], "name"),
+            c["owner"].link(source=(c["owner"], "name"), target=(c["obj"], "value")),
+            c["owner"].dlink(
+                source=(c["owner"], "name"),
                 target=(c["obj"], "disabled"),
-                transform=lambda name: bool(not c["parent"].RENAMEABLE if name else False),
+                transform=lambda name: bool(not c["owner"].RENAMEABLE if name else False),
             ),
         ),
     )
@@ -105,20 +105,20 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         MarkdownOutput,
         default=lambda c: MarkdownOutput(
             layout={"margin": "0px 0px 0px 10px"},
-            converter=c["parent"]._convert_description,
+            converter=c["owner"]._convert_description,
         ).add_class(CSScls.resize_vertical),
         owner=cast(Self, 0),
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(
-            source=(c["parent"].description, "value"),
+        on_set=lambda c: c["owner"].dlink(
+            source=(c["owner"].description, "value"),
             target=(c["obj"], "value"),
         )
     )
     button_configure = (
         TF.Button(cast(Self, 0), TF.CSScls.button_open, tooltip="Configure")
         .hooks(
-            on_set=lambda c: c["parent"].dlink(
-                source=(c["parent"], "view"),
+            on_set=lambda c: c["owner"].dlink(
+                source=(c["owner"], "view"),
                 target=(c["obj"], "description"),
                 transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
             ),

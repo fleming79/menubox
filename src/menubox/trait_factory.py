@@ -211,7 +211,7 @@ class TF:
         return (
             InstanceHP(ipw.Button, owner=owner)
             .hooks(
-                value_changed=lambda c: c["parent"]._handle_button_change(c, mode),
+                value_changed=lambda c: c["owner"]._handle_button_change(c, mode),
                 add_css_class=(CSScls.button, css_class),
             )
             .configure(default=lambda c: ipw.Button(**kwargs | c["kwgs"]))
@@ -222,8 +222,8 @@ class TF:
     MenuboxHeader = staticmethod(
         ihpwrap(
             ipw.HBox,
-            on_set=lambda c: c["parent"].dlink(
-                source=(c["parent"], "border"),
+            on_set=lambda c: c["owner"].dlink(
+                source=(c["owner"], "border"),
                 target=(c["obj"].layout, "border_bottom"),
             ),
             add_css_class=(CSScls.Menubox_item, CSScls.box_header),
@@ -287,7 +287,7 @@ class TF:
         return InstanceHP(
             menubox.async_run_button.AsyncRunButton,
             lambda c: menubox.async_run_button.AsyncRunButton(
-                parent=c["parent"],
+                parent=c["owner"],
                 cfunc=cfunc,
                 description=description,
                 cancel_description=cancel_description,
@@ -325,7 +325,7 @@ class TF:
         return InstanceHP(
             cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
             lambda c: menubox.Modalbox(
-                parent=c["parent"],
+                parent=c["owner"],
                 obj=obj,
                 title=title,
                 expand=expand,

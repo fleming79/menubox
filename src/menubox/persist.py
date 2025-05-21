@@ -151,8 +151,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         index=None,
         layout={"width": "max-content"},
     ).hooks(
-        on_set=lambda c: c["parent"].dlink(
-            source=(c["parent"], "versions"),
+        on_set=lambda c: c["owner"].dlink(
+            source=(c["owner"], "versions"),
             target=(c["obj"], "options"),
         ),
     )
@@ -174,17 +174,17 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
                 tooltip="Changing the version will switch to the new version dropping unsaved changes. \n"
                 "If a new version doesn't exist, the present values are retained and can be saved in the new version.",
                 layout={"width": "130px"},
-                disabled=c["parent"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
+                disabled=c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
             ),
             owner=cast(Self, 0),
         )
         .hooks(
             on_set=lambda c: (
-                c["parent"].dlink(
-                    source=(c["parent"], "versions"),
+                c["owner"].dlink(
+                    source=(c["owner"], "versions"),
                     target=(c["obj"], "max"),
                     transform=lambda versions: 1
-                    if c["parent"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
+                    if c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
                     else max(versions or (0,)) + 1,
                 ),
             )
@@ -557,7 +557,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     RENAMEABLE = False
     pool = InstanceHPTuple[Self, MP](
         trait=traitlets.Instance(MenuboxPersist),
-        factory=lambda c: c["parent"].factory_pool(**c["kwgs"]),
+        factory=lambda c: c["owner"].factory_pool(**c["kwgs"]),
     ).hooks(
         update_item_names=("name", "versions"),
         set_parent=True,
@@ -565,8 +565,8 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     )
     obj_name = TF.Combobox(cast(Self, 0), placeholder="Enter name or select existing", continuous_update=True).hooks(
         on_set=lambda c: (
-            c["parent"].update_names(),
-            c["parent"].dlink(source=(c["parent"], "names"), target=(c["obj"], "options")),
+            c["owner"].update_names(),
+            c["owner"].dlink(source=(c["owner"], "names"), target=(c["obj"], "options")),
         )
     )
     names = menubox.StrTuple()
@@ -586,7 +586,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     def factory_pool(self, **kwgs):
         kwgs["filesystem"] = self.filesystem
         if self._factory:
-            return self._factory(IHPCreate(name="", parent=self, kwgs=kwgs, klass=self.klass))
+            return self._factory(IHPCreate(name="", owner=self, kwgs=kwgs, klass=self.klass))
         return self.klass(**kwgs)
 
     @mb_async.debounce(0.01)

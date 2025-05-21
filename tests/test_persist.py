@@ -17,8 +17,8 @@ class MBP(MenuboxPersist):
     new = traitlets.Unicode()
     a_widget = TF.Text(description="something", value="Using the value")
     just_a_widget = TF.Dropdown(cast(Self, 0), description="just_a_widget", options=[1, 2, 3]).hooks(
-        on_set=lambda c: c["parent"].dlink(
-            source=(c["parent"], "df"),
+        on_set=lambda c: c["owner"].dlink(
+            source=(c["owner"], "df"),
             target=(c["obj"].layout, "visibility"),
             transform=lambda df: mb.utils.to_visibility(df.empty, invert=True),
         ),

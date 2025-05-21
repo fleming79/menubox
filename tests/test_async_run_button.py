@@ -12,18 +12,18 @@ from menubox.trait_factory import TF
 class PMB(mb.Menubox):
     ab_main = TF.InstanceHP(
         AsyncRunButton,
-        lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
+        lambda c: AsyncRunButton(parent=c["owner"], cfunc=lambda p: p._button_async, description="Button"),
         owner=cast(Self, 0),
     )
     ab_nested = TF.InstanceHP(
         AsyncRunButton,
-        default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
+        default=lambda c: AsyncRunButton(parent=c["owner"], cfunc=lambda p: p.ab_main, description="Nested button"),
         owner=cast(Self, 0),
     )
     ab_nested_sub = TF.InstanceHP(
         AsyncRunButton,
         lambda c: AsyncRunButton(
-            parent=c["parent"], cfunc=lambda p: p.ab_main, description="Sub button", link_button=True
+            parent=c["owner"], cfunc=lambda p: p.ab_main, description="Sub button", link_button=True
         ),
         owner=cast(Self, 0),
     )
