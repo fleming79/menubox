@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, override
 
 import ipylab
 import ipywidgets as ipw
@@ -12,7 +12,7 @@ from menubox import utils
 from menubox.css import CSScls
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
-from menubox.trait_factory import TF
+from menubox.trait_factory import TF, z
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
@@ -61,7 +61,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     _mb_refresh_traitnames = (*Menubox._mb_refresh_traitnames, "button_configure")
     box_template_controls = TF.InstanceHP(
-        cast(Self, 0), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
+        z(Self, 0), klass=ipw.HBox, default=lambda _: ipw.HBox(layout={"width": "max-content"})
     ).hooks(
         set_children=lambda p: (
             p.button_clip_put,
@@ -72,7 +72,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     template_controls = TF.Modalbox(
-        cast(Self, 0),
+        z(Self, 0),
         obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
         button_expand_description="📜",
@@ -80,7 +80,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         on_expand=lambda p: p._on_template_controls_expand(),
     ).configure(TF.IHPMode.XLRN)
     text_name = TF.InstanceHP(
-        cast(Self, 0),
+        z(Self, 0),
         klass=ComboboxValidate,
         default=lambda c: ComboboxValidate(
             validate=c["parent"]._validate_name,
@@ -102,7 +102,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     description_preview_label = TF.HTML(value="<b>Description preview</b>")
     description = TF.CodeEditor(description="Description", mime_type="text/x-markdown")
     description_viewer = TF.InstanceHP(
-        cast(Self, 0),
+        z(Self, 0),
         klass=MarkdownOutput,
         default=lambda c: MarkdownOutput(
             layout={"margin": "0px 0px 0px 10px"},
@@ -115,7 +115,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        TF.Button(cast(Self, 0), TF.CSScls.button_open, tooltip="Configure")
+        TF.Button(z(Self, 0), TF.CSScls.button_open, tooltip="Configure")
         .hooks(
             on_set=lambda c: c["parent"].dlink(
                 source=(c["parent"], "view"),
@@ -126,10 +126,10 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         .configure(TF.IHPMode.X_RN)
     )
     button_clip_put = TF.Button(
-        cast(Self, 0), TF.CSScls.button_open, description="📎", tooltip="Copy settings to clipboard"
+        z(Self, 0), TF.CSScls.button_open, description="📎", tooltip="Copy settings to clipboard"
     )
     button_paste = TF.Button(
-        cast(Self, 0), TF.CSScls.button_open, description="📋", tooltip="Paste settings from clipboard\n"
+        z(Self, 0), TF.CSScls.button_open, description="📋", tooltip="Paste settings from clipboard\n"
     )
     _button_load_template = TF.Button(
         description="Load",

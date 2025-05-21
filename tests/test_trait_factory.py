@@ -12,7 +12,7 @@ class TestTraitFactory:
     async def test_base_types(self):
         class BaseTest(HasParent):
             str = TF.Str()
-            int = TF.Int()
+            int = TF.Int(0)
             float = TF.Float()
             dict = TF.Dict()
             set = TF.Set()

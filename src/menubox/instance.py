@@ -127,7 +127,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     Type hints:
     -----------
     Option 1:
-        Pass `cast(Self, 0)` as the first argument to enable type hinting
+        Pass `z(Self, 0)` as the first argument to enable type hinting
         access to the parent class.
     Option 2:
         Define both types on the class with InstanceHP[Self, Klass, SetType]
@@ -148,7 +148,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def __new__(  # type: ignore
             cls,
-            cast_self: S | Any = 0,
+            z: S | Any = None,
             /,
             *,
             klass: UnionType,
@@ -159,7 +159,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def __new__(  # type: ignore
             cls,
-            cast_self: S | Any = 0,
+            z: S | Any = None,
             /,
             *,
             klass: type[T] | str,
@@ -176,7 +176,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def __init__(
         self,
-        cast_self: S | Any = 0,
+        z: S | Any = None,
         /,
         *,
         klass: type[T] | str | UnionType,
@@ -692,7 +692,7 @@ def instanceHP_wrapper(
     tags = dict(tags) if tags else {}  # type: ignore
 
     def instanceHP_factory(
-        cast_self: SS | Any = 0,  # noqa: ARG001
+        z: SS | Any = None,
         /,
         *args: P.args,
         **kwgs: P.kwargs,
@@ -703,13 +703,13 @@ def instanceHP_wrapper(
 
         Specify *args and **kwgs to pass when creating the 'default' (when the trait default is requested).
 
-        cast_self: Provided specifically for type checking. use: `c(Self, c)`
+        z: Provided specifically for type checking. use: `c(Self, c)`
 
         Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(klass=klass, default=lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
+        instance = InstanceHP(z, klass=klass, default=lambda c: c["klass"](*args, **kwgs | c["kwgs"]))  # type: ignore
         if hooks:
             instance.hooks(**hooks)  # type: ignore
         if tags:

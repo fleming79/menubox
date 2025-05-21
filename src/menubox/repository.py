@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, Self, cast, override
+from typing import TYPE_CHECKING, Generic, Self, override
 
 import traitlets
 from ipylab import Fixed
@@ -9,7 +9,7 @@ from menubox import mb_async
 from menubox.filesystem import Filesystem, HasFilesystem
 from menubox.menuboxvt import MenuboxVT
 from menubox.persist import MenuboxPersist
-from menubox.trait_factory import TF
+from menubox.trait_factory import TF, z
 from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class Repository(MenuboxPersist):
     title_description_tooltip = traitlets.Unicode("{self.repository}")
     target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
-    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})
+    views = TF.ViewDict(z(Self, 0), {"Main": lambda p: p.target_filesystem})
     value_traits_persist = NameTuple("target_filesystem")
 
     def __init__(self, name: str, **kwgs):
@@ -51,9 +51,9 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
     box_center = TF.HBox()
-    repository = TF.InstanceHP(cast(Self, 0), klass=Repository).configure(TF.IHPMode.X__N)
+    repository = TF.InstanceHP(z(Self, 0), klass=Repository).configure(TF.IHPMode.X__N)
     repository_name = TF.Combobox(
-        cast(Self, 0),
+        z(Self, 0),
         description="Repository",
         placeholder="Home repository",
         tooltip="Enter the name of the repository to use. A blank name is the home default repository.",
@@ -63,16 +63,14 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         on_set=lambda c: c["parent"].update_repository_name_options(),
     )
     button_select_repository = TF.Button(
-        cast(Self, 0),
+        z(Self, 0),
         TF.CSScls.button_menu,
         description="…",
         tooltip="Select/create a new repository",
     )
-    title_description = TF.Str(cast(Self, 0), "root: {self.filesystem.root}")
+    title_description = TF.Str("root: {self.filesystem.root}")
     header_children = StrTuple()
-    views = TF.ViewDict(
-        cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository, p.html_title]}
-    )
+    views = TF.ViewDict(z(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository, p.html_title]})
     value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name", "filesystem.url")
 
     @override

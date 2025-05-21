@@ -1,27 +1,27 @@
 import asyncio
-from typing import Self, cast
+from typing import Self
 
 import traitlets
 
 import menubox as mb
 from menubox.async_run_button import AsyncRunButton
 from menubox.hasparent import HasParent
-from menubox.trait_factory import TF
+from menubox.trait_factory import TF, z
 
 
 class PMB(mb.Menubox):
     ab_main = TF.InstanceHP(
-        cast(Self, 0),
+        z(Self, 0),
         klass=AsyncRunButton,
         default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p._button_async, description="Button"),
     )
     ab_nested = TF.InstanceHP(
-        cast(Self, 0),
+        z(Self, 0),
         klass=AsyncRunButton,
         default=lambda c: AsyncRunButton(parent=c["parent"], cfunc=lambda p: p.ab_main, description="Nested button"),
     )
     ab_nested_sub = TF.InstanceHP(
-        cast(Self, 0),
+        z(Self, 0),
         klass=AsyncRunButton,
         default=lambda c: AsyncRunButton(
             parent=c["parent"], cfunc=lambda p: p.ab_main, description="Sub button", link_button=True

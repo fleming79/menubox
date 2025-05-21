@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import gc
 import weakref
-from typing import Self, cast
+from typing import Self
 
 import ipywidgets as ipw
 import pytest
@@ -13,18 +13,18 @@ import menubox as mb
 from menubox.hashome import HasHome
 from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP, instanceHP_wrapper
-from menubox.trait_factory import TF
+from menubox.trait_factory import TF, z
 
 Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.Menubox):
-    a = InstanceHP(
-        cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])
-    ).configure(TF.IHPMode.XL_N)
-    b = InstanceHP(
-        cast(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])
-    ).configure(TF.IHPMode.X___)
+    a = InstanceHP(z(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])).configure(
+        TF.IHPMode.XL_N
+    )
+    b = InstanceHP(z(Self, 0), klass="tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])).configure(
+        TF.IHPMode.X___
+    )
     my_button = TF.Button(description="A button")
     box = TF.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
     clicked = 0
@@ -38,10 +38,10 @@ class HPI(mb.Menubox):
 
 
 class HPI2(HasHome, HPI, mb.MenuboxVT):
-    c = InstanceHP(cast(Self, 0), klass=HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
+    c = InstanceHP(z(Self, 0), klass=HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
     e = Dropdown(description="From a factory").configure(TF.IHPMode.XLRN)
-    select_repository = TF.SelectRepository(cast(Self, 0))
-    button = TF.AsyncRunButton(cast(Self, 0), cfunc=lambda p: p._button_async)
+    select_repository = TF.SelectRepository(z(Self, 0))
+    button = TF.AsyncRunButton(z(Self, 0), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     async def _button_async(self):
@@ -51,11 +51,11 @@ class HPI2(HasHome, HPI, mb.MenuboxVT):
 class HPI3(mb.Menubox):
     box = TF.Box().configure(TF.IHPMode.XLRN)
     menubox = TF.Menubox(views={"main": None}).configure(TF.IHPMode.XLRN)
-    hpi2 = TF.InstanceHP(cast(Self, 0), klass=HPI2, default=lambda _: HPI2(home="test")).configure(TF.IHPMode.XLRN)
+    hpi2 = TF.InstanceHP(z(Self, 0), klass=HPI2, default=lambda _: HPI2(home="test")).configure(TF.IHPMode.XLRN)
 
 
 class HPI4(HasHome):
-    hpi = TF.InstanceHP(cast(Self, 0), klass=HPI).configure(TF.IHPMode.XLRN)
+    hpi = TF.InstanceHP(z(Self, 0), klass=HPI).configure(TF.IHPMode.XLRN)
     hpi.hooks(value_changed=lambda c: c["parent"].set_trait("value_changed", c))
     value_changed = TF.Dict()
 
@@ -144,7 +144,7 @@ class TestInstance:
     async def test_instancehp_union(self):
         class TestUnion(HasParent):
             union = InstanceHP(
-                cast(Self, 0),
+                z(Self, 0),
                 klass=str | int,
                 default=lambda _: 2,
                 validate=lambda _, value: min(value, 10) if isinstance(value, int) else value,

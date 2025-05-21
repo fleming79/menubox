@@ -4,6 +4,7 @@ import asyncio
 import enum
 import math
 from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import cast as z
 
 import ipylab
 import ipywidgets as ipw
@@ -17,9 +18,9 @@ from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
-from menubox.trait_types import MP, RP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
+from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
 
-__all__ = ["IHPCreate", "InstanceHP", "TF"]
+__all__ = ["IHPCreate", "InstanceHP", "TF", "z"]
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -84,69 +85,69 @@ class TF:
     # Basic types
 
     @staticmethod
-    def Str(cast_self: S | Any = 0, default_value="") -> InstanceHP[S, str, str]:
-        return InstanceHP(cast_self, klass=str).configure(
+    def Str(default_value: str = "", /, *, z: S | Any = None) -> InstanceHP[S, str, str]:
+        return InstanceHP(z, klass=str).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Bool(cast_self: S | Any = 0, /, default_value=False) -> InstanceHP[S, bool, bool]:
-        return InstanceHP(cast_self, klass=bool).configure(
+    def Bool(default_value: bool, /, *, z: S | Any = None) -> InstanceHP[S, bool, bool]:  # noqa: FBT001
+        return InstanceHP(z, klass=bool).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Int(cast_self: S | Any = 0, /, default_value=0) -> InstanceHP[S, int, int]:
-        return InstanceHP(cast_self, klass=int).configure(
+    def Int(default_value: int, /, *, z: S | Any = None) -> InstanceHP[S, int, int]:
+        return InstanceHP(z, klass=int).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Float(cast_self: S | Any = 0, /, default_value=math.nan) -> InstanceHP[S, float, float]:
-        return InstanceHP(cast_self, klass=float).configure(
+    def Float(default_value=math.nan, /, *, z: S | Any = None) -> InstanceHP[S, float, float]:
+        return InstanceHP(z, klass=float).configure(
             IHPMode.XL__, default=lambda _: default_value, default_value=default_value
         )
 
     @staticmethod
-    def Tuple(cast_self: S | Any = 0, /, default_value=()) -> InstanceHP[S, tuple, tuple]:
-        return InstanceHP(cast_self, klass=tuple).configure(IHPMode.XL__, default_value=default_value)
+    def Tuple(default_value=(), /, *, z: S | Any = None) -> InstanceHP[S, tuple, tuple]:
+        return InstanceHP(z, klass=tuple).configure(IHPMode.XL__, default_value=default_value)
 
     @staticmethod
-    def Set(cast_self: S | Any = 0) -> InstanceHP[S, set, set]:
-        return InstanceHP(cast_self, klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
+    def Set(*, z: S | Any = None) -> InstanceHP[S, set, set]:
+        return InstanceHP(z, klass=set).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
 
     @staticmethod
-    def Dict(cast_self: S | Any = 0, /, *, klass: type[T] = dict) -> InstanceHP[S, T, ReadOnly[T]]:
-        return InstanceHP(cast_self, klass=klass).configure(default_value=klass(), default=lambda _: klass())
+    def Dict(*, klass: type[T] = dict, z: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
+        return InstanceHP(z, klass=klass).configure(default_value=klass(), default=lambda _: klass())
 
     # Custom types
 
     @staticmethod
     def ViewDict(
-        cast_self: S | Any = 0, value: ViewDictType[S] | None = None, /
+        z: S | Any = None, value: ViewDictType[S] | None = None, /
     ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
         """A function to generate an InstanceHP trait.
 
         Use this in MenuBox subclasses to define `views` and `shuffle_button_views`
 
-        Use `cast(Self, 0)` to provide type hinting inside the lambda functions, if
+        Use `z(Self, 0)` to provide type hinting inside the lambda functions, if
         this is not desired, just pass `0` instead (or any integer).
 
         Usage:
 
         ```
-        views = ViewDict(cast(Self, 0), {"view 1": lambda p: p.widget_name})
+        views = ViewDict(z(Self, 0), {"view 1": lambda p: p.widget_name})
         ```
         """
         value = value or {}
-        return InstanceHP(cast_self, klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
+        return InstanceHP(z, klass=dict, default=lambda _: value).configure(IHPMode.XL__, default_value={})
 
     @staticmethod
     def parent(
-        cast_self: S | Any = 0,  # noqa: ARG004
+        z: S | Any = None,  # noqa: ARG004
         /,
-        klass: type[RP] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[S, RP, RP]:
+        klass: type[SS] | str = "menubox.hasparent.HasParent",
+    ) -> InstanceHP[S, SS | None, SS | None]:
         """Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent
@@ -207,14 +208,14 @@ class TF:
 
     @staticmethod
     def Button(
-        cast_self: S | Any = 0,
+        z: S | Any = None,
         css_class=CSScls.button_main,
         mode=ButtonMode.restart,
         **kwargs,
     ) -> InstanceHP[S, ipw.Button, ReadOnly[ipw.Button]]:
         "Kwargs are passed to the button init"
         return (
-            InstanceHP(cast_self, klass=ipw.Button)
+            InstanceHP(z, klass=ipw.Button)
             .hooks(
                 value_changed=lambda c: c["parent"]._handle_button_change(c, mode),
                 add_css_class=(CSScls.button, css_class),
@@ -264,8 +265,8 @@ class TF:
 
     # menubox
 
-    Menubox = staticmethod(ihpwrap(cast(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox")))
-    MenuboxVT = staticmethod(ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT")))
+    Menubox = staticmethod(ihpwrap(z(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox")))
+    MenuboxVT = staticmethod(ihpwrap(z(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT")))
 
     # ipylab
 
@@ -275,7 +276,7 @@ class TF:
 
     @staticmethod
     def AsyncRunButton(
-        cast_self: S | Any,
+        z: S,
         /,
         cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
         description="Start",
@@ -290,7 +291,7 @@ class TF:
         **kwargs,
     ):
         return InstanceHP(
-            cast_self,
+            z,
             klass=menubox.async_run_button.AsyncRunButton,
             default=lambda c: menubox.async_run_button.AsyncRunButton(
                 parent=c["parent"],
@@ -310,7 +311,7 @@ class TF:
 
     @staticmethod
     def Modalbox(
-        cast_self: S | Any,
+        z: S,
         /,
         obj: Callable[[S], GetWidgetsInputType[S]],
         title: str,
@@ -328,7 +329,7 @@ class TF:
         **kwargs,
     ):
         return InstanceHP(
-            cast_self,
+            z,
             klass=cast("type[menubox.modalbox.Modalbox]", "menubox.modalbox.Modalbox"),
             default=lambda c: menubox.Modalbox(
                 parent=c["parent"],
@@ -350,10 +351,10 @@ class TF:
         )
 
     @staticmethod
-    def SelectRepository(cast_self: H):  # type: ignore
+    def SelectRepository(z: H):  # type: ignore
         "Requires parent to have a home"
         return InstanceHP(
-            cast_self,
+            z,
             klass=cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"),
         )
 
@@ -363,7 +364,7 @@ class TF:
 
     @staticmethod
     def MenuboxPersistPool(
-        cast_self: H,  # noqa: ARG004
+        z: H,  # noqa: ARG004
         obj_cls: type[MP] | str,
         factory: Callable[[IHPCreate], MP] | None = None,
         **kwgs,
@@ -371,7 +372,7 @@ class TF:
         """A Fixed Obj shuffle for any Menubox persist object.
 
         ``` python
-        MenuboxPersistPool(cast(Self, 0), obj_cls=MyMenuboxPersistClass)
+        MenuboxPersistPool(z(Self, 0), obj_cls=MyMenuboxPersistClass)
         ```
         """
 

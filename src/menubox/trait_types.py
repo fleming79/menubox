@@ -128,7 +128,7 @@ class NameTuple(StrTuple):
 class FromParent(TraitType[Callable[[R], T], Callable[[R], T]], Generic[R, T]):
     allow_none = False
 
-    def __init__(self, cast_self: R, default_value: Callable[[R], T], /, *, read_only=True):
+    def __init__(self, z: R, default_value: Callable[[R], T], /, *, read_only=True):
         """A trait for a callable that accepts the parent.
 
         With support for type directly inside the callable.
@@ -137,7 +137,7 @@ class FromParent(TraitType[Callable[[R], T], Callable[[R], T]], Generic[R, T]):
 
         ``` python
         class MyClass(HasTraits):
-            fp = FromParent(cast(Self, 0), lambda p: p...)
+            fp = FromParent(z(Self, 0), lambda p: p...)
 
         ```
         """
