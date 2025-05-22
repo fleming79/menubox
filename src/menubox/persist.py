@@ -570,12 +570,16 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         )
     )
     names = menubox.StrTuple()
-    title_description = traitlets.Unicode("<b>{self.klass.__name__.replace('_','').capitalize()} pool</b>")
+    title_description = traitlets.Unicode("<b>{self.name} pool</b>")
     html_info = TF.HTML()
     info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
     button_update_names = TF.Button(description="↻", tooltip="Update options")
+    button_activate = TF.Button(cast(Self, 0)).hooks(
+        on_set=lambda c: c["obj"].set_trait("description", c["owner"].name)
+    )
     box_main = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None
+    header_children = StrTuple()
     views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.box_main})
 
     @override
@@ -596,11 +600,12 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         self.set_trait("names", names)
         return names
 
-    def __init__(self, *, klass: type[MP], factory: Callable[[IHPCreate], MP] | None = None, **kwgs):
+    def __init__(self, *, name="", klass: type[MP], factory: Callable[[IHPCreate], MP] | None = None, **kwgs):
         if self._HasParent_init_complete:
             return
         self.klass = klass
         self._factory = factory
+        self.name = name or getattr(klass, "class_forevername", klass.__name__)
         super().__init__(**kwgs)
 
     @override
@@ -615,7 +620,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         return self.get_tuple_obj("pool", name=name)
 
     @override
-    async def activate(self, *, add_to_shell=False, **kwgs):  # type: ignore
+    async def activate(self, *, add_to_shell=True, **kwgs):  # type: ignore
         result = await self.show_in_dialog(kwgs.get("title") or self.get_title_label())
         if result["value"] is False:
             raise asyncio.CancelledError

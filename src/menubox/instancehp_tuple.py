@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Generic, NotRequired, Self, Unpack, cast
+from typing import TYPE_CHECKING, Any, Generic, NotRequired, Self, TypedDict, Unpack, cast, override
 
 from ipywidgets import Widget
 from mergedeep import Strategy, merge
@@ -12,18 +12,17 @@ from traitlets import TraitType
 import menubox as mb
 from menubox import defaults, utils
 from menubox.hasparent import HasParent
-from menubox.instance import IHPChange, IHPCreate, IHPHookMappings, IHPSet, InstanceHP
+from menubox.instance import IHPChange, IHPCreate, IHPSet, InstanceHP
 from menubox.trait_types import T, V
 from menubox.valuetraits import ValueTraits
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
-    from typing import Self, cast
 
     from menubox.trait_types import ChangeType
 
 
-class InstanceHPTupleHookMappings(IHPHookMappings, Generic[V, T]):
+class InstanceHPTupleHookMappings(TypedDict, Generic[V, T]):
     update_by: NotRequired[str]
     update_item_names: NotRequired[tuple[str, ...]]
     set_parent: NotRequired[bool]
@@ -53,6 +52,15 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
     - **Configuration:** Offers extensive configuration options to control the
       behavior of the tuple, such as whether to spawn new instances, how to
       update existing instances, and whether to set the parent of new instances.
+
+    Type hints:
+
+    Perform type hinting directly on the class.
+
+    ```
+    class MyClass(ValueTraits):
+        ihp_tuple = InstanceHPTuple[Self, str](trait=UniCode(), ...
+    ```
     """
 
     default_value = ()
@@ -229,6 +237,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             return inst
         return None
 
+    @override
     def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:  # type: ignore
         """Hooks to modify the behaviour of the tuple analogous to hooks in InstanceHP.
 

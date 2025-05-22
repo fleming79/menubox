@@ -125,13 +125,12 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         create: An optional callable that is used to create the instance.
         settings: A dictionary to store settings related to the instance.
         info_text: A property that returns a string describing the instance type.
-        `co_`: Pass `co_=cast(Self, 0)` during init to provide extended type hinting for 'owner'.
+        `co_`: cast `Self` for improved type hints.
 
     Type hints:
     -----------
     Option 1:
-        Pass `cast(Self, 0)` as the first argument to enable type hinting
-        access to the parent class.
+        Pass `co_=cast(Self, 0)` during init to provide extended type hinting for 'owner'.
     Option 2:
         Define both types on the class with InstanceHP[Self, Klass, SetType]
     """

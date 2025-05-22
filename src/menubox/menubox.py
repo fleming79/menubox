@@ -449,7 +449,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                     header.children = widgets
             else:
                 self.disable_ihp("header")
-        return self.header or self.button_activate
+        return self.header
 
     def refresh_view(self, force=False) -> Self:
         """Refreshes the view by reloading if the view isn't already loading."""
