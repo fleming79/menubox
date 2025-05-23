@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import functools
 import inspect
 import weakref
@@ -588,6 +589,6 @@ async def yes_no_dialog(app: ipylab.App, title: str, body: str | ipw.Widget = ""
     return result["value"]
 
 
-def now():
-    "The timestamp for now using this timezone"
-    return pd.Timestamp.now(mb.log.TZ)
+def now(*, utc=False):
+    "The timestamp for now using this timezone, our utc if specified."
+    return pd.Timestamp.now(datetime.UTC if utc else mb.log.TZ)
