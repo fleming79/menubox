@@ -144,6 +144,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         .configure(TF.IHPMode.X__N)
     )
     header = TF.MenuboxHeader().configure(TF.IHPMode.X_RN)
+    _box_minimized = TF.HBox().configure(TF.IHPMode.X__N)
     box_center = TF.MenuboxCenter().configure(TF.IHPMode.XLRN)
     _mb_refresh_traitnames = (
         "closed",
@@ -436,19 +437,20 @@ class Menubox(HasParent, Panel, Generic[RP]):
     def get_header(self):
         self.update_title()
         if self.view == self.MINIMIZED:
+            for n in ("button_maximize", "button_minimize", "_box_minimized"):
+                self.enable_ihp(n)
+            box = self._box_minimized
+            assert box  # noqa: S101
+            box.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
+            return box
+        self.disable_ihp("_box_minimized")
+        widgets = tuple(self.get_widgets(*self.header_children))
+        if set(widgets).difference((H_FILL, V_FILL)):
             self.enable_ihp("header")
-            self.enable_ihp("button_maximize")
-            self.enable_ihp("button_minimize")
             if header := self.header:
-                header.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
+                header.children = widgets
         else:
-            widgets = tuple(self.get_widgets(*self.header_children))
-            if set(widgets).difference((H_FILL, V_FILL)):
-                self.enable_ihp("header")
-                if header := self.header:
-                    header.children = widgets
-            else:
-                self.disable_ihp("header")
+            self.disable_ihp("header")
         return self.header
 
     def refresh_view(self, force=False) -> Self:

@@ -208,8 +208,8 @@ STYLESHEET = f"""
     border: var({CSSvar.menubox_border});}}
 .{CSScls.nested_borderbox} {{
     flex: 0 0 auto;
-    margin: 5px 5px 5px 5px;
-    padding: 5px 5px 5px 5px;
+    margin: 5px;
+    padding: 0px;
     border: var({CSSvar.menubox_border});}}
 """
 
