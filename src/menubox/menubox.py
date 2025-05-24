@@ -8,7 +8,6 @@ import weakref
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
-import anyio
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
@@ -399,7 +398,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         if outputs := self._simple_outputs:
             out = outputs[-1]
-            ec = anyio.Event()
+            ec = asyncio.Event()
             out.observe(lambda _: ec.set(), "closed")
             await ec.wait()
             self.mb_refresh()

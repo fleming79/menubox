@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Generic, Literal, cast
+from typing import TYPE_CHECKING, Generic, Literal, cast, override
 
 import ipywidgets as ipw
 import traitlets
@@ -82,8 +82,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
         self._taskname = f"async_run_button_{id(self)}_[{self.cfunc}]"
         self.on_click(self._on_click)
-        if self.parent:
-            self.log = self.parent.log
+        self.log = self.parent.log
         if link_button:
             if not isinstance(self.cfunc, AsyncRunButton):
                 msg = "When `link_button` cfunc must resolve to be a AsyncRunButton."
@@ -211,3 +210,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             if self.task:
                 self.log.info('Waiting until task "%s" is done.', self.task.get_name())
                 await asyncio.wait([self.task])
+
+    @override
+    def on_error(self, error, msg, obj=None):
+        self.parent.on_error(error, msg, obj)
