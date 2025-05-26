@@ -108,8 +108,10 @@ class TF:
         return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)
 
     @staticmethod
-    def Dict(*, klass: type[T] = dict, co_: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
-        return InstanceHP(klass, default=lambda _: klass(), default_value=klass(), co_=co_).configure(IHPMode.XLR_)
+    def Dict(
+        default: Callable[[IHPCreate], dict] | None = None, co_: S | Any = None
+    ) -> InstanceHP[S, dict, ReadOnly[dict]]:
+        return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XLR_)
 
     @staticmethod
     def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T, T]:
