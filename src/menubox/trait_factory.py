@@ -109,9 +109,12 @@ class TF:
 
     @staticmethod
     def Dict(
-        default: Callable[[IHPCreate], dict] | None = None, co_: S | Any = None
-    ) -> InstanceHP[S, dict, ReadOnly[dict]]:
-        return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XLR_)
+        default: Callable[[IHPCreate], dict] | None = None,
+        klass_: type[T] = dict,  # noqa: ARG004
+        co_: S | Any = None,
+    ) -> InstanceHP[S, T, ReadOnly[T]]:
+        "A dict type. Note: klass_ & co_ are only used for type hinting."
+        return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XLR_)  # type: ignore
 
     @staticmethod
     def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T, T]:
