@@ -140,7 +140,7 @@ class TF:
         ```
         """
         value = value or {}
-        return InstanceHP(dict, default=lambda _: value, co_=co_).configure(IHPMode.XL__, default_value={})
+        return InstanceHP(dict, default=lambda _: value.copy(), co_=co_).configure(IHPMode.XL__, default_value={})  # type: ignore
 
     @staticmethod
     def parent(
