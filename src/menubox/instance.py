@@ -447,7 +447,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def _validate(self, obj: S, value) -> T | None:
         if validate := self.validate:
-            value = validate(obj, value)
+            return validate(obj, value)
         if value is None:
             if self.allow_none:
                 return value
