@@ -111,6 +111,13 @@ class TF:
     def Dict(*, klass: type[T] = dict, co_: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
         return InstanceHP(klass, default=lambda _: klass(), default_value=klass(), co_=co_).configure(IHPMode.XLR_)
 
+    @staticmethod
+    def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T, T]:
+        klass = default_value.__class__
+        return TF.InstanceHP(klass, validate=lambda _, val: klass(val), default_value=default_value, co_=co_).configure(  # type: ignore
+            TF.IHPMode.X___
+        )
+
     # Custom types
 
     @staticmethod

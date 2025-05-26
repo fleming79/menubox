@@ -138,7 +138,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_shuffle = TF.MenuboxShuffle().configure(TF.IHPMode.XL__)
     box_menu = TF.MenuboxMenu().configure(TF.IHPMode.X__N)
     showbox = (
-        TF.InstanceHP(ipw.Box)
+        TF.InstanceHP(ipw.Box, co_=cast(Self, 0))
         .hooks(on_replace_close=False, remove_on_close=False, value_changed=lambda c: c["owner"]._onchange_showbox(c))
         .configure(TF.IHPMode.X__N)
     )
