@@ -170,7 +170,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def __set__(self, obj: mhp.HasParent, value: W) -> None:  # type: ignore
         if self.read_only:
-            msg = f'The "{self.name}" trait is read-only.'
+            msg = f'The "{self!r}" is read-only.'
             raise traitlets.TraitError(msg)
         self.set(obj, value)  # type: ignore
 
