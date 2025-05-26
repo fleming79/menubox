@@ -438,19 +438,16 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self.view == self.MINIMIZED:
             for n in ("button_maximize", "button_minimize", "_box_minimized"):
                 self.enable_ihp(n)
-            box = self._box_minimized
-            assert box  # noqa: S101
-            box.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
+            if box := self._box_minimized:
+                box.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
             return box
-        self.disable_ihp("_box_minimized")
         widgets = tuple(self.get_widgets(*self.header_children))
         if set(widgets).difference((H_FILL, V_FILL)):
             self.enable_ihp("header")
             if header := self.header:
                 header.children = widgets
-        else:
-            self.disable_ihp("header")
-        return self.header
+            return self.header
+        return None
 
     def refresh_view(self, force=False) -> Self:
         """Refreshes the view by reloading if the view isn't already loading."""
