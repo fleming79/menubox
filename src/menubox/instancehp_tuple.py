@@ -186,11 +186,10 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             return inst
         try:
             return self.create_inst(obj, kw)
-        except Exception as e:
+        except Exception:
             if mb.DEBUG_ENABLED:
                 raise
-            msg = f"Unable to create new instance of {self!r}"
-            raise ValueError(msg) from e
+            raise
 
     def create_inst(self, obj: V, kw: dict) -> T:
         "Create a new instance using the factory"
