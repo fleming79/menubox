@@ -72,10 +72,10 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         def __new__(
             cls,
             *,
-            trait: TraitType[T, T],
+            trait: TraitType[T, T] | InstanceHP[Any, T, Any],
             factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),  # type: ignore
             read_only=False,
-            klass: type | None = None,
+            klass: type[T] | None = None,
             default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
         ) -> InstanceHPTuple[V, T]: ...
 
@@ -112,16 +112,18 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
     def __init__(
         self,
         *,
-        trait: TraitType[T, T],
+        trait: TraitType[T, T] | InstanceHP[Any, T, Any],
         factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
         read_only=False,
-        klass: type | None = None,
+        klass: type[T] | None = None,
         default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
     ):
         """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
         if not isinstance(trait, TraitType):
             msg = f"{trait=} is not a TraitType"
             raise TypeError(msg)
+        if klass is None and isinstance(trait, InstanceHP):
+            trait.finalize()
         self._trait = trait
         if factory and not callable(factory):
             msg = "factory must be callable!"

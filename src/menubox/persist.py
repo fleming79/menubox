@@ -6,14 +6,12 @@ from typing import TYPE_CHECKING, ClassVar, Generic, Self, cast, final, override
 
 import ipywidgets as ipw
 import pandas as pd
-import traitlets
 
 import menubox
 from menubox import mb_async, pack, utils
 from menubox.filesystem import HasFilesystem
 from menubox.instance import IHPCreate
 from menubox.instancehp_tuple import InstanceHPTuple
-from menubox.log import TZ
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
 from menubox.trait_factory import TF
@@ -134,8 +132,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         "<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name.replace('_',' ').capitalize()}"
     )
     version = TF.Int(1).configure(TF.IHPMode.XLR_)
-    versions = TypedTuple(traitlets.Int())
-    saved_timestamp = traitlets.Unicode()
+    versions = TypedTuple(TF.Int(1))
+    saved_timestamp = TF.Str()
     menu_load_index = TF.Modalbox(
         cast(Self, 0),
         obj=lambda p: p._get_version_box(),
@@ -267,7 +265,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         """Use button_save.start to get an awaitable task."""
         version = await self._to_version(version)
         path = self.filesystem.to_path(self._get_persist_name(self.name, version))
-        self.saved_timestamp = str(pd.Timestamp.now(TZ))
+        self.saved_timestamp = str(utils.now())
         await mb_async.to_thread(self.to_yaml, self.value(), fs=self.filesystem.fs, path=path)
         if self.dataframe_persist:
             await self.save_dataframes_async(self.name, version)
@@ -556,7 +554,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     SINGLE_BY = ("klass", "filesystem")
     RENAMEABLE = False
     pool = InstanceHPTuple[Self, MP](
-        trait=traitlets.Instance(MenuboxPersist),
+        trait=TF.InstanceHP(MenuboxPersist),
         factory=lambda c: c["owner"].factory_pool(**c["kwgs"]),
     ).hooks(
         update_item_names=("name", "versions"),
@@ -570,7 +568,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         )
     )
     names = menubox.StrTuple()
-    title_description = traitlets.Unicode("<b>{self.name} pool</b>")
+    title_description = TF.Str("<b>{self.name} pool</b>")
     html_info = TF.HTML()
     info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
     button_update_names = TF.Button(description="↻", tooltip="Update options")

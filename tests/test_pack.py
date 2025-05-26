@@ -3,13 +3,14 @@ import traitlets
 
 import menubox as mb
 from menubox.pack import deep_copy, to_dict, to_yaml, to_yaml_dict
+from menubox.trait_factory import TF
 
 
 class DemoObj(mb.MenuboxVT):
     _STASH_DEFAULTS = True
     value_traits_persist = mb.NameTuple("a", "b")
     a = traitlets.Tuple((1, 2, 3, 4))
-    b = traitlets.Dict({"a": 1, "b": "2"})
+    b = TF.Dict(default=lambda _: {"a": 1, "b": "2"})
     c = traitlets.Instance(ipw.Text, ())
 
 

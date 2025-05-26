@@ -61,7 +61,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
     _hp_reg_parent_link: InstanceHP[Self, set[Link], set] = TF.Set()
     _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink], set] = TF.Set()
-    _hasparent_all_links = TF.DictReadOnly(klass_=cast("type[Link | Dlink]", 0))
+    _hasparent_all_links = TF.DictReadOnly(klass_=cast("type[dict[Hashable, Link | Dlink]]", 0))
     _button_register = TF.DictReadOnly(klass_=cast("type[dict[tuple[str, ipw.Button], Callable]]", 0))
     parent_dlink = NameTuple()
     parent_link = NameTuple()

@@ -1,8 +1,6 @@
 import asyncio
 from typing import Self, cast
 
-import traitlets
-
 import menubox as mb
 from menubox.async_run_button import AsyncRunButton
 from menubox.hasparent import HasParent
@@ -27,7 +25,7 @@ class PMB(mb.Menubox):
         ),
         co_=cast(Self, 0),
     )
-    data = traitlets.Dict()
+    data = TF.Dict()
 
     async def _button_async(self, **kwgs):
         await asyncio.sleep(0.4)

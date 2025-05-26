@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from menubox.filesystem import HasFilesystem
     from menubox.hashome import HasHome
     from menubox.hasparent import HasParent
+    from menubox.instance import InstanceHP
     from menubox.persist import MenuboxPersist
     from menubox.valuetraits import ValueTraits
 
@@ -69,7 +70,7 @@ class TypedTuple(TraitType[tuple[T, ...], Iterable[T]]):
     name: str  # type: ignore
     info_text = "A trait for a tuple of any length with type-checked elements."
 
-    def __init__(self, trait: TraitType[T, T], default_value=(), **kwargs: Any) -> None:
+    def __init__(self, trait: TraitType[T, T] | InstanceHP[Any, T, Any], default_value=(), **kwargs: Any) -> None:
         if not isinstance(trait, TraitType):
             msg = f"{trait=} is not a TraitType"
             raise TypeError(msg)

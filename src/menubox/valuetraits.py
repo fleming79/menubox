@@ -124,7 +124,7 @@ class ValueTraits(HasParent):
     _ignore_change_cnt = 0
     _vt_reg_value_traits_persist = TF.Set()
     _vt_reg_value_traits = TF.Set()
-    _vt_tuple_reg = TF.DictReadOnly(klass_=type[dict[str, _InstanceHPTupleRegister]])
+    _vt_tuple_reg = TF.DictReadOnly(co_=cast(Self, 0), klass_=cast("type[dict[str, _InstanceHPTupleRegister]]", 0))
     _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
     _vt_busy_updating_count = 0
     _vt_init_complete = False

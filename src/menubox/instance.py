@@ -207,6 +207,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @property
     def info_text(self):  # type: ignore
+        self.finalize()
         return f"an instance of `{self.klass.__qualname__}` {'or `None`' if self.allow_none else ''}"
 
     def __repr__(self):
@@ -446,6 +447,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             raise
 
     def _validate(self, obj: S, value) -> T | None:
+        self.finalize()
         if validate := self.validate:
             return validate(obj, value)
         if value is None:
