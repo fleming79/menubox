@@ -633,12 +633,15 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @override
     def class_init(self, cls, name):
+        super().class_init(cls, name)
         try:
             cls._InstanceHP[name] = self  # type: ignore # type: type[HasParent]
+            if (not self.load_default) and ((self.default_value is not None) or self.allow_none):
+                # Provide static values to bypass unnecessary default calls.
+                cls._static_immutable_initial_values[name] = self.default_value
         except AttributeError:
             msg = "InstanceHP can only be used as a trait in HasParent subclasses!"
             raise AttributeError(msg) from None
-        return super().class_init(cls, name)
 
     @classmethod
     def _register_default_hooks(cls):

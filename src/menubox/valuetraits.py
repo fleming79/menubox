@@ -179,11 +179,6 @@ class ValueTraits(HasParent):
         cls._InstanceHPTuple = tn_
         super().__init_subclass__(**kwargs)
 
-    def _init_CHECK_PARENT(self):
-        if "parent" in self._trait_values:
-            msg = "Parent must not be set prior to init of ValueTraits."
-            raise RuntimeError(msg)
-
     def __init__(
         self,
         *,
@@ -214,7 +209,6 @@ class ValueTraits(HasParent):
                 "Otherwise check which validation is occurring before init is complete."
             )
             raise RuntimeError(msg)
-        self._init_CHECK_PARENT()
         self.vt_validating = False
         self.vt_updating = False
         self.set_trait("value_traits", value_traits or self.value_traits)
@@ -237,7 +231,6 @@ class ValueTraits(HasParent):
         for k in list(kwargs):
             if "." in k:
                 value[k] = kwargs.pop(k)
-        self._init_CHECK_PARENT()
         self._vt_update_reg_value_traits()
         self._vt_update_reg_value_traits_persist()
         self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))

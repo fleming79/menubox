@@ -85,39 +85,31 @@ class TF:
 
     @staticmethod
     def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str, str]:
-        return InstanceHP(str, co_=co_).configure(
-            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
-        )
+        return InstanceHP(str, co_=co_).configure(IHPMode.X___, default_value=default_value)
 
     @staticmethod
     def Bool(default_value: bool, /, *, co_: S | Any = None) -> InstanceHP[S, bool, bool]:  # noqa: FBT001
-        return InstanceHP(bool, co_=co_).configure(
-            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
-        )
+        return InstanceHP(bool, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
 
     @staticmethod
     def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int, int]:
-        return InstanceHP(int, co_=co_).configure(
-            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
-        )
+        return InstanceHP(int, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
 
     @staticmethod
     def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float, float]:
-        return InstanceHP(float, co_=co_).configure(
-            IHPMode.XL__, default=lambda _: default_value, default_value=default_value
-        )
+        return InstanceHP(float, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
 
     @staticmethod
     def Tuple(default_value=(), /, *, co_: S | Any = None) -> InstanceHP[S, tuple, tuple]:
-        return InstanceHP(tuple, co_=co_).configure(IHPMode.XL__, default_value=default_value)
+        return InstanceHP(tuple, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
 
     @staticmethod
     def Set(*, co_: S | Any = None) -> InstanceHP[S, set, set]:
-        return InstanceHP(set, co_=co_).configure(IHPMode.XL__, default_value=set(), default=lambda _: set())
+        return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)
 
     @staticmethod
     def Dict(*, klass: type[T] = dict, co_: S | Any = None) -> InstanceHP[S, T, ReadOnly[T]]:
-        return InstanceHP(klass, co_=co_).configure(default_value=klass(), default=lambda _: klass())
+        return InstanceHP(klass, default=lambda _: klass(), default_value=klass(), co_=co_).configure(IHPMode.XLR_)
 
     # Custom types
 
