@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, cast
 
 import traitlets
 
@@ -17,7 +17,7 @@ class VTTP(ValueTraits):
 
 
 class HPP(ValueTraits):
-    widgets = InstanceHPTuple[Self, VTTP](trait=TF.InstanceHP(VTTP)).hooks(set_parent=True)
+    widgets = InstanceHPTuple(VTTP, co_=cast(Self, 0)).hooks(set_parent=True)
     changecount = TF.Int(0)
     value_traits_persist = NameTuple("widgets")
 

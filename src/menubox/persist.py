@@ -553,9 +553,10 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
 
     SINGLE_BY = ("klass", "filesystem")
     RENAMEABLE = False
-    pool = InstanceHPTuple[Self, MP](
-        trait=TF.InstanceHP(MenuboxPersist),
+    pool = InstanceHPTuple(
+        MenuboxPersist,
         factory=lambda c: c["owner"].factory_pool(**c["kwgs"]),
+        co_=cast(Self, 0),
     ).hooks(
         update_item_names=("name", "versions"),
         set_parent=True,

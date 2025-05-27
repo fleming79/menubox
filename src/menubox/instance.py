@@ -381,7 +381,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             msg = "Unexpected error in TraitType: default value not set properly"
             raise traitlets.TraitError(msg) from e
 
-    def finalize(self):
+    def finalize(self) -> Self:
         """Finalizes the class associated with this instance.
 
         This method performs several steps:
@@ -395,7 +395,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         4.  Sets the `_set_parent` attribute based on the `set_parent` hook mapping.
         """
         if hasattr(self, "klass"):
-            return
+            return self
         m = self._hookmappings
         if self._type:
             self.klass = object  # type: ignore
@@ -416,6 +416,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             if "remove_on_close" not in m and issubclass(klass, mhp.HasParent | Widget):
                 m["remove_on_close"] = True
         self._set_parent = m.get("set_parent", False)
+        return self
 
     def default(self, owner: S, override: None | dict = None) -> T | None:  # type: ignore
         """Create an instance of the class.

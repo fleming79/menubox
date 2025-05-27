@@ -1,4 +1,4 @@
-from typing import Self, override
+from typing import Self, cast, override
 
 import ipywidgets as ipw
 import pytest
@@ -9,6 +9,7 @@ import menubox as mb
 import menubox.instancehp_tuple
 import menubox.trait_types as tt
 from menubox.instance import IHPSet
+from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.trait_factory import TF
 
 # ruff: noqa: PLR2004
@@ -24,17 +25,15 @@ class VTT(mb.ValueTraits):
     removed_count = TF.Int(0)
     somelist_count = TF.Int(0)
 
-    somelist = menubox.instancehp_tuple.InstanceHPTuple[Self, ipw.Text](trait=Instance(ipw.Text)).hooks(
+    somelist = InstanceHPTuple(ipw.Text, co_=cast(Self, 0)).hooks(
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
         on_add=lambda c: c["owner"].on_add(c),
         on_remove=lambda c: c["owner"].on_remove(c),
     )
-    menuboxvts = menubox.instancehp_tuple.InstanceHPTuple[Self, mb.MenuboxVT | MenuboxSingleton](
-        trait=traitlets.Union((Instance(mb.MenuboxVT), Instance(MenuboxSingleton))),
-        klass=mb.MenuboxVT,
-        factory=lambda c: c["owner"]._new_menubox(**c["kwgs"]),
+    menuboxvts = InstanceHPTuple(
+        mb.MenuboxVT | MenuboxSingleton, factory=lambda c: c["owner"]._new_menubox(**c["kwgs"]), co_=cast(Self, 0)
     ).hooks(
         update_by="name",
         update_item_names=("value",),
@@ -74,13 +73,12 @@ class VT(VTT):
 
 class VTT2(mb.ValueTraits):
     value_traits_persist = tt.NameTuple("somelist", "somelist2")
-    somelist = menubox.instancehp_tuple.InstanceHPTuple(trait=TF.Text(), factory=None).hooks(
+    somelist = InstanceHPTuple(TF.ipw.Text, factory=None, co_=cast(Self, 0)).hooks(
         update_by="description",
         update_item_names=("value",),
     )
-    somelist2 = menubox.instancehp_tuple.InstanceHPTuple[Self, VT | mb.Bunched](
-        trait=TF.InstanceHP(VT | mb.Bunched, lambda _: mb.Bunched()),
-        klass=VT,
+    somelist2 = InstanceHPTuple[Self, VT | mb.Bunched](
+        VT | mb.Bunched,
         factory=lambda c: c["owner"].somelist2_factory(**c["kwgs"]),
     ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
 
@@ -91,7 +89,7 @@ class VTT2(mb.ValueTraits):
 class TestValueTraits:
     async def test_registration_and_singleton(self):
         # Test registration and singleton behavior
-        assert isinstance(VTT._InstanceHPTuple.get("menuboxvts"), menubox.instancehp_tuple.InstanceHPTuple)
+        assert isinstance(VTT._InstanceHPTuple.get("menuboxvts"), InstanceHPTuple)
 
     async def test_basic_functionality(self):
         # Test basic ValueTraits and InstanceHPTuple functionality

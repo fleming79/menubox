@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Generic, NotRequired, Self, TypedDict, Unpack, cast, override
+from typing import TYPE_CHECKING, Any, Generic, NotRequired, Self, TypedDict, Unpack, override
 
 from ipywidgets import Widget
 from mergedeep import Strategy, merge
@@ -18,6 +18,7 @@ from menubox.valuetraits import ValueTraits
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+    from types import UnionType
 
     from menubox.trait_types import ChangeType
 
@@ -69,14 +70,15 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
     if TYPE_CHECKING:
         _hookmappings: InstanceHPTupleHookMappings[V, T]  # type: ignore
 
-        def __new__(
+        def __new__(  # type: ignore
             cls,
+            klass: type[T] | str | UnionType,
             *,
-            trait: TraitType[T, T] | InstanceHP[Any, T, Any],
-            factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),  # type: ignore
-            read_only=False,
-            klass: type[T] | None = None,
-            default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
+            default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = ...,
+            factory: Callable[[IHPCreate[V, T]], T] | None = ...,
+            default_value: tuple[T, ...] = ...,
+            read_only: bool = ...,
+            co_: V | Any = ...,
         ) -> InstanceHPTuple[V, T]: ...
 
     @contextlib.contextmanager
@@ -111,31 +113,27 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
 
     def __init__(
         self,
+        klass: type[T] | str | UnionType,
         *,
-        trait: TraitType[T, T] | InstanceHP[Any, T, Any],
-        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
-        read_only=False,
-        klass: type[T] | None = None,
         default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
+        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
+        default_value: tuple[T, ...] = (),
+        read_only=False,
+        co_: V | Any = None,
     ):
         """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
-        if not isinstance(trait, TraitType):
-            msg = f"{trait=} is not a TraitType"
-            raise TypeError(msg)
-        if klass is None and isinstance(trait, InstanceHP):
-            trait.finalize()
-        self._trait = trait
+        self.trait = InstanceHP(klass, lambda _: "Default should not be called for InstanceHPTuple.trait")  # type: ignore
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
-        super().__init__(klass or trait.klass, default, co_=cast(V, 0))  # type: ignore
+        super().__init__(klass, default, default_value=default_value, co_=co_)  # type: ignore
         self._factory = factory
         self.read_only = read_only
         self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = weakref.WeakKeyDictionary()  # type: ignore
 
     def class_init(self, cls: type[Any], name: str | None) -> None:
         super().class_init(cls, name)
-        self._trait.class_init(cls, None)
+        self.trait.class_init(cls, None)
 
     def subclass_init(self, cls: type[Self]):  # type: ignore
         if not issubclass(cls, ValueTraits):
@@ -148,7 +146,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
 
     def instance_init(self, obj: V):
         """Init an instance of InstanceHPTuple."""
-        self._trait.instance_init(obj)
+        self.trait.instance_init(obj)
         super().instance_init(obj)
         utils.weak_observe(obj, self._on_change, names=self.name, pass_change=True)
 
@@ -163,7 +161,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                 for i, v in enumerate(value):
                     val = v
                     try:
-                        self._trait._validate(obj, val)
+                        val = self.trait._validate(obj, val)
                     except Exception as e:
                         if isinstance(val, dict):
                             val = self.update_or_create_inst(obj, val, i)
@@ -199,10 +197,9 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             msg = f"Cannot create a new instance because a factory is not specified for {self!r}"
             raise RuntimeError(msg)
         kw = {"parent": obj} | kw if self._hookmappings.get("set_parent", False) else kw
-        klass: type[T] = getattr(self._trait, "klass", None)  # type: ignore
-        c = IHPCreate(name=self.name, owner=obj, klass=klass, kwgs=kw)
+        c = IHPCreate(name=self.name, owner=obj, klass=self.trait.finalize().klass, kwgs=kw)
         inst = self._factory(c)
-        self._trait._validate(obj, inst)
+        self.trait._validate(obj, inst)
         return inst
 
     def _find_update_item(self, obj, kw: dict, index: int | None) -> T | None:
