@@ -221,7 +221,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def configure(
             self,
-            mode: Literal[IHPMode.XLR_] = IHPMode.XLR_,
+            mode: Literal[IHPMode.XLR_] = ...,
             /,
             *,
             default_value: NO_DEFAULT_TYPE | T | None = ...,
@@ -448,13 +448,10 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def _validate(self, obj: S, value) -> T | None:
         self.finalize()
+        if value is None and self.allow_none:
+            return value
         if validate := self.validate:
             return validate(obj, value)
-        if value is None:
-            if self.allow_none:
-                return value
-            msg = f"`None` is not allowed for {self!r}"
-            raise traitlets.TraitError(msg)
         if isinstance(value, self._type):  # type:ignore[arg-type]
             if obj._cross_validation_lock is False:
                 value = self._cross_validate(obj, value)
