@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, Self, cast, override
 
-import traitlets
 from ipylab import Fixed
 
 from menubox import mb_async
@@ -22,8 +21,8 @@ class Repository(MenuboxPersist):
     FANCY_NAME = "Repository"
 
     _repository_init_called = False
-    title_description = traitlets.Unicode("<b>Repository: &emsp; {self.name}</b>")
-    title_description_tooltip = traitlets.Unicode("{self.repository}")
+    title_description = TF.Str("<b>Repository: &emsp; {self.name}</b>")
+    title_description_tooltip = TF.Str("{self.repository}")
     target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
     views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})

@@ -21,11 +21,11 @@ class VT1(ValueTraits):
     value_change_count = 0
     linked_trait = TF.Str()
     nested = TF.InstanceHP(klass=Nested).configure(TF.IHPMode.XL_N)
-    a = traitlets.Unicode()
-    b = traitlets.Int()
+    a = TF.Str()
+    b = TF.Int(0)
     c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))
     change_owners = traitlets.Tuple()
-    on_change_counts = traitlets.Int()
+    on_change_counts = TF.Int(0)
 
     value_traits_persist = NameTuple("a", "b")
     parent_dlink = NameTuple("linked_trait")
@@ -45,8 +45,8 @@ class VT1(ValueTraits):
 class VT2(VT1):
     value_traits_persist = NameTuple("vt1")
     vt1 = traitlets.Instance(VT1, allow_none=True)
-    update_counts = traitlets.Int()
-    on_change_counts = traitlets.Int()
+    update_counts = TF.Int(0)
+    on_change_counts = TF.Int(0)
 
     @traitlets.default("vt1")
     def _defaualt_vt1(self):

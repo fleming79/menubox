@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-import traitlets
 
 from menubox import mb_async as mba
 from menubox.hasparent import HasParent
@@ -9,7 +8,7 @@ from menubox.trait_factory import TF
 
 
 class MBRunAsync(HasParent):
-    my_set = traitlets.Set()
+    my_set = TF.Set()
     my_task = TF.Task()
 
 

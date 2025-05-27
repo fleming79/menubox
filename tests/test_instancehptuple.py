@@ -19,10 +19,10 @@ class MenuboxSingleton(mb.HasHome, mb.MenuboxVT):
 
 
 class VTT(mb.ValueTraits):
-    change_count = traitlets.Int()
-    added_count = traitlets.Int()
-    removed_count = traitlets.Int()
-    somelist_count = traitlets.Int()
+    change_count = TF.Int(0)
+    added_count = TF.Int(0)
+    removed_count = TF.Int(0)
+    somelist_count = TF.Int(0)
 
     somelist = menubox.instancehp_tuple.InstanceHPTuple[Self, ipw.Text](trait=Instance(ipw.Text)).hooks(
         update_by="description",

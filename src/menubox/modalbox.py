@@ -22,7 +22,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     obj = traitlets.Callable(read_only=True)
     button_expand = TF.Button(cast(Self, 0), TF.CSScls.button_modal)
     button_collapse = TF.Button(cast(Self, 0), TF.CSScls.button_modal, disabled=True)
-    expanded = traitlets.Bool(False, read_only=True)
+    expanded = TF.Bool(False).configure(TF.IHPMode.X_R_)
     html_title = TF.HTML_Title()
     header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()

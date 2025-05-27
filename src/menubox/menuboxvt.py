@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, cast, override
 
 import ipylab
 import ipywidgets as ipw
-import traitlets
 
 import menubox as mb
 from menubox import utils
@@ -41,8 +40,8 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     FANCY_NAME = ""
     RESERVED_VIEWNAMES = (*Menubox.RESERVED_VIEWNAMES, CONFIGURE_VIEW)
-    title_description = traitlets.Unicode("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
-    title_description_tooltip = traitlets.Unicode("{self.description.value or utils.fullname(self.__class__)}")
+    title_description = TF.Str("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
+    title_description_tooltip = TF.Str("{self.description.value or utils.fullname(self.__class__)}")
     header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}

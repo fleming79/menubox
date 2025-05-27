@@ -93,11 +93,15 @@ class TF:
 
     @staticmethod
     def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int, int]:
-        return InstanceHP(int, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
+        return InstanceHP(
+            int, lambda _: default_value, default_value=default_value, validate=lambda _, val: int(val), co_=co_
+        ).configure(IHPMode.X___)
 
     @staticmethod
     def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float, float]:
-        return InstanceHP(float, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
+        return InstanceHP(
+            float, lambda _: default_value, default_value=default_value, validate=lambda _, val: float(val), co_=co_
+        ).configure(IHPMode.X___)
 
     @staticmethod
     def Tuple(default_value=(), /, *, co_: S | Any = None) -> InstanceHP[S, tuple, tuple]:

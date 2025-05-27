@@ -8,6 +8,7 @@ import traitlets
 import menubox.hasparent as mhp
 import menubox.trait_types as tt
 from menubox import log, mb_async
+from menubox.trait_factory import TF
 
 match = "This exception is intentional"
 
@@ -17,11 +18,11 @@ class HP(mhp.HasParent):
     parent_link = tt.NameTuple("a_link", "a_link2")
 
     somelist = tt.TypedTuple(traitlets.Instance(ipw.Text))
-    a_link = traitlets.Int(0)
-    a_dlink = traitlets.Float(0)
-    a_link2 = traitlets.Instance(ipw.FloatText, ())
-    a_dlink2 = traitlets.Instance(ipw.FloatText, ())
-    caught_errors = traitlets.Int()
+    a_link = TF.Int(0)
+    a_dlink = TF.Float(0)
+    a_link2 = TF.FloatText()
+    a_dlink2 = TF.FloatText()
+    caught_errors = TF.Int(0)
 
     @log.log_exceptions
     def a_func(self, raise_error=False):
