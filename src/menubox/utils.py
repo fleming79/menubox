@@ -34,6 +34,7 @@ __all__ = [
     "sanatise_filename",
     "iterflatten",
     "weak_observe",
+    "observe_once",
     "yes_no_dialog",
     "now",
 ]
@@ -109,6 +110,19 @@ def weak_observe(
 
     obj.observe(handle, names=names)
     return handle
+
+
+def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str):
+    "Observe a trait once only"
+
+    def _observe_once(change: ChangeType):
+        change["owner"].unobserve(_observe_once, names=name)
+        try:
+            callback(change)
+        except Exception as e:
+            mb.log.on_error(e, "observe once callback failed", obj)
+
+    obj.observe(_observe_once, name)
 
 
 def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
