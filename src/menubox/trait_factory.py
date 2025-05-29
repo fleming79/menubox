@@ -104,12 +104,12 @@ class TF:
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Tuple(default_value=(), /, *, co_: S | Any = None) -> InstanceHP[S, tuple, tuple]:
-        return InstanceHP(tuple, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
+    def Tuple(default_value=(), /, *, klass_: type[T] = tuple, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
+        return InstanceHP(tuple, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)  # type: ignore
 
     @staticmethod
-    def Set(*, co_: S | Any = None) -> InstanceHP[S, set, set]:
-        return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)
+    def Set(*, klass_: type[T] = set, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
+        return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)  # type: ignore
 
     @staticmethod
     def Dict(

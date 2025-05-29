@@ -59,15 +59,15 @@ class HasParent(Singular, HasApp, Generic[RP]):
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
-    _hp_reg_parent_link: InstanceHP[Self, set[Link], set] = TF.Set()
-    _hp_reg_parent_dlink: InstanceHP[Self, set[Dlink], set] = TF.Set()
+    _hp_reg_parent_link = TF.Set(klass_=cast("type[set[Link]]", 0))
+    _hp_reg_parent_dlink = TF.Set(klass_=cast("type[set[Dlink]]", 0))
     _hasparent_all_links = TF.DictReadOnly(klass_=cast("type[dict[Hashable, Link | Dlink]]", 0))
     _button_register = TF.DictReadOnly(klass_=cast("type[dict[tuple[str, ipw.Button], Callable]]", 0))
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
     parent = TF.parent(cast(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
-    tasks: InstanceHP[Self, set[asyncio.Task[Any]], set] = TF.Set()
+    tasks = TF.Set(klass_=cast("type[set[asyncio.Task[Any]]]", 0))
 
     def __repr__(self):
         if self.closed:
