@@ -179,7 +179,6 @@ STYLESHEET = f"""
     flex: 0 1 auto;
     flex-flow: row wrap;}}
 .{CSScls.Menubox_item}.{CSScls.box_shuffle} {{
-    flex: 0 0 auto;
     flex-flow: row wrap;
     border: {CSSvar.menubox_border};
     align-self: flex-start;
