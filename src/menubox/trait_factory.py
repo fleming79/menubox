@@ -105,7 +105,14 @@ class TF:
 
     @staticmethod
     def Tuple(default_value=(), /, *, klass_: type[T] = tuple, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
-        return InstanceHP(tuple, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)  # type: ignore
+        def validate_tuple(owner, value):  # noqa: ARG001
+            if isinstance(value, tuple):
+                return value
+            return tuple(value)
+
+        return InstanceHP(
+            tuple, lambda _: default_value, default_value=default_value, validate=validate_tuple, co_=co_
+        ).configure(IHPMode.X___)  # type: ignore
 
     @staticmethod
     def Set(*, klass_: type[T] = set, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
