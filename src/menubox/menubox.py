@@ -416,8 +416,16 @@ class Menubox(HasParent, Panel, Generic[RP]):
                     return
         if mb.DEBUG_ENABLED:
             self.enable_ihp("button_activate")
-        children = (header,) if (header := self.get_header()) else ()
-        if self.view != self.MINIMIZED:
+        if self.view == self.MINIMIZED:
+            for n in ("button_maximize", "button_minimize", "_box_minimized"):
+                self.enable_ihp(n)
+            self.update_title()
+            box = self._box_minimized
+            assert box  # noqa: S101
+            box.children = self.get_widgets(self.button_exit, self.button_maximize, *self.minimized_children)
+            children = (box,)
+        else:
+            children = (header,) if (header := self.get_header()) else ()
             center = self.get_widgets(self.center)
             if self.show_help and (help_widget := self._get_help_widget()):
                 children = (*children, help_widget)
@@ -435,12 +443,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def get_header(self):
         self.update_title()
-        if self.view == self.MINIMIZED:
-            for n in ("button_maximize", "button_minimize", "_box_minimized"):
-                self.enable_ihp(n)
-            if box := self._box_minimized:
-                box.children = self.get_widgets(self.button_maximize, self.button_exit, *self.minimized_children)
-            return box
         widgets = tuple(self.get_widgets(*self.header_children))
         if set(widgets).difference((H_FILL, V_FILL)):
             self.enable_ihp("header")
