@@ -99,7 +99,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     set_children: NotRequired[Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings]
-    value_changed: NotRequired[Callable[[IHPChange[S, T]], T | None]]
+    value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 
 
 class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
@@ -697,7 +697,7 @@ def instanceHP_wrapper(
     tags = dict(tags) if tags else {}  # type: ignore
 
     def instanceHP_factory(
-        cast: SS | Any = None,
+        co_: SS | Any = None,
         /,
         *args: P.args,
         **kwgs: P.kwargs,
@@ -714,7 +714,7 @@ def instanceHP_wrapper(
         """
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # type: ignore
-        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), co_=cast)  # type: ignore
+        instance = InstanceHP(klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), co_=co_)  # type: ignore
         if hooks:
             instance.hooks(**hooks)  # type: ignore
         if tags:

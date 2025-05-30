@@ -503,7 +503,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self.closed:
             return
         match change["name"]:
-            case "name" | "html_title" | "title_description" | "title_description_tooltip" | "title":
+            case "name" | "title_description" | "title_description_tooltip":
                 if self._mb_configured:
                     self.update_title()
                 return
