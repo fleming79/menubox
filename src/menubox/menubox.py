@@ -393,9 +393,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """
         if not self._Menubox_init_complete or self.closed:
             return
-        if not self.view:
-            self.set_trait("children", ())
-            return
         if outputs := self._simple_outputs:
             out = outputs[-1]
             ec = asyncio.Event()
@@ -403,9 +400,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
             await ec.wait()
             self.mb_refresh()
             return
-        if task := self.task_load_view:
+        if self.task_load_view:
             await asyncio.sleep(0)
-            if self.task_load_view:
+            if task := self.task_load_view:
                 with self.simple_output() as out:
                     button_cancel = TF.ipw.Button(description="Cancel")
                     button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
@@ -414,8 +411,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
                     button_cancel.close()
                     self.mb_refresh()
                     return
-        if mb.DEBUG_ENABLED:
-            self.enable_ihp("button_activate")
+        if self.view is None:
+            children = ()
         if self.view == self.MINIMIZED:
             for n in ("button_maximize", "button_minimize", "_box_minimized"):
                 self.enable_ihp(n)
@@ -425,6 +422,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
             box.children = self.get_widgets(self.button_exit, self.button_maximize, *self.minimized_children)
             children = (box,)
         else:
+            if mb.DEBUG_ENABLED:
+                self.enable_ihp("button_activate")
             children = (header,) if (header := self.get_header()) else ()
             center = self.get_widgets(self.center)
             if self.show_help and (help_widget := self._get_help_widget()):
