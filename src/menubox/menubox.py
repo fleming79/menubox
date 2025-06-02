@@ -723,9 +723,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         b.on_click(self._shuffle_button_on_click)
         return b
 
-    def obj_in_box_shuffle(self, obj: ipw.Widget) -> ipw.Widget | None:
+    def obj_in_box_shuffle(self, obj: ipw.Widget | tuple) -> ipw.Widget | None:
         for c in self.box_shuffle.children:
-            if c is obj or isinstance(c, MenuboxWrapper) and c.widget is obj:
+            if c is obj or isinstance(c, MenuboxWrapper) and ((c.widget is obj) or (c.items == obj)):
                 return c
         return None
 
@@ -784,8 +784,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
             if obj_ is self:
                 msg = f"Adding a menubox to its own shuffle_box is prohibited! {self=}"
                 raise RuntimeError(msg)
-        if isinstance(obj, tuple):
-            obj = ipw.VBox(children=obj)
         obj_ = obj
         box = self.box_shuffle
         if found := self.obj_in_box_shuffle(obj):
@@ -795,7 +793,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self.enable_ihp("box_shuffle")
         if not isinstance(obj_, mb.Menubox) or ensure_wrapped and not isinstance(obj_, MenuboxWrapper):
             obj_ = MenuboxWrapper(obj_)
-            alt_name = alt_name or "<b>{self.widget.name}<b>" if isinstance(obj, Menubox) else ""
             obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in box.children if c not in [obj, obj_])
         box.children = (*children, obj_) if position == "end" else (obj_, *children)
@@ -850,11 +847,16 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
 class MenuboxWrapper(Menubox):
     DEFAULT_VIEW = "widget"
-    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_R_)
-    views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget})
+    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN)
+    items = TF.Tuple()
+    views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget or p.items})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
-    def __init__(self, widget: ipw.Widget):
-        self.set_trait("widget", widget)
-        utils.weak_observe(widget, self.close, names="comm")
+    def __init__(self, obj: ipw.Widget):
+        if isinstance(obj, tuple):
+            self.items = obj
+        else:
+            self.set_trait("widget", obj)
+            utils.weak_observe(obj, self.close, names="comm")
+            self.disable_ihp("box_center")
         super().__init__()

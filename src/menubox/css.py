@@ -174,6 +174,7 @@ STYLESHEET = f"""
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_item}.{CSScls.centerbox} {{
+    flex: 1 0 auto;
     height: auto;}}
 .{CSScls.Menubox_item}.{CSScls.box_menu} {{
     flex: 0 1 auto;
