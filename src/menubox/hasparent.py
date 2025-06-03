@@ -263,8 +263,14 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     @staticmethod
     def check_equality(a, b) -> bool:
-        """Check objects are equal. Special handling for DataFrame."""
+        """Check objects are equal.
+
+        Special handling:
+         - dict: checks both order and content are equal
+         - DataFrame: uses `equals` method"""
         try:
+            if isinstance(a, dict):
+                return tuple(a) == tuple(b) and (a == b)
             return bool(a == b)
         except ValueError:
             if isinstance(a, pd.DataFrame):
