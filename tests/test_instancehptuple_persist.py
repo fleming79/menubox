@@ -7,8 +7,6 @@ from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.trait_factory import TF
 from menubox.trait_types import NameTuple
 
-# ruff: noqa: PLR2004
-
 
 class VTTP(ValueTraits):
     a = TF.Str()

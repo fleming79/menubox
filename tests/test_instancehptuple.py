@@ -12,8 +12,6 @@ from menubox.instance import IHPSet
 from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.trait_factory import TF
 
-# ruff: noqa: PLR2004
-
 
 class MenuboxSingleton(mb.HasHome, mb.MenuboxVT):
     SINGLE_BY = ("home", "name")

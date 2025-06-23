@@ -10,8 +10,6 @@ templates_folder = pathlib.Path(__file__).parent.joinpath("templates")
 assert templates_folder.exists()
 mb.MenuboxVT.register_template_root_folder(templates_folder)
 
-# ruff: noqa: PLR2004
-
 
 class MyNewObj(mb.HasHome, mb.MenuboxVT):
     SHOW_TEMPLATE_CONTROLS = True

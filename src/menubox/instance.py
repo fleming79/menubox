@@ -457,7 +457,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             if obj._cross_validation_lock is False:
                 value = self._cross_validate(obj, value)
             return value
-        self.error(obj, value)  # noqa: RET503
+        self.error(obj, value)
+        raise ValueError
 
     def _value_changed(self, change: IHPChange[S, T]):
         if hookmappings := self._hookmappings:

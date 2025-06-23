@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
     from menubox.defaults import NO_VALUE_TYPE
 
-# ruff: noqa: UP038
 
 __all__ = [
     "json_default",

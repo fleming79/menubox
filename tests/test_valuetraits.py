@@ -10,8 +10,6 @@ from menubox import HasParent, ValueTraits
 from menubox.trait_factory import TF
 from menubox.trait_types import NameTuple
 
-# ruff: noqa: PLR2004
-
 
 class Nested(HasParent):
     number = TF.InstanceHP(klass=ipw.FloatText)
