@@ -7,7 +7,6 @@ import inspect
 import weakref
 from typing import TYPE_CHECKING, Self
 
-import ipylab
 import wrapt
 
 import menubox as mb
@@ -38,11 +37,6 @@ class TaskType(int, enum.Enum):
     update = enum.auto()
     init = enum.auto()
     click = enum.auto()
-
-
-def get_asyncio_loop() -> asyncio.AbstractEventLoop:
-    "The main event loop"
-    return ipylab.App().asyncio_loop  # type: ignore
 
 
 def run_async(
@@ -126,7 +120,7 @@ def run_async(
         else:
             return result if restart else None
 
-    task = asyncio.eager_task_factory(get_asyncio_loop(), _run_async_wrapper(), name=name)
+    task = asyncio.eager_task_factory(asyncio.get_running_loop(), _run_async_wrapper(), name=name)
     # task = asyncio.create_task(_run_async_wrapper(), name=name)
     if not task.done():
         background_tasks[task] = tasktype
@@ -210,7 +204,7 @@ def get_task(name: str, obj: HasParent | None):
 def call_later(delay, callback, *args, **kwargs):
     """Run callback after a delay."""
     callit = functools.partial(callback, *args, **kwargs)
-    return get_asyncio_loop().call_later(delay, callit)
+    return asyncio.get_running_loop().call_later(delay, callit)
 
 
 async def to_thread(func: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> T:
