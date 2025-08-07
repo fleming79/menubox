@@ -106,18 +106,24 @@ class Menubox(HasParent, Panel, Generic[RP]):
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
     # Buttons
-    button_menu = TF.Button(cast(Self, 0), TF.CSScls.button_menu, description="☰").configure(TF.IHPMode.X__N)
-    button_toggleview = TF.Button(cast(Self, 0), TF.CSScls.button_menu, description="➱").configure(TF.IHPMode.X__N)
-    button_help = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="❔").configure(TF.IHPMode.X__N)
-    button_close = TF.Button(cast(Self, 0), TF.CSScls.button_dangerous, description="✗", tooltip="Close").configure(
+    button_menu = TF.Button(cast(Self, 0), TF.CSScls.button_menu, icon="bars", tooltip="Open menu").configure(
         TF.IHPMode.X__N
     )
-    button_minimize = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="🗕", tooltip="Minimize").configure(
+    button_toggleview = TF.Button(cast(Self, 0), TF.CSScls.button_menu, icon="arrow-circle-o-right").configure(
         TF.IHPMode.X__N
     )
-    button_maximize = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="🗖", tooltip="Restore").configure(
+    button_help = TF.Button(cast(Self, 0), TF.CSScls.button_open, icon="question-circle", tooltip="help").configure(
         TF.IHPMode.X__N
     )
+    button_close = TF.Button(cast(Self, 0), TF.CSScls.button_dangerous, icon="window-close", tooltip="Close").configure(
+        TF.IHPMode.X__N
+    )
+    button_minimize = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, icon="window-minimize", tooltip="Minimize"
+    ).configure(TF.IHPMode.X__N)
+    button_maximize = TF.Button(
+        cast(Self, 0), TF.CSScls.button_open, icon="window-restore", tooltip="Restore"
+    ).configure(TF.IHPMode.X__N)
     button_exit = TF.Button(cast(Self, 0), TF.CSScls.button_open, description="⇡", tooltip="Leave showbox").configure(
         TF.IHPMode.X__N
     )
@@ -131,7 +137,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         cast(Self, 0), TF.CSScls.button_menu, description="↤", tooltip="Hide menu"
     ).configure(TF.IHPMode.X__N)
     button_activate = TF.Button(
-        cast(Self, 0), TF.CSScls.button_open, description="🐑", tooltip="Add to shell"
+        cast(Self, 0), TF.CSScls.button_open, icon="window-maximize", tooltip="Add to shell"
     ).configure(TF.IHPMode.X__N)
 
     # Boxes
@@ -362,6 +368,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if (b := self.button_toggleview) and view in self.toggleviews:
             i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
             next_view = self.toggleviews[i]
+            b.description = view
             b.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
         return view
 
@@ -689,7 +696,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self.set_trait("showbox", None)
             case self.button_help if self.button_help:
                 self.show_help = not self.show_help
-                self.button_help.description = "❓" if self.show_help else "❔"
+                self.button_help.icon = "question-circle-o" if self.show_help else "question-circle"
                 if self.show_help:
                     self.maximize()
             case self.button_activate:

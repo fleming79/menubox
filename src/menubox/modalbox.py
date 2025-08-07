@@ -39,6 +39,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         expand=False,
         box: Callable[[S], ipw.Box] | None = None,
         title_tooltip="",
+        icon="",
         button_expand_description="",
         button_expand_tooltip="Expand",
         button_collapse_description="🗕",
@@ -83,7 +84,8 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
             self.html_title.description = f"<b>{title}</b>"
             self.html_title.tooltip = fstr(title_tooltip)
         self.header_children = header_children
-        self.button_expand.description = fstr(button_expand_description or title)
+        self.button_expand.icon = icon
+        self.button_expand.description = fstr(button_expand_description or ("" if icon else title))
         self.button_expand.tooltip = fstr(button_expand_tooltip)
         self.button_collapse.description = fstr(button_collapse_description)
         self.button_collapse.tooltip = fstr(button_collapse_tooltip)

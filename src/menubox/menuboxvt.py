@@ -74,7 +74,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         cast(Self, 0),
         obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
-        button_expand_description="📜",
+        icon="file-text-o",
         button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
         on_expand=lambda p: p._on_template_controls_expand(),
     ).configure(TF.IHPMode.XLRN)
@@ -114,12 +114,12 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        TF.Button(cast(Self, 0), TF.CSScls.button_open, tooltip="Configure")
+        TF.Button(cast(Self, 0), TF.CSScls.button_open, tooltip="Configure", icon="wrench")
         .hooks(
             on_set=lambda c: c["owner"].dlink(
                 source=(c["owner"], "view"),
                 target=(c["obj"], "description"),
-                transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "🔧",
+                transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "",
             ),
         )
         .configure(TF.IHPMode.X_RN)

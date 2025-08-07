@@ -138,7 +138,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         cast(Self, 0),
         obj=lambda p: p._get_version_box(),
         title="Persistence",
-        button_expand_description="⇵",
+        icon="arrows-v",
         button_expand_tooltip="Save / load persistence settings.",
     ).configure(
         TF.IHPMode.XLRN,
@@ -233,8 +233,12 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         if change["owner"] is self:
             if self.AUTOLOAD and change["name"] in ["name", "version"] and self.version in self.versions:
                 self.load_persistence_data(self.version, set_version=True)
-            if self.ASK_SAVE and change["name"] == "connections" and not self.connections:
-                self.ask_save_close()
+            if change["name"] == "connections":
+                if b := self.button_activate:
+                    utils.hide(b) if self.connections else utils.unhide(b)
+                    self.mb_refresh()
+                if self.ASK_SAVE and not self.connections:
+                    self.ask_save_close()
         else:
             match change["owner"]:
                 case self.sw_version_load if (version := self.sw_version_load.value) in self.versions:
