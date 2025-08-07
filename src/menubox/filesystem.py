@@ -108,14 +108,15 @@ class Filesystem(MenuboxVT):
         tasktype=mb_async.TaskType.update,
     )
     button_home = TF.Button(
-        description="🏠",
+        icon="home",
+        tooltip="home",
     )
     button_up = TF.Button(
-        description="↑",
+        icon="arrow-up",
         tooltip="Navigate up one folder",
     )
     button_add = TF.Button(
-        description="✚",
+        icon="plus",
         tooltip="Create new file or folder",
     )
     box_settings = TF.HBox(cast(Self, 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(

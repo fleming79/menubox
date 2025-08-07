@@ -125,10 +125,10 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         .configure(TF.IHPMode.X_RN)
     )
     button_clip_put = TF.Button(
-        cast(Self, 0), TF.CSScls.button_open, description="📎", tooltip="Copy settings to clipboard"
+        cast(Self, 0), TF.CSScls.button_open, icon="paperclip", tooltip="Copy settings to clipboard"
     )
     button_paste = TF.Button(
-        cast(Self, 0), TF.CSScls.button_open, description="📋", tooltip="Paste settings from clipboard\n"
+        cast(Self, 0), TF.CSScls.button_open, icon="clipboard", tooltip="Paste settings from clipboard\n"
     )
     _button_load_template = TF.Button(
         description="Load",
