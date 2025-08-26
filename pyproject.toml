@@ -7,9 +7,10 @@ name = "menubox"
 description = ""
 readme = "README.md"
 requires-python = ">=3.12"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ['LICENSE']
 keywords = []
-authors = [{ name = "Alan Fleming", email = "fleming79@gmail.com" }]
+authors = [{name = "Alan Fleming", email = "async-python@proton.me"}]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
@@ -32,10 +33,10 @@ dependencies = [
   "psutil",
   "pyarrow",
   "docstring_to_markdown",
-  "ipylab @ {root:uri}/pkg/ipylab-2.0.0b7.tar.gz",
+  "ipylab @ {root:uri}/pkg/ipylab-2.0.0rc0.tar.gz",
 ]
-[project.optional-dependencies]
-dev = [
+[dependency-groups]
+dev =[
   "hatch",
   "ruff",
   "pytest-cov >= 6",

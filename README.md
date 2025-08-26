@@ -36,13 +36,14 @@ git clone https://github.com/fleming79/menubox
 cd menubox
 
 # Install in editable mode
-pip install -e .
+uv sync
 ```
 
 ## Development
 
+To upgrade all packages.
 ```sh
-pip install -e .[dev]
+uv sync -U
 ```
 
 ### Vscode
