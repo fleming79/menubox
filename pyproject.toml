@@ -33,7 +33,7 @@ dependencies = [
   "psutil",
   "pyarrow",
   "docstring_to_markdown",
-  "ipylab @ {root:uri}/pkg/ipylab-2.0.0rc0.tar.gz",
+  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.0rc0/ipylab-2.0.0rc0.tar.gz#sha256:201bfb2f28b8e427f9a0c26438072df220e9456bc7e1158c27ac3214a79d130c",
 ]
 [dependency-groups]
 dev =[
