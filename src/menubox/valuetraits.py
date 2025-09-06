@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, overload
 
 import orjson
 import ruamel.yaml
@@ -217,7 +217,7 @@ class ValueTraits(HasParent):
         for v in (*self.value_traits_persist, *self.value_traits, *self._InstanceHPTuple):
             if v not in vts:
                 vts.append(v)
-        self._init_value = value = mb.pack.to_dict(value)
+        value = mb.pack.to_dict(value)
         # Extract kwargs that overlap with value_traits/persist in order or vts
         for n in vts:
             name = n
@@ -236,13 +236,7 @@ class ValueTraits(HasParent):
         self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
-
-    @override
-    async def init_async(self):
-        await super().init_async()
-        if self._init_value:
-            self.set_trait("value", self._init_value)
-        del self._init_value
+        self.set_trait("value", value)
         if self._STASH_DEFAULTS:
             self._DEFAULTS = self.to_yaml()
 

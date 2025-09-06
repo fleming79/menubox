@@ -29,7 +29,7 @@ async def test_persist():
     assert hp.changecount == 0
     hp.set_trait("widgets", ({"a": "A", "b": 10}, VTTP(a="B", b=2)))
     assert hp.changecount == 1
-
+    await hp.wait_tasks()
     assert hp.widgets[0].a == "A"
 
     assert hp.widgets[0].b == 10

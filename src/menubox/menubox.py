@@ -101,7 +101,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
-    task_load_view = TF.Task()
+    task_load_view = TF.Future()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
@@ -409,12 +409,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         if self.task_load_view:
             await asyncio.sleep(0)
-            if task := self.task_load_view:
+            if fut := self.task_load_view:
                 with self.simple_output() as out:
                     button_cancel = TF.ipw.Button(description="Cancel")
-                    button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
+                    button_cancel.on_click(lambda _: fut.cancel("Button click to cancel from mb_refresh"))
                     out.push(f"<b>Loading view {self.view}", button_cancel)
-                    await asyncio.wait([task])
+                    await fut.wait(result=False)
                     button_cancel.close()
                     self.mb_refresh()
                     return
@@ -807,11 +807,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
             mb.mb_async.call_later(0.1, self.button_exit.focus)
         return obj_
 
-    def deactivate(self):
+    def deactivate(self) -> Self:
         "Hide and close existing shell connections."
         self.load_view(None)
         for sc in self.connections:
             sc.close()
+        return self
 
     async def activate(
         self,
@@ -819,7 +820,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         add_to_shell=False,
         view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT,
         **kwgs: Unpack[ipylab.widgets.AddToShellType],
-    ):
+    ) -> Self:
         "Maximize and add to the shell."
         self.load_view(view)
         task = self.task_load_view
@@ -830,7 +831,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         await self.wait_init_async()
         return self
 
-    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:
+    @override
+    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:  # pyright: ignore[reportIncompatibleMethodOverride]
         return await super().add_to_shell(**kwgs)
 
     async def show_in_dialog(
@@ -852,13 +854,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
 
 class MenuboxWrapper(Menubox):
+    "Wrap a  widget with a Menubox."
+
     DEFAULT_VIEW = "widget"
     widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN)
     items = TF.Tuple()
     views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget or p.items})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
-    def __init__(self, obj: ipw.Widget):
+    def __init__(self, obj: ipw.Widget | tuple):
         if isinstance(obj, tuple):
             self.items = obj
         else:

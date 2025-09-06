@@ -21,7 +21,7 @@ async def test_filesystem():
     await fs.wait_tasks()
     assert fs.url.value == new_folder.as_posix()
     fs.button_add.click()
-    assert fs.tasks
+    assert fs.futures
     await fs.wait_tasks()
     assert new_folder.exists()
 
@@ -30,7 +30,7 @@ async def test_filesystem():
     fname = fs.url.value
     await fs.wait_tasks()
     fs.button_add.click()
-    assert fs.tasks
+    assert fs.futures
     await fs.wait_tasks()
     assert pathlib.Path(fname).is_file()
     with pytest.raises(TimeoutError):

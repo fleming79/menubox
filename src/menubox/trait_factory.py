@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import ipylab
 import ipywidgets as ipw
 import traitlets
+from async_kernel.caller import Future
 from IPython import display as ipd
 
 import menubox.async_run_button
@@ -380,6 +381,11 @@ class TF:
     @staticmethod
     def Task():
         return InstanceHP(klass=asyncio.Task).configure(IHPMode.X_RN)
+
+    @staticmethod
+    def Future():
+        "An async-kernel Future"
+        return InstanceHP(klass=Future).configure(IHPMode.X_RN)
 
     @staticmethod
     def MenuboxPersistPool(

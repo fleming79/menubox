@@ -49,13 +49,13 @@ class MyNewObj(mb.HasHome, mb.MenuboxVT):
 
 
 async def test_menuboxvt(home: mb.Home):
-    m = MyNewObj(home=home)
+    m = await MyNewObj(home=home)
     assert m.template_controls
     # Check that the values are registered and observed
     m.a.value = 12
     assert m.a_has_changed
     assert m.b_has_changed, "m.a sets m.b.value in `on_change`."
-    await m.wait_tasks()
+    await m
     m.a.value = 2
     assert m.b_has_changed
 
@@ -70,26 +70,26 @@ async def test_menuboxvt(home: mb.Home):
     assert m.c.value == 2.3, "'Manually' copied value."
 
     m.template_controls.expand()
-    await m.wait_tasks()
+    await m
     assert len(m._sw_template.options) == 2, "Should locate template files"
 
     # Test load json template
     m._sw_template.index = 0
     m._button_load_template.click()
-    await m.wait_tasks()
+    await m
     assert m.a.value == 12.3, "From json template"
     assert m.c.value == 99, "From json template"
 
     # Test load yaml template
     m._sw_template.index = 1
     m._button_load_template.click()
-    await m.wait_tasks()
+    await m
     assert m.a.value == 10, "From yaml template"
     assert m.c.value == 20, "From yaml template"
 
     assert m._button_template_info
 
-    await m.load_view(m.CONFIGURE_VIEW).activate()
+    await m.load_view(m.CONFIGURE_VIEW)
     assert m.view == m.CONFIGURE_VIEW
 
     m.text_name.value = "renamed"
@@ -99,8 +99,8 @@ async def test_menuboxvt(home: mb.Home):
     assert m.name == "renamed"
     assert m.text_name.value == "renamed"
 
-    await m.load_view("Main").activate()
+    await m.load_view("Main")
 
     assert m.box_center
-    await m.wait_tasks()
+    await m
     assert m.description_viewer in m.box_center.children, 'From view "Main"'

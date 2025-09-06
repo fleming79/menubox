@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import ipylab.log
 import ipywidgets as ipw
 import pytest
+from async_kernel import Caller
 
 import menubox as mb
 
@@ -25,9 +26,9 @@ def anyio_backend():
 @pytest.fixture(autouse=True)
 async def anyio_backend_autouse(anyio_backend, mocker):
     app = ipylab.App()
-    app._trait_values.pop("asyncio_loop", None)
-    mocker.patch.object(app, "ready")
-    return anyio_backend
+    async with Caller(create=True):
+        mocker.patch.object(app, "ready")
+        yield anyio_backend
 
 
 @pytest.fixture

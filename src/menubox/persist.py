@@ -191,7 +191,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     )
     box_version = TF.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
-    task_loading_persistence_data = TF.Task()
+    task_loading_persistence_data = TF.Future()
     value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load", "version_widget", "connections")
     value_traits_persist = StrTuple("saved_timestamp", "description")
     dataframe_persist = StrTuple()
@@ -249,7 +249,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     def _get_version_box(self) -> ipw.Box:
         box = self.box_version
-        mb_async.run_async_singular(self._update_versions(), obj=self)
+        mb_async.run_async_singular(self._update_versions, {"obj": self})
         if len(self.versions):
             self.sw_version_load.value = None
             box.children = tuple(
@@ -490,7 +490,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         if str(existing) != str(current) and await utils.yes_no_dialog(
             self.app, "Save changes", f"Save changes for {self}?"
         ):
-            await self.button_save_persistence_data.start_wait()
+            await self.button_save_persistence_data.start()
         if ask_close and await utils.yes_no_dialog(self.app, "Close", f"Close {self}"):
             self.close(force=True)
 

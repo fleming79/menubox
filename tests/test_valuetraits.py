@@ -64,17 +64,17 @@ async def test_value_traits():
     vt1 = VT1()
     assert vt1.value() == {"a": "", "b": 0}  # defaults for non-InstantHP traits
     assert vt1.on_change_counts == 0
-    assert vt1.value_change_count == 0  # No defaults
+    assert vt1.value_change_count == 1  # No defaults
     vt1.a = "alone"
     assert vt1.on_change_counts == 1
-    assert vt1.value_change_count == 1
+    assert vt1.value_change_count == 2
     assert vt1.value() == {"a": "alone", "b": 0}
 
     # Check ignore change
     with vt1.ignore_change():
         vt1.a = "An ignored change"
     assert vt1.on_change_counts == 1, "'shouldn't have changed from above"
-    assert vt1.value_change_count == 1, "'shouldn't have changed from above"
+    assert vt1.value_change_count == 2, "'shouldn't have changed from above"
     assert vt1.a == "An ignored change"
 
     # Check value_traits: nested, adding, removing and None
@@ -85,17 +85,17 @@ async def test_value_traits():
     assert len(vt1._vt_reg_value_traits_persist) == 2
     vt1.disable_ihp("nested")
     assert vt1.on_change_counts == 1
-    assert vt1.value_change_count == 1
+    assert vt1.value_change_count == 2
     vt1._reset_trait("nested")
     assert vt1.nested
-    assert vt1.value_change_count == 2
+    assert vt1.value_change_count == 3
     vt1.drop_value_traits("nested.number.value")
     assert vt1.on_change_counts == 2
-    assert vt1.value_change_count == 2
+    assert vt1.value_change_count == 3
     assert len(vt1._vt_reg_value_traits) == 0
     vt1.value = {"a": "change two at once", "b": 3}
     assert vt1.value() == {"a": "change two at once", "b": 3}  # type: ignore
-    assert vt1.value_change_count == 3, "Should get called once per set of changes"
+    assert vt1.value_change_count == 4, "Should get called once per set of changes"
     assert vt1.on_change_counts == 4, "Called for each update"
 
     # Check
