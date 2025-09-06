@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import enum
 from typing import TYPE_CHECKING, ClassVar, Generic, Self, cast, final, override
 
+import anyio
 import ipywidgets as ipw
 import pandas as pd
 
@@ -219,7 +219,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             ]:
                 await self._update_versions()
                 if self.versions:
-                    await asyncio.shield(self.load_persistence_data(version=max(self.versions)))
+                    await self.load_persistence_data(version=max(self.versions)).wait(shield=True)
                 elif self.menu_load_index:
                     self.menu_load_index.expand()
         finally:
@@ -626,7 +626,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     async def activate(self, *, add_to_shell=True, **kwgs):  # type: ignore
         result = await self.show_in_dialog(kwgs.get("title") or self.get_title_label())
         if result["value"] is False:
-            raise asyncio.CancelledError
+            raise anyio.get_cancelled_exc_class()
         obj = self.get_obj(self.obj_name.value)
         self.obj_name.value = ""
         return await obj.activate(add_to_shell=add_to_shell)

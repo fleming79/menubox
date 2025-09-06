@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import gc
 import weakref
 from typing import Self, cast
 
+import anyio
 import ipywidgets as ipw
 import pytest
 from traitlets import TraitError
@@ -110,14 +110,14 @@ class TestInstance:
         await hp1.wait_tasks()
         assert hp1.clicked == 1, "Should have connected the button"
         assert hp1.box, "Loading children is debounced"
-        await asyncio.sleep(0.1)  # ChildSetter.update is debounced
+        await anyio.sleep(0.1)  # ChildSetter.update is debounced
         assert hp1.my_button in hp1.box.children, "children for HBox_C should be added by a ChildSetter"
         b2 = ipw.Button()
         hp1.set_trait("my_button", b2)
         b2.click()
         await hp1.wait_tasks()
         assert hp1.clicked == 2, "Should have connected b2"
-        await asyncio.sleep(0.1)
+        await anyio.sleep(0.1)
         assert b2 in hp1.box.children, "'set_children' with mode='monitor' should update box.children"
 
         # Test can regenerate
@@ -201,7 +201,7 @@ class TestInstance:
         # ------- WARNING ------ : adding debug break points may cause this to fail.
         for _ in range(20):
             gc.collect()
-            await asyncio.sleep(0.05)
+            await anyio.sleep(0.05)
             if deleted:
                 break
             # Some objects schedule tasks against functions that may take a while to exit.

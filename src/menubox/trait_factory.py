@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import enum
 import math
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -57,7 +56,7 @@ class TF:
     - Traits for asynchronous operations (AsyncRunButton).
     - Traits for creating modal dialogs (Modalbox).
     - A trait for selecting repositories (SelectRepository).
-    - A trait for asyncio Tasks.
+    - A trait for asyncio async-kernel.Future.
     - A trait for managing persistent objects within MenuBox (MenuboxPersistPool).
     Each method returns an InstanceHP object (or a Fixed object), configured with
     appropriate default values, validation logic, and hooks for seamless
@@ -375,10 +374,6 @@ class TF:
         return InstanceHP(
             cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"), co_=co_
         )
-
-    @staticmethod
-    def Task():
-        return InstanceHP(klass=asyncio.Task).configure(IHPMode.X_RN)
 
     @staticmethod
     def Future():

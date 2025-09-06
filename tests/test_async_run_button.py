@@ -1,5 +1,6 @@
-import asyncio
 from typing import Self, cast
+
+import anyio
 
 import menubox as mb
 from menubox.async_run_button import AsyncRunButton
@@ -26,7 +27,7 @@ class PMB(mb.Menubox):
     data = TF.Dict()
 
     async def _button_async(self, **kwgs):
-        await asyncio.sleep(0.4)
+        await anyio.sleep(0.4)
         self.data.update(kwgs)
         return kwgs
 

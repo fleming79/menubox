@@ -1,6 +1,6 @@
-import asyncio
 from typing import Self, cast, override
 
+import anyio
 import ipywidgets as ipw
 
 import menubox as mb
@@ -59,6 +59,6 @@ async def test_modal_button():
     assert not obj.mb1.button_expand.disabled
 
     assert obj.mb2  # instantiate mb2
-    await asyncio.sleep(0.2)
+    await anyio.sleep(0.2)
     assert obj.mb2.expanded, "expand=True"
     assert obj.mb2.button_expand.description == "mb2"

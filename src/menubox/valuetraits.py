@@ -495,7 +495,7 @@ class ValueTraits(HasParent):
         """Append names to value_traits.
 
         delay: if it is not None, it will be called with a delay.
-            a delay = 0 is equivalent to `asyncio.call_soon`.
+            a delay = 0 is equivalent to `mb_async.call_soon`.
         """
         if delay is not None:
             mb_async.call_later(0, self.add_value_traits, *names)

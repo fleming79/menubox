@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import re
 import textwrap
@@ -8,6 +7,7 @@ import weakref
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
+import anyio
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
@@ -310,8 +310,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             Defaults to False.
 
         Returns:
-            Task | None: Returns a Task object if a new view loading task is started.
-            Returns None if the view is already loaded and reload is False.
+            Self
 
         Raises:
             RuntimeError: If the specified view is not in the set of current views.
@@ -402,13 +401,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         if outputs := self._simple_outputs:
             out = outputs[-1]
-            ec = asyncio.Event()
+            ec = anyio.Event()
             out.observe(lambda _: ec.set(), "closed")
             await ec.wait()
             self.mb_refresh()
             return
         if self.task_load_view:
-            await asyncio.sleep(0)
+            await anyio.sleep(0)
             if fut := self.task_load_view:
                 with self.simple_output() as out:
                     button_cancel = TF.ipw.Button(description="Cancel")
@@ -823,11 +822,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
     ) -> Self:
         "Maximize and add to the shell."
         self.load_view(view)
-        task = self.task_load_view
+        fut = self.task_load_view
         if add_to_shell:
             await self.add_to_shell(**kwgs)
-        if task and not task.done():
-            await asyncio.shield(task)
+        if fut and not fut.done():
+            await fut.wait()
         await self.wait_init_async()
         return self
 

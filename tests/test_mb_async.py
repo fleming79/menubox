@@ -1,5 +1,4 @@
-import asyncio
-
+import anyio
 import pytest
 from async_kernel.caller import FutureCancelledError
 
@@ -14,7 +13,7 @@ class MBRunAsync(HasParent):
 
 
 async def async_function(result, delay=0.0):
-    await asyncio.sleep(delay)
+    await anyio.sleep(delay)
     return result
 
 
@@ -45,7 +44,7 @@ class TestRunAsync:
         assert (await task1) == 5
 
     async def test_run_async_timeout(self):
-        with pytest.raises(asyncio.TimeoutError):
+        with pytest.raises(TimeoutError):
             await mba.run_async({}, async_function, 7, 100).wait(timeout=0.1)
 
     async def test_run_async_handle_set(self):
@@ -82,12 +81,12 @@ class MBRunAsyncSingular(HasParent):
 
     @mba.singular_task(handle="my_task_trait")
     async def async_singular_function(self, *args, **kwgs):
-        await asyncio.sleep(0.01)
+        await anyio.sleep(0.01)
         return args, kwgs
 
     @mba.singular_task(handle="my_task_trait", restart=False)
     async def async_singular_function_restart_false(self, *args, **kwgs):
-        await asyncio.sleep(0.01)
+        await anyio.sleep(0.01)
         return args, kwgs
 
     @mba.singular_task()

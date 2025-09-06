@@ -1,4 +1,3 @@
-import asyncio
 from typing import Self, cast
 
 import anyio
@@ -54,7 +53,7 @@ class TestTraitFactory:
         obj.button.click()
         assert t1.cancelled()
         await t1.wait(shield=True, result=False)
-        await asyncio.sleep(0)
+        await anyio.sleep(0)
         t2 = obj.clicked.get(obj.button)
         assert isinstance(t2, Future)
         assert t2 is not t1
