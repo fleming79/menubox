@@ -35,8 +35,6 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         This is the function or AsyncRunButton to call with kw. Noting that the tasks
         are linked, so cancelling one will cancel the other. Strings are also accepted
         with dotted name access relative to parent.
-    link_button:
-        Disable the button while the other button is running (if not called )
     kw : dict | callable
     If kw is callable, it will be called when the button is clicked.  It must return a
     dict.

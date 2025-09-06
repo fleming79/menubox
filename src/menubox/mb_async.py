@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import enum
 import functools
 import inspect
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 
+import anyio
 import wrapt
 from async_kernel import Caller
 from async_kernel.caller import Future, FutureCancelledError
@@ -233,15 +233,15 @@ class _Periodic:
             while self._repeat:
                 self._repeat = False
                 if self.mode is PeriodicMode.debounce:
-                    await asyncio.sleep(self.wait)
+                    await anyio.sleep(self.wait)
                 if getattr(self.instance, "closed", False):
                     msg = f"{self.instance} is closed!"
-                    raise asyncio.CancelledError(msg)  # noqa: TRY301
+                    raise anyio.get_cancelled_exc_class()(msg)  # noqa: TRY301
                 result = self.wrapped(*self.args, **self.kwargs)
                 while inspect.isawaitable(result):
                     result = await result
-                await asyncio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
-        except asyncio.CancelledError:
+                await anyio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
+        except anyio.get_cancelled_exc_class():
             if getattr(self.instance, "closed", False):
                 return
             raise
@@ -296,7 +296,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
     return _periodic_wrapper
 
 
-def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
+def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., Future]]:
     """A decorator that throttles the call to wrapped function.
 
     Compatible with coroutines, functions and methods.
@@ -306,7 +306,7 @@ def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Call
     return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype, **kw)  # type: ignore
 
 
-def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
+def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., Future]]:
     """A decorator that debounces the call to the wrapped function.
 
     Compatible with coroutines, functions and methods.

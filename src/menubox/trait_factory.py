@@ -305,7 +305,6 @@ class TF:
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
         tooltip="",
-        link_button=False,
         tasktype: mb_async.TaskType = mb_async.TaskType.general,
         **kwargs,
     ):
@@ -321,7 +320,6 @@ class TF:
                 button_style=button_style,
                 cancel_button_style=cancel_button_style,
                 tooltip=tooltip,
-                link_button=link_button,
                 tasktype=tasktype,
                 **kwargs,
             ),
