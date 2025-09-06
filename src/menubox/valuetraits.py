@@ -142,12 +142,8 @@ class ValueTraits(HasParent):
     def ignore_change(self):
         """Context manager to temporarily ignore changes.
 
-        **USE SPARINGLY**
-        Tips:
-            Use a reference to the object that the changes should
-            be ignored in in case the object has not being created. Doing
-            so may unexpectedly ignore a change that should have otherwise
-            been propagated.
+        Whilst in this context all changes register with 'value_traits' and 'value_traits_persist'
+        will not be passed to `on_change` and 'value' change will not be emitted immediately.
         """
 
         self._ignore_change_cnt = self._ignore_change_cnt + 1
@@ -464,13 +460,14 @@ class ValueTraits(HasParent):
                 f"{utils.limited_string(repr(change['old']))} ➮ {utils.limited_string(repr(change['new']))}  "
                 f"{f'ignored (context={self._ignore_change_cnt})' if self._ignore_change_cnt else ''}"
             )
-        if self._ignore_change_cnt or self.closed:
+        if self.closed:
             return
         # `value` updated after "leaving context" (originally using context but only used here.)
         self.vt_updating = True
         self._vt_busy_updating_count = self._vt_busy_updating_count + 1
         try:
-            self.on_change(change)
+            if not self._ignore_change_cnt:
+                self.on_change(change)
         except Exception as e:
             if self._vt_busy_updating_count == 1:
                 self.on_error(e, "Change event error", change)
@@ -479,7 +476,7 @@ class ValueTraits(HasParent):
             self._vt_busy_updating_count -= 1
             if not self._vt_busy_updating_count:
                 self.vt_updating = False
-                if self._vt_init_complete and not self.vt_validating:
+                if (not self._ignore_change_cnt) and self._vt_init_complete and (not self.vt_validating):
                     self.set_trait("value", defaults.NO_VALUE)
 
     def _load_value(self, data: Literal[defaults._NoValue.token] | dict | Callable):
