@@ -495,7 +495,7 @@ class ValueTraits(HasParent):
             a delay = 0 is equivalent to `mb_async.call_soon`.
         """
         if delay is not None:
-            mb_async.call_later(0, self.add_value_traits, *names)
+            mb_async.call_later(delay, self.add_value_traits, *names)
             return
         self.set_trait("value_traits", (*self.value_traits, *names))
 

@@ -137,7 +137,7 @@ def run_async(
     #     else:
     #         return result
 
-    fut = Caller().get_instance().call_later(func, opts.get("delay", 0), *args, **kwargs)
+    fut = Caller().get_instance().call_later(opts.get("delay", 0), func, *args, **kwargs)
     if not fut.done():
         background_tasks[fut] = opts.get("tasktype") or TaskType.general
         background_futures[(obj, handle)] = fut
@@ -169,7 +169,7 @@ def run_async_singular(
     return run_async(opts, func, *args, **kwargs)
 
 
-def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, T]], Callable[P, Future[T]]]:
+def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Future[T]]]:
     """A decorator to wrap a coroutine function to run as a singular task.
 
     obj is as the instance.
@@ -196,7 +196,7 @@ def get_pending_future(*, obj: HasParent | None = None, handle: str | None = Non
 def call_later(delay, callback, *args, **kwargs) -> None:
     """Run callback after a delay."""
     # TODO: remove
-    Caller.get_instance().call_later(callback, delay, *args, **kwargs)
+    Caller.get_instance().call_later(delay, callback, *args, **kwargs)
 
 
 async def to_thread(func: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> T:

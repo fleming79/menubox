@@ -5,7 +5,6 @@ import functools
 import weakref
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, override
 
-import anyio
 import ipywidgets as ipw
 import pandas as pd
 import toolz
@@ -513,9 +512,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
                 if fut is not current_fut
                 and mb_async.background_tasks.get(fut, mb_async.TaskType.general) in tasktypes_
             ]:
-                with anyio.move_on_after(timeout):
-                    async for _ in Caller.as_completed(futures, shield=True):
-                        pass
+                await Caller.wait(futures, timeout=timeout)
         return self
 
     def get_widgets(
