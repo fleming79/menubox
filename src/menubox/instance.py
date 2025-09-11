@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import enum
 import inspect
 import sys
@@ -444,7 +445,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             return self.klass(**kwgs)
 
         except Exception as e:
-            owner.on_error(e, f"Instance creation failed for {self!r}", self)
+            with contextlib.suppress(Exception):
+                owner.on_error(e, f"Instance creation failed for {self!r}", self)
             raise
 
     def _validate(self, obj: S, value) -> T | None:

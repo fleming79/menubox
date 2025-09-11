@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import enum
 import math
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -8,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import ipylab
 import ipywidgets as ipw
 import traitlets
+from async_kernel.caller import Future
 from IPython import display as ipd
 
 import menubox.async_run_button
@@ -56,7 +56,7 @@ class TF:
     - Traits for asynchronous operations (AsyncRunButton).
     - Traits for creating modal dialogs (Modalbox).
     - A trait for selecting repositories (SelectRepository).
-    - A trait for asyncio Tasks.
+    - A trait for asyncio async-kernel.Future.
     - A trait for managing persistent objects within MenuBox (MenuboxPersistPool).
     Each method returns an InstanceHP object (or a Fixed object), configured with
     appropriate default values, validation logic, and hooks for seamless
@@ -304,7 +304,6 @@ class TF:
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
         tooltip="",
-        link_button=False,
         tasktype: mb_async.TaskType = mb_async.TaskType.general,
         **kwargs,
     ):
@@ -320,7 +319,6 @@ class TF:
                 button_style=button_style,
                 cancel_button_style=cancel_button_style,
                 tooltip=tooltip,
-                link_button=link_button,
                 tasktype=tasktype,
                 **kwargs,
             ),
@@ -378,8 +376,9 @@ class TF:
         )
 
     @staticmethod
-    def Task():
-        return InstanceHP(klass=asyncio.Task).configure(IHPMode.X_RN)
+    def Future():
+        "An async-kernel Future"
+        return InstanceHP(klass=Future).configure(IHPMode.X_RN)
 
     @staticmethod
     def MenuboxPersistPool(

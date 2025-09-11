@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, overload, override
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, overload
 
 import orjson
 import ruamel.yaml
@@ -142,12 +142,8 @@ class ValueTraits(HasParent):
     def ignore_change(self):
         """Context manager to temporarily ignore changes.
 
-        **USE SPARINGLY**
-        Tips:
-            Use a reference to the object that the changes should
-            be ignored in in case the object has not being created. Doing
-            so may unexpectedly ignore a change that should have otherwise
-            been propagated.
+        Whilst in this context all changes register with 'value_traits' and 'value_traits_persist'
+        will not be passed to `on_change` and 'value' change will not be emitted immediately.
         """
 
         self._ignore_change_cnt = self._ignore_change_cnt + 1
@@ -217,7 +213,7 @@ class ValueTraits(HasParent):
         for v in (*self.value_traits_persist, *self.value_traits, *self._InstanceHPTuple):
             if v not in vts:
                 vts.append(v)
-        self._init_value = value = mb.pack.to_dict(value)
+        value = mb.pack.to_dict(value)
         # Extract kwargs that overlap with value_traits/persist in order or vts
         for n in vts:
             name = n
@@ -236,13 +232,7 @@ class ValueTraits(HasParent):
         self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
-
-    @override
-    async def init_async(self):
-        await super().init_async()
-        if self._init_value:
-            self.set_trait("value", self._init_value)
-        del self._init_value
+        self.set_trait("value", value)
         if self._STASH_DEFAULTS:
             self._DEFAULTS = self.to_yaml()
 
@@ -470,13 +460,14 @@ class ValueTraits(HasParent):
                 f"{utils.limited_string(repr(change['old']))} ➮ {utils.limited_string(repr(change['new']))}  "
                 f"{f'ignored (context={self._ignore_change_cnt})' if self._ignore_change_cnt else ''}"
             )
-        if self._ignore_change_cnt or self.closed:
+        if self.closed:
             return
         # `value` updated after "leaving context" (originally using context but only used here.)
         self.vt_updating = True
         self._vt_busy_updating_count = self._vt_busy_updating_count + 1
         try:
-            self.on_change(change)
+            if not self._ignore_change_cnt:
+                self.on_change(change)
         except Exception as e:
             if self._vt_busy_updating_count == 1:
                 self.on_error(e, "Change event error", change)
@@ -485,7 +476,7 @@ class ValueTraits(HasParent):
             self._vt_busy_updating_count -= 1
             if not self._vt_busy_updating_count:
                 self.vt_updating = False
-                if self._vt_init_complete and not self.vt_validating:
+                if (not self._ignore_change_cnt) and self._vt_init_complete and (not self.vt_validating):
                     self.set_trait("value", defaults.NO_VALUE)
 
     def _load_value(self, data: Literal[defaults._NoValue.token] | dict | Callable):
@@ -501,10 +492,10 @@ class ValueTraits(HasParent):
         """Append names to value_traits.
 
         delay: if it is not None, it will be called with a delay.
-            a delay = 0 is equivalent to `asyncio.call_soon`.
+            a delay = 0 is equivalent to `mb_async.call_soon`.
         """
         if delay is not None:
-            mb_async.call_later(0, self.add_value_traits, *names)
+            mb_async.call_later(delay, self.add_value_traits, *names)
             return
         self.set_trait("value_traits", (*self.value_traits, *names))
 

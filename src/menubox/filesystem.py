@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import pathlib
 import re
 from typing import TYPE_CHECKING, ClassVar, Self, cast, override
 
+import anyio
 import psutil
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
@@ -214,11 +214,11 @@ class Filesystem(MenuboxVT):
         await super().button_clicked(b)
         match b:
             case self.button_home:
-                await self.button_update.start_wait(url=self.home_url)
+                await self.button_update.start(url=self.home_url)
             case self.button_up:
-                await self.button_update.start_wait(url=self.fs._parent(self.root))
+                await self.button_update.start(url=self.fs._parent(self.root))
             case self.button_add:
-                await self.button_update.start_wait(url=self.root, create=True)
+                await self.button_update.start(url=self.root, create=True)
 
     async def _button_update_async(self, create=False, url: str | None = None):
         if (not self.view_active and not create) or self.vt_validating:
@@ -273,8 +273,6 @@ class Filesystem(MenuboxVT):
                 self.url.options = options = tuple(options.values())
                 self.sw_main.value = url if url in options else None
                 self.url.value = url
-        except asyncio.CancelledError:
-            pass
         finally:
             self.button_add.disabled = exists or self.read_only
 
@@ -286,7 +284,7 @@ class Filesystem(MenuboxVT):
             title = title or f"Relative path {self.name}'"
             result = await rp.show_in_dialog(title)
             if not result["value"]:
-                raise asyncio.CancelledError
+                raise anyio.get_cancelled_exc_class()
             return rp.relative_path.value
         finally:
             rp.close()

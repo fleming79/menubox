@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import functools
 import weakref
@@ -10,6 +9,7 @@ import ipywidgets as ipw
 import pandas as pd
 import toolz
 import traitlets
+from async_kernel import Caller
 from ipylab.common import HasApp, Singular
 from traitlets import HasTraits
 
@@ -23,6 +23,8 @@ from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
+
+    from async_kernel.caller import Future
 
     from menubox.instance import IHPChange, InstanceHP
 
@@ -67,7 +69,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_link = NameTuple()
     name = TF.Str()
     parent = TF.parent(cast(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
-    tasks = TF.Set(klass_=cast("type[set[asyncio.Task[Any]]]", 0))
+    tasks = TF.Set(klass_=cast("type[set[Future[Any]]]", 0))
 
     def __repr__(self):
         if self.closed:
@@ -86,16 +88,18 @@ class HasParent(Singular, HasApp, Generic[RP]):
             return
         if self.SINGLE_BY:
             assert isinstance(self.single_key, tuple)  # noqa: S101
-        self._init_values = values = {}
+        values = {}
         for name in tuple(kwargs):
             if name in self._InstanceHP:
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
+        self._init_async_task = mb_async.run_async({"tasktype": mb_async.TaskType.init}, self.init_async)
         super().__init__(**kwargs)
         if parent:
             self.parent = parent
         # Requires a running event loop.
-        self._init_async_task = mb_async.run_async(self.init_async, tasktype=mb_async.TaskType.init, obj=self)
+        for name, v in values.items():
+            self.set_trait(name, v)
 
     async def init_async(self) -> None:
         """Perform additional initialisation tasks.
@@ -108,9 +112,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
         """
         if corofunc := getattr(super(), "init_async", None):
             await corofunc()
-        for name, v in self._init_values.items():
-            self.set_trait(name, v)
-        del self._init_values
 
     def __init_subclass__(cls, **kwargs) -> None:
         if cls.SINGLE_BY:
@@ -119,6 +120,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
                 cls.RENAMEABLE = False
         cls._cls_update_InstanceHP_register()
         super().__init_subclass__(**kwargs)
+
+    def __await__(self) -> Generator[Any, None, Self]:
+        return self.wait_update_tasks(timeout=10).__await__()
 
     @classmethod
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
@@ -281,7 +285,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     def repr_log(self):
         return self.__repr__()
 
-    def on_error(self, error: Exception, msg: str, obj: Any = None):
+    def on_error(self, error: BaseException, msg: str, obj: Any = None) -> None:
         """Logs an error message with exception information.
 
         Note: When overloading, do not raise the error, it should by the callee after this function returns.
@@ -419,13 +423,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
             self._hasparent_all_links[key] = Dlink(source, target, transform=transform, parent=self)
 
     async def wait_init_async(self) -> Self:
-        while not (task := getattr(self, "_init_async_task", None)):
-            self.log.debug("Init async task not yet started")
-            await asyncio.sleep(0)
-        await asyncio.shield(task)
+        await self._init_async_task
         return self
 
-    def _handle_button_change(self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode):
+    def _handle_button_change(self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode) -> None:
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
             b.on_click(cb, remove=True)
         if b := c["new"]:
@@ -436,12 +437,12 @@ class HasParent(Singular, HasApp, Generic[RP]):
             b.on_click(on_click)
 
     @classmethod
-    def _on_click(cls, ref: weakref.ref[HasParent], taskname: str, mode: TF.ButtonMode, b: ipw.Button):
+    def _on_click(cls, ref: weakref.ref[HasParent], key: str, /, mode: TF.ButtonMode, b: ipw.Button):
         if self_ := ref():
-            if mode is TF.ButtonMode.cancel and (task := mb_async.get_task(taskname, self_)):
-                task.cancel("Button click to cancel (cancel mode)")
+            if mode is TF.ButtonMode.cancel and (fut := mb_async.singular_tasks.get(key)):
+                fut.cancel()
                 return
-            mb.mb_async.run_async(lambda: self_._button_clicked(b, mode), name=taskname, obj=self_)
+            mb.mb_async.run_async({"obj": self_, "key": key}, self_._button_clicked, b, mode)
 
     async def _button_clicked(self, b: ipw.Button, mode: TF.ButtonMode):
         description = b.description
@@ -451,7 +452,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
         elif mode is TF.ButtonMode.disable:
             b.disabled = True
         try:
-            await asyncio.sleep(0)  # Ensure this a task (eager task)
             await self.button_clicked(b)
         finally:
             if mode is TF.ButtonMode.disable:
@@ -505,14 +505,13 @@ class HasParent(Singular, HasApp, Generic[RP]):
                     raise TypeError(str(tt))
                 if tt is not mb_async.TaskType.continuous:
                     tasktypes_.append(tt)
-            current_task = asyncio.current_task()
+            current = Caller.current_future()
             if tasks := [
-                t
-                for t in self.tasks
-                if t is not current_task and mb_async.background_tasks.get(t, mb_async.TaskType.general) in tasktypes_
+                fut
+                for fut in self.tasks
+                if fut is not current and fut.metadata.get("tasktype", mb_async.TaskType.general) in tasktypes_
             ]:
-                async with asyncio.timeout(timeout):
-                    await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))
+                await Caller.wait(tasks, timeout=timeout)
         return self
 
     def get_widgets(
@@ -632,7 +631,7 @@ class Link(HasParent):
         super().close()
 
     @override
-    def on_error(self, error: Exception, msg: str, obj: Any = None):
+    def on_error(self, error: BaseException, msg: str, obj: Any = None):
         msg = f"{self.__class__} error: {msg}"
         if self.parent:
             self.parent.on_error(error, msg, obj)

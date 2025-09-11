@@ -1,6 +1,6 @@
-import asyncio
 import datetime
 import functools
+import inspect
 import logging
 import os
 from typing import Any
@@ -47,7 +47,7 @@ def START_DEBUG(*, to_stdio=False):
         app.log.info("Debugging enabled")
 
 
-def on_error(error: Exception, msg: str, obj: Any = None):
+def on_error(error: BaseException, msg: str, obj: Any = None):
     """Logs an error message with exception information.
 
     Args:
@@ -83,7 +83,7 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
     if not callable(wrapped):
         msg = f"Wrapped function '{wrapped}' is not callable!"
         raise TypeError(msg)
-    if asyncio.iscoroutinefunction(wrapped):
+    if inspect.iscoroutinefunction(wrapped):
         msg = (
             "`log_exceptions` is not allowed for coroutine functions! "
             f"{utils.funcname(wrapped)}\n"

@@ -1,34 +1,32 @@
 from __future__ import annotations
 
-import asyncio
 import enum
 import functools
 import inspect
-import weakref
-from typing import TYPE_CHECKING, Self
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 
+import anyio
 import wrapt
+from async_kernel import Caller
+from async_kernel.caller import Future, FutureCancelledError
+from ipylab import App
 
 import menubox as mb
-from menubox.utils import funcname, limited_string
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Coroutine
+    from collections.abc import Awaitable, Callable, Coroutine, Hashable
+
+    from async_kernel import Future
 
     from menubox.hasparent import HasParent
     from menubox.trait_types import P, T
 
 
-__all__ = ["run_async", "run_async_singular", "singular_task", "call_later", "debounce", "periodic", "throttle"]
+__all__ = ["run_async", "singular_task", "debounce", "periodic", "throttle"]
 
 
-background_tasks: weakref.WeakKeyDictionary[asyncio.Task, TaskType] = weakref.WeakKeyDictionary()
-_background_tasks = set[asyncio.Task]()  # A strong ref for task that down belong to an object.
-
-
-def _background_task_complete(task: asyncio.Task):
-    background_tasks.pop(task, None)
-    _background_tasks.discard(task)
+singular_tasks: dict[Hashable, Future[Any]] = {}
 
 
 class TaskType(int, enum.Enum):
@@ -39,26 +37,77 @@ class TaskType(int, enum.Enum):
     click = enum.auto()
 
 
+class RunAsyncOptions(TypedDict):
+    "Options to use with run_async"
+
+    key: NotRequired[Hashable]
+    ""
+    obj: NotRequired[HasParent | None]
+    ""
+    handle: NotRequired[str]
+    ""
+    restart: NotRequired[bool]
+    "default: True"
+    tasktype: NotRequired[TaskType]
+    "default: TaskType.general"
+    delay: NotRequired[float]
+    ""
+
+
+def _on_done_callback(fut: Future):
+    if (key := fut.metadata.get("key")) and singular_tasks[key] is fut:
+        singular_tasks.pop(key)
+    if obj := _hp_from_metadata(fut):
+        obj.tasks.discard(fut)
+        if handle := fut.metadata.get("handle"):
+            if isinstance(set_ := getattr(obj, handle), set):
+                set_.discard(fut)
+            elif getattr(obj, handle) is fut:
+                obj.set_trait(handle, None)
+    try:
+        if error := fut.exception():
+            if obj:
+                obj.on_error(error, msg="run sync Failed")
+            else:
+                mb.log.on_error(error, "run sync Failed")
+    except FutureCancelledError:
+        pass
+    obj = obj or App()
+    if obj.log.getEffectiveLevel() == 10:
+        obj.log.debug(f"Task complete: {fut}")
+
+
+def _future_started(fut: Future[T]) -> Future[T]:
+    if obj := _hp_from_metadata(fut):
+        obj.tasks.add(fut)
+        if handle := fut.metadata.get("handle"):
+            if isinstance(set_ := getattr(obj, handle), set):
+                set_.add(fut)
+            else:
+                obj.set_trait(handle, fut)
+    obj = obj or App()
+    if obj.log.getEffectiveLevel() == 10:
+        obj.log.debug(f"Task started: {fut}")
+    return fut
+
+
+def _hp_from_metadata(fut: Future) -> HasParent[Any] | None:
+    obj = fut.metadata.get("obj")
+    if isinstance(obj, mb.HasParent) or isinstance(obj := getattr(obj, "__self__", None), mb.HasParent):
+        return obj
+    return None
+
+
 def run_async(
-    aw: Awaitable[T] | Callable[[], Awaitable[T]],
-    *,
-    name: str | None = None,
-    obj: HasParent | None = None,
-    handle: str = "",
-    restart=True,
-    timeout: float | None = None,
-    tasktype=TaskType.general,
-):
-    """Run aw as a task, possibly cancelling an existing task if the name overlaps.
-
-    Also accepts a callable that returns an awaitable.
-
-    A strong ref is kept for the task in either obj.tasks or _background_tasks.
+    opts: RunAsyncOptions, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs
+) -> Future[T]:
+    """Run the coroutine function in the main event loop, possibly cancelling a currently
+    running future if the name overlaps.
 
     **Important: A result is returned ONLY when `restart=True`**
 
-    Parameters
-    ----------
+    Args:
+        func:
 
     name: The name of the task. If a task with the same name already exists for the object
     it will be cancelled. See run_async_singular as an easier option to prevent accidental
@@ -68,8 +117,6 @@ def run_async(
         `obj.handle` if provided adds the task to `obj`. Two options exist:
         1.If the handle is a `set`, `obj` is added to the set
         2 The task is set to obj.<handle>.
-    timeout:
-        The timeout for the task to complete. A Timeout exception will be raised.
     widget:
         A widget is disabled for the duration of the task.
     loginfo:
@@ -83,153 +130,51 @@ def run_async(
         awaitable is completed.
     """
 
-    if handle:
-        if obj and not isinstance(obj, mb.hasparent.HasParent):
-            msg = f"{obj} is not an instantance of HasParent."
-            raise TypeError(msg)
-        if not obj.has_trait(handle):  # type: ignore
-            msg = f"{handle=} is not a trait of {limited_string(obj)}!"
-            raise AttributeError(msg)
-    if not restart and not name:
-        msg = "A name must be provided if `restart=False`!"
-        raise TypeError(msg)
-    if (
-        (current := get_task(name, obj) if name else None)
-        and not restart
-        and not current.done()
-        and not current.cancelling()
-    ):
-        return current
-
-    async def _run_async_wrapper(aw_=aw):
-        if current and not current.done():
-            current.cancel(f"Restarting task {name=}")
-            await asyncio.wait([current])
-        try:
-            if callable(aw_):
-                aw_ = aw_()
-            if timeout:
-                async with asyncio.timeout(timeout):
-                    result = await aw_
-            result = await aw_
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:
-            mb.log.on_error_wrapped(aw_, obj, str(e), e)
-            raise
+    if (key := opts.get("key")) and (current := singular_tasks.pop(key, None)) and not current.done():
+        if opts.get("restart", True):
+            current.cancel()
         else:
-            return result if restart else None
-
-    task = asyncio.eager_task_factory(asyncio.get_running_loop(), _run_async_wrapper(), name=name)
-    # task = asyncio.create_task(_run_async_wrapper(), name=name)
-    if not task.done():
-        background_tasks[task] = tasktype
-        task.add_done_callback(_background_task_complete)
-        if isinstance(obj, mb.HasParent):
-            obj.tasks.add(task)
-            task.add_done_callback(obj.tasks.discard)
-            if handle:
-                if isinstance(set_ := getattr(obj, handle, None), set):
-                    set_.add(task)
-                    task.add_done_callback(set_.discard)
-                else:
-
-                    def on_done(task):
-                        if getattr(obj, handle, None) is task:
-                            obj.set_trait(handle, None)
-
-                    obj.set_trait(handle, task)
-
-                    task.add_done_callback(on_done)
-        else:
-            _background_tasks.add(task)
-    return task
+            singular_tasks[key] = current
+            return current
+    fut = Caller().get_instance().call_later(opts.get("delay", 0), func, *args, **kwargs)
+    fut.add_done_callback(_on_done_callback)
+    fut.metadata.update(opts)
+    fut.metadata["obj"] = fut.metadata.get("obj") or func
+    if key:
+        singular_tasks[key] = fut
+    return _future_started(fut)
 
 
-def run_async_singular(
-    aw: Awaitable[T] | Callable[[T], Awaitable[T]], *, obj: HasParent | None = None, name: str | None = None, **kwargs
-) -> asyncio.Task[T]:
-    """Schedule the aw for execution with run_async.
-
-    A singular task `name` is either:
-    1. name
-    2. f"singular_task_{ID}_{funcname(aw)}"
-
-    **kwargs are passed to `run_async`.
-    """
-    return run_async(
-        aw,  # type: ignore
-        name=name or f"singular_task_{id(obj) if obj else ''}_{funcname(aw)}",
-        obj=obj if isinstance(obj, mb.HasParent) else None,
-        **kwargs,
-    )  # type: ignore
-
-
-def singular_task(restart=True, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
+def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Future[T]]]:
     """A decorator to wrap a coroutine function to run as a singular task.
 
     obj is as the instance.
     kw are passed to run_async_singular such as 'handle'.
     """
-    tasknames = weakref.WeakKeyDictionary()
 
     @wrapt.decorator
     def _run_as_singular(wrapped, instance, args, kwargs: dict):
-        # use partial to avoid creating coroutines that may never be awaited
-        restart_ = restart
-        if "restart" in kwargs:
-            restart_ = kwargs.pop("restart")
-        func = functools.partial(wrapped, *args, **kwargs)
-        name = tasknames.get(instance or wrapped)
-        if not name:
-            name = f"{funcname(wrapped)} [singular_task id: {id(instance)}]"
-            tasknames[instance or wrapped] = name
-        return run_async_singular(func, name=name, **{"obj": instance, "restart": restart_} | kw)
+        opts_ = opts | {"key": wrapped, "obj": instance or wrapped}
+        return run_async(opts_, wrapped, *args, **kwargs)
 
-    return _run_as_singular  # type: ignore
+    return _run_as_singular  # pyright: ignore[reportReturnType]
 
 
-def get_task(name: str, obj: HasParent | None):
-    """Return the task if it exists.
-
-    If obj is provided, obj tasks will be searched, otherwise the background
-    tasks will be searched.
-    """
-    for task in getattr(obj, "tasks", _background_tasks):
-        if task.get_name() == name:
-            return task
-    return None
-
-
-def call_later(delay, callback, *args, **kwargs):
+def call_later(delay, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
     """Run callback after a delay."""
-    callit = functools.partial(callback, *args, **kwargs)
-    return asyncio.get_running_loop().call_later(delay, callit)
+    return run_async({"delay": delay}, func, *args, **kwargs)
 
 
-async def to_thread(func: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> T:
-    """Run a function in an executor.
+def to_thread(func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
+    """Run a function in a separate thread."""
+    return _future_started(Caller.to_thread(func, *args, **kwargs))
 
-    This uses asyncio.to_thread, but catches exceptions re-raising them
-    inside the calling
-    """
 
-    def func_call():
-        try:
-            result = func(*args, **kwargs)
-        except Exception as e:
-            return {"exception": e}
-        else:
-            return {"result": result}
-
-    result = await asyncio.to_thread(func_call)  # type: ignore
-    try:
-        return result["result"]  # type: ignore
-    except KeyError:
-        pass
-    e: Exception = result["exception"]  # type: ignore
-    e.add_note(f'This exception occurred while executing "{funcname(func)}" inside "mb_async.to_thread".')
-    raise e
+def to_thread_by_name(
+    name: str, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs
+) -> Future[T]:
+    """Run a function in a separate thread by name."""
+    return _future_started(Caller.to_thread_by_name(name, func, *args, **kwargs))
 
 
 class PeriodicMode(enum.StrEnum):
@@ -260,15 +205,15 @@ class _Periodic:
             while self._repeat:
                 self._repeat = False
                 if self.mode is PeriodicMode.debounce:
-                    await asyncio.sleep(self.wait)
+                    await anyio.sleep(self.wait)
                 if getattr(self.instance, "closed", False):
                     msg = f"{self.instance} is closed!"
-                    raise asyncio.CancelledError(msg)  # noqa: TRY301
+                    raise anyio.get_cancelled_exc_class()(msg)  # noqa: TRY301
                 result = self.wrapped(*self.args, **self.kwargs)
                 while inspect.isawaitable(result):
                     result = await result
-                await asyncio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
-        except asyncio.CancelledError:
+                await anyio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
+        except anyio.get_cancelled_exc_class():
             if getattr(self.instance, "closed", False):
                 return
             raise
@@ -315,13 +260,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
             info.kwargs = kwargs
             return info.task
         info = _Periodic(wrapped, instance, args, kwargs, wait, mode)
-        info.task = run_async(
-            info,  # type: ignore
-            name=f"{tasktype.name} {funcname(wrapped)} {id(instance or wrapped)}",
-            obj=instance if isinstance(instance, mb.HasParent) else None,
-            tasktype=tasktype,
-            **kw,
-        )
+        info.task = run_async(RunAsyncOptions(key=wrapped, obj=instance, tasktype=tasktype), info, **kw)
         _periodic_tasks[k] = info
         info.task.add_done_callback(functools.partial(on_done, k))
         return info.task
@@ -329,7 +268,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
     return _periodic_wrapper
 
 
-def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
+def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., Future]]:
     """A decorator that throttles the call to wrapped function.
 
     Compatible with coroutines, functions and methods.
@@ -339,7 +278,7 @@ def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Call
     return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype, **kw)  # type: ignore
 
 
-def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., asyncio.Task]]:
+def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., Future]]:
     """A decorator that debounces the call to the wrapped function.
 
     Compatible with coroutines, functions and methods.

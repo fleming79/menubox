@@ -1,7 +1,8 @@
-import asyncio
 from typing import Self, cast
 
+import anyio
 import pytest
+from async_kernel import Caller, Future
 from traitlets import TraitError
 
 from menubox import HasParent
@@ -40,22 +41,24 @@ class TestTraitFactory:
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
-                self.clicked[b] = asyncio.current_task()
-                await asyncio.Event().wait()
+                self.clicked[b] = Caller.current_future()
+                await anyio.sleep_forever()
 
-        obj = BaseTestButton()
+        obj = await BaseTestButton()
         obj.button.click()
-        await asyncio.sleep(0)
+        with anyio.move_on_after(0.1):
+            await obj.wait_tasks()
         t1 = obj.clicked.get(obj.button)
-        assert isinstance(t1, asyncio.Task)
+        assert isinstance(t1, Future)
         obj.button.click()
-        assert t1.cancelling() == 1
-        await asyncio.wait([t1])
-        await asyncio.sleep(0)
+        assert t1.cancelled()
+        await t1.wait(shield=True, result=False)
+        await anyio.sleep(0)
         t2 = obj.clicked.get(obj.button)
-        assert isinstance(t2, asyncio.Task)
+        assert isinstance(t2, Future)
         assert t2 is not t1
         t2.cancel()
+        await t2.wait(shield=True, result=False)
 
     async def test_button_cancel_mode(self):
         class BaseTestButton(HasParent):
@@ -70,39 +73,41 @@ class TestTraitFactory:
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
-                self.clicked[b] = asyncio.current_task()
-                await asyncio.Event().wait()
+                self.clicked[b] = Caller.current_future()
+                await anyio.sleep_forever()
 
-        obj = BaseTestButton()
+        obj = await BaseTestButton()
         obj.button.click()
-        await asyncio.sleep(0)
+        with anyio.move_on_after(0.1):
+            await obj.wait_tasks()
         assert obj.button.description == "Cancel"
         t1 = obj.clicked.get(obj.button)
-        assert isinstance(t1, asyncio.Task)
+        assert isinstance(t1, Future)
         obj.button.click()
-        assert t1.cancelling() == 1
-        await asyncio.wait([t1])
-        await asyncio.sleep(0)
+        assert t1.cancelled()
+        await t1.wait(shield=True, result=False)
         t2 = obj.clicked.get(obj.button)
-        assert isinstance(t2, asyncio.Task)
+        assert isinstance(t2, Future)
         assert t2 is t1
         assert obj.button.description == "My button"
 
     async def test_button_disable_mode(self):
+        # TODO: merge this with above two tests using pytest.mark.parametrize
         class BaseTestButton(HasParent):
             button = TF.Button(cast(Self, 0), mode=TF.ButtonMode.disable)
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
-                self.clicked[b] = asyncio.current_task()
-                await asyncio.Event().wait()
+                self.clicked[b] = Caller.current_future()
+                await anyio.sleep_forever()
 
-        obj = BaseTestButton()
+        obj = await BaseTestButton()
         obj.button.click()
-        await asyncio.sleep(0)
+        with anyio.move_on_after(0.1):
+            await obj.wait_tasks()
         t1 = obj.clicked.get(obj.button)
-        assert isinstance(t1, asyncio.Task)
+        assert isinstance(t1, Future)
         assert obj.button.disabled
         t1.cancel()
-        await asyncio.wait([t1])
+        await t1.wait(shield=True, result=False)
         assert not obj.button.disabled

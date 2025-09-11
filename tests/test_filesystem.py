@@ -1,15 +1,14 @@
-import asyncio
 import pathlib
-import tempfile
 
+import anyio
 import pytest
 
 from menubox.filesystem import Filesystem
 
 
-async def test_filesystem():
-    root = tempfile.mkdtemp()
-    fs = await Filesystem(url=root).activate()
+async def test_filesystem(tmp_path: pathlib.Path):
+    root = tmp_path.as_posix()
+    fs = await Filesystem(url=root)
 
     # Test root
     fs.url.value = "C:/"
@@ -34,6 +33,6 @@ async def test_filesystem():
     await fs.wait_tasks()
     assert pathlib.Path(fname).is_file()
     with pytest.raises(TimeoutError):
-        async with asyncio.Timeout(1):
+        with anyio.fail_after(0.1):
             await fs.get_relative_path()
     fs.read_only = True

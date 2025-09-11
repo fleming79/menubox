@@ -36,7 +36,7 @@ class HP(mhp.HasParent):
         return True
 
     @override
-    def on_error(self, error: Exception, msg: str, obj: Any = None):
+    def on_error(self, error: BaseException, msg: str, obj: Any = None):
         self.caught_errors += 1
 
 
@@ -189,7 +189,7 @@ class TestHasParent:
             hp.a_func(True)
         assert hp.caught_errors == 1
         with pytest.raises(ValueError, match=match):
-            await mb_async.run_async(hp.a_func_async(True), obj=hp)
+            await mb_async.run_async({}, hp.a_func_async, True)
 
         assert hp.caught_errors == 2
 
