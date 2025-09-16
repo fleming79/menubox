@@ -93,7 +93,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
             if name in self._InstanceHP:
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
-        self._init_async_task = mb_async.run_async({"tasktype": mb_async.TaskType.init}, self.init_async)
+        mb_async.run_async({"tasktype": mb_async.TaskType.init}, self.init_async)
         super().__init__(**kwargs)
         if parent:
             self.parent = parent
@@ -421,10 +421,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
             current_link.close()
         if connect:
             self._hasparent_all_links[key] = Dlink(source, target, transform=transform, parent=self)
-
-    async def wait_init_async(self) -> Self:
-        await self._init_async_task
-        return self
 
     def _handle_button_change(self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode) -> None:
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):

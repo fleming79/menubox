@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 import anyio
 import wrapt
 from async_kernel import Caller
-from async_kernel.caller import Future, FutureCancelledError
+from async_kernel.caller import Future
 from ipylab import App
 
 import menubox as mb
@@ -41,13 +41,15 @@ class RunAsyncOptions(TypedDict):
     "Options to use with run_async"
 
     key: NotRequired[Hashable]
-    ""
+    "Specify a key to use with 'singular_instances'. The behaviour  is a function of 'restart'."
+    restart: NotRequired[bool]
+    "default: True"
+    func: NotRequired[Callable]
+    "The function that is being run. This is set when calling RunAsync."
     obj: NotRequired[HasParent | None]
     ""
     handle: NotRequired[str]
     ""
-    restart: NotRequired[bool]
-    "default: True"
     tasktype: NotRequired[TaskType]
     "default: TaskType.general"
     delay: NotRequired[float]
@@ -57,28 +59,26 @@ class RunAsyncOptions(TypedDict):
 def _on_done_callback(fut: Future):
     if (key := fut.metadata.get("key")) and singular_tasks[key] is fut:
         singular_tasks.pop(key)
-    if obj := _hp_from_metadata(fut):
+    if obj := get_obj_using_metadata(fut.metadata):
         obj.tasks.discard(fut)
         if handle := fut.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
                 set_.discard(fut)
             elif getattr(obj, handle) is fut:
                 obj.set_trait(handle, None)
-    try:
-        if error := fut.exception():
-            if obj:
-                obj.on_error(error, msg="run sync Failed")
-            else:
-                mb.log.on_error(error, "run sync Failed")
-    except FutureCancelledError:
-        pass
+    if not fut.cancelled() and (error := fut.exception()):
+        if obj:
+            obj.on_error(error, msg="run sync Failed")
+        else:
+            mb.log.on_error(error, "run sync Failed")
+
     obj = obj or App()
     if obj.log.getEffectiveLevel() == 10:
         obj.log.debug(f"Task complete: {fut}")
 
 
 def _future_started(fut: Future[T]) -> Future[T]:
-    if obj := _hp_from_metadata(fut):
+    if obj := get_obj_using_metadata(fut.metadata):
         obj.tasks.add(fut)
         if handle := fut.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
@@ -91,9 +91,12 @@ def _future_started(fut: Future[T]) -> Future[T]:
     return fut
 
 
-def _hp_from_metadata(fut: Future) -> HasParent[Any] | None:
-    obj = fut.metadata.get("obj")
-    if isinstance(obj, mb.HasParent) or isinstance(obj := getattr(obj, "__self__", None), mb.HasParent):
+def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] | None:
+    "Get the most relevant from the metadata  by looking in various places"
+    obj = metadata.get("obj")
+    if isinstance(obj, mb.HasParent):
+        return obj
+    if (func := metadata.get("func")) and isinstance(obj := getattr(func, "__self__", None), mb.HasParent):
         return obj
     return None
 
@@ -136,13 +139,13 @@ def run_async(
         else:
             singular_tasks[key] = current
             return current
-    fut = Caller().get_instance().call_later(opts.get("delay", 0), func, *args, **kwargs)
+    caller = Caller.get_instance()
+    fut = caller.call_later(opts.get("delay", 0), func, *args, **kwargs)
     fut.add_done_callback(_on_done_callback)
     fut.metadata.update(opts)
-    fut.metadata["obj"] = fut.metadata.get("obj") or func
     if key:
         singular_tasks[key] = fut
-    return _future_started(fut)
+    return _future_started(fut)  # pyright: ignore[reportReturnType]
 
 
 def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Future[T]]]:
@@ -200,29 +203,22 @@ class _Periodic:
     def __call__(self) -> Coroutine:
         return self._periodic_async()
 
-    async def _periodic_async(self):
-        try:
-            while self._repeat:
-                self._repeat = False
-                if self.mode is PeriodicMode.debounce:
-                    await anyio.sleep(self.wait)
-                if getattr(self.instance, "closed", False):
-                    msg = f"{self.instance} is closed!"
-                    raise anyio.get_cancelled_exc_class()(msg)  # noqa: TRY301
-                result = self.wrapped(*self.args, **self.kwargs)
-                while inspect.isawaitable(result):
-                    result = await result
-                await anyio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
-        except anyio.get_cancelled_exc_class():
+    async def _periodic_async(self) -> None:
+        while self._repeat:
+            self._repeat = False
+            if self.mode is PeriodicMode.debounce:
+                await anyio.sleep(self.wait)
             if getattr(self.instance, "closed", False):
-                return
-            raise
-        except Exception as e:
-            mb.log.on_error_wrapped(self.wrapped, self.instance, f"{e} <period mode={self.mode}>", e)
-            raise
+                break
+            result = self.wrapped(*self.args, **self.kwargs)
+            while inspect.isawaitable(result):
+                result = await result
+            await anyio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
 
 
-def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous, **kw):
+def periodic(
+    wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous
+) -> Callable[..., Future[None]]:
     """A wrapper to control the rate at which a function may be called.
 
     Can wrap functions, coroutines and methods. Several modes are supported.
@@ -251,7 +247,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
             del _periodic_tasks[k]
 
     @wrapt.decorator
-    def _periodic_wrapper(wrapped, instance, args, kwargs):
+    def _periodic_wrapper(wrapped, instance, args, kwargs) -> Future[None]:
         k = (instance, wrapped)
         info = _periodic_tasks.get(k)
         if info and info._repeat is not None:
@@ -260,7 +256,7 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
             info.kwargs = kwargs
             return info.task
         info = _Periodic(wrapped, instance, args, kwargs, wait, mode)
-        info.task = run_async(RunAsyncOptions(key=wrapped, obj=instance, tasktype=tasktype), info, **kw)
+        info.task = run_async(RunAsyncOptions(key=wrapped, obj=instance, tasktype=tasktype), info)
         _periodic_tasks[k] = info
         info.task.add_done_callback(functools.partial(on_done, k))
         return info.task
@@ -268,21 +264,25 @@ def periodic(wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType
     return _periodic_wrapper
 
 
-def throttle(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., Future]]:
+def throttle(
+    wait: float, tasktype=TaskType.general
+) -> Callable[[Callable[P, Awaitable[None]]], Callable[P, Future[None]]]:
     """A decorator that throttles the call to wrapped function.
 
     Compatible with coroutines, functions and methods.
 
-    Returns a task.
+    Returns a [async_kernel.caller.Future][].
     """
-    return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype, **kw)  # type: ignore
+    return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype)  # pyright: ignore[reportReturnType]
 
 
-def debounce(wait: float, tasktype=TaskType.general, **kw) -> Callable[..., Callable[..., Future]]:
+def debounce(
+    wait: float, tasktype=TaskType.general
+) -> Callable[[Callable[P, Awaitable[None]]], Callable[P, Future[None]]]:
     """A decorator that debounces the call to the wrapped function.
 
     Compatible with coroutines, functions and methods.
 
-    Returns a task.
+    Returns a [async_kernel.caller.Future][].
     """
-    return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype, **kw)  # type: ignore
+    return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype)  # type: ignore

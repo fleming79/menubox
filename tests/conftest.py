@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 import ipylab.log
 import ipywidgets as ipw
 import pytest
 from async_kernel import Caller
+from async_kernel.utils import LAUNCHED_BY_DEBUGPY
 
 import menubox as mb
 
@@ -16,10 +16,11 @@ if TYPE_CHECKING:
 
 @pytest.fixture(scope="session")
 def anyio_backend():
-    mb.log.START_DEBUG(to_stdio=True)
-    if "debugpy" not in sys.modules:
+    if not LAUNCHED_BY_DEBUGPY:
         app = ipylab.App()
         app.log_level = ipylab.log.LogLevel.WARNING
+    else:
+        mb.log.START_DEBUG(to_stdio=True)
     return "asyncio"
 
 
@@ -43,7 +44,7 @@ async def home(tmp_path: pathlib.Path):
     """"""
     url = tmp_path.as_posix()
     home = mb.Home(tmp_path.name)
-    await home.filesystem.wait_init_async()
+    await home.filesystem
     home.filesystem.value = {"url": url}
     assert home.filesystem.url.value == url
     assert home.filesystem.home_url == url

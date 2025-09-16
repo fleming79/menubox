@@ -58,10 +58,10 @@ class HPI4(HasHome):
 
 class TestInstance:
     async def test_instance(self, home: mb.Home):
-        hp1 = await HPI(name="hp1").wait_init_async()
+        hp1 = await HPI(name="hp1")
         assert hp1.my_button
         assert hp1.a
-        await hp1.a.wait_init_async()
+        await hp1.a
         assert hp1.a.name
         # Spawn from Class name
         assert isinstance(hp1.a, HPI)
@@ -70,10 +70,10 @@ class TestInstance:
         assert hp1.a.name == "a"
         assert hp1.a.parent is hp1
 
-        hp2 = await HPI2(a=None, home=home).wait_init_async()
+        hp2 = await HPI2(a=None, home=home)
         hp2.enable_ihp("b", override={"b": hp1, "a": None})
         assert not hp2.a, "Disabled during init"
-        await hp2.b.wait_init_async()
+        await hp2.b
         assert not hp2.b.a, "Disabled during init (nested)"
         assert hp2.e
         assert hp2.a is not hp1.a
@@ -83,7 +83,7 @@ class TestInstance:
         with pytest.raises(TraitError, match="already a parent."):
             hp2.set_trait("b", hp2)
         hp2_b = hp2.b
-        hp2.set_trait("b", await HPI().wait_init_async())
+        hp2.set_trait("b", await HPI())
         assert not hp2_b.parent, "hp2.parent should be removed when hp2 is replaced"
         assert await hp2.button.start() is True
 

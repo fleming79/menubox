@@ -132,7 +132,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         return self
 
     @mb_async.debounce(0.1)
-    def refresh(self):
+    async def refresh(self) -> None:
         """Reload widgets for the current state."""
         if self.expanded:
             self.expand()

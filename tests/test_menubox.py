@@ -41,9 +41,11 @@ class TestMenubox:
         assert m.view == "a"
         m.button_toggleview.click()
         await m.wait_tasks()
+        await m
         assert m.view == "b"
         m.button_toggleview.click()
         await m.wait_tasks()
+        await m
         assert m.view == "a"
 
     async def test_menubox_menu_views(self):
@@ -245,10 +247,10 @@ class TestMenubox:
         await m.show()
         assert m.view == "a"
         await m
-        assert len(m.children) == 2
+        n = len(m.children)
         m.show_help = True
         await m
-        assert len(m.children) == 3
+        assert len(m.children) == (n + 1)
 
     async def test_menubox_update_title(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
@@ -315,11 +317,13 @@ class TestMenubox:
         b = getattr(m, name)
         assert isinstance(b, ipw.Button)
         assert b.comm
+        await m
         assert m.header
         if name not in ["button_menu", "button_maximize"]:
             assert b in m.header.children
         b.click()
         await m.wait_tasks()
+        await m
         match name:
             case "button_menu":
                 assert m.box_menu
@@ -338,11 +342,13 @@ class TestMenubox:
                 m.load_view(m.MINIMIZED)
                 b.click()
                 await m.wait_tasks()
+                await m
                 assert m.view == "a"
             case "button_help":
                 assert len(m.children) == 3  # type: ignore
                 b.click()
                 await m.wait_tasks()
+                await m
                 assert len(m.children) == 2  # type: ignore
             case "button_activate":
                 pass

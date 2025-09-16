@@ -11,6 +11,7 @@ import anyio
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
+from async_kernel import AsyncEvent
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
 
@@ -401,7 +402,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         if outputs := self._simple_outputs:
             out = outputs[-1]
-            ec = anyio.Event()
+            ec = AsyncEvent()
             out.observe(lambda _: ec.set(), "closed")
             await ec.wait()
             self.mb_refresh()

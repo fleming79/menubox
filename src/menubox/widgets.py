@@ -170,5 +170,5 @@ class MarkdownOutput(ipylab.SimpleOutput):
                 self.push(ipd.Markdown(self._converted_value, url=self.url or None), clear=True)
 
     @mb_async.debounce(1)
-    def update(self):
+    async def update(self) -> None:
         self._converted_value = self.converter(self.value)

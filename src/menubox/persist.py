@@ -249,7 +249,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     def _get_version_box(self) -> ipw.Box:
         box = self.box_version
-        mb_async.run_async_singular({"obj": self}, self._update_versions)
+        mb_async.run_async({"key": self._update_versions}, self._update_versions)
         if len(self.versions):
             self.sw_version_load.value = None
             box.children = tuple(
@@ -597,11 +597,10 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         return self.klass(**kwgs)
 
     @mb_async.debounce(0.01)
-    async def update_names(self) -> list[str]:
+    async def update_names(self) -> None:
         """List the stored datasets for the klass."""
         names = await self.klass.list_stored_datasets(self.filesystem)
         self.set_trait("names", names)
-        return names
 
     def __init__(self, *, name="", klass: type[MP], factory: Callable[[IHPCreate], MP] | None = None, **kwgs):
         if self._HasParent_init_complete:

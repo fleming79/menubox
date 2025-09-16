@@ -138,7 +138,6 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     def _done_callback(self, fut: Future):
         if fut is self.task:
             self.set_trait("task", None)
-        self.parent.tasks.discard(fut)
 
     def start(self, restart=True, /, *args, **kwargs) -> Future:
         """Start always unless restart=False."""

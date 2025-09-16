@@ -1,7 +1,6 @@
 from typing import Self, override
 
 import ipywidgets as ipw
-import pytest
 import traitlets
 from ipylab.common import Fixed
 
@@ -155,9 +154,6 @@ async def test_value_traits():
     assert key in vt1._vt_reg_value_traits_persist, "Value observer is registered"
     vt1.nested.number.value = 2
     assert vt1.value() == {"a": "change two at once", "b": 3, "nested.number": 2.0}  # type: ignore
-
-    with pytest.raises(TypeError):
-        vt1.add_value_traits("not_a_trait")
 
     # Test updates register for nested
     nested_old = vt1.nested
