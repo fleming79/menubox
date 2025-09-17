@@ -7,7 +7,6 @@ import weakref
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
-import anyio
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
@@ -407,17 +406,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
             await ec.wait()
             self.mb_refresh()
             return
-        if self.task_load_view:
-            await anyio.sleep(0)
-            if task := self.task_load_view:
-                with self.simple_output() as out:
-                    button_cancel = TF.ipw.Button(description="Cancel")
-                    button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
-                    out.push(f"<b>Loading view {self.view}", button_cancel)
-                    await task.wait(result=False)
-                    button_cancel.close()
-                    self.mb_refresh()
-                    return
+        if self.task_load_view and (task := self.task_load_view):
+            with self.simple_output() as out:
+                button_cancel = TF.ipw.Button(description="Cancel")
+                button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
+                out.push(f"<b>Loading view {self.view}", button_cancel)
+                await task.wait(result=False)
+                button_cancel.close()
+                self.mb_refresh()
+                return
         if self.view is None:
             children = ()
         if self.view == self.MINIMIZED:
