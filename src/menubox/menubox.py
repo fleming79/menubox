@@ -213,7 +213,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
     ):
         if self._Menubox_init_complete:
             return
-        self._initial_view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
         if views:
             self.set_trait("views", views)
         if viewlist:
@@ -222,12 +221,14 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.set_trait("tabviews", tabviews)
         self._Menubox_init_complete = True
         super().__init__(parent=parent, **kwargs)
+        if view is not NO_DEFAULT:
+            self.load_view(view)
 
     @override
     async def init_async(self):
         await super().init_async()
-        if self._initial_view and not self.trait_has_value("loading_view"):
-            self.load_view(self._initial_view)
+        if not self.trait_has_value("loading_view") and self.DEFAULT_VIEW:
+            self.load_view(self.DEFAULT_VIEW)
 
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType):
@@ -269,8 +270,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def show(self) -> Self:
         """A non-agressive means to provide an interactive interface."""
-        if self.view is None:
-            self.maximize()
+        if not self.view and self.loading_view is NO_DEFAULT:
+            self.load_view()
         else:
             self.refresh_view()
         return self
@@ -323,7 +324,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             if not view or view not in current:
                 view = self.loading_view
                 if view not in current:
-                    view = self._current_views[0]
+                    view = self.DEFAULT_VIEW or self._current_views[0]
         elif view not in self._current_views:
             msg = f'{view=} is not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
