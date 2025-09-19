@@ -37,6 +37,11 @@ class TaskType(int, enum.Enum):
     click = enum.auto()
 
 
+class ConcurrencyMode(enum.StrEnum):
+    task = "task"
+    thread = "thread"
+
+
 class RunAsyncOptions(TypedDict):
     "Options to use with run_async"
 
@@ -54,6 +59,10 @@ class RunAsyncOptions(TypedDict):
     "default: TaskType.general"
     delay: NotRequired[float]
     ""
+    concurrency_mode: NotRequired[ConcurrencyMode]
+    "default is task"
+    thread_name: NotRequired[str | None]
+    "The thread name to use when concurrency mode is 'thread'"
 
 
 def _on_done_callback(fut: Future):
@@ -139,8 +148,12 @@ def run_async(
         else:
             singular_tasks[key] = current
             return current
-    caller = Caller.get_instance()
-    fut = caller.call_later(opts.get("delay", 0), func, *args, **kwargs)
+    match ConcurrencyMode(opts.get("concurrency_mode", ConcurrencyMode.task)):
+        case ConcurrencyMode.task:
+            caller = Caller.get_instance()
+            fut = caller.call_later(opts.get("delay", 0), func, *args, **kwargs)
+        case ConcurrencyMode.thread:
+            fut = Caller.to_thread_by_name(opts.get("thread_name"), func, *args, **kwargs)
     fut.add_done_callback(_on_done_callback)
     fut.metadata.update(opts)
     if key:
@@ -170,14 +183,14 @@ def call_later(delay, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **k
 
 def to_thread(func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
     """Run a function in a separate thread."""
-    return _future_started(Caller.to_thread(func, *args, **kwargs))
+    return _future_started(Caller.to_thread(func, *args, **kwargs))  # pyright: ignore[reportReturnType]
 
 
 def to_thread_by_name(
     name: str, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs
 ) -> Future[T]:
     """Run a function in a separate thread by name."""
-    return _future_started(Caller.to_thread_by_name(name, func, *args, **kwargs))
+    return _future_started(Caller.to_thread_by_name(name, func, *args, **kwargs))  # pyright: ignore[reportReturnType]
 
 
 class PeriodicMode(enum.StrEnum):
