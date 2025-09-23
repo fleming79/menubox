@@ -37,7 +37,6 @@ def START_DEBUG(*, to_stdio=False):
 
         app = ipylab.App()
         app.log_level = ipylab.log.LogLevel.DEBUG
-        app.shell.log_viewer.buffer_size.value = 0
 
         def record_to_stdout(record):
             sys.stdout.write(record.output["text"])
