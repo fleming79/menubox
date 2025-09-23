@@ -853,7 +853,7 @@ class MenuboxWrapper(Menubox):
     "Wrap a  widget with a Menubox."
 
     DEFAULT_VIEW = "widget"
-    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN)
+    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN).hooks(on_replace_close=False)
     items = TF.Tuple()
     views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget or p.items})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
