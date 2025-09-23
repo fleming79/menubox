@@ -115,7 +115,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
                 self.expand()
 
     @log_exceptions
-    def expand(self):
+    def expand(self) -> Self:
         """Show the widget"""
         self.button_collapse.disabled = False
         if self.header:
@@ -129,9 +129,10 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
             self.box.children = children
         else:
             self.children = children
+        return self
 
     @mb_async.debounce(0.1)
-    def refresh(self):
+    async def refresh(self) -> None:
         """Reload widgets for the current state."""
         if self.expanded:
             self.expand()

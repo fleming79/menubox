@@ -13,6 +13,7 @@ import ipylab.log
 import ipywidgets as ipw
 import pandas as pd
 import traitlets
+from async_kernel import AsyncEvent
 
 import menubox as mb
 from menubox.css import CSSvar
@@ -35,6 +36,8 @@ __all__ = [
     "iterflatten",
     "weak_observe",
     "observe_once",
+    "observe_until",
+    "wait_trait_value",
     "yes_no_dialog",
     "now",
 ]
@@ -123,6 +126,36 @@ def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None
             mb.log.on_error(e, "observe once callback failed", obj)
 
     obj.observe(_observe_once, name)
+
+
+def observe_until(
+    obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str, predicate: Callable[[Any], bool]
+):
+    """Observe a trait as it changes until the predicate returns true.
+
+    Intermediate changes are not passed to the callback until the predicated returns true.
+    """
+
+    def _observe_until(change: ChangeType):
+        if predicate(change["new"]):
+            change["owner"].unobserve(_observe_until, names=name)
+            try:
+                callback(change)
+            except Exception as e:
+                mb.log.on_error(e, "observe once callback failed", obj)
+
+    obj.observe(_observe_until, name)
+
+
+async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]) -> None:
+    """Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
+
+    The trait is then observed until the predicate returns `True`.
+    """
+    event = AsyncEvent()
+    if not predicate(getattr(obj, name)):
+        mb.utils.observe_until(obj, lambda _: event.set(), name, predicate)
+        await event.wait()
 
 
 def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:

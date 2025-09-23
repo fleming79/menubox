@@ -1,6 +1,6 @@
-import asyncio
 from typing import Self, cast, override
 
+import anyio
 import ipywidgets as ipw
 
 import menubox as mb
@@ -9,8 +9,8 @@ from menubox.trait_factory import TF
 
 
 class PMBB(mb.MenuboxVT):
-    task_button_run = TF.Task()
-    task_update = TF.Task()
+    task_button_run = TF.Future()
+    task_update = TF.Future()
     count = TF.InstanceHP(klass=ipw.FloatText)
     slider = TF.InstanceHP(klass=ipw.IntSlider)
     box_extra = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.count,))
@@ -59,6 +59,6 @@ async def test_modal_button():
     assert not obj.mb1.button_expand.disabled
 
     assert obj.mb2  # instantiate mb2
-    await asyncio.sleep(0.2)
+    await anyio.sleep(0.2)
     assert obj.mb2.expanded, "expand=True"
     assert obj.mb2.button_expand.description == "mb2"

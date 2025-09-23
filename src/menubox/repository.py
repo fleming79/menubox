@@ -37,7 +37,7 @@ class Repository(MenuboxPersist):
     @override
     async def init_async(self):
         await super().init_async()
-        await self.target_filesystem.wait_init_async()
+        await self.target_filesystem
 
     def load_value(self, data):
         if isinstance(data, dict) and "protocol" in data:

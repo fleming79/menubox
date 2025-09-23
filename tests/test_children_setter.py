@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Self, cast
 
+import anyio
 import ipywidgets as ipw
 import pytest
 
@@ -60,15 +60,17 @@ async def test_children_setter_manual(dottednames: tuple):
     await children_setter.wait_tasks()
     assert children_setter.dottednames == dottednames
     widgets = tuple(cto.get_widgets(dottednames))
+    await children_setter.wait_tasks()
     assert cto.plain_box.children == widgets
 
 
-async def test_children_setter_nested_enable_disable():
+async def test_children_setter_nested_enable_disable() -> None:
     cto = ChildrenSetterTester()
     dottednames = ("dropdown", "nested.button", "nested.dropdown")
     cs = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
     await cs.wait_tasks()
     widgets = tuple(cto.get_widgets(dottednames))
+    await cs.wait_tasks()
     assert cto.plain_box.children == widgets
 
     # check disable nested
@@ -94,7 +96,7 @@ async def test_children_setter_nested_enable_disable():
 async def test_children_setter_builtin():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert cto.nested
     assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
@@ -103,7 +105,7 @@ async def test_children_setter_enable():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box
     cto.enable_ihp("dd_no_default")
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert cto.nested
     assert cto.dynamic_box.children == (cto.dd_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
@@ -112,7 +114,7 @@ async def test_children_setter_hide():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box
     mb.utils.hide(cto.dropdown)
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert cto.nested
     assert cto.dynamic_box.children == (cto.nested.dropdown, cto.nested.button)
 
@@ -120,16 +122,16 @@ async def test_children_setter_hide():
 async def test_children_setter_nametuple():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box_nametuple
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert cto.dynamic_box_nametuple.children == (cto.label,)
 
     # Check we can dynamically adjust the children
     cto.dynamic_box_nametuple_children = ("label", "dropdown", "nested.dropdown", "nested.button")
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert cto.nested
     assert cto.dynamic_box_nametuple.children == (cto.label, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
     # Check still dynamically updates
     utils.hide(cto.dropdown)
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert cto.dynamic_box_nametuple.children == (cto.label, cto.nested.dropdown, cto.nested.button)

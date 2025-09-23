@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import re
 import textwrap
@@ -11,6 +10,7 @@ from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpac
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
+from async_kernel import AsyncEvent
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
 
@@ -101,7 +101,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
-    task_load_view = TF.Task()
+    task_load_view = TF.Future()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
@@ -213,7 +213,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
     ):
         if self._Menubox_init_complete:
             return
-        self._initial_view = view if view is not NO_DEFAULT else self.DEFAULT_VIEW
         if views:
             self.set_trait("views", views)
         if viewlist:
@@ -222,12 +221,14 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.set_trait("tabviews", tabviews)
         self._Menubox_init_complete = True
         super().__init__(parent=parent, **kwargs)
+        if view is not NO_DEFAULT:
+            self.load_view(view)
 
     @override
     async def init_async(self):
         await super().init_async()
-        if self._initial_view and not self.trait_has_value("loading_view"):
-            self.load_view(self._initial_view)
+        if not self.trait_has_value("loading_view") and self.DEFAULT_VIEW:
+            self.load_view(self.DEFAULT_VIEW)
 
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType):
@@ -269,8 +270,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def show(self) -> Self:
         """A non-agressive means to provide an interactive interface."""
-        if self.view is None:
-            self.maximize()
+        if not self.view and self.loading_view is NO_DEFAULT:
+            self.load_view()
         else:
             self.refresh_view()
         return self
@@ -310,8 +311,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             Defaults to False.
 
         Returns:
-            Task | None: Returns a Task object if a new view loading task is started.
-            Returns None if the view is already loaded and reload is False.
+            Self
 
         Raises:
             RuntimeError: If the specified view is not in the set of current views.
@@ -324,7 +324,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             if not view or view not in current:
                 view = self.loading_view
                 if view not in current:
-                    view = self._current_views[0]
+                    view = self.DEFAULT_VIEW or self._current_views[0]
         elif view not in self._current_views:
             msg = f'{view=} is not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
@@ -334,12 +334,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
                     return self
             elif view == self.view:
                 return self
+        self.set_trait("loading_view", view)
         self._load_view(view)
         return self
 
     @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
     async def _load_view(self, view: str | None):
-        self.set_trait("loading_view", view)
         self.mb_refresh()
         if view and not self._mb_configured:
             await self.mb_configure()
@@ -402,22 +402,20 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         if outputs := self._simple_outputs:
             out = outputs[-1]
-            ec = asyncio.Event()
+            ec = AsyncEvent()
             out.observe(lambda _: ec.set(), "closed")
             await ec.wait()
             self.mb_refresh()
             return
-        if self.task_load_view:
-            await asyncio.sleep(0)
-            if task := self.task_load_view:
-                with self.simple_output() as out:
-                    button_cancel = TF.ipw.Button(description="Cancel")
-                    button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
-                    out.push(f"<b>Loading view {self.view}", button_cancel)
-                    await asyncio.wait([task])
-                    button_cancel.close()
-                    self.mb_refresh()
-                    return
+        if self.task_load_view and (task := self.task_load_view):
+            with self.simple_output() as out:
+                button_cancel = TF.ipw.Button(description="Cancel")
+                button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
+                out.push(f"<b>Loading view {self.view}", button_cancel)
+                await task.wait(result=False)
+                button_cancel.close()
+                self.mb_refresh()
+                return
         if self.view is None:
             children = ()
         if self.view == self.MINIMIZED:
@@ -807,11 +805,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
             mb.mb_async.call_later(0.1, self.button_exit.focus)
         return obj_
 
-    def deactivate(self):
+    def deactivate(self) -> Self:
         "Hide and close existing shell connections."
         self.load_view(None)
         for sc in self.connections:
             sc.close()
+        return self
 
     async def activate(
         self,
@@ -819,18 +818,17 @@ class Menubox(HasParent, Panel, Generic[RP]):
         add_to_shell=False,
         view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT,
         **kwgs: Unpack[ipylab.widgets.AddToShellType],
-    ):
+    ) -> Self:
         "Maximize and add to the shell."
         self.load_view(view)
-        task = self.task_load_view
         if add_to_shell:
             await self.add_to_shell(**kwgs)
-        if task and not task.done():
-            await asyncio.shield(task)
-        await self.wait_init_async()
+        if task := self.task_load_view:
+            await task.wait()
         return self
 
-    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:
+    @override
+    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:  # pyright: ignore[reportIncompatibleMethodOverride]
         return await super().add_to_shell(**kwgs)
 
     async def show_in_dialog(
@@ -852,13 +850,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
 
 class MenuboxWrapper(Menubox):
+    "Wrap a  widget with a Menubox."
+
     DEFAULT_VIEW = "widget"
-    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN)
+    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN).hooks(on_replace_close=False)
     items = TF.Tuple()
     views = TF.ViewDict(cast(Self, 0), {"widget": lambda p: p.widget or p.items})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)
 
-    def __init__(self, obj: ipw.Widget):
+    def __init__(self, obj: ipw.Widget | tuple):
         if isinstance(obj, tuple):
             self.items = obj
         else:

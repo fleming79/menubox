@@ -11,47 +11,49 @@ class TestMenubox:
     async def test_menubox_basic_view_loading(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
-        m.show()
+        await m.show()
         assert m.view == "a", "autoload selects first view"
-        await m.wait_tasks()
+        await m
         assert wa is m.center
-        m.load_view(None)
+        await m.load_view(None)
         assert m.view is None, "load no view"
-        m.load_view()
-        await m.wait_tasks()
+        await m.load_view()
         assert m.view == "a", "should load first view"
 
-        m.load_view(None)
+        await m.load_view(None)
         assert m.view is None, "load no view"
-        m.load_view("b")
-        m.load_view()
-        await m.wait_tasks()
+        await m.load_view("b")
+        await m.load_view()
+        await m
         assert m.view == "b", "loading first shouldn't override load in progress"
         assert wb is m.center
 
     async def test_menubox_toggle_views(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
-        m.show()
+        await m.show()
         assert not m.button_toggleview
         m.toggleviews = ("a", "b")
         assert m.button_toggleview, "Enabled automatically"
-        await m.wait_tasks()
+        await m
         assert m.header
         assert m.button_toggleview in m.header.children, "Should be added"
         assert m.view == "a"
         m.button_toggleview.click()
         await m.wait_tasks()
+        await m
         assert m.view == "b"
         m.button_toggleview.click()
         await m.wait_tasks()
+        await m
         assert m.view == "a"
 
     async def test_menubox_menu_views(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
-        m = mb.Menubox(views={"a": wa, "b": wb})
+        m = await mb.Menubox(views={"a": wa, "b": wb})
         assert not m._trait_values.get("button_menu")
         m.menuviews = ("b",)
+        await m
         assert m.button_menu, "Setting menuviews should enable the button"
         m.button_menu.click()
         await m.wait_tasks()
@@ -62,6 +64,7 @@ class TestMenubox:
         assert isinstance(b, ipw.Button)
         assert b.description == "b"
         b.click()
+        await m.wait_tasks()
         assert m.view == "b"
 
     async def test_menubox_title_and_help(self):
@@ -70,13 +73,13 @@ class TestMenubox:
         m.title_description = "M"
         m.enable_ihp("button_help")
         assert m.button_help
-        await m.wait_tasks()
+        await m
         m.refresh_view()
         m.mb_refresh()
 
     async def test_menuboxMINIMIZED_and_tuple_views(self):
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
-        m = mb.Menubox(views={"a": wa, "b": wb}).load_view(mb.Menubox.MINIMIZED)
+        m = await mb.Menubox(views={"a": wa, "b": wb}).load_view(mb.Menubox.MINIMIZED)
         assert m.view == m.MINIMIZED
         m.maximize()
         m.set_trait("views", {"A tuple": (ipw.HTML("Item1"), ipw.HTML("Item2"))})
@@ -88,47 +91,45 @@ class TestMenubox:
         m.shuffle_button_views = {"d": lambda _: ipw.HTML("new")}
         assert "_shuffle_buttons" not in m.header_children
         m.load_view()
-        await m.wait_tasks()
+        await m
         assert m.shuffle_buttons
         m.shuffle_buttons[0].click()  # type: ignore # shuffle button for views 'd'
-        await m.wait_tasks()
+        await m
 
     async def test_menubox_view_setting(self):
-        m2 = mb.Menubox()
+        m2 = await mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        await m2.load_view("b").activate()
+        await m2.load_view("b")
 
         assert m2.view == "b"
         # Can also load views by setting the trait. It will be scheduled to load
         m2.view = "m2"
         # assert m2.view == "b", "load_view is debounced, retains the current view until loaded"
-        await m2.wait_tasks()
+        await m2
         assert m2.view == "m2"
 
         m2.title_description = "M2"
 
         m2.tabviews = "m2", "b"
-        await m2.wait_tasks()
+        await m2
         assert len(m2.tab_buttons) == 2
 
-        await m2.wait_tasks()
+        await m2
 
     async def test_menubox_shuffle_box_integration(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
         m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
-        m2.show()
-        m3.show()
-        await m3.wait_tasks()
+        await m2.show()
+        await m3.show()
         assert m3.view == m2.MINIMIZED
-        await m3.wait_tasks()
-        m2.load_view(None)
+        await m2.load_view(None)
         assert m2.view is None, "load no view"
         m3.enable_ihp("box_shuffle")
         abox = m3.box_shuffle
         assert abox
         m3.put_obj_in_box_shuffle(m2)
-        await m2.wait_tasks()
+        await m2
         assert m2.view == m2.viewlist[0], "should have loaded first view."
         assert m2 in abox.children, "should be added without wrapper"
         assert m2.showbox is abox, "m2 should add itself to box_shuffle"
@@ -141,7 +142,7 @@ class TestMenubox:
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
         m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
-        await m3.wait_tasks()
+        await m3
         m3.enable_ihp("box_shuffle")
         for i in range(3):
             m3.put_obj_in_box_shuffle(ipw.HTML(f"{i}"))
@@ -149,13 +150,12 @@ class TestMenubox:
     async def test_menubox_shuffle_box_wrapping(self):
         m2 = mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
-        m3 = mb.Menubox(title_description="m3", view=m2.MINIMIZED)
-        await m3.wait_tasks()
+        m3 = await mb.Menubox(title_description="m3", view=m2.MINIMIZED)
         m3.enable_ihp("box_shuffle")
         abox = m3.box_shuffle
         assert abox
         b = ipw.Button(description="Not a Menubox")
-        wrapper = m3.put_obj_in_box_shuffle(b)
+        wrapper = await m3.put_obj_in_box_shuffle(b)
         assert isinstance(wrapper, MenuboxWrapper)
         assert wrapper.view == "widget"
         assert wrapper.widget is b
@@ -164,7 +164,7 @@ class TestMenubox:
         assert m3.obj_in_box_shuffle(b) is wrapper
         assert wrapper is m3.obj_in_box_shuffle(b), "should be able to find it."
         assert m3.obj_in_box_shuffle(m3) is None
-        await wrapper.wait_tasks()
+        await wrapper
         assert b is wrapper.widget
         assert wrapper.view == "widget"
 
@@ -174,13 +174,12 @@ class TestMenubox:
         m2.enable_ihp("button_menu")
         assert m2.button_menu
 
-    async def test_menubox_default_view(self):
+    async def test_menubox_default_view(self, mocker):
         wa = ipw.HTML("A")
-        mb.Menubox.DEFAULT_VIEW = "a"
+        mocker.patch.object(mb.Menubox, "DEFAULT_VIEW", new="a")
         m = mb.Menubox(views={"a": wa, "b": ipw.HTML("B")})
-        m.show()
+        await m.show()
         assert m.view == "a"
-        mb.Menubox.DEFAULT_VIEW = mb.defaults.NO_DEFAULT
 
     async def test_menubox_close(self):
         m = mb.Menubox()
@@ -227,7 +226,7 @@ class TestMenubox:
     async def test_menubox_update_header(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")}, viewlist=())
         m.header_children = ("html_title",)
-        await m.wait_tasks()
+        await m
         m.get_header()
 
     async def test_menubox_menu_open_close(self):
@@ -245,13 +244,13 @@ class TestMenubox:
 
     async def test_menubox_get_help_widget(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
-        m.show()
+        await m.show()
         assert m.view == "a"
-        await m.wait_tasks()
-        assert len(m.children) == 2
+        await m
+        n = len(m.children)
         m.show_help = True
-        await m.wait_tasks()
-        assert len(m.children) == 3
+        await m
+        assert len(m.children) == (n + 1)
 
     async def test_menubox_update_title(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
@@ -314,15 +313,17 @@ class TestMenubox:
         m.toggleviews = ("a", "b")
         m.set_trait("showbox", showbox)
         m.enable_ihp(name)
-        await m.wait_tasks()
+        await m
         b = getattr(m, name)
         assert isinstance(b, ipw.Button)
         assert b.comm
+        await m
         assert m.header
         if name not in ["button_menu", "button_maximize"]:
             assert b in m.header.children
         b.click()
         await m.wait_tasks()
+        await m
         match name:
             case "button_menu":
                 assert m.box_menu
@@ -341,11 +342,13 @@ class TestMenubox:
                 m.load_view(m.MINIMIZED)
                 b.click()
                 await m.wait_tasks()
+                await m
                 assert m.view == "a"
             case "button_help":
                 assert len(m.children) == 3  # type: ignore
                 b.click()
                 await m.wait_tasks()
+                await m
                 assert len(m.children) == 2  # type: ignore
             case "button_activate":
                 pass
@@ -372,7 +375,7 @@ class TestMenubox:
         m.shuffle_button_views = {"a": ipw.HTML("A")}
         m.get_shuffle_button("a")
         m.hide_unhide_shuffle_button("a")
-        await m.wait_tasks()
+        await m
         m.hide_unhide_shuffle_button("a", hide=False)
 
     async def test_menubox_get_shuffle_button(self):
@@ -423,14 +426,14 @@ class TestMenubox:
         assert wrapper2.widget is m2
 
     async def test_menubox_activate_deactivate(self, mocker):
-        m = mb.Menubox(views={"a": ipw.HTML("A")}, view=None)
+        m = await mb.Menubox(views={"a": ipw.HTML("A")}, view=None)
         assert m.view is None
         cb = mocker.patch.object(m, "add_to_shell")
         await m.activate(add_to_shell=True)
         assert cb.call_count == 1
         assert cb.await_count == 1
         assert m.view == "a"
-        m.deactivate()
+        await m.deactivate()
         assert m.view is None
 
     async def test_menubox_show_in_dialog(self, mocker):

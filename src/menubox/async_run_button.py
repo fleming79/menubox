@@ -1,21 +1,25 @@
 from __future__ import annotations
 
-import asyncio
-from typing import TYPE_CHECKING, Generic, Literal, cast, override
+import contextlib
+from collections.abc import Callable
+from types import CoroutineType
+from typing import TYPE_CHECKING, Any, Generic, Literal, cast, override
 
+import anyio
 import ipywidgets as ipw
 import traitlets
 
 from menubox import hasparent, mb_async, utils
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
-from menubox.log import log_exceptions
 from menubox.trait_factory import TF
-from menubox.trait_types import S
+from menubox.trait_types import ChangeType, S
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine
+    from collections.abc import Callable
     from types import CoroutineType
+
+    from async_kernel import Future
 
 
 class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
@@ -26,13 +30,11 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     control the button action. The active task is added as the attribute `task`.
 
     parent: HasParent | None
-        Parent is passed as obj to run_async_singular.
+        Parent is passed as obj to run_async.
     c_func: async | AsyncRunButton | str
         This is the function or AsyncRunButton to call with kw. Noting that the tasks
         are linked, so cancelling one will cancel the other. Strings are also accepted
         with dotted name access relative to parent.
-    link_button:
-        Disable the button while the other button is running (if not called )
     kw : dict | callable
     If kw is callable, it will be called when the button is clicked.  It must return a
     dict.
@@ -40,8 +42,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     _update_disabled = False
     description = traitlets.Unicode(read_only=True).tag(sync=True)
-    task = TF.Task()
-
+    task = TF.Future()
     parent = TF.parent(cast(type[S], HasParent))
 
     def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
@@ -59,14 +60,13 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
         tooltip="",
-        link_button=False,
         tasktype: mb_async.TaskType = mb_async.TaskType.general,
         **kwargs,
     ):
         if style is None:
             style = {}
         self._cfunc = cfunc
-        self._kw = kw or (lambda _: {})
+        self._kw: Callable[[S], dict[Any, Any]] | Callable[..., dict[Any, Any]] = kw or (lambda _: {})
         self._cancel_description = cancel_description
         self.name = description
         self._style = style
@@ -80,15 +80,11 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             msg = f"parent must be an instance of HasParent not {type(parent)}"
             raise TypeError(msg)
         super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
-        self._taskname = f"async_run_button_{id(self)}_[{self.cfunc}]"
         self.on_click(self._on_click)
         self.log = self.parent.log
-        if link_button:
-            if not isinstance(self.cfunc, AsyncRunButton):
-                msg = "When `link_button` cfunc must resolve to be a AsyncRunButton."
-                raise TypeError(msg)
-            utils.weak_observe(self.cfunc, self._update_link_button, "task")
-            self._update_link_button()
+        if isinstance(b := self._cfunc(self.parent), AsyncRunButton):
+            utils.weak_observe(b, self._observe_main_button_task, "task", pass_change=True)
+            self.set_trait("task", b.task)
 
     @traitlets.validate("name")
     def _hp_validate_name(self, proposal):
@@ -100,10 +96,19 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             self.set_description(value)
         return value
 
+    @property
+    def kw(self) -> dict:
+        assert self.parent  # noqa: S101
+        return self._kw(self.parent)
+
     @traitlets.observe("task")
-    def _observe_task(self, _):
+    def _observe_task(self, change: ChangeType):
+        if parent := self.parent:
+            if change["new"]:
+                parent.tasks.add(change["new"])
+            if change["old"]:
+                parent.tasks.discard(change["old"])
         if self.task:
-            self.tooltip = f"Cancel\n Task name is: {self.task.get_name()}"
             self.button_style = self._cancel_style
             self.set_description(self._cancel_description)
         else:
@@ -111,23 +116,15 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             self.tooltip = self._tooltip
             self.button_style = self._button_style
 
-    @property
-    def kw(self) -> dict:
-        assert self.parent  # noqa: S101
-        return self._kw(self.parent)
-
-    @property
-    def cfunc(self):
-        return self._cfunc(self.parent)  # type: ignore
-
-    def _update_link_button(self):
-        if getattr(self.cfunc, "task", None):
-            if not self.task:
-                self.disabled = True
-                self._update_disabled = True
-        elif self._update_disabled:
-            self._update_disabled = False
-            self.disabled = False
+    def _observe_main_button_task(self, change: ChangeType):
+        fut: Future | None = change["new"]
+        self.set_trait("task", fut)
+        if fut:
+            self.tasks.add(fut)
+            fut.add_done_callback(self.tasks.discard)
+            if parent := self.parent:
+                parent.tasks.add(fut)
+                fut.add_done_callback(parent.tasks.discard)
 
     def _on_click(self, _: ipw.Button):  # type: ignore
         if self.task:
@@ -138,79 +135,43 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     def set_description(self, value: str):
         self.set_trait("description", value)
 
-    def _done_callback(self, task: asyncio.Task):
-        "Task done callback"
-        if task is self.task:
+    def _done_callback(self, fut: Future):
+        if fut is self.task:
             self.set_trait("task", None)
 
-    @log_exceptions
-    def _start(self, restart=True, *, task: asyncio.Task | None = None, **kwargs):
-        coro_mode = bool(task)
+    def start(self, restart=True, /, *args, **kwargs) -> Future:
+        """Start always unless restart=False."""
         if self.disabled:
             msg = f"'{self}' is disabled!"
             raise RuntimeError(msg)
-        if not restart and self.task and not self.task.cancelling():
-            if task and task is self.task:
-                msg = f"Recursive call to {self}"
-                raise RecursionError(msg)
-            return self.task
-        kw = self.kw | kwargs
-        cfunc = self.cfunc
-        if isinstance(cfunc, AsyncRunButton):
-            aw = cfunc.start(restart=restart, task=task, **kw)
-            if isinstance(aw, asyncio.Task):
-                task = aw
-        else:
-            aw = cfunc(**kw)
-        if not task:
-            task = mb_async.run_async_singular(
-                aw, obj=self, tasktype=self._tasktype, name=self._taskname, restart=restart
-            )
-        if not task.done():
-            if task is not self.task:
-                self.set_trait("task", task)
-                task.add_done_callback(self._done_callback)
-            if self.parent and task not in self.parent.tasks:
-                self.parent.tasks.add(task)
-                task.add_done_callback(self.parent.tasks.discard)
-        if task not in self.tasks:
-            self.tasks.add(task)
-            task.add_done_callback(self.tasks.discard)
-        return (aw() if callable(aw) else aw) if coro_mode else task
-
-    def start(self, restart=True, **kwargs) -> asyncio.Task:
-        """Start always unless restart=False.
-
-        restart=True:
-            Will restart if already running.
-        restart=False:
-            Will start the task only if it isn't running.
-        **kwargs are passed to async function to override existing arguments.
-        """
-        return self._start(restart=restart, **kwargs)  # type: ignore
-
-    def start_wait(self, restart=True, **kwargs) -> Coroutine:
-        "Same as start but returns a coroutine and uses the current task."
-        return self._start(restart=restart, task=asyncio.current_task(), **kwargs)  # type: ignore
+        btn, cfunc = self, self._cfunc(self.parent)
+        while isinstance(cfunc, AsyncRunButton):
+            btn, cfunc = cfunc, cfunc._cfunc(cfunc.parent)
+        key = btn, cfunc
+        if not restart and (fut := mb_async.singular_tasks.get(key)) and (not fut.cancelled()):
+            return fut
+        opts = mb_async.RunAsyncOptions(obj=self.parent, tasktype=self._tasktype, restart=restart, key=key)
+        fut = mb_async.run_async(opts, cfunc, *args, **self.kw | kwargs)
+        btn.set_trait("task", fut)
+        fut.add_done_callback(btn._done_callback)
+        return fut
 
     def cancel(self, force=False, message=""):
         """Schedule cancel if already running.
         force: if task is already being cancelled force will call cancel again.
         """
-        if self.task and (force or not self.task.cancelling()):
-            self.task.cancel(message or f'Cancelled by call to cancel of :"{self}"')
+        if self.task and (force or not self.task._cancelled):
+            self.task.cancel(f'Cancelled by call to cancel of :"{self}"')
 
-    async def cancel_wait(self, force=False, message=""):
-        if self.task:
-            self.cancel(force, message=message)
-            await asyncio.sleep(0)
-            if self.task:
-                # permit on cycle for cleanup
-                await asyncio.sleep(0)
-            if self.task:
-                self.log.info('Waiting until task "%s" is done.', self.task.get_name())
-                await asyncio.wait([self.task])
+    async def cancel_wait(self, force=False, msg="Waiting for future to cancel."):
+        if task := self.task:
+            while not task.done():
+                with anyio.move_on_after(1):
+                    self.log.info(msg)
+                    task.cancel(msg)
+                    with contextlib.suppress(Exception):
+                        await task
 
     @override
-    def on_error(self, error, msg, obj=None):
+    def on_error(self, error: BaseException, msg: str, obj: Any = None) -> None:
         self.parent.on_error(error, msg, obj)
