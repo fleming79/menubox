@@ -297,7 +297,7 @@ class TF:
         co_: S,
         /,
         cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
-        description="Start",
+        description="",
         icon="play",
         cancel_icon="stop",
         kw: Callable[[S], dict] | None = None,

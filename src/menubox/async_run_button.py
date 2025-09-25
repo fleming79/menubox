@@ -52,7 +52,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton],
         *,
         parent: S,
-        description="Start",
+        description="",
         icon="play",
         cancel_icon="stop",
         kw: Callable[[S], dict] | None = None,
