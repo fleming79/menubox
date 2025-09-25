@@ -50,7 +50,7 @@ class Home(Singular):
         self.instances: weakref.WeakSet[HasHome] = weakref.WeakSet()
 
     def __repr__(self):
-        return f"<Home: {self.name}>"
+        return f"<Home: {self.name if self.singular_init_started else ''}>"
 
     def __str__(self):
         return self.name
@@ -86,7 +86,7 @@ class HasHome(HasParent):
     home = _HomeTrait()
 
     def __repr__(self):
-        if self.closed:
+        if self.closed or not self._HasParent_init_complete:
             return super().__repr__()
         cs = "closed: " if self.closed else ""
         home = str(self.home)

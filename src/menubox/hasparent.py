@@ -72,7 +72,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     tasks = TF.Set(klass_=cast("type[set[Future[Any]]]", 0))
 
     def __repr__(self):
-        if self.closed:
+        if self.closed or not self._HasParent_init_complete:
             return super().__repr__()
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
