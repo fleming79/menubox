@@ -41,7 +41,6 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     """
 
     _update_disabled = False
-    description = traitlets.Unicode(read_only=True).tag(sync=True)
     task = TF.Future()
     parent = TF.parent(cast(type[S], HasParent))
 
@@ -54,7 +53,8 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         *,
         parent: S,
         description="Start",
-        cancel_description="Cancel",
+        icon="play",
+        cancel_icon="stop",
         kw: Callable[[S], dict] | None = None,
         style: dict | None = None,
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
@@ -67,34 +67,31 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             style = {}
         self._cfunc = cfunc
         self._kw: Callable[[S], dict[Any, Any]] | Callable[..., dict[Any, Any]] = kw or (lambda _: {})
-        self._cancel_description = cancel_description
-        self.name = description
+        self._icon = icon
+        self._cancel_icon = cancel_icon
         self._style = style
         self._button_style = button_style
-        self._cancel_style = cancel_button_style
+        self._cancel_style: Literal["primary", "success", "info", "warning", "danger", ""] = cancel_button_style
         self._tooltip = tooltip
         self._tasktype = tasktype
-        self.set_description(description)
         self.add_class(CSScls.button)
         if not isinstance(parent, hasparent.HasParent):
             msg = f"parent must be an instance of HasParent not {type(parent)}"
             raise TypeError(msg)
-        super().__init__(parent=parent, style=style, tooltip=tooltip, button_style=button_style, **kwargs)
+        super().__init__(
+            parent=parent,
+            style=style,
+            tooltip=tooltip,
+            button_style=button_style,
+            description=description,
+            icon=icon,
+            **kwargs,
+        )
         self.on_click(self._on_click)
         self.log = self.parent.log
         if isinstance(b := self._cfunc(self.parent), AsyncRunButton):
             utils.weak_observe(b, self._observe_main_button_task, "task", pass_change=True)
             self.set_trait("task", b.task)
-
-    @traitlets.validate("name")
-    def _hp_validate_name(self, proposal):
-        if self.disabled:
-            msg = "Cannot set name when disabled!"
-            raise RuntimeError(msg)
-        value = super()._hp_validate_name(proposal)
-        if self.description == self.name:
-            self.set_description(value)
-        return value
 
     @property
     def kw(self) -> dict:
@@ -110,9 +107,9 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
                 parent.tasks.discard(change["old"])
         if self.task:
             self.button_style = self._cancel_style
-            self.set_description(self._cancel_description)
+            self.icon = self._cancel_icon
         else:
-            self.set_description(self.name)
+            self.icon = self._icon
             self.tooltip = self._tooltip
             self.button_style = self._button_style
 
@@ -131,9 +128,6 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             self.cancel(message="Button clicked to cancel")
         else:
             self.start()
-
-    def set_description(self, value: str):
-        self.set_trait("description", value)
 
     def _done_callback(self, fut: Future):
         if fut is self.task:

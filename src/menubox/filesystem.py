@@ -103,8 +103,7 @@ class Filesystem(MenuboxVT):
     button_update = TF.AsyncRunButton(
         cast(Self, 0),
         cfunc=lambda p: p._button_update_async,
-        description="↻",
-        cancel_description="✗",
+        icon="redo",
         tasktype=mb_async.TaskType.update,
     )
     button_home = TF.Button(

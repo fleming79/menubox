@@ -157,7 +157,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     button_save_persistence_data = TF.AsyncRunButton(
         cast(Self, 0),
         cfunc=lambda p: p._button_save_persistence_data_async,
-        description="💾",
+        icon="save",
         tooltip="Save persistence data for current version",
         tasktype=mb_async.TaskType.update,
     )
