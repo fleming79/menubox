@@ -133,7 +133,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     Option 1:
         Pass `co_=cast(Self, 0)` during init to provide extended type hinting for 'owner'.
     Option 2:
-        Define both types on the class with InstanceHP[Self, Klass, SetType]
+        Define both types on the class with `InstanceHP[Self, Getter, Setter]`
+        ` `Self` : Provides for introspection on lambda methods for safer type hinting.
+        - `Getter`: Is provides typing when retreiving the attribute
+        - `Setter`: Allows to define the types that can be used for setting. Notably,
+            the type can be wrapped with `ReadOnly` to show when the trait is read only.
     """
 
     klass: type[T]
