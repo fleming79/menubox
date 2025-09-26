@@ -4,7 +4,7 @@ import enum
 import functools
 import inspect
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, Self, TypedDict, Unpack
 
 import anyio
 import wrapt
@@ -15,7 +15,8 @@ from ipylab import App
 import menubox as mb
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Coroutine, Hashable
+    from collections.abc import Callable, Coroutine, Hashable
+    from types import CoroutineType
 
     from async_kernel import Future
 
@@ -37,32 +38,33 @@ class TaskType(int, enum.Enum):
     click = enum.auto()
 
 
-class ConcurrencyMode(enum.StrEnum):
-    task = "task"
-    thread = "thread"
-
-
 class RunAsyncOptions(TypedDict):
     "Options to use with run_async"
 
     key: NotRequired[Hashable]
-    "Specify a key to use with 'singular_instances'. The behaviour  is a function of 'restart'."
+    "Specify a key to use with 'singular_instances'"
     restart: NotRequired[bool]
-    "default: True"
-    func: NotRequired[Callable]
-    "The function that is being run. This is set when calling RunAsync."
+    """
+    Whether to restart a task with a matching `key` default: `True`.
+
+    If `False` the current call arguments are ignored and the current task (`Future`) is returned.
+    """
     obj: NotRequired[HasParent | None]
     ""
     handle: NotRequired[str]
-    ""
+    """
+    The name of the trait on `obj` where to store the future of the task.
+
+    Both Future instance and set traits are permitted.
+    """
     tasktype: NotRequired[TaskType]
-    "default: TaskType.general"
+    "default: TaskType.general."
     delay: NotRequired[float]
-    ""
-    concurrency_mode: NotRequired[ConcurrencyMode]
-    "default is task"
+    "A delay in seconds to wait before executing `func`."
+    concurrency_mode: NotRequired[Literal["task", "thread"]]
+    "default is 'task'."
     thread_name: NotRequired[str | None]
-    "The thread name to use when concurrency mode is 'thread'"
+    "The thread name to use when concurrency mode is 'thread'."
 
 
 def _on_done_callback(fut: Future):
@@ -86,20 +88,6 @@ def _on_done_callback(fut: Future):
         obj.log.debug(f"Task complete: {fut}")
 
 
-def _future_started(fut: Future[T]) -> Future[T]:
-    if obj := get_obj_using_metadata(fut.metadata):
-        obj.tasks.add(fut)
-        if handle := fut.metadata.get("handle"):
-            if isinstance(set_ := getattr(obj, handle), set):
-                set_.add(fut)
-            else:
-                obj.set_trait(handle, fut)
-    obj = obj or App()
-    if obj.log.getEffectiveLevel() == 10:
-        obj.log.debug(f"Task started: {fut}")
-    return fut
-
-
 def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] | None:
     "Get the most relevant from the metadata  by looking in various places"
     obj = metadata.get("obj")
@@ -111,7 +99,7 @@ def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] |
 
 
 def run_async(
-    opts: RunAsyncOptions, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs
+    opts: RunAsyncOptions, func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs
 ) -> Future[T]:
     """Run the coroutine function in the main event loop, possibly cancelling a currently
     running future if the name overlaps.
@@ -148,20 +136,32 @@ def run_async(
         else:
             singular_tasks[key] = current
             return current
-    match ConcurrencyMode(opts.get("concurrency_mode", ConcurrencyMode.task)):
-        case ConcurrencyMode.task:
+    match opts.get("concurrency_mode", "task"):
+        case "task":
             caller = Caller.get_instance()
             fut = caller.call_later(opts.get("delay", 0), func, *args, **kwargs)
-        case ConcurrencyMode.thread:
+        case "thread":
             fut = Caller.to_thread_by_name(opts.get("thread_name"), func, *args, **kwargs)
     fut.add_done_callback(_on_done_callback)
     fut.metadata.update(opts)
     if key:
         singular_tasks[key] = fut
-    return _future_started(fut)  # pyright: ignore[reportReturnType]
+    if obj := get_obj_using_metadata(fut.metadata):
+        obj.tasks.add(fut)
+        if handle := fut.metadata.get("handle"):
+            if isinstance(set_ := getattr(obj, handle), set):
+                set_.add(fut)
+            else:
+                obj.set_trait(handle, fut)
+    obj = obj or App()
+    if obj.log.getEffectiveLevel() == 10:
+        obj.log.debug(f"Task started: {fut}")
+    return fut
 
 
-def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Future[T]]]:
+def singular_task(
+    **opts: Unpack[RunAsyncOptions],
+) -> Callable[[Callable[P, CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
     """A decorator to wrap a coroutine function to run as a singular task.
 
     obj is as the instance.
@@ -176,16 +176,9 @@ def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, Awai
     return _run_as_singular  # pyright: ignore[reportReturnType]
 
 
-def to_thread(func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
+def to_thread(func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
     """Run a function in a separate thread."""
-    return _future_started(Caller.to_thread(func, *args, **kwargs))  # pyright: ignore[reportReturnType]
-
-
-def to_thread_by_name(
-    name: str, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs
-) -> Future[T]:
-    """Run a function in a separate thread by name."""
-    return _future_started(Caller.to_thread_by_name(name, func, *args, **kwargs))  # pyright: ignore[reportReturnType]
+    return run_async({"concurrency_mode": "thread"}, func, *args, **kwargs)
 
 
 class PeriodicMode(enum.StrEnum):
@@ -226,7 +219,7 @@ class _Periodic:
 
 def periodic(
     wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous
-) -> Callable[..., Future[None]]:
+) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
     """A wrapper to control the rate at which a function may be called.
 
     Can wrap functions, coroutines and methods. Several modes are supported.
@@ -255,7 +248,7 @@ def periodic(
             del _periodic_tasks[k]
 
     @wrapt.decorator
-    def _periodic_wrapper(wrapped, instance, args, kwargs) -> Future[None]:
+    def _periodic_wrapper(wrapped, instance, args, kwargs):
         k = (instance, wrapped)
         info = _periodic_tasks.get(k)
         if info and info._repeat is not None:
@@ -269,28 +262,28 @@ def periodic(
         info.task.add_done_callback(functools.partial(on_done, k))
         return info.task
 
-    return _periodic_wrapper
+    return _periodic_wrapper  # pyright: ignore[reportReturnType]
 
 
 def throttle(
     wait: float, tasktype=TaskType.general
-) -> Callable[[Callable[P, Awaitable[None]]], Callable[P, Future[None]]]:
+) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
     """A decorator that throttles the call to wrapped function.
 
     Compatible with coroutines, functions and methods.
 
     Returns a [async_kernel.caller.Future][].
     """
-    return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype)  # pyright: ignore[reportReturnType]
+    return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype)
 
 
 def debounce(
     wait: float, tasktype=TaskType.general
-) -> Callable[[Callable[P, Awaitable[None]]], Callable[P, Future[None]]]:
+) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
     """A decorator that debounces the call to the wrapped function.
 
     Compatible with coroutines, functions and methods.
 
     Returns a [async_kernel.caller.Future][].
     """
-    return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype)  # type: ignore
+    return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype)
