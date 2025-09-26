@@ -804,7 +804,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         box.children = (*children, obj_) if position == "end" else (obj_, *children)
         obj_.set_trait("showbox", box)
         if self.button_exit:
-            mb.mb_async.call_later(0.1, self.button_exit.focus)
+            mb.mb_async.run_async({"obj": self, "delay": 0.1}, self.button_exit.focus)
         return obj_
 
     def deactivate(self) -> Self:
