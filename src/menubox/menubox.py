@@ -136,9 +136,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
     button_menu_minimize = TF.Button(
         cast(Self, 0), TF.CSScls.button_menu, description="↤", tooltip="Hide menu"
     ).configure(TF.IHPMode.X__N)
-    button_activate = TF.Button(
-        cast(Self, 0), TF.CSScls.button_open, icon="window-maximize", tooltip="Add to shell"
-    ).configure(TF.IHPMode.X__N)
+    button_activate = (
+        TF.Button(cast(Self, 0), TF.CSScls.button_open, icon="window-maximize", tooltip="Add to shell")
+        .hooks(on_set=lambda c: c["obj"].set_trait("tooltip", f"Add to shell ({utils.fullname(c['owner'])})"))
+        .configure(TF.IHPMode.X__N)
+    )
 
     # Boxes
     box_shuffle = TF.MenuboxShuffle().configure(TF.IHPMode.XL__)
@@ -529,7 +531,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             case "button_close" if b := self.button_close:
                 b.tooltip = f"Close {self}"
             case "button_help" if b := self.button_help:
-                b.tooltip = f"Help for  {utils.fullname(self)}\n"
+                b.tooltip = f"Help for  {utils.fullname(self)}"
             case "shuffle_button_views":
                 self._update_shuffle_buttons()
             case "shuffle_buttons" if change["old"] is not traitlets.Undefined:
