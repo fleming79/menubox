@@ -49,11 +49,13 @@ async def test_modal_button():
     assert isinstance(obj.mb1, Modalbox)
     assert obj.mb1_change_count == 0
     obj.mb1.expand()
+    await obj.mb1.wait_tasks()
     assert obj.mb1.expanded
     assert obj.mb1_change_count == 1
     assert obj.mb1.button_expand.disabled
     assert not obj.mb1.button_collapse.disabled
     obj.mb1.collapse()
+    await obj.mb1.wait_tasks()
     assert not obj.mb1.expanded
     assert obj.mb1_change_count == 2
     assert not obj.mb1.button_expand.disabled

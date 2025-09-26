@@ -176,7 +176,7 @@ def singular_task(**opts: Unpack[RunAsyncOptions]) -> Callable[[Callable[P, Awai
     return _run_as_singular  # pyright: ignore[reportReturnType]
 
 
-def call_later(delay, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
+def call_later(delay: float, func: Callable[P, T | Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
     """Run callback after a delay."""
     return run_async({"delay": delay}, func, *args, **kwargs)
 

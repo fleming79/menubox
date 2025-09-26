@@ -70,6 +70,7 @@ async def test_menuboxvt(home: mb.Home):
     assert m.c.value == 2.3, "'Manually' copied value."
 
     m.template_controls.expand()
+    await m.template_controls.wait_tasks()
     await m
     assert len(m._sw_template.options) == 2, "Should locate template files"
 
