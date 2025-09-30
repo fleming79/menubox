@@ -34,8 +34,8 @@ dependencies = [
   "pyarrow",
   "docstring_to_markdown",
    "anyio",
-  "async-kernel>=0.5.0,<0.6.0",
-  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.1/ipylab-2.0.1-py3-none-any.whl#sha256:1458fae3db3222deff63f214fe3d22b2f7915a22e4a10efe3f7b802473d66e0a"
+  "async-kernel>=0.6.0,<0.7.0",
+  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.2/ipylab-2.0.2-py3-none-any.whl#sha256:fff57bb1f6b72fbb7f6423bc3cab330c52025757c1e63a90f884a275b3252e53"
 ]
 [dependency-groups]
 dev =[

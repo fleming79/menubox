@@ -141,7 +141,7 @@ def run_async(
             caller = Caller.get_instance()
             fut = caller.call_later(opts.get("delay", 0), func, *args, **kwargs)
         case "thread":
-            fut = Caller.to_thread_by_name(opts.get("thread_name"), func, *args, **kwargs)
+            fut = Caller.to_thread_advanced({"name": opts.get("thread_name")}, func, *args, **kwargs)
     fut.add_done_callback(_on_done_callback)
     fut.metadata.update(opts)
     if key:
