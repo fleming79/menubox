@@ -80,7 +80,11 @@ def _on_done_callback(fut: Future):
             elif getattr(obj, handle) is fut:
                 obj.set_trait(handle, None)
     if (not fut.cancelled()) and (error := fut.exception()) and (not fut.metadata.get("ignore_error")):
-        (obj.on_error if obj else mb.log.on_error)(error, msg="run sync Failed")
+        if obj:
+            if not obj.closed:
+                obj.on_error(error, msg="run sync failed")
+        else:
+            mb.log.on_error(error, msg="run sync failed")
 
     obj = obj or App()
     if obj.log.getEffectiveLevel() == 10:
