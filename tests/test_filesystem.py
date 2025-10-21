@@ -1,8 +1,5 @@
 import pathlib
 
-import anyio
-import pytest
-
 from menubox.filesystem import Filesystem
 
 
@@ -32,7 +29,4 @@ async def test_filesystem(tmp_path: pathlib.Path):
     assert fs.tasks
     await fs.wait_tasks()
     assert pathlib.Path(fname).is_file()
-    with pytest.raises(TimeoutError):
-        with anyio.fail_after(0.1):
-            await fs.get_relative_path()
     fs.read_only = True

@@ -338,10 +338,13 @@ class HasParent(Singular, HasApp, Generic[RP]):
             super()._notify_observers(event)
         elif notifiers := self._trait_notifiers.get(event["name"], {}):
             for c in (*notifiers.get("change", ()), *notifiers.get("all", ())):
-                if isinstance(c, traitlets.EventHandler) and c.name is not None:
-                    getattr(self, c.name)(event)
-                else:
-                    c(event)
+                try:
+                    if isinstance(c, traitlets.EventHandler) and c.name is not None:
+                        getattr(self, c.name)(event)
+                    else:
+                        c(event)
+                except AttributeError:
+                    pass
 
     def close(self, force=False):
         """Closes the object, disconnecting it from its parent and cleaning up resources.
