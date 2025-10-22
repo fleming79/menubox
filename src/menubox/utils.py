@@ -491,7 +491,7 @@ def get_widgets(
                 if parent:
                     parent.on_error(e, msg, widget)
                 else:
-                    app = ipylab.App()
+                    app = ipylab.JupyterFrontEnd()
                     app.log.exception(msg, widget, exc_info=e)
 
     yield from _get_widgets(items)

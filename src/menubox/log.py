@@ -35,7 +35,7 @@ def START_DEBUG(*, to_stdio=False):
     if to_stdio:
         import sys
 
-        app = ipylab.App()
+        app = ipylab.JupyterFrontEnd()
         app.log_level = ipylab.log.LogLevel.DEBUG
 
         def record_to_stdout(record):
@@ -54,7 +54,7 @@ def on_error(error: BaseException, msg: str, obj: Any = None):
         msg (str): The error message to log.
         obj (Any, optional): An optional object to include in the log message. Defaults to None.
     """
-    app = ipylab.App()
+    app = ipylab.JupyterFrontEnd()
     app.log.exception(msg, obj=obj, exc_info=error)
 
 

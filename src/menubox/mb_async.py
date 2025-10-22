@@ -10,7 +10,7 @@ import anyio
 import wrapt
 from async_kernel import Caller
 from async_kernel.caller import Future
-from ipylab import App
+from ipylab import JupyterFrontEnd
 
 import menubox as mb
 
@@ -83,7 +83,7 @@ def _on_done_callback(fut: Future):
         else:
             mb.log.on_error(error, "run sync Failed")
 
-    obj = obj or App()
+    obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
         obj.log.debug(f"Task complete: {fut}")
 
@@ -153,7 +153,7 @@ def run_async(
                 set_.add(fut)
             else:
                 obj.set_trait(handle, fut)
-    obj = obj or App()
+    obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
         obj.log.debug(f"Task started: {fut}")
     return fut

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 @pytest.fixture(scope="session")
 def anyio_backend():
     if not LAUNCHED_BY_DEBUGPY:
-        app = ipylab.App()
+        app = ipylab.JupyterFrontEnd()
         app.log_level = ipylab.log.LogLevel.WARNING
     else:
         mb.log.START_DEBUG(to_stdio=True)
@@ -26,7 +26,7 @@ def anyio_backend():
 
 @pytest.fixture(autouse=True)
 async def anyio_backend_autouse(anyio_backend, mocker):
-    app = ipylab.App()
+    app = ipylab.JupyterFrontEnd()
     async with Caller(create=True):
         mocker.patch.object(app, "ready")
         yield anyio_backend
