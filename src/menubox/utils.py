@@ -601,7 +601,7 @@ def download_button(buffer, filename: str, button_description: str):
     return ipw.HTML(html_button)
 
 
-async def yes_no_dialog(app: ipylab.App, title: str, body: str | ipw.Widget = "", *, names=("Yes", "No")):
+async def yes_no_dialog(app: ipylab.JupyterFrontEnd, title: str, body: str | ipw.Widget = "", *, names=("Yes", "No")):
     result = await app.dialog.show_dialog(
         title,
         body=body,

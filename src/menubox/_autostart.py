@@ -20,11 +20,11 @@ class IpylabPlugin:
             refresh_all_menuboxes()
 
     @ipylab.hookimpl(specname="autostart_once")
-    async def connect_log(self, app: ipylab.App):
+    async def connect_log(self, app: ipylab.JupyterFrontEnd):
         app.observe(self.observe_ipylab_log_level, names="log_level")
 
     @ipylab.hookimpl(specname="autostart_once")
-    async def load_css_stylesheet(self, app: ipylab.App):
+    async def load_css_stylesheet(self, app: ipylab.JupyterFrontEnd):
         import menubox.css
 
         stylesheet = await menubox.css.MenuboxCSSStyleSheet().ready()
