@@ -129,7 +129,7 @@ def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None
 
 
 def observe_until(
-    obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str, predicate: Callable[[Any], bool]
+    obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool], callback: Callable[[ChangeType], None]
 ):
     """Observe a trait as it changes until the predicate returns true.
 
@@ -152,9 +152,9 @@ async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Calla
 
     The trait is then observed until the predicate returns `True`.
     """
-    event = AsyncEvent()
     if not predicate(getattr(obj, name)):
-        mb.utils.observe_until(obj, lambda _: event.set(), name, predicate)
+        event = AsyncEvent()
+        mb.utils.observe_until(obj, name, predicate, lambda _: event.set())
         await event.wait()
 
 

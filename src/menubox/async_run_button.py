@@ -125,7 +125,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     def _on_click(self, _: ipw.Button):  # type: ignore
         if self.task:
-            self.cancel(message="Button clicked to cancel")
+            self.cancel(force=True, message="Button clicked to cancel")
         else:
             self.start()
 
@@ -150,7 +150,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         fut.add_done_callback(btn._done_callback)
         return fut
 
-    def cancel(self, force=False, message=""):
+    def cancel(self, *, force=False, message=""):
         """Schedule cancel if already running.
         force: if task is already being cancelled force will call cancel again.
         """

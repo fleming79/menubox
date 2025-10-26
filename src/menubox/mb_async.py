@@ -65,6 +65,8 @@ class RunAsyncOptions(TypedDict):
     "default is 'task'."
     thread_name: NotRequired[str | None]
     "The thread name to use when concurrency mode is 'thread'."
+    ignore_error: NotRequired[bool]
+    "Set to True when the exception just be caught."
 
 
 def _on_done_callback(fut: Future):
@@ -77,11 +79,12 @@ def _on_done_callback(fut: Future):
                 set_.discard(fut)
             elif getattr(obj, handle) is fut:
                 obj.set_trait(handle, None)
-    if not fut.cancelled() and (error := fut.exception()):
+    if (not fut.cancelled()) and (error := fut.exception()) and (not fut.metadata.get("ignore_error")):
         if obj:
-            obj.on_error(error, msg="run sync Failed")
+            if not obj.closed:
+                obj.on_error(error, msg="run sync failed")
         else:
-            mb.log.on_error(error, "run sync Failed")
+            mb.log.on_error(error, msg="run sync failed")
 
     obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
@@ -178,7 +181,7 @@ def singular_task(
 
 def to_thread(func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
     """Run a function in a separate thread."""
-    return run_async({"concurrency_mode": "thread"}, func, *args, **kwargs)
+    return run_async({"concurrency_mode": "thread", "ignore_error": True}, func, *args, **kwargs)
 
 
 class PeriodicMode(enum.StrEnum):

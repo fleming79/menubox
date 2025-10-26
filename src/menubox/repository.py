@@ -64,7 +64,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     button_select_repository = TF.Button(
         cast(Self, 0),
         TF.CSScls.button_menu,
-        description="…",
+        icon="ellipsis-h",
         tooltip="Select/create a new repository",
     )
     title_description = TF.Str("root: {self.filesystem.root}")
