@@ -312,6 +312,7 @@ class TF:
             menubox.async_run_button.AsyncRunButton,
             lambda c: menubox.async_run_button.AsyncRunButton(
                 parent=c["owner"],
+                name=c["name"],
                 cfunc=cfunc,
                 description=description,
                 icon=icon,
