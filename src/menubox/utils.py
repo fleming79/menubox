@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime
 import functools
 import inspect
@@ -99,19 +100,24 @@ def weak_observe(
         The handle function that was registered as an observer, which can be used to unobserve.
     """
 
-    ref = weakref.WeakMethod(method)
-
     def handle(change: ChangeType) -> T:
         method_ = ref()
-        if method_:
-            if pass_change:
-                return method_(*args, change=change, **kwgs)  # type:ignore
-            return method_(*args, **kwgs)  # type: ignore
-        change["owner"].unobserve(handle, names=names)
+        if not method_ or getattr(method_.__self__, "closed", False):  # pyright: ignore[reportFunctionMemberAccess]
+            disconnect(None)
+        elif pass_change:
+            return method_(*args, change=change, **kwgs)  # type:ignore
+        else:
+            method_(*args, **kwgs)  # type: ignore
 
         return None  # type: ignore
 
     obj.observe(handle, names=names)
+
+    def disconnect(_):
+        with contextlib.suppress(Exception):
+            obj.unobserve(handle, names)
+
+    ref = weakref.WeakMethod(method, disconnect)
     return handle
 
 
