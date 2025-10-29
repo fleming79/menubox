@@ -55,7 +55,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         cast(Self, 0),
         description="Repository",
         placeholder="Home repository",
-        tooltip="Enter the name of the repository to use. A blank name is the home default repository.",
+        tooltip="Enter the name of the repository to use. A blank name is the home default repository. The repository will appear in the list only once it has been saved.",
         layout={"width": "max-content"},
         continuous_update=False,
     ).hooks(
@@ -72,7 +72,9 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     views = TF.ViewDict(
         cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository, p.html_title]}
     )
-    value_traits = NameTuple(*MenuboxVT.value_traits, "repository", "repository_name", "filesystem.url")
+    value_traits = NameTuple(
+        *MenuboxVT.value_traits, "repository", "repository_name", "filesystem.url", "repository.saved_timestamp"
+    )
 
     @override
     def on_change(self, change: ChangeType):
@@ -87,6 +89,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
             filesystem: Filesystem = getattr(self.repository, "target_filesystem", None) or self.filesystem
             self.set_trait("filesystem", filesystem)
         self.mb_refresh()
+        self.update_repository_name_options()
 
     @mb_async.debounce(0.1)
     async def update_repository_name_options(self):
@@ -97,8 +100,8 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         await super().button_clicked(b)
         match b:
             case self.button_select_repository:
+                self.update_repository_name_options()
                 if not (name := self.repository_name.value):
-                    self.update_repository_name_options()
                     return
                 repository = Repository(name=name, home=self.home)
                 await repository.activate(add_to_shell=True)
