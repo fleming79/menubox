@@ -370,8 +370,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if (b := self.button_toggleview) and view in self.toggleviews:
             i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
             next_view = self.toggleviews[i]
-            b.description = view
-            b.tooltip = f"Current: {view}\nNext:{next_view}\nAvailable: {self.toggleviews}"
+            b.description = next_view
+            b.tooltip = f"Current: {view}\nAvailable: {self.toggleviews}"
         return view
 
     async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
