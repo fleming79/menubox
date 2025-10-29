@@ -754,6 +754,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         obj = tuple(self.get_widgets(obj))
         if len(obj) == 1:
             obj = obj[0]
+        if isinstance(obj, Menubox):
+            obj.maximize()
         return self.put_obj_in_box_shuffle(obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped)
 
     def put_obj_in_box_shuffle(
