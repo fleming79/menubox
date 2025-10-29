@@ -4,8 +4,8 @@ import pathlib
 import re
 from typing import TYPE_CHECKING, ClassVar, Self, cast, override
 
-import anyio
 import psutil
+from async_kernel.caller import FutureCancelledError
 from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
 
 from menubox import defaults, mb_async, utils
@@ -153,6 +153,7 @@ class Filesystem(MenuboxVT):
     @override
     async def init_async(self):
         await super().init_async()
+        self.layout.flex = "1 0 auto"
         if self.protocol.value == "file" and not self.root:
             self.url.value = self.startup_dir
         self.home_url = self.root
@@ -283,7 +284,8 @@ class Filesystem(MenuboxVT):
             title = title or f"Relative path {self.name}'"
             result = await rp.show_in_dialog(title)
             if not result["value"]:
-                raise anyio.get_cancelled_exc_class()
+                msg = "Aborted by user"
+                raise FutureCancelledError(msg)
             return rp.relative_path.value
         finally:
             rp.close()
