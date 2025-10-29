@@ -96,6 +96,19 @@ class TestMenubox:
         m.shuffle_buttons[0].click()  # type: ignore # shuffle button for views 'd'
         await m
 
+    async def test_menubox_active_buttons(self, mocker):
+        wa, wb = ipw.HTML("A"), ipw.HTML("B")
+        m = mb.Menubox(views={"a": wa, "b": wb})
+        m.activate_button_views = {"d": lambda p: p}
+        m.load_view()
+        await m
+        assert m.activate_buttons
+        button_clicked = mocker.patch.object(m, "button_clicked")
+        m.activate_buttons[0].click()  # type: ignore # shuffle button for views 'd'
+        await m.wait_tasks()
+        assert button_clicked.called
+        assert button_clicked.await_count
+
     async def test_menubox_view_setting(self):
         m2 = await mb.Menubox()
         m2.views = {"m2": ipw.HTML("A"), "b": ipw.HTML("B")}
@@ -370,13 +383,13 @@ class TestMenubox:
             m._shuffle_button_on_click(b)
         assert len(m.box_shuffle.children) == 1
 
-    async def test_menubox_hide_unhide_shuffle_button(self):
+    async def test_menubox_hide_unhide_shuffle_activate_buttons(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
         m.shuffle_button_views = {"a": ipw.HTML("A")}
         m.get_shuffle_button("a")
-        m.hide_unhide_shuffle_button("a")
+        m.hide_unhide_shuffle_activate_buttons("a")
         await m
-        m.hide_unhide_shuffle_button("a", hide=False)
+        m.hide_unhide_shuffle_activate_buttons("a", hide=False)
 
     async def test_menubox_get_shuffle_button(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})

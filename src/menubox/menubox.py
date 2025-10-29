@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import re
 import textwrap
 import weakref
@@ -19,7 +20,7 @@ from menubox import defaults, log, mb_async, utils
 from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
-from menubox.trait_factory import TF
+from menubox.trait_factory import TF, ButtonMode
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
@@ -70,6 +71,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
     shuffle_button_views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
+    activate_button_views = TF.ViewDict(cast(Self, 0)).configure(TF.IHPMode.XL__)
 
     border = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
     view = TF.Str().configure(TF.IHPMode.X__N, default_value=None)
@@ -83,7 +85,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
         "button_help", "button_activate", "button_promote", "button_demote", "button_close"
     )
     header_children = StrTuple(
-        "header_left_children", "html_title", "tab_buttons", "shuffle_buttons", "H_FILL", "header_right_children"
+        "header_left_children",
+        "html_title",
+        "tab_buttons",
+        "shuffle_buttons",
+        "activate_buttons",
+        "H_FILL",
+        "header_right_children",
     )
     box_menu_open_children = StrTuple("button_menu_minimize", "get_menu_widgets")
     minimized_children = StrTuple("html_title", "header_right_children")
@@ -97,6 +105,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
+    activate_buttons = Buttons(read_only=True)
     # Trait factory
     _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
@@ -185,6 +194,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         "tab_buttons",
         "shuffle_buttons",
         "shuffle_button_views",
+        "activate_buttons",
+        "activate_button_views",
         "tabviews",
     )
 
@@ -499,6 +510,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.enable_ihp("button_toggleview")
         self._update_tab_buttons()
         self._update_shuffle_buttons()
+        self._update_activate_buttons()
         if cb := getattr(super(), "mb_configure", None):
             # permit other overloads.
             await cb()
@@ -534,7 +546,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 b.tooltip = f"Help for  {utils.fullname(self)}"
             case "shuffle_button_views":
                 self._update_shuffle_buttons()
-            case "shuffle_buttons" if change["old"] is not traitlets.Undefined:
+            case "activate_button_views":
+                self._update_activate_buttons()
+            case "shuffle_buttons" | "activate_buttons" if change["old"] is not traitlets.Undefined:
                 for b in set(change["old"]).difference(change["new"]):
                     b.close()
         if self._mb_configured:
@@ -655,6 +669,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
     def _update_shuffle_buttons(self):
         self.set_trait("shuffle_buttons", (self.get_shuffle_button(name) for name in self.shuffle_button_views))
 
+    def _update_activate_buttons(self):
+        self.set_trait("activate_buttons", (self.get_activate_button(name) for name in self.activate_button_views))
+
     def _onchange_showbox(self, change: IHPChange):
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
@@ -701,6 +718,10 @@ class Menubox(HasParent, Panel, Generic[RP]):
                     self.maximize()
             case self.button_activate:
                 await self.activate(add_to_shell=True)
+            case _ if b in self.activate_buttons:
+                for widget in self.get_widgets(self.activate_button_views[b.description]):
+                    if isinstance(widget, Menubox):
+                        await widget.activate(add_to_shell=True)
 
     @log.log_exceptions
     def _shuffle_button_on_click(self, b: ipw.Button):
@@ -708,8 +729,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self.load_shuffle_item(widgets, alt_name=b.description)
         self.menu_close()
 
-    def hide_unhide_shuffle_button(self, description: str, hide=True):
-        for b in self.shuffle_buttons:
+    def hide_unhide_shuffle_activate_buttons(self, description: str, hide=True):
+        for b in (*self.shuffle_buttons, *self.activate_buttons):
             if b.description == description:
                 v = utils.to_visibility(hide, invert=True)
                 if v != b.layout.visibility:
@@ -727,6 +748,18 @@ class Menubox(HasParent, Panel, Generic[RP]):
         b.add_class(CSScls.button)
         b.add_class(CSScls.button_shuffle)
         b.on_click(self._shuffle_button_on_click)
+        return b
+
+    def get_activate_button(self, name: str) -> ipw.Button:
+        """Get an existing activate button"""
+        if name not in self.activate_button_views:
+            msg = f"{name=} not a shuffle button view options = {list[self.activate_button_views]}"
+            raise KeyError(msg)
+        b = ipw.Button(description=name)
+        b.add_class(CSScls.button)
+        b.add_class(CSScls.button_activate)
+        cb = functools.partial(self._on_click, weakref.ref(self), f"{self} activate_button_{name}", ButtonMode.disable)
+        b.on_click(cb)
         return b
 
     def obj_in_box_shuffle(self, obj: ipw.Widget | tuple) -> ipw.Widget | None:

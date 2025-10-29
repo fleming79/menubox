@@ -21,6 +21,7 @@ class CSSvar(enum.StrEnum):
     button_dangerous_color = f"{V_PREFIX}-button-dangerous-color"
     button_toggle_color = f"{V_PREFIX}-button-toggle-color"
     button_shuffle_color = f"{V_PREFIX}-button-shuffle-color"
+    button_activate_color = f"{V_PREFIX}-button-activate-color"
     button_tab_color = f"{V_PREFIX}-button-tab-color"
 
     button_main_background_color = f"{V_PREFIX}-button-main-background-color"
@@ -31,6 +32,7 @@ class CSSvar(enum.StrEnum):
     button_dangerous_background_color = f"{V_PREFIX}-button-dangerous-background-color"
     button_toggle_background_color = f"{V_PREFIX}-button-toggle-background-color"
     button_shuffle_background_color = f"{V_PREFIX}-button-shuffle-background-color"
+    button_activate_background_color = f"{V_PREFIX}-button-activate-background-color"
     button_tab_background_color = f"{V_PREFIX}-button-tab-background-color"
 
     button_busy_border = f"{V_PREFIX}-button-busy-border"
@@ -73,6 +75,7 @@ class CSScls(enum.StrEnum):
     button_dangerous = "mod-dangerous"
     button_toggle = "mod-toggle"
     button_shuffle = "mod-shuffle"
+    button_activate = "mod-activate"
 
     button_is_busy = "mod-button-busy"
     button_active_view = "mod-active-view"
@@ -96,6 +99,8 @@ VARIABLES = {
     CSSvar.button_toggle_background_color: f"var({CSSvar.button_menu_background_color})",
     CSSvar.button_shuffle_color: f"var({CSSvar.button_menu_color})",
     CSSvar.button_shuffle_background_color: f"var({CSSvar.button_menu_background_color})",
+    CSSvar.button_activate_color: "var(--jp-ui-font-color1)",
+    CSSvar.button_activate_background_color: "var(--jp-border-color3)",
     CSSvar.button_tab_color: f"var({CSSvar.button_menu_color})",
     CSSvar.button_tab_background_color: f"var({CSSvar.button_menu_background_color})",
     CSSvar.button_cancel_color: "var(--jp-ui-inverse-font-color1)",
@@ -147,6 +152,10 @@ STYLESHEET = f"""
 .{CSScls.button}.{CSScls.button_shuffle} {{
     color: var({CSSvar.button_shuffle_color});
     background-color: var({CSSvar.button_shuffle_background_color});
+}}
+.{CSScls.button}.{CSScls.button_activate} {{
+    color: var({CSSvar.button_activate_color});
+    background-color: var({CSSvar.button_activate_background_color});
 }}
 .{CSScls.button}.{CSScls.button_tab} {{
     color: var({CSSvar.button_tab_color});
