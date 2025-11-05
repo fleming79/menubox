@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpac
 import docstring_to_markdown
 import ipylab.widgets
 import traitlets
-from async_kernel import AsyncEvent
+from aiologic import Event
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
 
@@ -415,9 +415,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
             return
         if outputs := self._simple_outputs:
             out = outputs[-1]
-            ec = AsyncEvent()
+            ec = Event()
             out.observe(lambda _: ec.set(), "closed")
-            await ec.wait()
+            await ec
             self.mb_refresh()
             return
         if self.task_load_view and (task := self.task_load_view):
@@ -838,8 +838,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         children = (c for c in box.children if c not in [obj, obj_])
         box.children = (*children, obj_) if position == "end" else (obj_, *children)
         obj_.set_trait("showbox", box)
-        if self.button_exit:
-            mb.mb_async.run_async({"obj": self, "delay": 0.1}, self.button_exit.focus)
+        if obj_.button_exit:
+            mb.mb_async.run_async({"obj": obj_, "delay": 0.1}, obj_.button_exit.focus)
         return obj_
 
     def deactivate(self) -> Self:

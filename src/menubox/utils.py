@@ -14,7 +14,7 @@ import ipylab.log
 import ipywidgets as ipw
 import pandas as pd
 import traitlets
-from async_kernel import AsyncEvent
+from aiologic import Event
 
 import menubox as mb
 from menubox.css import CSSvar
@@ -159,9 +159,9 @@ async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Calla
     The trait is then observed until the predicate returns `True`.
     """
     if not predicate(getattr(obj, name)):
-        event = AsyncEvent()
+        event = Event()
         mb.utils.observe_until(obj, name, predicate, lambda _: event.set())
-        await event.wait()
+        await event
 
 
 def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
