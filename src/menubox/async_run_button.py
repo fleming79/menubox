@@ -154,8 +154,8 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         """Schedule cancel if already running.
         force: if task is already being cancelled force will call cancel again.
         """
-        if self.task and (force or not self.task._cancelled):
-            self.task.cancel(f'Cancelled by call to cancel of :"{self}"')
+        if self.task and (force or not self.task.done()):
+            self.task.cancel(message or f'Cancelled by call to cancel of :"{self}"')
 
     async def cancel_wait(self, force=False, msg="Waiting for future to cancel."):
         if task := self.task:
