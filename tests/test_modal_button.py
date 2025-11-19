@@ -9,8 +9,8 @@ from menubox.trait_factory import TF
 
 
 class PMBB(mb.MenuboxVT):
-    task_button_run = TF.Future()
-    task_update = TF.Future()
+    task_button_run = TF.Pending()
+    task_update = TF.Pending()
     count = TF.InstanceHP(klass=ipw.FloatText)
     slider = TF.InstanceHP(klass=ipw.IntSlider)
     box_extra = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.count,))

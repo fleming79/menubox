@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import ipylab
 import ipywidgets as ipw
 import traitlets
-from async_kernel.caller import Future
+from async_kernel.caller import Pending
+from async_kernel.common import Fixed, FixedCreate
 from IPython import display as ipd
 
 import menubox.async_run_button
@@ -56,7 +57,7 @@ class TF:
     - Traits for asynchronous operations (AsyncRunButton).
     - Traits for creating modal dialogs (Modalbox).
     - A trait for selecting repositories (SelectRepository).
-    - A trait for asyncio async-kernel.Future.
+    - A trait for asyncio async-kernel.Pending.
     - A trait for managing persistent objects within MenuBox (MenuboxPersistPool).
     Each method returns an InstanceHP object (or a Fixed object), configured with
     appropriate default values, validation logic, and hooks for seamless
@@ -379,9 +380,9 @@ class TF:
         )
 
     @staticmethod
-    def Future():
-        "An async-kernel Future"
-        return InstanceHP(klass=Future).configure(IHPMode.X_RN)
+    def Pending():
+        "An async-kernel Pending"
+        return InstanceHP(klass=Pending).configure(IHPMode.X_RN)
 
     @staticmethod
     def MenuboxPersistPool(
@@ -390,7 +391,7 @@ class TF:
         obj_cls: type[MP] | str,
         factory: Callable[[IHPCreate], MP] | None = None,
         **kwgs,
-    ) -> ipylab.Fixed[H, menubox.persist.MenuboxPersistPool[H, MP]]:
+    ) -> Fixed[H, menubox.persist.MenuboxPersistPool[H, MP]]:
         """A Fixed Obj shuffle for any Menubox persist object.
 
         ``` python
@@ -398,10 +399,10 @@ class TF:
         ```
         """
 
-        def get_MenuboxPersistPool(c: ipylab.common.FixedCreate[H]):
+        def get_MenuboxPersistPool(c: FixedCreate[H]):
             from menubox.persist import MenuboxPersistPool as MenuboxPersistPool_
 
             cls: type[MP] = ipylab.common.import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
             return MenuboxPersistPool_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
 
-        return ipylab.Fixed(get_MenuboxPersistPool)
+        return Fixed(get_MenuboxPersistPool)

@@ -2,7 +2,7 @@ from typing import Never
 
 import anyio
 import pytest
-from async_kernel.caller import FutureCancelledError
+from async_kernel.pending import PendingCancelled
 
 import menubox as mb
 from menubox.hasparent import HasParent
@@ -12,7 +12,7 @@ from menubox.trait_factory import TF
 
 class MBRunAsync(HasParent):
     my_set = TF.Set()
-    my_task = TF.Future()
+    my_task = TF.Pending()
 
 
 async def async_function(result, delay=0.0):
@@ -26,9 +26,9 @@ class TestRunAsync:
         assert result == 1
 
     async def test_run_async_singular(self):
-        fut = run_async({"key": "my key"}, async_function, 2)
-        assert mb.mb_async.singular_tasks.get("my key") is fut
-        await fut
+        pen = run_async({"key": "my key"}, async_function, 2)
+        assert mb.mb_async.singular_tasks.get("my key") is pen
+        await pen
         assert mb.mb_async.singular_tasks.get("my key") is None
 
     async def test_run_async_restart(self):
@@ -38,7 +38,7 @@ class TestRunAsync:
         assert fut1 is not fut2
         assert await fut2 == 4
         assert fut1.done()
-        with pytest.raises(FutureCancelledError):
+        with pytest.raises(PendingCancelled):
             fut1.exception()
 
     async def test_run_async_no_restart(self):
@@ -53,22 +53,22 @@ class TestRunAsync:
 
     async def test_run_async_handle_set(self):
         obj = MBRunAsync()
-        fut = run_async({"obj": obj, "handle": "my_set"}, async_function, result=8)
-        assert fut in obj.my_set
-        assert await fut == 8
-        assert fut not in obj.my_set
+        pen = run_async({"obj": obj, "handle": "my_set"}, async_function, result=8)
+        assert pen in obj.my_set
+        assert await pen == 8
+        assert pen not in obj.my_set
 
     async def test_run_async_handle_task(self):
         obj = MBRunAsync()
-        fut = run_async({"obj": obj, "handle": "my_task"}, async_function, 9)
-        assert obj.my_task is fut
-        assert await fut == 9
+        pen = run_async({"obj": obj, "handle": "my_task"}, async_function, 9)
+        assert obj.my_task is pen
+        assert await pen == 9
         assert obj.my_task is None
 
     async def test_run_async_tasktype(self):
-        fut = run_async({"tasktype": mb.mb_async.TaskType.update}, async_function, 10)
-        assert fut.metadata.get("tasktype") == mb.mb_async.TaskType.update
-        await fut
+        pen = run_async({"tasktype": mb.mb_async.TaskType.update}, async_function, 10)
+        assert pen.metadata.get("tasktype") == mb.mb_async.TaskType.update
+        await pen
 
     async def test_run_async_exception(self):
         async def raising_function() -> Never:
@@ -80,7 +80,7 @@ class TestRunAsync:
 
 
 class MBRunAsyncSingular(HasParent):
-    my_task_trait = TF.Future()
+    my_task_trait = TF.Pending()
 
     @mb.mb_async.singular_task(handle="my_task_trait")
     async def async_singular_function(self, *args, **kwgs):
@@ -123,9 +123,9 @@ class TestSingularTaskDecorator:
 
     async def test_singular_task_decorator_kwargs(self):
         obj = MBRunAsyncSingular()
-        fut = obj.async_singular_function(1)
-        assert obj.my_task_trait is fut
-        await fut
+        pen = obj.async_singular_function(1)
+        assert obj.my_task_trait is pen
+        await pen
         assert obj.my_task_trait is None
         obj.close()
         await obj.wait_tasks()

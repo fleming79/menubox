@@ -40,13 +40,13 @@ async def test_async_run_button_description_and_task():
     obj = PMB()
     assert obj.ab_main.description == "Button"
     assert obj.ab_main.icon == "play"
-    fut = obj.ab_main.start()
-    assert obj.ab_main.task is fut
-    assert fut in obj.tasks
+    pen = obj.ab_main.start()
+    assert obj.ab_main.task is pen
+    assert pen in obj.tasks
     assert obj.ab_main.icon == "stop"
-    await fut
+    await pen
     assert obj.ab_main.description == "Button"
-    assert fut not in obj.tasks
+    assert pen not in obj.tasks
     assert not obj.ab_main.task
 
 

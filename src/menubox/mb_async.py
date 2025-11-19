@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal, NotRequired, Self, TypedDict, Un
 import anyio
 import wrapt
 from async_kernel import Caller
-from async_kernel.caller import Future
+from async_kernel.caller import Pending
 from ipylab import JupyterFrontEnd
 
 import menubox as mb
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine, Hashable
     from types import CoroutineType
 
-    from async_kernel import Future
+    from async_kernel import Pending
 
     from menubox.hasparent import HasParent
     from menubox.trait_types import P, T
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 __all__ = ["run_async", "singular_task", "debounce", "periodic", "throttle"]
 
 
-singular_tasks: dict[Hashable, Future[Any]] = {}
+singular_tasks: dict[Hashable, Pending[Any]] = {}
 
 
 class TaskType(int, enum.Enum):
@@ -47,7 +47,7 @@ class RunAsyncOptions(TypedDict):
     """
     Whether to restart a task with a matching `key` default: `True`.
 
-    If `False` the current call arguments are ignored and the current task (`Future`) is returned.
+    If `False` the current call arguments are ignored and the current task (`Pending`) is returned.
     """
     obj: NotRequired[HasParent | None]
     ""
@@ -55,7 +55,7 @@ class RunAsyncOptions(TypedDict):
     """
     The name of the trait on `obj` where to store the future of the task.
 
-    Both Future instance and set traits are permitted.
+    Both Pending instance and set traits are permitted.
     """
     tasktype: NotRequired[TaskType]
     "default: TaskType.general."
@@ -69,17 +69,17 @@ class RunAsyncOptions(TypedDict):
     "Set to True when the exception just be caught."
 
 
-def _on_done_callback(fut: Future):
-    if (key := fut.metadata.get("key")) and singular_tasks[key] is fut:
+def _on_done_callback(pen: Pending):
+    if (key := pen.metadata.get("key")) and singular_tasks[key] is pen:
         singular_tasks.pop(key)
-    if obj := get_obj_using_metadata(fut.metadata):
-        obj.tasks.discard(fut)
-        if handle := fut.metadata.get("handle"):
+    if obj := get_obj_using_metadata(pen.metadata):
+        obj.tasks.discard(pen)
+        if handle := pen.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
-                set_.discard(fut)
-            elif getattr(obj, handle) is fut:
+                set_.discard(pen)
+            elif getattr(obj, handle) is pen:
                 obj.set_trait(handle, None)
-    if (not fut.cancelled()) and (error := fut.exception()) and (not fut.metadata.get("ignore_error")):
+    if (not pen.cancelled()) and (error := pen.exception()) and (not pen.metadata.get("ignore_error")):
         if obj:
             if not obj.closed:
                 obj.on_error(error, msg="run sync failed")
@@ -88,7 +88,7 @@ def _on_done_callback(fut: Future):
 
     obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
-        obj.log.debug(f"Task complete: {fut}")
+        obj.log.debug(f"Task complete: {pen}")
 
 
 def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] | None:
@@ -103,7 +103,7 @@ def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] |
 
 def run_async(
     opts: RunAsyncOptions, func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs
-) -> Future[T]:
+) -> Pending[T]:
     """Run the coroutine function in the main event loop, possibly cancelling a currently
     running future if the name overlaps.
 
@@ -141,30 +141,29 @@ def run_async(
             return current
     match opts.get("concurrency_mode", "task"):
         case "task":
-            caller = Caller.get_instance()
-            fut = caller.call_later(opts.get("delay", 0), func, *args, **kwargs)
+            pen = Caller.get("MainThread").call_later(opts.get("delay", 0), func, *args, **kwargs)
         case "thread":
-            fut = Caller.to_thread_advanced({"name": opts.get("thread_name")}, func, *args, **kwargs)
-    fut.add_done_callback(_on_done_callback)
-    fut.metadata.update(opts)
+            pen = Caller.get("MainThread").to_thread_advanced({"name": opts.get("thread_name")}, func, *args, **kwargs)
+    pen.add_done_callback(_on_done_callback)
+    pen.metadata.update(opts)
     if key:
-        singular_tasks[key] = fut
-    if obj := get_obj_using_metadata(fut.metadata):
-        obj.tasks.add(fut)
-        if handle := fut.metadata.get("handle"):
+        singular_tasks[key] = pen
+    if obj := get_obj_using_metadata(pen.metadata):
+        obj.tasks.add(pen)
+        if handle := pen.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
-                set_.add(fut)
+                set_.add(pen)
             else:
-                obj.set_trait(handle, fut)
+                obj.set_trait(handle, pen)
     obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
-        obj.log.debug(f"Task started: {fut}")
-    return fut
+        obj.log.debug(f"Task started: {pen}")
+    return pen
 
 
 def singular_task(
     **opts: Unpack[RunAsyncOptions],
-) -> Callable[[Callable[P, CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
+) -> Callable[[Callable[P, CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """A decorator to wrap a coroutine function to run as a singular task.
 
     obj is as the instance.
@@ -179,7 +178,7 @@ def singular_task(
     return _run_as_singular  # pyright: ignore[reportReturnType]
 
 
-def to_thread(func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
+def to_thread(func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs) -> Pending[T]:
     """Run a function in a separate thread."""
     return run_async({"concurrency_mode": "thread", "ignore_error": True}, func, *args, **kwargs)
 
@@ -222,7 +221,7 @@ class _Periodic:
 
 def periodic(
     wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous
-) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
+) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """A wrapper to control the rate at which a function may be called.
 
     Can wrap functions, coroutines and methods. Several modes are supported.
@@ -270,23 +269,23 @@ def periodic(
 
 def throttle(
     wait: float, tasktype=TaskType.general
-) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
+) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """A decorator that throttles the call to wrapped function.
 
     Compatible with coroutines, functions and methods.
 
-    Returns a [async_kernel.caller.Future][].
+    Returns a [async_kernel.caller.Pending][].
     """
     return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype)
 
 
 def debounce(
     wait: float, tasktype=TaskType.general
-) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Future[T]]]:
+) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """A decorator that debounces the call to the wrapped function.
 
     Compatible with coroutines, functions and methods.
 
-    Returns a [async_kernel.caller.Future][].
+    Returns a [async_kernel.caller.Pending][].
     """
     return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype)

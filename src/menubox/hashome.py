@@ -4,7 +4,8 @@ import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import traitlets
-from ipylab.common import Fixed, Singular, import_item
+from async_kernel.common import Fixed
+from ipylab.common import Singular, import_item
 
 from menubox.hasparent import HasParent
 from menubox.trait_types import ReadOnly

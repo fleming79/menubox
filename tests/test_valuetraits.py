@@ -2,7 +2,7 @@ from typing import Self, override
 
 import ipywidgets as ipw
 import traitlets
-from ipylab.common import Fixed
+from async_kernel.common import Fixed
 
 import menubox
 from menubox import HasParent, ValueTraits

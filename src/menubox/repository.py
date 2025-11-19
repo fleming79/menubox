@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, Self, cast, override
 
-from ipylab import Fixed
+from async_kernel.common import Fixed
 
 from menubox import mb_async
 from menubox.filesystem import Filesystem, HasFilesystem

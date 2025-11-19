@@ -2,7 +2,7 @@ from typing import Self, cast
 
 import anyio
 import pytest
-from async_kernel import Caller, Future
+from async_kernel import Caller, Pending
 from traitlets import TraitError
 
 from menubox import HasParent
@@ -41,7 +41,7 @@ class TestTraitFactory:
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
-                self.clicked[b] = Caller.current_future()
+                self.clicked[b] = Caller.current_pending()
                 await anyio.sleep_forever()
 
         obj = await BaseTestButton()
@@ -49,13 +49,13 @@ class TestTraitFactory:
         with anyio.move_on_after(0.1):
             await obj.wait_tasks()
         t1 = obj.clicked.get(obj.button)
-        assert isinstance(t1, Future)
+        assert isinstance(t1, Pending)
         obj.button.click()
         assert t1.cancelled()
         await t1.wait(shield=True, result=False)
         await anyio.sleep(0)
         t2 = obj.clicked.get(obj.button)
-        assert isinstance(t2, Future)
+        assert isinstance(t2, Pending)
         assert t2 is not t1
         t2.cancel()
         await t2.wait(shield=True, result=False)
@@ -73,7 +73,7 @@ class TestTraitFactory:
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
-                self.clicked[b] = Caller.current_future()
+                self.clicked[b] = Caller.current_pending()
                 await anyio.sleep_forever()
 
         obj = await BaseTestButton()
@@ -82,12 +82,12 @@ class TestTraitFactory:
             await obj.wait_tasks()
         assert obj.button.description == "Cancel"
         t1 = obj.clicked.get(obj.button)
-        assert isinstance(t1, Future)
+        assert isinstance(t1, Pending)
         obj.button.click()
         assert t1.cancelled()
         await t1.wait(shield=True, result=False)
         t2 = obj.clicked.get(obj.button)
-        assert isinstance(t2, Future)
+        assert isinstance(t2, Pending)
         assert t2 is t1
         assert obj.button.description == "My button"
 
@@ -98,7 +98,7 @@ class TestTraitFactory:
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
-                self.clicked[b] = Caller.current_future()
+                self.clicked[b] = Caller.current_pending()
                 await anyio.sleep_forever()
 
         obj = await BaseTestButton()
@@ -106,7 +106,7 @@ class TestTraitFactory:
         with anyio.move_on_after(0.1):
             await obj.wait_tasks()
         t1 = obj.clicked.get(obj.button)
-        assert isinstance(t1, Future)
+        assert isinstance(t1, Pending)
         assert obj.button.disabled
         t1.cancel()
         await t1.wait(shield=True, result=False)

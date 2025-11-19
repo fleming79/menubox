@@ -191,7 +191,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
     )
     box_version = TF.Box()
     header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
-    task_loading_persistence_data = TF.Future()
+    task_loading_persistence_data = TF.Pending()
     value_traits = StrTuple(*MenuboxVT.value_traits, "version", "sw_version_load", "version_widget", "connections")
     value_traits_persist = StrTuple("saved_timestamp", "description")
     dataframe_persist = StrTuple()

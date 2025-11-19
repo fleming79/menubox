@@ -24,7 +24,7 @@ from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
 
-    from async_kernel.caller import Future
+    from async_kernel.caller import Pending
 
     from menubox.instance import IHPChange, InstanceHP
 
@@ -69,7 +69,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_link = NameTuple()
     name = TF.Str()
     parent = TF.parent(cast(type[RP], "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
-    tasks = TF.Set(klass_=cast("type[set[Future[Any]]]", 0))
+    tasks = TF.Set(klass_=cast("type[set[Pending[Any]]]", 0))
 
     def __repr__(self):
         if self.closed or not self._HasParent_init_complete:
@@ -438,8 +438,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
     @classmethod
     def _on_click(cls, ref: weakref.ref[HasParent], key: str, /, mode: TF.ButtonMode, b: ipw.Button):
         if self_ := ref():
-            if mode is TF.ButtonMode.cancel and (fut := mb_async.singular_tasks.get(key)):
-                fut.cancel()
+            if mode is TF.ButtonMode.cancel and (pen := mb_async.singular_tasks.get(key)):
+                pen.cancel()
                 return
             mb.mb_async.run_async({"obj": self_, "key": key}, self_._button_clicked, b, mode)
 
@@ -504,13 +504,13 @@ class HasParent(Singular, HasApp, Generic[RP]):
                     raise TypeError(str(tt))
                 if tt is not mb_async.TaskType.continuous:
                     tasktypes_.append(tt)
-            current = Caller.current_future()
+            current = Caller.current_pending()
             if tasks := [
-                fut
-                for fut in self.tasks
-                if fut is not current and fut.metadata.get("tasktype", mb_async.TaskType.general) in tasktypes_
+                pen
+                for pen in self.tasks
+                if pen is not current and pen.metadata.get("tasktype", mb_async.TaskType.general) in tasktypes_
             ]:
-                await Caller.wait(tasks, timeout=timeout)
+                await Caller().wait(tasks, timeout=timeout)
         return self
 
     def get_widgets(

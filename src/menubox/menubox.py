@@ -110,7 +110,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
-    task_load_view = TF.Future()
+    task_load_view = TF.Pending()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
     out_help = TF.MarkdownOutput().hooks(add_css_class=(CSScls.resize_both, CSScls.nested_borderbox))
 
@@ -201,7 +201,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     @traitlets.default("title")
     def _default_title(self):
-        return ipylab.widgets.Title(icon=mb.plugin_manager.hook.get_icon(obj=self))
+        return ipylab.widgets.Title()
 
     @property
     def _current_views(self):

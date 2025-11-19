@@ -5,8 +5,8 @@ import re
 from typing import TYPE_CHECKING, ClassVar, Self, cast, override
 
 import psutil
-from async_kernel.caller import FutureCancelledError
-from fsspec import AbstractFileSystem, available_protocols, get_filesystem_class
+from async_kernel.pending import PendingCancelled
+from fsspec import AbstractFileSystem, get_filesystem_class
 
 from menubox import defaults, mb_async, utils
 from menubox.hashome import HasHome, Home
@@ -53,7 +53,8 @@ class Filesystem(MenuboxVT):
         cast(Self, 0),
         description="protocol",
         value="file",
-        options=sorted(available_protocols()),
+        options=["file"],
+        # options=sorted(available_protocols()),
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
@@ -285,7 +286,7 @@ class Filesystem(MenuboxVT):
             result = await rp.show_in_dialog(title)
             if not result["value"]:
                 msg = "Aborted by user"
-                raise FutureCancelledError(msg)
+                raise PendingCancelled(msg)
             return rp.relative_path.value
         finally:
             rp.close()

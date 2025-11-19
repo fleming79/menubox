@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from types import CoroutineType
 
-    from async_kernel import Future
+    from async_kernel import Pending
 
 
 class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
@@ -41,7 +41,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
     """
 
     _update_disabled = False
-    task = TF.Future()
+    task = TF.Pending()
     parent = TF.parent(cast(type[S], HasParent))
 
     def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
@@ -114,14 +114,14 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
             self.button_style = self._button_style
 
     def _observe_main_button_task(self, change: ChangeType):
-        fut: Future | None = change["new"]
-        self.set_trait("task", fut)
-        if fut:
-            self.tasks.add(fut)
-            fut.add_done_callback(self.tasks.discard)
+        pen: Pending | None = change["new"]
+        self.set_trait("task", pen)
+        if pen:
+            self.tasks.add(pen)
+            pen.add_done_callback(self.tasks.discard)
             if parent := self.parent:
-                parent.tasks.add(fut)
-                fut.add_done_callback(parent.tasks.discard)
+                parent.tasks.add(pen)
+                pen.add_done_callback(parent.tasks.discard)
 
     def _on_click(self, _: ipw.Button):  # type: ignore
         if self.task:
@@ -129,11 +129,11 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         else:
             self.start()
 
-    def _done_callback(self, fut: Future):
-        if fut is self.task:
+    def _done_callback(self, pen: Pending):
+        if pen is self.task:
             self.set_trait("task", None)
 
-    def start(self, restart=True, /, *args, **kwargs) -> Future:
+    def start(self, restart=True, /, *args, **kwargs) -> Pending:
         """Start always unless restart=False."""
         if self.disabled:
             msg = f"'{self}' is disabled!"
@@ -142,13 +142,13 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         while isinstance(cfunc, AsyncRunButton):
             btn, cfunc = cfunc, cfunc._cfunc(cfunc.parent)
         key = btn, cfunc
-        if not restart and (fut := mb_async.singular_tasks.get(key)) and (not fut.cancelled()):
-            return fut
+        if not restart and (pen := mb_async.singular_tasks.get(key)) and (not pen.cancelled()):
+            return pen
         opts = mb_async.RunAsyncOptions(obj=self.parent, tasktype=self._tasktype, restart=restart, key=key)
-        fut = mb_async.run_async(opts, cfunc, *args, **self.kw | kwargs)
-        btn.set_trait("task", fut)
-        fut.add_done_callback(btn._done_callback)
-        return fut
+        pen = mb_async.run_async(opts, cfunc, *args, **self.kw | kwargs)
+        btn.set_trait("task", pen)
+        pen.add_done_callback(btn._done_callback)
+        return pen
 
     def cancel(self, *, force=False, message=""):
         """Schedule cancel if already running.
