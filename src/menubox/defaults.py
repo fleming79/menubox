@@ -101,9 +101,8 @@ NO_DEFAULT = _NoDefault.token
 NO_VALUE = _NoValue.token
 INDEX = _Index.token
 
-if TYPE_CHECKING:
-    NO_VALUE_TYPE = Literal[NO_VALUE]
-    NO_DEFAULT_TYPE = Literal[NO_DEFAULT]
+NO_VALUE_TYPE = Literal[NO_VALUE]
+NO_DEFAULT_TYPE = Literal[NO_DEFAULT]
 
 
 class NoCloseBox(ipw.Box):

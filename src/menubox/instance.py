@@ -4,6 +4,7 @@ import contextlib
 import enum
 import inspect
 import sys
+import typing
 import weakref
 from types import UnionType
 from typing import (
@@ -199,7 +200,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             self._klass = klass
         elif inspect.isclass(klass):
             self._klass = klass
-        elif type(klass) is UnionType:
+        elif typing.get_origin(klass) in [typing.Union, UnionType]:
             self._type = klass
             if default is NO_DEFAULT:
                 msg = "default must be provided when klass is specified as a union"
