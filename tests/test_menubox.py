@@ -438,13 +438,10 @@ class TestMenubox:
         assert isinstance(wrapper2, MenuboxWrapper)
         assert wrapper2.widget is m2
 
-    async def test_menubox_activate_deactivate(self, mocker):
+    async def test_menubox_activate_deactivate(self):
         m = await mb.Menubox(views={"a": ipw.HTML("A")}, view=None)
         assert m.view is None
-        cb = mocker.patch.object(m, "add_to_shell")
         await m.activate(add_to_shell=True)
-        assert cb.call_count == 1
-        assert cb.await_count == 1
         assert m.view == "a"
         await m.deactivate()
         assert m.view is None

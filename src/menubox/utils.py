@@ -607,39 +607,85 @@ def download_button(buffer, filename: str, button_description: str):
     return ipw.HTML(html_button)
 
 
-async def yes_no_dialog(app: ipylab.JupyterFrontEnd, title: str, body: str | ipw.Widget = "", *, names=("Yes", "No")):
-    result = await app.dialog.show_dialog(
-        title,
-        body=body,
-        options={
-            "buttons": [
-                {
-                    "ariaLabel": names[0],
-                    "label": names[0],
-                    "iconClass": "",
-                    "iconLabel": "",
-                    "caption": names[0],
-                    "className": "",
-                    "accept": True,
-                    "actions": [],
-                    "displayType": "default",
-                },
-                {
-                    "ariaLabel": names[1],
-                    "label": names[1],
-                    "iconClass": "",
-                    "iconLabel": "",
-                    "caption": names[1],
-                    "className": "",
-                    "accept": False,
-                    "actions": [],
-                    "displayType": "warn",
-                },
-            ],
-        },
-        has_close=False,
-    )
-    return result["value"]
+def button_dict(
+    label="",
+    ariaLabel="",  # noqa: N803
+    iconClass="",  # noqa: N803
+    iconLabel="",  # noqa: N803
+    caption="",
+    className="",  # noqa: N803
+    accept: Any = True,
+    actions=(),
+    displayType: Literal["default", "warn"] = "default",  # noqa: N803
+):
+    """Useful for dialogs.
+
+    See also:
+        - bool_button_options
+        - yes_no_dialog
+    """
+    return {
+        "label": label,
+        "ariaLabel": ariaLabel or label,
+        "iconClass": iconClass,
+        "iconLabel": iconLabel,
+        "caption": caption or label,
+        "className": className,
+        "accept": accept,
+        "actions": actions,
+        "displayType": displayType,
+    }
+
+
+def bool_button_options(
+    yes="Yes",
+    yes_type: Literal["warn", "default"] = "default",
+    no="No",
+    no_type: Literal["warn", "default"] = "warn",
+):
+    """
+    Makes a dict of button options to use with app.dialog.
+
+    Useful for dialogs. https://jupyterlab.readthedocs.io/en/stable/api/functions/apputils.showDialog.html
+    """
+    return {"buttons": [button_dict(yes, displayType=yes_type), button_dict(no, accept=False, displayType=no_type)]}
+
+
+async def yes_no_dialog(
+    app: ipylab.JupyterFrontEnd,
+    title: str,
+    body: str | ipw.Widget = "",
+    *,
+    names=("Yes", "No"),
+    types: tuple[Literal["default", "warn"], Literal["default", "warn"]] = ("default", "warn"),
+    has_close=False,
+    default=False,
+):
+    """
+    Display a dialog for user response.
+
+    Returns False if the app is unavailable.
+
+    args:
+        app: The frontend.
+        title: The title for the dialog.
+        body: The text or body to put in the dialog.
+        names: Then names for the buttons.
+        types: The types for the buttons.
+        has_close: Force a user response.
+        default: A default in the event a user response is not available.
+    """
+    try:
+        if app.is_ready():
+            result = await app.dialog.show_dialog(
+                title,
+                body=body,
+                options=bool_button_options(names[0], types[0], names[1], types[1]),
+                has_close=has_close,
+            )
+            return result["value"]
+    except Exception:
+        return default
 
 
 def now(*, utc=False):
