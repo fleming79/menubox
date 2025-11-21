@@ -860,14 +860,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
     ) -> Self:
         "Maximize and add to the shell."
         self.load_view(view)
-        if add_to_shell:
+        if self.app.is_ready() and add_to_shell:
             await self.add_to_shell(**kwgs)
         if task := self.task_load_view:
             await task.wait()
         return self
 
     @override
-    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def add_to_shell(self, **kwgs: Unpack[AddToShellType]) -> ShellConnection[Self]:  # pyright: ignore[reportIncompatibleMethodOverride]
+        assert self.app.is_ready()  # noqa: S101
         return await super().add_to_shell(**kwgs)
 
     async def show_in_dialog(
