@@ -4,7 +4,7 @@ import enum
 import functools
 import inspect
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, Self, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 
 import anyio
 import wrapt
@@ -59,12 +59,13 @@ class RunAsyncOptions(TypedDict):
     """
     tasktype: NotRequired[TaskType]
     "default: TaskType.general."
+
     delay: NotRequired[float]
     "A delay in seconds to wait before executing `func`."
-    concurrency_mode: NotRequired[Literal["task", "thread"]]
-    "default is 'task'."
+
     thread_name: NotRequired[str | None]
     "The thread name to use when concurrency mode is 'thread'."
+
     ignore_error: NotRequired[bool]
     "Set to True when the exception just be caught."
 
@@ -139,11 +140,7 @@ def run_async(
         else:
             singular_tasks[key] = current
             return current
-    match opts.get("concurrency_mode", "task"):
-        case "task":
-            pen = Caller.get("MainThread").call_later(opts.get("delay", 0), func, *args, **kwargs)
-        case "thread":
-            pen = Caller.get("MainThread").to_thread_advanced({"name": opts.get("thread_name")}, func, *args, **kwargs)
+    pen = Caller("MainThread").call_later(opts.get("delay", 0), func, *args, **kwargs)
     pen.add_done_callback(_on_done_callback)
     pen.metadata.update(opts)
     if key:
@@ -180,7 +177,9 @@ def singular_task(
 
 def to_thread(func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs) -> Pending[T]:
     """Run a function in a separate thread."""
-    return run_async({"concurrency_mode": "thread", "ignore_error": True}, func, *args, **kwargs)
+    pen = Caller("MainThread").to_thread(func, *args, **kwargs)
+    pen.add_done_callback(_on_done_callback)
+    return pen
 
 
 class PeriodicMode(enum.StrEnum):

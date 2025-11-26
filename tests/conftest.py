@@ -27,7 +27,7 @@ def anyio_backend():
 @pytest.fixture(autouse=True)
 async def anyio_backend_autouse(anyio_backend, mocker):
     app = ipylab.JupyterFrontEnd()
-    async with Caller("new"):
+    async with Caller("manual"):
         mocker.patch.object(app, "ready")
         yield anyio_backend
 
