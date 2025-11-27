@@ -26,5 +26,5 @@ def add_css_stylesheet():
 
 
 @hookimpl
-def get_icon(obj: Menubox):  # noqa: ARG001
-    return ipylab.Icon()
+def get_icon(obj: Menubox):
+    return ipylab.Icon(name=f"{obj!s}-{id(obj)}", svgstr="")

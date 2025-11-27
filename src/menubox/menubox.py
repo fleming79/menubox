@@ -203,7 +203,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     @traitlets.default("title")
     def _default_title(self):
-        return ipylab.widgets.Title()
+        return ipylab.widgets.Title(icon=mb.plugin_manager.hook.get_icon(obj=self))
 
     @property
     def _current_views(self):
