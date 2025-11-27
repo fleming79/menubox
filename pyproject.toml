@@ -35,8 +35,8 @@ dependencies = [
   "docstring_to_markdown",
   "aiologic>=0.15.0",
    "anyio",
-  "async-kernel>=0.9,<0.10",
-  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.7/ipylab-2.0.7-py3-none-any.whl#sha256:26b65fccc125e8f61c661cf524f0cb25b75af7f09128de14bf78099cc96a1580"
+  "async-kernel>=0.9.2,<0.10",
+  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.8/ipylab-2.0.8-py3-none-any.whl#https://github.com/fleming79/ipylab/releases/download/v2.0.8/ipylab-2.0.8-py3-none-any.whl"
 ]
 [dependency-groups]
 dev =[

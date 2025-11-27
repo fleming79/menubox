@@ -177,9 +177,7 @@ def singular_task(
 
 def to_thread(func: Callable[P, T | CoroutineType[Any, Any, T]], /, *args: P.args, **kwargs: P.kwargs) -> Pending[T]:
     """Run a function in a separate thread."""
-    pen = Caller("MainThread").to_thread(func, *args, **kwargs)
-    pen.add_done_callback(_on_done_callback)
-    return pen
+    return Caller("MainThread").to_thread(func, *args, **kwargs)
 
 
 class PeriodicMode(enum.StrEnum):
