@@ -63,11 +63,8 @@ class RunAsyncOptions(TypedDict):
     delay: NotRequired[float]
     "A delay in seconds to wait before executing `func`."
 
-    thread_name: NotRequired[str | None]
-    "The thread name to use when concurrency mode is 'thread'."
-
     ignore_error: NotRequired[bool]
-    "Set to True when the exception just be caught."
+    "Set to True to avoid the exception being passed to obj.on_error or logged."
 
 
 def _on_done_callback(pen: Pending):
