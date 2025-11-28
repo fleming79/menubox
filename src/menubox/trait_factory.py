@@ -8,7 +8,7 @@ import ipylab
 import ipywidgets as ipw
 import traitlets
 from async_kernel.caller import Pending
-from async_kernel.common import Fixed, FixedCreate
+from async_kernel.common import Fixed, FixedCreate, import_item
 from IPython import display as ipd
 
 import menubox.async_run_button
@@ -402,7 +402,7 @@ class TF:
         def get_MenuboxPersistPool(c: FixedCreate[H]):
             from menubox.persist import MenuboxPersistPool as MenuboxPersistPool_
 
-            cls: type[MP] = ipylab.common.import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
+            cls: type[MP] = import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
             return MenuboxPersistPool_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
 
         return Fixed(get_MenuboxPersistPool)

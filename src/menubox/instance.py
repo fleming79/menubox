@@ -22,8 +22,8 @@ from typing import (
     override,
 )
 
-import ipylab.common
 import traitlets
+from async_kernel.common import import_item
 from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
 
@@ -406,7 +406,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if self._type:
             self.klass = object  # type: ignore
         else:
-            klass = self._klass if inspect.isclass(self._klass) else ipylab.common.import_item(self._klass)
+            klass = self._klass if inspect.isclass(self._klass) else import_item(self._klass)
             assert inspect.isclass(klass)  # noqa: S101
             self.klass = klass  # type: ignore
             self._type = klass
