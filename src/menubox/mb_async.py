@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 import anyio
 import wrapt
 from async_kernel import Caller
-from async_kernel.caller import Pending
+from async_kernel.pending import Pending
 from ipylab import JupyterFrontEnd
 
 import menubox as mb

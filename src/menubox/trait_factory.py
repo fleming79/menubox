@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import ipylab
 import ipywidgets as ipw
 import traitlets
-from async_kernel.caller import Pending
-from async_kernel.common import Fixed, FixedCreate, import_item
+from async_kernel.common import Fixed, import_item
+from async_kernel.pending import Pending
 from IPython import display as ipd
 
 import menubox.async_run_button
@@ -25,6 +25,8 @@ __all__ = ["IHPCreate", "InstanceHP", "TF"]
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import CoroutineType
+
+    from async_kernel.typing import FixedCreate
 
     import menubox.menubox
     import menubox.modalbox

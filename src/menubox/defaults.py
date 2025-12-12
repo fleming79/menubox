@@ -69,8 +69,11 @@ class _NoValue(float, enum.Enum):
                 "__iter__",
                 "__pandas_priority__",
                 "_pytestfixturefunction",
+                "__typing_is_unpacked_typevartuple__",
+                "__typing_subst__",
                 "__test__",
                 "__bases__",
+                "__parameters__",
             ]:
                 raise
             return None

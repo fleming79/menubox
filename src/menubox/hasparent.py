@@ -24,7 +24,7 @@ from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
 
-    from async_kernel.caller import Pending
+    from async_kernel.pending import Pending
 
     from menubox.instance import IHPChange, InstanceHP
 

@@ -219,7 +219,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             ]:
                 await self._update_versions()
                 if self.versions:
-                    await self.load_persistence_data(version=max(self.versions)).wait(shield=True)
+                    await self.load_persistence_data(version=max(self.versions)).wait(protect=True)
                 elif self.menu_load_index:
                     self.menu_load_index.expand()
         finally:

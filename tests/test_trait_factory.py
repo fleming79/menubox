@@ -52,13 +52,13 @@ class TestTraitFactory:
         assert isinstance(t1, Pending)
         obj.button.click()
         assert t1.cancelled()
-        await t1.wait(shield=True, result=False)
+        await t1.wait(protect=True, result=False)
         await anyio.sleep(0)
         t2 = obj.clicked.get(obj.button)
         assert isinstance(t2, Pending)
         assert t2 is not t1
         t2.cancel()
-        await t2.wait(shield=True, result=False)
+        await t2.wait(protect=True, result=False)
 
     async def test_button_cancel_mode(self):
         class BaseTestButton(HasParent):
@@ -85,7 +85,7 @@ class TestTraitFactory:
         assert isinstance(t1, Pending)
         obj.button.click()
         assert t1.cancelled()
-        await t1.wait(shield=True, result=False)
+        await t1.wait(protect=True, result=False)
         t2 = obj.clicked.get(obj.button)
         assert isinstance(t2, Pending)
         assert t2 is t1
@@ -109,5 +109,5 @@ class TestTraitFactory:
         assert isinstance(t1, Pending)
         assert obj.button.disabled
         t1.cancel()
-        await t1.wait(shield=True, result=False)
+        await t1.wait(protect=True, result=False)
         assert not obj.button.disabled
