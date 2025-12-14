@@ -26,11 +26,11 @@ repos:
       - id: requirements-txt-fixer
       - id: check-builtin-literals
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.34.0
+    rev: 0.35.0
     hooks:
       - id: check-github-workflows
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.2
+    rev: v0.14.9
     hooks:
       - id: ruff
         types_or: [python, jupyter]
@@ -38,16 +38,16 @@ repos:
       - id: ruff-format
         types_or: [python, jupyter]
   - repo: https://github.com/codespell-project/codespell
-    rev: "v2.4.1"
+    rev: v2.4.1
     hooks:
       - id: codespell
         additional_dependencies:
           - tomli
   - repo: https://github.com/kynan/nbstripout
-    rev: "0.8.1"
+    rev: 0.8.2
     hooks:
       - id: nbstripout
   - repo: https://gitlab.com/bmares/check-json5
-    rev: "v1.0.0"
+    rev: v1.0.0
     hooks:
       - id: check-json5

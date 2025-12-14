@@ -28,7 +28,9 @@ def test_utils_joinpaths(paths: tuple[str, ...], expected: str):
         ("hello world", 20, "...", "start", "hello world"),
     ],
 )
-def test_limited_string(obj: str, max_len: int, suffix: str, mode: Literal["start", "end"], expected: str):
+def test_limited_string(
+    obj: str, max_len: int, suffix: str, mode: Literal["start", "end"], expected: str
+):
     assert utils.limited_string(obj, max_len, suffix, mode) == expected
 
 
@@ -58,7 +60,9 @@ mock_obj = MockObject()
         (mock_obj, "c.value", None, None),
     ],
 )
-def test_getattr_nested(obj: MockObject, name: str, default: str, expected: str | MockTraitletsObject):
+def test_getattr_nested(
+    obj: MockObject, name: str, default: str, expected: str | MockTraitletsObject
+):
     assert utils.getattr_nested(obj, name, default) == expected
 
 
