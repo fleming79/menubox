@@ -26,25 +26,27 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "getattr_nested",
-    "setattr_nested",
-    "fullname",
     "fstr",
-    "limited_string",
+    "fullname",
     "funcname",
-    "sanatise_name",
-    "sanatise_filename",
+    "getattr_nested",
     "iterflatten",
-    "weak_observe",
+    "limited_string",
+    "now",
     "observe_once",
     "observe_until",
+    "sanatise_filename",
+    "sanatise_name",
+    "setattr_nested",
     "wait_trait_value",
+    "weak_observe",
     "yes_no_dialog",
-    "now",
 ]
 
 
-def limited_string(obj, max_len=100, suffix=" …", mode: Literal["start", "end"] = "start"):
+def limited_string(
+    obj, max_len=100, suffix=" …", mode: Literal["start", "end"] = "start"
+):
     """Returns a string rep of obj of length up to max_len."""
     s = str(obj)
     if len(s) > max_len - len(suffix):
@@ -105,11 +107,10 @@ def weak_observe(
         if not method_ or getattr(method_.__self__, "closed", False):  # pyright: ignore[reportFunctionMemberAccess]
             disconnect(None)
         elif pass_change:
-            return method_(*args, change=change, **kwgs)  # type:ignore
+            return method_(*args, change=change, **kwgs)  # pyright: ignore[reportCallIssue]
         else:
-            method_(*args, **kwgs)  # type: ignore
-
-        return None  # type: ignore
+            method_(*args, **kwgs)  # pyright: ignore[reportCallIssue]
+        return None  # pyright: ignore[reportReturnType]
 
     obj.observe(handle, names=names)
 
@@ -121,7 +122,9 @@ def weak_observe(
     return handle
 
 
-def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str):
+def observe_once(
+    obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str
+):
     "Observe a trait once only"
 
     def _observe_once(change: ChangeType):
@@ -135,7 +138,10 @@ def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None
 
 
 def observe_until(
-    obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool], callback: Callable[[ChangeType], None]
+    obj: traitlets.HasTraits,
+    name: str,
+    predicate: Callable[[Any], bool],
+    callback: Callable[[ChangeType], None],
 ):
     """Observe a trait as it changes until the predicate returns true.
 
@@ -153,7 +159,9 @@ def observe_until(
     obj.observe(_observe_until, name)
 
 
-async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]) -> None:
+async def wait_trait_value(
+    obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]
+) -> None:
     """Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
 
     The trait is then observed until the predicate returns `True`.
@@ -164,7 +172,9 @@ async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Calla
         await event
 
 
-def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
+def getattr_nested(
+    obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True
+) -> Any:
     """Retrieve a nested attribute from an object.
 
     This function allows accessing attributes of attributes, specified by a string
@@ -192,9 +202,15 @@ def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=
             return None
         return getattr_nested(obj_, b, default=default, hastrait_value=hastrait_value)
     try:
-        val = getattr(obj, name) if default is NO_DEFAULT else getattr(obj, name, default)
-        if hastrait_value and isinstance(val, traitlets.HasTraits) and val.has_trait("value"):
-            val = val.value  # type: ignore
+        val = (
+            getattr(obj, name) if default is NO_DEFAULT else getattr(obj, name, default)
+        )
+        if (
+            hastrait_value
+            and isinstance(val, traitlets.HasTraits)
+            and val.has_trait("value")
+        ):
+            val = val.value  # pyright: ignore[reportAttributeAccessIssue]
             name = "value"
         if name == "value":
             while callable(val):
@@ -208,7 +224,10 @@ def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=
 
 
 def setattr_nested(
-    obj: Any, name: str, value: Any, default_setter: Callable[[Any, str, Any], None] | None = None
+    obj: Any,
+    name: str,
+    value: Any,
+    default_setter: Callable[[Any, str, Any], None] | None = None,
 ) -> None:
     """Sets a nested attribute of an object.
     The attribute is specified as a string with dot notation, e.g. "foo.bar.baz".
@@ -244,7 +263,7 @@ def setattr_nested(
 def load_nested_attrs(
     obj,
     values: dict | Callable[[], dict],
-    raise_errors: bool = True,  # noqa: FBT001
+    raise_errors: bool = True,
     default_setter: Callable[[Any, str, Any], None] = setattr,
     on_error: Callable[[Exception, str, Any], None] | None = None,
 ) -> dict[str, Any]:
@@ -323,24 +342,24 @@ def funcname(obj: Any) -> str:
     try:
         if asyncio.isfuture(obj):
             try:
-                return obj._coro.__qualname__  # type: ignore
+                return obj._coro.__qualname__  # pyright: ignore[reportAttributeAccessIssue]
             except Exception:
                 return obj.__class__.__qualname__
         try:
-            return obj.func.__qualname__  # type: ignore
+            return obj.func.__qualname__  # pyright: ignore[reportFunctionMemberAccess, reportAttributeAccessIssue]
         except AttributeError:
-            return obj.__qualname__  # type: ignore
+            return obj.__qualname__
     except Exception:
         return str(obj)
 
 
-def fstr(template: str, raise_errors=False, **globals) -> str:  # noqa: A002
+def fstr(template: str, raise_errors=False, **globals) -> str:
     """Evaluate the fstring template with the mapped globals.
 
     The template must not contain triple quote `'''`.
     """
     try:
-        return eval(f"f''' {template} '''", globals)[1:-1]  # noqa: S307
+        return eval(f"f''' {template} '''", globals)[1:-1]
     except Exception as e:
         if template.find("'''") >= 0:
             template = template.replace("'''", '"""')
@@ -351,7 +370,9 @@ def fstr(template: str, raise_errors=False, **globals) -> str:  # noqa: A002
         return template
 
 
-def sanatise_name(name: str, allow=" _", strip=" ", lstrip="012345679-", replace="", allow_space=True) -> str:
+def sanatise_name(
+    name: str, allow=" _", strip=" ", lstrip="012345679-", replace="", allow_space=True
+) -> str:
     """Sanatises a string to be used as a name.
 
     Args:
@@ -367,7 +388,12 @@ def sanatise_name(name: str, allow=" _", strip=" ", lstrip="012345679-", replace
     """
     return (
         "".join(
-            c if ((c.isalpha() or c.isdigit() or c in allow) and (allow_space or not c.isspace())) else replace
+            c
+            if (
+                (c.isalpha() or c.isdigit() or c in allow)
+                and (allow_space or not c.isspace())
+            )
+            else replace
             for c in name
         )
         .strip(strip)
@@ -402,24 +428,30 @@ def joinpaths(*parts):
 
     Note: this will strip trailing slashes.
     """
-    return "/".join(pp for p in iterflatten(parts) if p and (pp := str(p).replace("\\", "/").rstrip("/")))
+    return "/".join(
+        pp
+        for p in iterflatten(parts)
+        if p and (pp := str(p).replace("\\", "/").rstrip("/"))
+    )
 
 
-sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_")
+sanatise_filename = functools.partial(
+    sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_"
+)
 
 
 def iterflatten(iterable: Iterable[T] | Any) -> Generator[T, None, None]:
     """An iterator flattening everything except strings."""
     if isinstance(iterable, str):
-        yield iterable  # type: ignore
+        yield iterable  # pyright: ignore[reportReturnType]
     else:
         try:
             for e in iterable:
                 if isinstance(iterable, str):
                     yield e
-                yield from iterflatten(e)  # type: ignore
+                yield from iterflatten(e)
         except TypeError:
-            yield iterable  # type: ignore
+            yield iterable  # pyright: ignore[reportReturnType]
 
 
 def get_widgets(
@@ -427,7 +459,7 @@ def get_widgets(
     skip_disabled=False,
     skip_hidden=True,
     show=True,
-    parent: S | None = None,  # type: ignore
+    parent: S | None = None,
 ) -> Generator[ipw.Widget, None, None]:
     """Collects widgets omitting duplicate side-by-side instances and self.
 
@@ -462,26 +494,43 @@ def get_widgets(
                     widget = widget()
                 if isinstance(widget, str):
                     if widget in ["H_FILL", "V_FILL"]:
-                        widget = mb.defaults.H_FILL if widget == "H_FILL" else mb.defaults.V_FILL
+                        widget = (
+                            mb.defaults.H_FILL
+                            if widget == "H_FILL"
+                            else mb.defaults.V_FILL
+                        )
                         if widget is not last_widget:
                             yield widget
                     else:
-                        yield from _get_widgets(getattr_nested(parent, widget, None, hastrait_value=False))
+                        yield from _get_widgets(
+                            getattr_nested(parent, widget, None, hastrait_value=False)
+                        )
                     continue
                 if isinstance(widget, ipw.Widget):
                     if (
                         getattr(widget, "_repr_mimebundle_", None)  # Not closed
                         and widget.comm  # closed
-                        and widget is not parent  # Would likely causes browser to crash with recursion.
+                        and widget
+                        is not parent  # Would likely causes browser to crash with recursion.
                         and last_widget is not widget  # Skip side-by-side
-                        and not (skip_hidden and hasattr(widget, "layout") and widget.layout.visibility == "hidden")  # type: ignore
+                        and not (
+                            skip_hidden
+                            and hasattr(widget, "layout")
+                            and widget.layout.visibility == "hidden"
+                        )  # pyright: ignore[reportAttributeAccessIssue]
                         and not (skip_disabled and getattr(widget, "disabled", False))
                     ):
-                        if (panel := getattr(widget, "panel", None)) and isinstance(panel, ipylab.Panel):
+                        if (panel := getattr(widget, "panel", None)) and isinstance(
+                            panel, ipylab.Panel
+                        ):
                             widget = panel
                         yield widget
                         last_widget = widget
-                        if show and not hasattr(widget, "layout") or (widget.layout, "visibility", "") != "hidden":  # type: ignore
+                        if (show and not hasattr(widget, "layout")) or (
+                            widget.layout,
+                            "visibility",
+                            "",
+                        ) != "hidden":  # pyright: ignore[reportAttributeAccessIssue]
                             show_ = getattr(widget, "show", None)
                             if callable(show_):
                                 show_()
@@ -609,14 +658,14 @@ def download_button(buffer, filename: str, button_description: str):
 
 def button_dict(
     label="",
-    ariaLabel="",  # noqa: N803
-    iconClass="",  # noqa: N803
-    iconLabel="",  # noqa: N803
+    ariaLabel="",
+    iconClass="",
+    iconLabel="",
     caption="",
-    className="",  # noqa: N803
+    className="",
     accept: Any = True,
     actions=(),
-    displayType: Literal["default", "warn"] = "default",  # noqa: N803
+    displayType: Literal["default", "warn"] = "default",
 ):
     """Useful for dialogs.
 
@@ -648,7 +697,12 @@ def bool_button_options(
 
     Useful for dialogs. https://jupyterlab.readthedocs.io/en/stable/api/functions/apputils.showDialog.html
     """
-    return {"buttons": [button_dict(yes, displayType=yes_type), button_dict(no, accept=False, displayType=no_type)]}
+    return {
+        "buttons": [
+            button_dict(yes, displayType=yes_type),
+            button_dict(no, accept=False, displayType=no_type),
+        ]
+    }
 
 
 async def yes_no_dialog(
@@ -657,7 +711,10 @@ async def yes_no_dialog(
     body: str | ipw.Widget = "",
     *,
     names=("Yes", "No"),
-    types: tuple[Literal["default", "warn"], Literal["default", "warn"]] = ("default", "warn"),
+    types: tuple[Literal["default", "warn"], Literal["default", "warn"]] = (
+        "default",
+        "warn",
+    ),
     has_close=False,
     default=False,
 ):
@@ -676,7 +733,7 @@ async def yes_no_dialog(
         default: A default in the event a user response is not available.
     """
     try:
-        if app.is_ready():
+        if app.ready:
             result = await app.dialog.show_dialog(
                 title,
                 body=body,

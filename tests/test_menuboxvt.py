@@ -13,7 +13,7 @@ mb.MenuboxVT.register_template_root_folder(templates_folder)
 
 class MyNewObj(mb.HasHome, mb.MenuboxVT):
     SHOW_TEMPLATE_CONTROLS = True
-    select_repository = TF.SelectRepository(cast(Self, 0))
+    select_repository = TF.SelectRepository(cast("Self", 0))
     a_has_changed = False
     b_has_changed = False
     change_count = 0
@@ -21,7 +21,9 @@ class MyNewObj(mb.HasHome, mb.MenuboxVT):
     a = TF.InstanceHP(klass=ipw.FloatText)
     b = TF.InstanceHP(klass=ipw.FloatText)
     c = TF.InstanceHP(klass=ipw.FloatText)
-    views = TF.ViewDict(cast(Self, 0), {"Main": ("description_viewer", "a", "b", "c")})
+    views = TF.ViewDict(
+        cast("Self", 0), {"Main": ("description_viewer", "a", "b", "c")}
+    )
     value_traits_persist = mb.NameTuple(*mb.MenuboxVT.value_traits, "a", "c")
 
     async def init_async(self):
@@ -66,7 +68,9 @@ async def test_menuboxvt(home: mb.Home):
     c_old = m.c
     m.set_trait("c", ipw.FloatText(description="Replace c"))
     assert m.c is not c_old, "Widget gets replaced"
-    assert m.c_has_changed, "Copying the value 'manually' to the new widget in on_change"
+    assert m.c_has_changed, (
+        "Copying the value 'manually' to the new widget in on_change"
+    )
     assert m.c.value == 2.3, "'Manually' copied value."
 
     m.template_controls.expand()

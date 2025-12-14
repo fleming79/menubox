@@ -11,7 +11,7 @@ hookspec = pluggy.HookspecMarker("menubox")
 
 
 @hookspec
-def add_css_stylesheet() -> tuple[str, dict]:  # type: ignore
+def add_css_stylesheet() -> tuple[str, dict]:  # pyright: ignore[reportReturnType]
     """Define an additional css stylesheet and/or override css variables."""
 
 

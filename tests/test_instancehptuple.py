@@ -23,7 +23,7 @@ class VTT(mb.ValueTraits):
     removed_count = TF.Int(0)
     somelist_count = TF.Int(0)
 
-    somelist = InstanceHPTuple(ipw.Text, co_=cast(Self, 0)).hooks(
+    somelist = InstanceHPTuple(ipw.Text, co_=cast("Self", 0)).hooks(
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
@@ -31,7 +31,9 @@ class VTT(mb.ValueTraits):
         on_remove=lambda c: c["owner"].on_remove(c),
     )
     menuboxvts = InstanceHPTuple(
-        mb.MenuboxVT | MenuboxSingleton, factory=lambda c: c["owner"]._new_menubox(**c["kwgs"]), co_=cast(Self, 0)
+        mb.MenuboxVT | MenuboxSingleton,
+        factory=lambda c: c["owner"]._new_menubox(**c["kwgs"]),
+        co_=cast("Self", 0),
     ).hooks(
         update_by="name",
         update_item_names=("value",),
@@ -71,14 +73,19 @@ class VT(VTT):
 
 class VTT2(mb.ValueTraits):
     value_traits_persist = tt.NameTuple("somelist", "somelist2")
-    somelist = InstanceHPTuple(TF.ipw.Text, factory=None, co_=cast(Self, 0)).hooks(
+    somelist = InstanceHPTuple(TF.ipw.Text, factory=None, co_=cast("Self", 0)).hooks(
         update_by="description",
         update_item_names=("value",),
     )
     somelist2 = InstanceHPTuple[Self, VT | mb.Bunched](
         VT | mb.Bunched,
         factory=lambda c: c["owner"].somelist2_factory(**c["kwgs"]),
-    ).hooks(update_by="description", update_item_names=("value", "number.value"), set_parent=True, close_on_remove=True)
+    ).hooks(
+        update_by="description",
+        update_item_names=("value", "number.value"),
+        set_parent=True,
+        close_on_remove=True,
+    )
 
     def somelist2_factory(self, **kwargs):
         return VT(**kwargs)
@@ -111,7 +118,9 @@ class TestValueTraits:
         assert vt.added_count == 2
         assert vt.somelist_count == 2
 
-        assert (item1, "value") in vt._vt_tuple_reg["somelist"].reg, "should be registered"
+        assert (item1, "value") in vt._vt_tuple_reg["somelist"].reg, (
+            "should be registered"
+        )
         item1.value = "a new value"
         assert vt.change_count == 3
 
@@ -124,7 +133,9 @@ class TestValueTraits:
         assert vt.change_count == 4
 
         vt2.somelist = (item2,)
-        assert vt2.change_count == 0, "Value traits should only emit when being monitored"
+        assert vt2.change_count == 0, (
+            "Value traits should only emit when being monitored"
+        )
         vt2.add_value_traits("somelist")
         assert vt2.added_count == 1
         item2.value = "item 2 should be monitored by both vt and vt2"
@@ -149,7 +160,7 @@ class TestValueTraits:
     async def test_subclassing_and_on_remove(self):
         # Test subclassing ValueTraits and on_remove
         vt = VT(value_traits_persist=("somelist",))
-        vt.somelist = ({"description": "Added"},)  # type: ignore
+        vt.somelist = ({"description": "Added"},)  # pyright: ignore[reportAttributeAccessIssue]
 
         assert vt.added_count == 1
         assert vt.removed_count == 0
@@ -163,13 +174,15 @@ class TestValueTraits:
         # Test InstanceHPTuple with factory=None
         hhp2 = VTT2()
         with pytest.raises(RuntimeError):
-            hhp2.somelist = ({"description": "never created"},)  # type: ignore
+            hhp2.somelist = ({"description": "never created"},)  # pyright: ignore[reportAttributeAccessIssue]
         assert len(hhp2.somelist) == 0
 
         hhp2.somelist = (ipw.Text(description="Is a member"),)
         assert len(hhp2.somelist) == 1
         assert not hhp2.somelist[0].value
-        hhp2.somelist = ({"description": "Is a member", "value": "The value is updated"},)  # type: ignore
+        hhp2.somelist = (
+            {"description": "Is a member", "value": "The value is updated"},
+        )  # pyright: ignore[reportAttributeAccessIssue]
         assert isinstance(hhp2.somelist[0], ipw.Text)
         assert hhp2.somelist[0].value == "The value is updated"
 
@@ -196,7 +209,9 @@ class TestValueTraits:
 
         number2 = ipw.FloatText()
         vt2.somelist2[0].number = number2
-        assert (number, "value") not in vt2._vt_tuple_reg["somelist2"].reg, "stop observing"
+        assert (number, "value") not in vt2._vt_tuple_reg["somelist2"].reg, (
+            "stop observing"
+        )
         assert (number2, "value") in vt2._vt_tuple_reg["somelist2"].reg
         assert len(vt2._vt_tuple_reg["somelist2"].reg) == 3
 

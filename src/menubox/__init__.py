@@ -27,7 +27,15 @@ from menubox.mb_async import TaskType, debounce, throttle
 from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT
 from menubox.modalbox import Modalbox
-from menubox.trait_types import Bunched, ChangeType, FromParent, NameTuple, ProposalType, StrTuple, TypedTuple
+from menubox.trait_types import (
+    Bunched,
+    ChangeType,
+    FromParent,
+    NameTuple,
+    ProposalType,
+    StrTuple,
+    TypedTuple,
+)
 from menubox.valuetraits import ValueTraits
 
 VERSION_INFO = {"menubox": __version__}
@@ -35,26 +43,13 @@ DEBUG_ENABLED = False
 
 
 __all__ = [
-    "async_run_button",
-    "debounce",
-    "throttle",
-    "defaults",
-    "hasparent",
-    "instance",
-    "log",
-    "mb_async",
-    "pack",
-    "valuetraits",
-    "trait_types",
-    "utils",
-    "widget_loader",
-    "widgets",
     "Bunched",
     "ChangeType",
-    "HasParent",
     "FromParent",
-    "Home",
     "HasHome",
+    "HasParent",
+    "Home",
+    "InstanceHPTuple",
     "Menubox",
     "MenuboxVT",
     "Modalbox",
@@ -62,10 +57,23 @@ __all__ = [
     "ProposalType",
     "StrTuple",
     "TaskType",
-    "InstanceHPTuple",
     "TypedTuple",
     "ValueTraits",
+    "async_run_button",
+    "debounce",
+    "defaults",
+    "hasparent",
     "hookimpl",
+    "instance",
+    "log",
+    "mb_async",
+    "pack",
+    "throttle",
+    "trait_types",
+    "utils",
+    "valuetraits",
+    "widget_loader",
+    "widgets",
 ]
 
 

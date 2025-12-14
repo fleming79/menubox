@@ -37,7 +37,7 @@ class TestTraitFactory:
 
     async def test_button_restart_mode(self):
         class BaseTestButton(HasParent):
-            button = TF.Button(cast(Self, 0), mode=TF.ButtonMode.restart)
+            button = TF.Button(cast("Self", 0), mode=TF.ButtonMode.restart)
             clicked = TF.Dict()
 
             async def button_clicked(self, b):
@@ -64,7 +64,7 @@ class TestTraitFactory:
         class BaseTestButton(HasParent):
             button = TF.Button(
                 cast(
-                    Self,
+                    "Self",
                     0,
                 ),
                 mode=TF.ButtonMode.cancel,
@@ -94,7 +94,7 @@ class TestTraitFactory:
     async def test_button_disable_mode(self):
         # TODO: merge this with above two tests using pytest.mark.parametrize
         class BaseTestButton(HasParent):
-            button = TF.Button(cast(Self, 0), mode=TF.ButtonMode.disable)
+            button = TF.Button(cast("Self", 0), mode=TF.ButtonMode.disable)
             clicked = TF.Dict()
 
             async def button_clicked(self, b):

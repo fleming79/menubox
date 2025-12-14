@@ -20,7 +20,9 @@ class VT1(ValueTraits):
     nested = TF.InstanceHP(klass=Nested).configure(TF.IHPMode.XL_N)
     a = TF.Str()
     b = TF.Int(0)
-    c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))
+    c: Fixed[Self, ipw.Dropdown] = Fixed(
+        ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3])
+    )
     change_owners = traitlets.Tuple()
     on_change_counts = TF.Int(0)
 
@@ -93,7 +95,7 @@ async def test_value_traits():
     assert vt1.value_change_count == 3
     assert len(vt1._vt_reg_value_traits) == 0
     vt1.value = {"a": "change two at once", "b": 3}
-    assert vt1.value() == {"a": "change two at once", "b": 3}  # type: ignore
+    assert vt1.value() == {"a": "change two at once", "b": 3}
     assert vt1.value_change_count == 4, "Should get called once per set of changes"
     assert vt1.on_change_counts == 4, "Called for each update"
 
@@ -153,7 +155,7 @@ async def test_value_traits():
     key = (vt1.nested.number, "value")
     assert key in vt1._vt_reg_value_traits_persist, "Value observer is registered"
     vt1.nested.number.value = 2
-    assert vt1.value() == {"a": "change two at once", "b": 3, "nested.number": 2.0}  # type: ignore
+    assert vt1.value() == {"a": "change two at once", "b": 3, "nested.number": 2.0}
 
     # Test updates register for nested
     nested_old = vt1.nested
@@ -164,7 +166,9 @@ async def test_value_traits():
         nested_old,
         "number",
     ) not in vt1._vt_reg_value_traits_persist, "should be deregisetered"
-    assert (nested, "number") in vt1._vt_reg_value_traits_persist, "should be deregisetered"
+    assert (nested, "number") in vt1._vt_reg_value_traits_persist, (
+        "should be deregisetered"
+    )
 
     vt2.on_change_counts = 0
     # Check removing items

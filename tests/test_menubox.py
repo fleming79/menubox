@@ -59,7 +59,9 @@ class TestMenubox:
         await m.wait_tasks()
         assert m.box_menu
         assert m.button_menu_minimize in m.box_menu.children
-        assert len(m.box_menu.children) == 2, "expected: (button_menu_minimize, button_load_view)"
+        assert len(m.box_menu.children) == 2, (
+            "expected: (button_menu_minimize, button_load_view)"
+        )
         b = m.box_menu.children[1]
         assert isinstance(b, ipw.Button)
         assert b.description == "b"
@@ -93,7 +95,7 @@ class TestMenubox:
         m.load_view()
         await m
         assert m.shuffle_buttons
-        m.shuffle_buttons[0].click()  # type: ignore # shuffle button for views 'd'
+        m.shuffle_buttons[0].click()  # shuffle button for views 'd'
         await m
 
     async def test_menubox_active_buttons(self, mocker):
@@ -104,7 +106,7 @@ class TestMenubox:
         await m
         assert m.activate_buttons
         button_clicked = mocker.patch.object(m, "button_clicked")
-        m.activate_buttons[0].click()  # type: ignore # shuffle button for views 'd'
+        m.activate_buttons[0].click()  # shuffle button for views 'd'
         await m.wait_tasks()
         assert button_clicked.called
         assert button_clicked.await_count
@@ -214,7 +216,7 @@ class TestMenubox:
             m.view = "invalid_view"
 
         with pytest.raises(NameError):
-            m.views = {"Minimized": ipw.HTML()}  # type: ignore
+            m.views = {"Minimized": ipw.HTML()}
 
     async def test_menubox_viewlist_validation(self):
         m = mb.Menubox(views={"a": ipw.HTML("A"), "b": ipw.HTML("B")})
@@ -274,7 +276,7 @@ class TestMenubox:
         m = mb.Menubox(views={"a": ipw.HTML("A")})
         button = m.get_button_loadview("a")
         assert isinstance(button, ipw.Button)
-        with pytest.raises(ValueError, match="A view name is required.*"):
+        with pytest.raises(ValueError, match="A view name is required"):
             m.get_button_loadview(None)
         with pytest.raises(KeyError):
             m.get_button_loadview("invalid")
@@ -358,11 +360,11 @@ class TestMenubox:
                 await m
                 assert m.view == "a"
             case "button_help":
-                assert len(m.children) == 3  # type: ignore
+                assert len(m.children) == 3
                 b.click()
                 await m.wait_tasks()
                 await m
-                assert len(m.children) == 2  # type: ignore
+                assert len(m.children) == 2
             case "button_activate":
                 pass
             case "button_exit":

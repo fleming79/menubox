@@ -12,7 +12,7 @@ class IpylabPlugin:
                 if isinstance(inst, mb.Menubox) and not inst.closed and inst.view:
                     inst.mb_refresh()
 
-        if change["owner"].log_level == ipylab.log.LogLevel.DEBUG:  # type: ignore
+        if change["owner"].log_level == ipylab.log.LogLevel.DEBUG:  # pyright: ignore[reportAttributeAccessIssue]
             mb.log.START_DEBUG(to_stdio=False)
             refresh_all_menuboxes()
         elif mb.DEBUG_ENABLED:
@@ -27,7 +27,7 @@ class IpylabPlugin:
     async def load_css_stylesheet(self, app: ipylab.JupyterFrontEnd):
         import menubox.css
 
-        stylesheet = await menubox.css.MenuboxCSSStyleSheet().ready()
+        stylesheet = await menubox.css.MenuboxCSSStyleSheet().wait_ready()
         variables = {}
         ss = ""
         for s, v in reversed(menubox.plugin_manager.hook.add_css_stylesheet()):

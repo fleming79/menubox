@@ -16,14 +16,18 @@ class MBP(MenuboxPersist):
     PERSIST_MODE = MenuboxPersistMode.by_classname_name_version
     new = TF.Str()
     a_widget = TF.Text(description="something", value="Using the value")
-    just_a_widget = TF.Dropdown(cast(Self, 0), description="just_a_widget", options=[1, 2, 3]).hooks(
+    just_a_widget = TF.Dropdown(
+        cast("Self", 0), description="just_a_widget", options=[1, 2, 3]
+    ).hooks(
         on_set=lambda c: c["owner"].dlink(
             source=(c["owner"], "df"),
             target=(c["obj"].layout, "visibility"),
             transform=lambda df: mb.utils.to_visibility(df.empty, invert=True),
         ),
     )
-    value_traits_persist = mb.NameTuple(*MenuboxPersist.value_traits_persist, "new", "a_widget.value", "just_a_widget")
+    value_traits_persist = mb.NameTuple(
+        *MenuboxPersist.value_traits_persist, "new", "a_widget.value", "just_a_widget"
+    )
     dataframe_persist = mb.NameTuple("df")
     df = traitlets.Instance(pd.DataFrame, default_value=pd.DataFrame())
 
@@ -41,7 +45,10 @@ class MBP(MenuboxPersist):
     ],
 )
 def test_MenuboxPersistMode_create_base_path(mode: MenuboxPersistMode, result: str):
-    assert MenuboxPersistMode.create_base_path(mode, "classname", "test", "--name--", 1) == result
+    assert (
+        MenuboxPersistMode.create_base_path(mode, "classname", "test", "--name--", 1)
+        == result
+    )
 
 
 async def test_persist_by_classname(home: mb.Home):
@@ -54,7 +61,9 @@ async def test_persist_by_classname(home: mb.Home):
     await p.button_save_persistence_data.start()
     assert (await p.get_persistence_versions(p.filesystem)) == (1,)
     data = await p.get_persistence_data(p.filesystem)
-    df_data = await p.get_dataframes_async(p.filesystem, dotted_names=p.dataframe_persist)
+    df_data = await p.get_dataframes_async(
+        p.filesystem, dotted_names=p.dataframe_persist
+    )
     df = df_data["df"]
     assert df.equals(p.df)
     assert tuple(data) == p.value_traits_persist
@@ -70,7 +79,9 @@ async def test_persist_by_classname_name(home: mb.Home):
     await p.button_save_persistence_data.start()
     assert (await p.get_persistence_versions(p.filesystem, p.name)) == (1,)
     data = await p.get_persistence_data(p.filesystem, p.name)
-    df_data = await p.get_dataframes_async(p.filesystem, dotted_names=p.dataframe_persist, name=p.name)
+    df_data = await p.get_dataframes_async(
+        p.filesystem, dotted_names=p.dataframe_persist, name=p.name
+    )
     df = df_data["df"]
     assert df.equals(p.df)
     assert tuple(data) == p.value_traits_persist

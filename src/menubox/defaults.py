@@ -14,11 +14,15 @@ hookimpl = pluggy.HookimplMarker("menubox")  # Used for plugins
 if TYPE_CHECKING:
 
     @overload
-    def is_no_value(value: Literal[_NoValue.token, _NoDefault.token]) -> Literal[True]: ...
+    def is_no_value(
+        value: Literal[_NoValue.token, _NoDefault.token],
+    ) -> Literal[True]: ...
     @overload
     def is_no_value(value: Any) -> bool: ...
     @overload
-    def is_no_value(value: Literal[_NoValue.token, _NoDefault.token], include_na: bool) -> Literal[True]: ...  # noqa: FBT001
+    def is_no_value(
+        value: Literal[_NoValue.token, _NoDefault.token], include_na: bool
+    ) -> Literal[True]: ...
     @overload
     def is_no_value(value: Any, include_na: Literal[False]) -> Literal[False]: ...
     @overload
@@ -80,21 +84,21 @@ class _NoValue(float, enum.Enum):
 
 
 class _Enable(enum.Enum):
-    token = "Enable"  # noqa: S105
+    token = "Enable"
 
     def __bool__(self) -> Literal[False]:
         return False
 
 
 class _Index(enum.StrEnum):
-    token = "--INDEX--"  # noqa: S105
+    token = "--INDEX--"
 
     def __str__(self) -> str:
         return self.token
 
 
 class _NoDefault(enum.StrEnum):
-    token = "--NO_DEFAULT--"  # noqa: S105
+    token = "--NO_DEFAULT--"
 
     def __str__(self) -> str:
         return self.token
@@ -114,7 +118,9 @@ class NoCloseBox(ipw.Box):
             super().close()
 
 
-H_FILL = NoCloseBox(layout={"flex": "1 10 0%", "justify_content": "space-between", "overflow": "hidden"})
+H_FILL = NoCloseBox(
+    layout={"flex": "1 10 0%", "justify_content": "space-between", "overflow": "hidden"}
+)
 V_FILL = NoCloseBox(
     layout={
         "flex_flow": "column",

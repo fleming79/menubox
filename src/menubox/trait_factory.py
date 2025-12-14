@@ -18,9 +18,18 @@ from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
-from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
+from menubox.trait_types import (
+    MP,
+    SS,
+    GetWidgetsInputType,
+    H,
+    ReadOnly,
+    S,
+    T,
+    ViewDictType,
+)
 
-__all__ = ["IHPCreate", "InstanceHP", "TF"]
+__all__ = ["TF", "IHPCreate", "InstanceHP"]
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -31,7 +40,7 @@ if TYPE_CHECKING:
     import menubox.menubox
     import menubox.modalbox
     import menubox.persist
-    import menubox.repository
+    import menubox.repository  # noqa: TC004
 
 
 class ButtonMode(enum.Enum):
@@ -87,39 +96,69 @@ class TF:
     # Basic types
 
     @staticmethod
-    def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str, str]:
-        return InstanceHP(str, co_=co_).configure(IHPMode.X___, default_value=default_value)
+    def Str(
+        default_value: str = "", /, *, co_: S | Any = None
+    ) -> InstanceHP[S, str, str]:
+        return InstanceHP(str, co_=co_).configure(
+            IHPMode.X___, default_value=default_value
+        )
 
     @staticmethod
-    def Bool(default_value: bool, /, *, co_: S | Any = None) -> InstanceHP[S, bool, bool]:  # noqa: FBT001
-        return InstanceHP(bool, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
+    def Bool(
+        default_value: bool, /, *, co_: S | Any = None
+    ) -> InstanceHP[S, bool, bool]:
+        return InstanceHP(
+            bool, lambda _: default_value, default_value=default_value, co_=co_
+        ).configure(IHPMode.X___)
 
     @staticmethod
     def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int, int]:
         return InstanceHP(
-            int, lambda _: default_value, default_value=default_value, validate=lambda _, val: int(val), co_=co_
+            int,
+            lambda _: default_value,
+            default_value=default_value,
+            validate=lambda _, val: int(val),
+            co_=co_,
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float, float]:
+    def Float(
+        default_value=math.nan, /, *, co_: S | Any = None
+    ) -> InstanceHP[S, float, float]:
         return InstanceHP(
-            float, lambda _: default_value, default_value=default_value, validate=lambda _, val: float(val), co_=co_
+            float,
+            lambda _: default_value,
+            default_value=default_value,
+            validate=lambda _, val: float(val),
+            co_=co_,
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Tuple(default_value=(), /, *, klass_: type[T] = tuple, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
-        def validate_tuple(owner, value):  # noqa: ARG001
+    def Tuple(
+        default_value=(),
+        /,
+        *,
+        klass_: type[T] = tuple,  # noqa: ARG004
+        co_: S | Any = None,  # pyright: ignore[reportUnusedParameter]
+    ) -> InstanceHP[S, T, T]:
+        def validate_tuple(owner, value):
             if isinstance(value, tuple):
                 return value
             return tuple(value)
 
-        return InstanceHP(
-            tuple, lambda _: default_value, default_value=default_value, validate=validate_tuple, co_=co_
-        ).configure(IHPMode.X___)  # type: ignore
+        return InstanceHP(  # pyright: ignore[reportReturnType]
+            tuple,
+            lambda _: default_value,
+            default_value=default_value,
+            validate=validate_tuple,
+            co_=co_,
+        ).configure(IHPMode.X___)
 
     @staticmethod
     def Set(*, klass_: type[T] = set, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
-        return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)  # type: ignore
+        return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(
+            IHPMode.XL__
+        )  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def Dict(
@@ -128,7 +167,9 @@ class TF:
         co_: S | Any = None,
     ) -> InstanceHP[S, T, T]:
         "A dict type. Note: klass_ & co_ are only used for type hinting."
-        return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XL__)  # type: ignore
+        return InstanceHP(
+            dict, default or (lambda _: {}), default_value={}, co_=co_
+        ).configure(IHPMode.XL__)  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def DictReadOnly(
@@ -137,12 +178,19 @@ class TF:
         co_: S | Any = None,
     ) -> InstanceHP[S, T, ReadOnly[T]]:
         "A dict type. Note: klass_ & co_ are only used for type hinting."
-        return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XLR_)  # type: ignore
+        return InstanceHP(
+            dict, default or (lambda _: {}), default_value={}, co_=co_
+        ).configure(IHPMode.XLR_)  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T, T]:
         klass = default_value.__class__
-        return TF.InstanceHP(klass, validate=lambda _, val: klass(val), default_value=default_value, co_=co_).configure(  # type: ignore
+        return TF.InstanceHP(
+            klass,
+            validate=lambda _, val: klass(val),
+            default_value=default_value,
+            co_=co_,
+        ).configure(  # pyright: ignore[reportCallIssue]
             TF.IHPMode.X___
         )
 
@@ -166,18 +214,20 @@ class TF:
         ```
         """
         value = value or {}
-        return InstanceHP(dict, default=lambda _: value.copy(), co_=co_).configure(IHPMode.XL__, default_value={})  # type: ignore
+        return InstanceHP(dict, default=lambda _: value.copy(), co_=co_).configure(
+            IHPMode.XL__, default_value={}
+        )  # pyright: ignore[reportReturnType, reportAttributeAccessIssue]
 
     @staticmethod
     def parent(
         klass: type[SS] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[S, SS, SS]:  # type: ignore
+    ) -> InstanceHP[S, SS, SS]:
         """Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent
         """
 
-        def validate_parent(obj: S, value: SS | None):  # type: ignore
+        def validate_parent(obj: S, value: SS | None):
             if not value:
                 return None
             p = value
@@ -188,11 +238,11 @@ class TF:
                 p = p.parent if p.trait_has_value("parent") else None
             return value
 
-        return (
+        return (  # pyright: ignore[reportReturnType]
             InstanceHP(klass=klass, default=lambda _: None, validate=validate_parent)
             .hooks(set_parent=False, on_replace_close=False, remove_on_close=False)
             .configure(IHPMode.X___)
-        )  # type: ignore
+        )
 
     # Ipywidgets shortcuts
     Box = staticmethod(ihpwrap(ipw.Box))
@@ -205,7 +255,9 @@ class TF:
     Select = staticmethod(ihpwrap(ipw.Select))
     Text = staticmethod(ihpwrap(ipw.Text))
     Label = staticmethod(ihpwrap(ipw.Label))
-    SelectionSlider = staticmethod(ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)}))
+    SelectionSlider = staticmethod(
+        ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
+    )
 
     Accordion = staticmethod(ihpwrap(ipw.Accordion))
     IntText = staticmethod(ihpwrap(ipw.IntText))
@@ -232,7 +284,10 @@ class TF:
 
     @staticmethod
     def Button(
-        co_: S | Any = None, css_class=CSScls.button_main, mode=ButtonMode.restart, **kwargs
+        co_: S | Any = None,
+        css_class=CSScls.button_main,
+        mode=ButtonMode.restart,
+        **kwargs,
     ) -> InstanceHP[S, ipw.Button, ReadOnly[ipw.Button]]:
         "Kwargs are passed to the button init"
         return (
@@ -244,7 +299,9 @@ class TF:
             .configure(default=lambda c: ipw.Button(**kwargs | c["kwgs"]))
         )
 
-    FileUpload = staticmethod(ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main)))
+    FileUpload = staticmethod(
+        ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main))
+    )
 
     MenuboxHeader = staticmethod(
         ihpwrap(
@@ -256,9 +313,15 @@ class TF:
             add_css_class=(CSScls.Menubox_item, CSScls.box_header),
         )
     )
-    MenuboxCenter = staticmethod(ihpwrap(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox)))
-    MenuboxMenu = staticmethod(ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_menu)))
-    MenuboxShuffle = staticmethod(ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle)))
+    MenuboxCenter = staticmethod(
+        ihpwrap(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox))
+    )
+    MenuboxMenu = staticmethod(
+        ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_menu))
+    )
+    MenuboxShuffle = staticmethod(
+        ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle))
+    )
 
     # Ipywidget String
     HTML_Title = staticmethod(
@@ -276,18 +339,34 @@ class TF:
         )
     )
 
-    TextareaValidate = staticmethod(ihpwrap(menubox.widgets.TextareaValidate, defaults={"value": ""}))
-    ComboboxValidate = staticmethod(ihpwrap(menubox.widgets.ComboboxValidate, defaults={"value": ""}))
-    TextValidate = staticmethod(ihpwrap(menubox.widgets.TextValidate, defaults={"value": ""}))
-    FloatTextValidate = staticmethod(ihpwrap(menubox.widgets.FloatTextValidate, defaults={"value": 0}))
-    IntTextValidate = staticmethod(ihpwrap(menubox.widgets.IntTextValidate, defaults={"value": 0}))
-    SelectMultipleValidate = staticmethod(ihpwrap(menubox.widgets.SelectMultipleValidate, defaults={"value": ()}))
+    TextareaValidate = staticmethod(
+        ihpwrap(menubox.widgets.TextareaValidate, defaults={"value": ""})
+    )
+    ComboboxValidate = staticmethod(
+        ihpwrap(menubox.widgets.ComboboxValidate, defaults={"value": ""})
+    )
+    TextValidate = staticmethod(
+        ihpwrap(menubox.widgets.TextValidate, defaults={"value": ""})
+    )
+    FloatTextValidate = staticmethod(
+        ihpwrap(menubox.widgets.FloatTextValidate, defaults={"value": 0})
+    )
+    IntTextValidate = staticmethod(
+        ihpwrap(menubox.widgets.IntTextValidate, defaults={"value": 0})
+    )
+    SelectMultipleValidate = staticmethod(
+        ihpwrap(menubox.widgets.SelectMultipleValidate, defaults={"value": ()})
+    )
     MarkdownOutput = staticmethod(ihpwrap(menubox.widgets.MarkdownOutput))
 
     # menubox
 
-    Menubox = staticmethod(ihpwrap(cast(type["menubox.menubox.Menubox"], "menubox.menubox.Menubox")))
-    MenuboxVT = staticmethod(ihpwrap(cast(type["menubox.menuboxvt.MenuboxVT"], "menubox.menubox.MenuboxVT")))
+    Menubox = staticmethod(
+        ihpwrap(cast("type[menubox.menubox.Menubox]", "menubox.menubox.Menubox"))
+    )
+    MenuboxVT = staticmethod(
+        ihpwrap(cast("type[menubox.menuboxvt.MenuboxVT]", "menubox.menubox.MenuboxVT"))
+    )
 
     # ipylab
 
@@ -299,14 +378,20 @@ class TF:
     def AsyncRunButton(
         co_: S,
         /,
-        cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
+        cfunc: Callable[
+            [S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton
+        ],
         description="",
         icon="play",
         cancel_icon="stop",
         kw: Callable[[S], dict] | None = None,
         style: dict | None = None,
-        button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
-        cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
+        button_style: Literal[
+            "primary", "success", "info", "warning", "danger", ""
+        ] = "primary",
+        cancel_button_style: Literal[
+            "primary", "success", "info", "warning", "danger", ""
+        ] = "warning",
         tooltip="",
         tasktype: mb_async.TaskType = mb_async.TaskType.general,
         **kwargs,
@@ -375,10 +460,14 @@ class TF:
         )
 
     @staticmethod
-    def SelectRepository(co_: H, /):  # type: ignore
+    def SelectRepository(co_: H, /):  # pyright: ignore[reportInvalidTypeVarUse]
         "Requires parent to have a home"
         return InstanceHP(
-            cast("type[menubox.repository.SelectRepository[H]]", "menubox.repository.SelectRepository"), co_=co_
+            cast(
+                "type[menubox.repository.SelectRepository[H]]",
+                "menubox.repository.SelectRepository",
+            ),
+            co_=co_,
         )
 
     @staticmethod
@@ -404,7 +493,11 @@ class TF:
         def get_MenuboxPersistPool(c: FixedCreate[H]):
             from menubox.persist import MenuboxPersistPool as MenuboxPersistPool_
 
-            cls: type[MP] = import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls  # type: ignore
-            return MenuboxPersistPool_(home=c["owner"].home, klass=cls, factory=factory, **kwgs)
+            cls: type[MP] = (
+                import_item(obj_cls) if isinstance(obj_cls, str) else obj_cls
+            )  # pyright: ignore[reportAssignmentType]
+            return MenuboxPersistPool_(
+                home=c["owner"].home, klass=cls, factory=factory, **kwgs
+            )
 
         return Fixed(get_MenuboxPersistPool)

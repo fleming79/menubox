@@ -28,7 +28,9 @@ if TYPE_CHECKING:
 __all__ = ["ValueTraits"]
 
 
-class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[str, Any]]):
+class _ValueTraitsValueTrait(
+    TraitType[Callable[[], dict[str, Any]], str | dict[str, Any]]
+):
     """A trait type for handling values within a ValueTraits object.
 
     This trait type is responsible for setting, validating, and storing
@@ -41,7 +43,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
     info_text = "ValueTraits value"
     default_value = defaults.NO_VALUE
 
-    def set(self, obj: ValueTraits, value):  # type: ignore
+    def set(self, obj: ValueTraits, value):  # pyright: ignore[reportIncompatibleMethodOverride]
         try:
             if obj.vt_validating:
                 return
@@ -49,7 +51,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             # Ignore pre-init changes
             return
         new_value = self._validate(obj, value)
-        assert self.name  # noqa: S101
+        assert self.name
         obj._trait_values[self.name] = new_value
         obj._notify_trait(self.name, obj.json_default, new_value)
 
@@ -68,8 +70,12 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
 class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
-    parent = TF.parent(klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
-    reg: TF.InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
+    parent = TF.parent(
+        klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits")
+    )
+    reg: TF.InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = (
+        TF.Set().configure(TF.IHPMode.XLR_)
+    )
 
     @observe("reg")
     def _observe_reg(self, change: ChangeType):
@@ -124,8 +130,12 @@ class ValueTraits(HasParent):
     _ignore_change_cnt = 0
     _vt_reg_value_traits_persist = TF.Set()
     _vt_reg_value_traits = TF.Set()
-    _vt_tuple_reg = TF.DictReadOnly(co_=cast(Self, 0), klass_=cast("type[dict[str, _InstanceHPTupleRegister]]", 0))
-    _InstanceHPTuple: ClassVar[dict[str, InstanceHPTuple]] = ()  # type: ignore # We use empty tuple to provide iterable
+    _vt_tuple_reg = TF.DictReadOnly(
+        co_=cast("Self", 0), klass_=cast("type[dict[str, _InstanceHPTupleRegister]]", 0)
+    )
+    _InstanceHPTuple: ClassVar[
+        dict[str, InstanceHPTuple]
+    ] = ()  # We use empty tuple to provide iterable  # pyright: ignore[reportAssignmentType]
     _vt_busy_updating_count = 0
     _vt_init_complete = False
     dtype = "dict"
@@ -178,7 +188,7 @@ class ValueTraits(HasParent):
     def __init__(
         self,
         *,
-        parent: RP = None,  # type: ignore
+        parent: RP = None,  # pyright: ignore[reportInvalidTypeVarUse]
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str | bytes = None,
@@ -208,9 +218,15 @@ class ValueTraits(HasParent):
         self.vt_validating = False
         self.vt_updating = False
         self.set_trait("value_traits", value_traits or self.value_traits)
-        self.set_trait("value_traits_persist", value_traits_persist or self.value_traits_persist)
+        self.set_trait(
+            "value_traits_persist", value_traits_persist or self.value_traits_persist
+        )
         vts = []
-        for v in (*self.value_traits_persist, *self.value_traits, *self._InstanceHPTuple):
+        for v in (
+            *self.value_traits_persist,
+            *self.value_traits,
+            *self._InstanceHPTuple,
+        ):
             if v not in vts:
                 vts.append(v)
         value = mb.pack.to_dict(value)
@@ -229,7 +245,10 @@ class ValueTraits(HasParent):
                 value[k] = kwargs.pop(k)
         self._vt_update_reg_value_traits()
         self._vt_update_reg_value_traits_persist()
-        self.observe(self._vt_value_traits_observe, names=("value_traits", "value_traits_persist"))
+        self.observe(
+            self._vt_value_traits_observe,
+            names=("value_traits", "value_traits_persist"),
+        )
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
         self.set_trait("value", value)
@@ -248,7 +267,9 @@ class ValueTraits(HasParent):
         try:
             return self._vt_tuple_reg[tuplename]
         except KeyError:
-            self._vt_tuple_reg[tuplename] = reg = _InstanceHPTupleRegister(name=tuplename, parent=self)
+            self._vt_tuple_reg[tuplename] = reg = _InstanceHPTupleRegister(
+                name=tuplename, parent=self
+            )
             return reg
 
     def tag(self, **kw):
@@ -294,7 +315,9 @@ class ValueTraits(HasParent):
             obj.observe(handler, names=name)
 
     @classmethod
-    def _get_observer_pairs(cls, obj: HasTraits, dotname: str) -> Iterator[tuple[HasTraits, str]]:
+    def _get_observer_pairs(
+        cls, obj: HasTraits, dotname: str
+    ) -> Iterator[tuple[HasTraits, str]]:
         """Generates pairs of (object, trait_name) for observing a dotted trait name.
 
         This method traverses a dotted trait name, yielding tuples of (object, trait_name)
@@ -322,7 +345,9 @@ class ValueTraits(HasParent):
             for i, n in enumerate(parts, 1):
                 if n in obj._traits:
                     yield (obj, n)
-                elif (obj_ := getattr(obj, n, defaults.NO_VALUE)) is not defaults.NO_VALUE:
+                elif (
+                    obj_ := getattr(obj, n, defaults.NO_VALUE)
+                ) is not defaults.NO_VALUE:
                     # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
                     if isinstance(obj_, HasTraits):
                         obj = obj_
@@ -347,14 +372,21 @@ class ValueTraits(HasParent):
                         break
                 if obj is None:
                     break
-                if cls._AUTO_VALUE and i == segments and n != "value" and "value" in getattr(obj, "_traits", {}):
+                if (
+                    cls._AUTO_VALUE
+                    and i == segments
+                    and n != "value"
+                    and "value" in getattr(obj, "_traits", {})
+                ):
                     yield (obj, "value")
         except AttributeError:
             if not isinstance(obj, Bunched):
                 raise
 
     @classmethod
-    def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], Any]:
+    def _get_new_update_inst(
+        cls, tuplename: str
+    ) -> Callable[[ValueTraits, dict, int | None], Any]:
         """Return the constructor to create a new item that belongs to a typed instance tuple.
 
         Args:
@@ -391,7 +423,9 @@ class ValueTraits(HasParent):
             self._vt_reg_value_traits_persist = pairs
 
     def _vt_update_reg_tuples(self, tuplename: str):
-        if update_item_names := self._InstanceHPTuple[tuplename]._hookmappings.get("update_item_names", ()):
+        if update_item_names := self._InstanceHPTuple[tuplename]._hookmappings.get(
+            "update_item_names", ()
+        ):
             items = getattr(self, tuplename)
             pairs = set()
             for obj in items:
@@ -401,7 +435,9 @@ class ValueTraits(HasParent):
             self._get_tuple_register(tuplename).set_trait("reg", pairs)
 
     def _vt_value_traits_observe(self, change: ChangeType):
-        if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(change["new"]):
+        if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(
+            change["new"]
+        ):
             msg = f"A prohibited value trait has been detected: {self._prohibited_value_traits.intersection(change['new'])}"
             raise RuntimeError(msg)
         if change["name"] == "value_traits":
@@ -422,23 +458,23 @@ class ValueTraits(HasParent):
                     raise
 
     def _vt_on_reg_value_traits_change(self, change: ChangeType):
-        if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
-            change["new"] is not change["old"]
-        ):
+        if (
+            isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)
+        ) and (change["new"] is not change["old"]):
             self._vt_update_reg_value_traits()
         self._vt_on_change(change)
 
     def _vt_on_value_traits_persist_change(self, change: ChangeType):
-        if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
-            change["new"] is not change["old"]
-        ):
+        if (
+            isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)
+        ) and (change["new"] is not change["old"]):
             self._vt_update_reg_value_traits_persist()
         self._vt_on_change(change)
 
     def _vt_on_reg_tuples_change(self, change, traitname):
-        if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
-            change["new"] is not change["old"]
-        ):
+        if (
+            isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)
+        ) and (change["new"] is not change["old"]):
             self._vt_update_reg_tuples(traitname)
         self._vt_on_change(change)
 
@@ -476,7 +512,11 @@ class ValueTraits(HasParent):
             self._vt_busy_updating_count -= 1
             if not self._vt_busy_updating_count:
                 self.vt_updating = False
-                if (not self._ignore_change_cnt) and self._vt_init_complete and (not self.vt_validating):
+                if (
+                    (not self._ignore_change_cnt)
+                    and self._vt_init_complete
+                    and (not self.vt_validating)
+                ):
                     self.set_trait("value", defaults.NO_VALUE)
 
     def _load_value(self, data: Literal[defaults._NoValue.token] | dict | Callable):
@@ -495,7 +535,9 @@ class ValueTraits(HasParent):
             a delay = 0 is equivalent to `mb_async.call_soon`.
         """
         if delay is not None:
-            mb_async.run_async({"obj": self, "delay": delay}, self.add_value_traits, *names)
+            mb_async.run_async(
+                {"obj": self, "delay": delay}, self.add_value_traits, *names
+            )
             return
         self.set_trait("value_traits", (*self.value_traits, *names))
 
@@ -506,7 +548,14 @@ class ValueTraits(HasParent):
         """
         self.set_trait("value_traits", (v for v in self.value_traits if v not in names))
 
-    def load_value(self, data: Literal[defaults._NoValue.token] | dict | Callable[[], dict] | pathlib.Path | str):
+    def load_value(
+        self,
+        data: Literal[defaults._NoValue.token]
+        | dict
+        | Callable[[], dict]
+        | pathlib.Path
+        | str,
+    ):
         if data is not defaults.NO_VALUE and data:
             while callable(data):
                 data = data()
@@ -516,7 +565,13 @@ class ValueTraits(HasParent):
                 msg = f"Expected a dict but got a {data.__class__}."
                 raise TypeError(msg)
 
-            utils.load_nested_attrs(self, data, raise_errors=False, default_setter=self.setter, on_error=self.on_error)
+            utils.load_nested_attrs(
+                self,
+                data,
+                raise_errors=False,
+                default_setter=self.setter,
+                on_error=self.on_error,
+            )
 
     def get_value(self, dotname: str, default=None) -> Any:
         """Gets value by dotted name.
@@ -531,12 +586,18 @@ class ValueTraits(HasParent):
     @staticmethod
     def getattr(obj, name, default=defaults.NO_VALUE):
         """Like getattr but will test and call if callable (recursively)."""
-        val = getattr(obj, name, default) if not defaults.is_no_value(default) else getattr(obj, name)
+        val = (
+            getattr(obj, name, default)
+            if not defaults.is_no_value(default)
+            else getattr(obj, name)
+        )
         while callable(val):
             val = val()
         return val
 
-    def to_dict(self, names: None | Iterable[str] = None, hastrait_value=True) -> dict[str, Any]:
+    def to_dict(
+        self, names: None | Iterable[str] = None, hastrait_value=True
+    ) -> dict[str, Any]:
         """Converts the object's value traits to a dictionary.
 
         Args:
@@ -553,7 +614,10 @@ class ValueTraits(HasParent):
             return {}
         if names is None:
             names = self.value_traits_persist
-        return {n: utils.getattr_nested(self, n, hastrait_value=hastrait_value) for n in names}
+        return {
+            n: utils.getattr_nested(self, n, hastrait_value=hastrait_value)
+            for n in names
+        }
 
     json_default = to_dict  # for serialization
 
@@ -566,7 +630,9 @@ class ValueTraits(HasParent):
         @overload
         def to_json(self, names: None | Iterable[str], option: int) -> str: ...
         @overload
-        def to_json(self, names: None | Iterable[str], option: int, decode: Literal[False]) -> bytes: ...
+        def to_json(
+            self, names: None | Iterable[str], option: int, decode: Literal[False]
+        ) -> bytes: ...
 
     def to_json(
         self,
@@ -602,7 +668,10 @@ class ValueTraits(HasParent):
             return data
 
     def to_yaml(
-        self, names: None | Iterable[str] = None, fs: AbstractFileSystem | None = None, path: str | None = None
+        self,
+        names: None | Iterable[str] = None,
+        fs: AbstractFileSystem | None = None,
+        path: str | None = None,
     ) -> str:
         """Convert settings to yaml.
         Args:
@@ -610,7 +679,7 @@ class ValueTraits(HasParent):
             fs: fsspec filesystem
             path: When fs and path are provided the yaml is written to the file in the fs at path.
         """
-        return to_yaml(self.to_dict(names=names), walkstring=True, path=path, fs=fs)  # type: ignore
+        return to_yaml(self.to_dict(names=names), walkstring=True, path=path, fs=fs)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
     def on_change(self, change: ChangeType):
         """Handle change events of all traits listed in `value_traits` and `value_trait_persist`.

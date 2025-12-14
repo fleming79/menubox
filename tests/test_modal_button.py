@@ -13,11 +13,11 @@ class PMBB(mb.MenuboxVT):
     task_update = TF.Pending()
     count = TF.InstanceHP(klass=ipw.FloatText)
     slider = TF.InstanceHP(klass=ipw.IntSlider)
-    box_extra = TF.HBox(cast(Self, 0)).hooks(set_children=lambda p: (p.count,))
+    box_extra = TF.HBox(cast("Self", 0)).hooks(set_children=lambda p: (p.count,))
     box_mb2 = TF.VBox()
-    mb1 = TF.Modalbox(cast(Self, 0), obj=lambda p: p.box_extra, title="mb1 open")
+    mb1 = TF.Modalbox(cast("Self", 0), obj=lambda p: p.box_extra, title="mb1 open")
     mb2 = TF.Modalbox(
-        cast(Self, 0),
+        cast("Self", 0),
         obj=lambda p: p.get_mb2_widgets(),
         box=lambda p: p.box_mb2,
         title="mb2 open",

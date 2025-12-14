@@ -17,6 +17,6 @@ def test_NO_VALUE():
     assert pd.isna(NO_VALUE)
     dfa = pd.DataFrame([NO_VALUE])
     assert len(dfa) == 1
-    assert str(float(NO_VALUE)) == "nan"  # type: ignore
+    assert str(float(NO_VALUE)) == "nan"
     assert dfa.dtypes[0].kind == "f", 'NO_VALUE is also float("nan")'
     assert not is_no_value(dfa), "Dataframe should never be 'not a value'"

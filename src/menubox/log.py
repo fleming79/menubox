@@ -21,7 +21,7 @@ if _tz is None:
 TZ = _tz
 
 
-__all__ = ["START_DEBUG", "on_error_wrapped", "log_exceptions"]
+__all__ = ["START_DEBUG", "log_exceptions", "on_error_wrapped"]
 
 
 def START_DEBUG(*, to_stdio=False):
@@ -41,7 +41,7 @@ def START_DEBUG(*, to_stdio=False):
         def record_to_stdout(record):
             sys.stdout.write(record.output["text"])
 
-        assert app.logging_handler  # noqa: S101
+        assert app.logging_handler
         app.logging_handler.register_callback(record_to_stdout)
         app.log.info("Debugging enabled")
 
@@ -108,4 +108,4 @@ def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
         finally:
             callcount -= 1
 
-    return _log_exceptions(wrapped, instance)  # type: ignore
+    return _log_exceptions(wrapped, instance)  # pyright: ignore[reportCallIssue]

@@ -3,12 +3,17 @@
 import inspect
 
 import ipywidgets
-from ipywidgets import *  # type:ignore # noqa: F403
+from ipywidgets import *  # noqa: F403  # pyright: ignore[reportWildcardImportFromLibrary]
 from ipywidgets.widgets.widget_description import DescriptionStyle
 
 try:
     from ipywidgets.widgets.widget_int import ProgressStyle, SliderStyle
-    from ipywidgets.widgets.widget_string import HTMLMathStyle, HTMLStyle, LabelStyle, TextStyle
+    from ipywidgets.widgets.widget_string import (
+        HTMLMathStyle,
+        HTMLStyle,
+        LabelStyle,
+        TextStyle,
+    )
 except ImportError:
     pass
 
@@ -22,7 +27,7 @@ for k in dir(ipywidgets):
 def widget_from_string(string):
     """Create a widget from its string representation."""
 
-    inst = eval(string, all_widget_classes)  # noqa: S307
+    inst = eval(string, all_widget_classes)
     if not isinstance(inst, ipywidgets.Widget):
         msg = f"Expected a widget but got {inst.__class__} from {string=}"
         raise TypeError(msg)

@@ -42,9 +42,14 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     _update_disabled = False
     task = TF.Pending()
-    parent = TF.parent(cast(type[S], HasParent))
+    parent = TF.parent(cast("type[S]", HasParent))
 
-    def __new__(cls, cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton], parent: S, **kwargs):
+    def __new__(
+        cls,
+        cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton],
+        parent: S,
+        **kwargs,
+    ):
         return super().__new__(cls, parent=parent, cfunc=cfunc, **kwargs)
 
     def __init__(
@@ -57,8 +62,12 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         cancel_icon="stop",
         kw: Callable[[S], dict] | None = None,
         style: dict | None = None,
-        button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
-        cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
+        button_style: Literal[
+            "primary", "success", "info", "warning", "danger", ""
+        ] = "primary",
+        cancel_button_style: Literal[
+            "primary", "success", "info", "warning", "danger", ""
+        ] = "warning",
         tooltip="",
         tasktype: mb_async.TaskType = mb_async.TaskType.general,
         **kwargs,
@@ -66,12 +75,16 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         if style is None:
             style = {}
         self._cfunc = cfunc
-        self._kw: Callable[[S], dict[Any, Any]] | Callable[..., dict[Any, Any]] = kw or (lambda _: {})
+        self._kw: Callable[[S], dict[Any, Any]] | Callable[..., dict[Any, Any]] = (
+            kw or (lambda _: {})
+        )
         self._icon = icon
         self._cancel_icon = cancel_icon
         self._style = style
         self._button_style = button_style
-        self._cancel_style: Literal["primary", "success", "info", "warning", "danger", ""] = cancel_button_style
+        self._cancel_style: Literal[
+            "primary", "success", "info", "warning", "danger", ""
+        ] = cancel_button_style
         self._tooltip = tooltip
         self._tasktype = tasktype
         self.add_class(CSScls.button)
@@ -90,12 +103,14 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         self.on_click(self._on_click)
         self.log = self.parent.log
         if isinstance(b := self._cfunc(self.parent), AsyncRunButton):
-            utils.weak_observe(b, self._observe_main_button_task, "task", pass_change=True)
+            utils.weak_observe(
+                b, self._observe_main_button_task, "task", pass_change=True
+            )
             self.set_trait("task", b.task)
 
     @property
     def kw(self) -> dict:
-        assert self.parent  # noqa: S101
+        assert self.parent
         return self._kw(self.parent)
 
     @traitlets.observe("task")
@@ -123,7 +138,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
                 parent.tasks.add(pen)
                 pen.add_done_callback(parent.tasks.discard)
 
-    def _on_click(self, _: ipw.Button):  # type: ignore
+    def _on_click(self, _: ipw.Button):  # pyright: ignore[reportIncompatibleMethodOverride]
         if self.task:
             self.cancel(force=True, message="Button clicked to cancel")
         else:
@@ -142,9 +157,15 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         while isinstance(cfunc, AsyncRunButton):
             btn, cfunc = cfunc, cfunc._cfunc(cfunc.parent)
         key = btn, cfunc
-        if not restart and (pen := mb_async.singular_tasks.get(key)) and (not pen.cancelled()):
+        if (
+            not restart
+            and (pen := mb_async.singular_tasks.get(key))
+            and (not pen.cancelled())
+        ):
             return pen
-        opts = mb_async.RunAsyncOptions(obj=self.parent, tasktype=self._tasktype, restart=restart, key=key)
+        opts = mb_async.RunAsyncOptions(
+            obj=self.parent, tasktype=self._tasktype, restart=restart, key=key
+        )
         pen = mb_async.run_async(opts, cfunc, *args, **self.kw | kwargs)
         btn.set_trait("task", pen)
         pen.add_done_callback(btn._done_callback)

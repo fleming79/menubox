@@ -3,7 +3,16 @@ from __future__ import annotations
 import contextlib
 import weakref
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Generic, NotRequired, Self, TypedDict, Unpack, override
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    NotRequired,
+    Self,
+    TypedDict,
+    Unpack,
+    override,
+)
 
 from ipywidgets import Widget
 from mergedeep import Strategy, merge
@@ -65,12 +74,12 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
     """
 
     default_value = ()
-    info_text = "A tuple that can spawn new instances"  # type: ignore
+    info_text = "A tuple that can spawn new instances"  # pyright: ignore[reportIncompatibleMethodOverride, reportAssignmentType]
     validating = False
     if TYPE_CHECKING:
-        _hookmappings: InstanceHPTupleHookMappings[V, T]  # type: ignore
+        _hookmappings: InstanceHPTupleHookMappings[V, T]  # pyright: ignore[reportIncompatibleVariableOverride]
 
-        def __new__(  # type: ignore
+        def __new__(
             cls,
             klass: type[T] | str | UnionType,
             *,
@@ -91,14 +100,14 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
 
     def __set_name__(self, owner: ValueTraits, name: str):
         # Register this tuplename with owner (class)
-        self.name = name  # type: ignore
+        self.name = name
         d = dict(owner._InstanceHPTuple or {})
         if not owner._InstanceHPTuple:
             # Check for inheritance from other classes
-            for cls in owner.__class__.mro(owner.__class__):  # type: ignore
+            for cls in owner.__class__.mro(owner.__class__):  # pyright: ignore[reportCallIssue]
                 if issubclass(cls, ValueTraits) and cls._InstanceHPTuple:
                     d.update(cls._InstanceHPTuple)
-        owner._InstanceHPTuple = d | {name: self}  # type: ignore
+        owner._InstanceHPTuple = d | {name: self}  # pyright: ignore[reportAttributeAccessIssue]
 
     @staticmethod
     def _all_traits(obj):
@@ -116,32 +125,41 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         klass: type[T] | str | UnionType,
         *,
         default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
-        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
+        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](
+            **c["kwgs"]
+        ),
         default_value: tuple[T, ...] = (),
         read_only=False,
         co_: V | Any = None,
     ):
         """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
-        self.trait = InstanceHP(klass, lambda _: "Default should not be called for InstanceHPTuple.trait")  # type: ignore
+        self.trait = InstanceHP(
+            klass, lambda _: "Default should not be called for InstanceHPTuple.trait"
+        )  # pyright: ignore[reportCallIssue, reportArgumentType]
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
-        super().__init__(klass, default, default_value=default_value, co_=co_)  # type: ignore
+        super().__init__(klass, default, default_value=default_value, co_=co_)  # pyright: ignore[reportArgumentType]
         self._factory = factory
         self.read_only = read_only
-        self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = weakref.WeakKeyDictionary()  # type: ignore
+        self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = (
+            weakref.WeakKeyDictionary()
+        )  # pyright: ignore[reportIncompatibleVariableOverride, reportGeneralTypeIssues]
 
     def class_init(self, cls: type[Any], name: str | None) -> None:
         super().class_init(cls, name)
         self.trait.class_init(cls, None)
 
-    def subclass_init(self, cls: type[Self]):  # type: ignore
+    def subclass_init(self, cls: type[Self]):  # pyright: ignore[reportIncompatibleMethodOverride]
         if not issubclass(cls, ValueTraits):
             msg = "InstanceHPTuple is only compatible with ValueTraits or a subclass."
             raise TypeError(msg)
         super().subclass_init(cls)
         # Required to ensure instance_init is always called during init
-        if hasattr(cls, "_instance_inits") and self.instance_init not in cls._instance_inits:
+        if (
+            hasattr(cls, "_instance_inits")
+            and self.instance_init not in cls._instance_inits
+        ):
             cls._instance_inits.append(self.instance_init)
 
     def instance_init(self, obj: V):
@@ -150,12 +168,16 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         super().instance_init(obj)
         utils.weak_observe(obj, self._on_change, names=self.name, pass_change=True)
 
-    def _validate(self, obj: V, value: Iterable) -> tuple[T, ...]:  # type: ignore
+    def _validate(self, obj: V, value: Iterable) -> tuple[T, ...]:
         if obj.closed:
             return ()
         try:
             if self.validating:
-                return getattr(obj, self.name) if obj.trait_has_value(self.name) else self.default_value  # type: ignore
+                return (
+                    getattr(obj, self.name)
+                    if obj.trait_has_value(self.name)
+                    else self.default_value
+                )
             with self._busy_validating():
                 values = []
                 for i, v in enumerate(value):
@@ -174,7 +196,9 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                             raise
                     if val is None:
                         continue
-                    if id(val) not in map(id, values) and not getattr(val, "closed", False):
+                    if id(val) not in map(id, values) and not getattr(
+                        val, "closed", False
+                    ):
                         values.append(val)
                 return tuple(values)
         except Exception as e:
@@ -197,7 +221,9 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             msg = f"Cannot create a new instance because a factory is not specified for {self!r}"
             raise RuntimeError(msg)
         kw = {"parent": obj} | kw if self._hookmappings.get("set_parent", False) else kw
-        c = IHPCreate(name=self.name, owner=obj, klass=self.trait.finalize().klass, kwgs=kw)
+        c = IHPCreate(
+            name=self.name, owner=obj, klass=self.trait.finalize().klass, kwgs=kw
+        )
         inst = self._factory(c)
         self.trait._validate(obj, inst)
         return inst
@@ -236,7 +262,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         return None
 
     @override
-    def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:  # type: ignore
+    def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Hooks to modify the behaviour of the tuple analogous to hooks in InstanceHP.
 
         kwgs
@@ -257,7 +283,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             To support restoring values by index for a instances of objects that aren't subclassed
             from ValueTraits, but have a `value` trait: use the hook `update_by = menubox.defaults.INDEX`."""
         if kwgs:
-            merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # type:ignore
+            merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # pyright: ignore[reportArgumentType]
         return self
 
     def _on_add(self, obj: V, value: T):
@@ -265,7 +291,9 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             value.parent = obj
         if isinstance(value, HasParent | Widget) and value not in self._close_observers:
             names = "closed" if isinstance(value, HasParent) else "comm"
-            handle = utils.weak_observe(value, self._observe_obj_closed, names, False, weakref.ref(obj), names)
+            handle = utils.weak_observe(
+                value, self._observe_obj_closed, names, False, weakref.ref(obj), names
+            )
             self._close_observers[value] = handle, names
         if on_add := self._hookmappings.get("on_add"):
             try:
@@ -274,28 +302,34 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                 obj.on_error(e, f"on_add callback for {self!r}")
 
     def _on_remove(self, obj: V, value: T):
-        if isinstance(value, HasParent | Widget) and (args := self._close_observers.pop(value, None)):
+        if isinstance(value, HasParent | Widget) and (
+            args := self._close_observers.pop(value, None)
+        ):
             value.unobserve(*args)
         if self._hookmappings.get("close_on_remove") and hasattr(value, "close"):
-            value.close()  # type: ignore
+            value.close()  # pyright: ignore[reportAttributeAccessIssue]
         if on_remove := self._hookmappings.get("on_remove"):
             try:
                 on_remove(IHPSet(name=self.name, owner=obj, obj=value))
             except Exception as e:
-                obj.on_error(e, f"on_remove callback for {self!r}")
+                obj.on_error(e, msg=f"on_remove callback for {self!r}")
 
     def tag(self, **kw):
         raise NotImplementedError
 
     def _observe_obj_closed(self, ref: weakref.ref[V], name: str):
         if (parent := ref()) and not parent.closed:
-            filt = (lambda obj: not obj.closed) if name == "closed" else lambda obj: obj.comm
+            filt = (
+                (lambda obj: not obj.closed)
+                if name == "closed"
+                else lambda obj: obj.comm
+            )
             values = filter(filt, getattr(parent, self.name))
             parent.set_trait(self.name, values)
 
     def _on_change(self, change: ChangeType):
         # Collect pairs and update register
-        obj: V = change["owner"]  # type: ignore
+        obj: V = change["owner"]  # pyright: ignore[reportAssignmentType]
         if obj.closed:
             return
         obj._vt_update_reg_tuples(self.name)

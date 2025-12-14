@@ -22,16 +22,16 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "deep_copy",
     "json_default",
+    "load_yaml",
     "to_dict",
-    "to_list",
     "to_json_dict",
     "to_json_list",
+    "to_list",
+    "to_yaml",
     "to_yaml_dict",
     "to_yaml_list",
-    "load_yaml",
-    "to_yaml",
-    "deep_copy",
 ]
 
 
@@ -66,12 +66,12 @@ def json_default(obj, unknown_to_str=False):
         return df.to_dict()
     if callable(v := getattr(obj, "to_dict", None)):
         return v()
-    if pd.isna(obj):  # type: ignore
+    if pd.isna(obj):
         return None
     if isinstance(obj, pathlib.Path):
         return obj.as_posix()
     if hasattr(obj, "_repr_keys"):
-        return {k: getattr(obj, k) for k in obj._repr_keys()}  # type: ignore
+        return {k: getattr(obj, k) for k in obj._repr_keys()}
     if isinstance(obj, bytes):
         try:
             return orjson.loads(obj)
@@ -110,10 +110,10 @@ def to_dict(x) -> dict:
         try:
             if isinstance(val := orjson.loads(x), dict):
                 return val
-        except Exception:  # noqa: S110
+        except Exception:
             pass
         x = load_yaml(x)
-    return dict(x)  # type: ignore
+    return dict(x)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
 
 def to_list(x) -> list:
@@ -143,11 +143,11 @@ def to_list(x) -> list:
         try:
             if isinstance(val := orjson.loads(x), list):
                 return val
-        except Exception:  # noqa: S110
+        except Exception:
             pass
         return to_list(load_yaml(x))
     try:
-        return list(x)  # type: ignore
+        return list(x)  # pyright: ignore[reportArgumentType]
     except Exception:
         return [x]
 
@@ -186,14 +186,19 @@ if TYPE_CHECKING:
     @overload
     def to_yaml(data) -> str: ...
     @overload
-    def to_yaml(data, walkstring: bool) -> str: ...  # noqa: FBT001
+    def to_yaml(data, walkstring: bool) -> str: ...
     @overload
-    def to_yaml(data, walkstring: bool, fs: None, path: None) -> str: ...  # noqa: FBT001
+    def to_yaml(data, walkstring: bool, fs: None, path: None) -> str: ...
     @overload
-    def to_yaml(data, walkstring: bool, fs: AbstractFileSystem, path: str) -> None: ...  # noqa: FBT001
+    def to_yaml(data, walkstring: bool, fs: AbstractFileSystem, path: str) -> None: ...
 
 
-def to_yaml(data: Any, walkstring=True, fs: AbstractFileSystem | None = None, path: str | None = None) -> str | None:
+def to_yaml(
+    data: Any,
+    walkstring=True,
+    fs: AbstractFileSystem | None = None,
+    path: str | None = None,
+) -> str | None:
     """Convert data to yaml string or write to path.
 
     walkstring: Will check for multiline strings and pass them.
@@ -227,4 +232,6 @@ def to_yaml(data: Any, walkstring=True, fs: AbstractFileSystem | None = None, pa
 def deep_copy[T](obj: T, unknown_to_str=False) -> T:
     """Deep copy by orjson roundtrip."""
     _json_default = functools.partial(json_default, unknown_to_str=unknown_to_str)
-    return orjson.loads(orjson.dumps(obj, default=_json_default, option=orjson.OPT_SERIALIZE_NUMPY))
+    return orjson.loads(
+        orjson.dumps(obj, default=_json_default, option=orjson.OPT_SERIALIZE_NUMPY)
+    )

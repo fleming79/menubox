@@ -19,10 +19,16 @@ Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.Menubox):
-    a = InstanceHP("tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])).configure(TF.IHPMode.XL_N)
-    b = InstanceHP("tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])).configure(TF.IHPMode.X___)
+    a = InstanceHP(
+        "tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])
+    ).configure(TF.IHPMode.XL_N)
+    b = InstanceHP(
+        "tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])
+    ).configure(TF.IHPMode.X___)
     my_button = TF.Button(description="A button")
-    box = TF.HBox().hooks(set_children={"dottednames": ("my_button",), "mode": "monitor"})
+    box = TF.HBox().hooks(
+        set_children={"dottednames": ("my_button",), "mode": "monitor"}
+    )
     clicked = 0
 
     async def button_clicked(self, b: ipw.Button):
@@ -34,10 +40,12 @@ class HPI(mb.Menubox):
 
 
 class HPI2(HasHome, HPI, mb.MenuboxVT):
-    c = InstanceHP(HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
+    c = InstanceHP(HPI, default=lambda _: HPI(name="C has value")).hooks(
+        set_parent=False
+    )
     e = Dropdown(description="From a factory").configure(TF.IHPMode.XLRN)
-    select_repository = TF.SelectRepository(cast(Self, 0))
-    button = TF.AsyncRunButton(cast(Self, 0), cfunc=lambda p: p._button_async)
+    select_repository = TF.SelectRepository(cast("Self", 0))
+    button = TF.AsyncRunButton(cast("Self", 0), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
 
     async def _button_async(self):
@@ -47,7 +55,9 @@ class HPI2(HasHome, HPI, mb.MenuboxVT):
 class HPI3(mb.Menubox):
     box = TF.Box().configure(TF.IHPMode.XLRN)
     menubox = TF.Menubox(views={"main": None}).configure(TF.IHPMode.XLRN)
-    hpi2 = TF.InstanceHP(HPI2, default=lambda _: HPI2(home="test")).configure(TF.IHPMode.XLRN)
+    hpi2 = TF.InstanceHP(HPI2, default=lambda _: HPI2(home="test")).configure(
+        TF.IHPMode.XLRN
+    )
 
 
 class HPI4(HasHome):
@@ -80,7 +90,7 @@ class TestInstance:
         assert hp2.b.parent is hp2
         assert hp2.b.b is hp1
         hp2.log.info("About to test a raised exception.")
-        with pytest.raises(TraitError, match="already a parent."):
+        with pytest.raises(TraitError, match="already a parent"):
             hp2.set_trait("b", hp2)
         hp2_b = hp2.b
         hp2.set_trait("b", await HPI())
@@ -111,14 +121,18 @@ class TestInstance:
         assert hp1.clicked == 1, "Should have connected the button"
         assert hp1.box, "Loading children is debounced"
         await anyio.sleep(0.1)  # ChildSetter.update is debounced
-        assert hp1.my_button in hp1.box.children, "children for HBox_C should be added by a ChildSetter"
+        assert hp1.my_button in hp1.box.children, (
+            "children for HBox_C should be added by a ChildSetter"
+        )
         b2 = ipw.Button()
         hp1.set_trait("my_button", b2)
         b2.click()
         await hp1.wait_tasks()
         assert hp1.clicked == 2, "Should have connected b2"
         await anyio.sleep(0.1)
-        assert b2 in hp1.box.children, "'set_children' with mode='monitor' should update box.children"
+        assert b2 in hp1.box.children, (
+            "'set_children' with mode='monitor' should update box.children"
+        )
 
         # Test can regenerate
         assert not hp1.a
@@ -144,14 +158,16 @@ class TestInstance:
             union = InstanceHP(
                 str | int,
                 lambda _: 2,
-                validate=lambda _, value: min(value, 10) if isinstance(value, int) else value,
-                co_=cast(Self, 0),
+                validate=lambda _, value: min(value, 10)
+                if isinstance(value, int)
+                else value,
+                co_=cast("Self", 0),
             )
 
         obj = TestUnion()
         assert obj.union == 2
         with pytest.raises(TraitError, match="read-only"):
-            obj.union = "abc"  # type: ignore
+            obj.union = "abc"  # pyright: ignore[reportAttributeAccessIssue]
         assert obj.union == 2
         obj.set_trait("union", "abc")
         assert obj.union == "abc"
@@ -162,7 +178,7 @@ class TestInstance:
         hpi3 = HPI3()
         with pytest.raises(
             TraitError,
-            match="The 'hpi2' trait of a HPI3 instance expected an instance of `HPI2` or `None`, not the int 0.",
+            match="The 'hpi2' trait of a HPI3 instance expected an instance of `HPI2` or `None`, not the int 0",
         ):
             hpi3.set_trait("hpi2", 0)
 

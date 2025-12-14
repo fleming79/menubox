@@ -7,7 +7,15 @@ import toolz
 from ipywidgets import Widget
 from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
-__all__ = ["Bunched", "NameTuple", "StrTuple", "TypedTuple", "ChangeType", "ProposalType", "FromParent"]
+__all__ = [
+    "Bunched",
+    "ChangeType",
+    "FromParent",
+    "NameTuple",
+    "ProposalType",
+    "StrTuple",
+    "TypedTuple",
+]
 
 if TYPE_CHECKING:
     from menubox.filesystem import HasFilesystem
@@ -50,7 +58,11 @@ class ProposalType(TypedDict):
 
 
 type GetWidgetsInputType[T] = (
-    None | str | Widget | Callable[[T], GetWidgetsInputType[T]] | Iterable[GetWidgetsInputType[T]]
+    None
+    | str
+    | Widget
+    | Callable[[T], GetWidgetsInputType[T]]
+    | Iterable[GetWidgetsInputType[T]]
 )
 
 
@@ -60,17 +72,22 @@ type ViewDictType[T] = Mapping[str, GetWidgetsInputType[T]]
 class Bunched(Bunch):
     """A distinct bunch (hashable)"""
 
-    def __hash__(self):  # type: ignore
+    def __hash__(self):  # pyright: ignore[reportIncompatibleVariableOverride]
         # hash here should be distinct
         # for other hash ideas: https://stackoverflow.com/questions/1151658/python-hashable-dicts#1151705
         return id(self)
 
 
 class TypedTuple(TraitType[tuple[T, ...], Iterable[T]]):
-    name: str  # type: ignore
+    name: str  # pyright: ignore[reportIncompatibleVariableOverride]
     info_text = "A trait for a tuple of any length with type-checked elements."
 
-    def __init__(self, trait: TraitType[T, T] | InstanceHP[Any, T, Any], default_value=(), **kwargs: Any) -> None:
+    def __init__(
+        self,
+        trait: TraitType[T, T] | InstanceHP[Any, T, Any],
+        default_value=(),
+        **kwargs: Any,
+    ) -> None:
         if not isinstance(trait, TraitType):
             msg = f"{trait=} is not a TraitType"
             raise TypeError(msg)
@@ -97,7 +114,7 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
     "A Trait for a tuple of strings."
 
     info_text = "A tuple of any length of str."
-    name: str  # type: ignore
+    name: str  # pyright: ignore[reportIncompatibleVariableOverride]
     _trait_klass = Unicode
     default_value: tuple[str, ...] = ()
 
@@ -110,7 +127,11 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
         super().__init__(tuple(self._iterate(default_value)), **kwargs)
 
     def validate(self, obj, value):
-        return tuple(self._iterate(self._trait._validate(obj, v) for v in value)) if value else ()
+        return (
+            tuple(self._iterate(self._trait._validate(obj, v) for v in value))
+            if value
+            else ()
+        )
 
     def _iterate(self, value):
         yield from value
@@ -119,7 +140,9 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
 class NameTuple(StrTuple):
     """A Trait for a tuple of unique dotted object names."""
 
-    info_text = "A tuple of any length of unique object trait_names (duplicates discarded.)"
+    info_text = (
+        "A tuple of any length of unique object trait_names (duplicates discarded.)"
+    )
     _trait_klass = DottedObjectName
 
     def _iterate(self, value):

@@ -25,7 +25,7 @@ class Repository(MenuboxPersist):
     title_description_tooltip = TF.Str("{self.repository}")
     target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
-    views = TF.ViewDict(cast(Self, 0), {"Main": lambda p: p.target_filesystem})
+    views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.target_filesystem})
     value_traits_persist = NameTuple("target_filesystem")
 
     def __init__(self, name: str, **kwgs):
@@ -52,7 +52,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     box_center = TF.HBox()
     repository = TF.InstanceHP(Repository).configure(TF.IHPMode.X__N)
     repository_name = TF.Combobox(
-        cast(Self, 0),
+        cast("Self", 0),
         description="Repository",
         placeholder="Home repository",
         tooltip="Enter the name of the repository to use. A blank name is the home default repository. The repository will appear in the list only once it has been saved.",
@@ -62,7 +62,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         on_set=lambda c: c["owner"].update_repository_name_options(),
     )
     button_select_repository = TF.Button(
-        cast(Self, 0),
+        cast("Self", 0),
         TF.CSScls.button_menu,
         icon="ellipsis-h",
         tooltip="Select/create a new repository (Enter a new repository name to create a new repository).",
@@ -70,10 +70,21 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     title_description = TF.Str("root: {self.filesystem.root}")
     header_children = StrTuple()
     views = TF.ViewDict(
-        cast(Self, 0), {"Main": lambda p: [p.repository_name, p.button_select_repository, p.html_title]}
+        cast("Self", 0),
+        {
+            "Main": lambda p: [
+                p.repository_name,
+                p.button_select_repository,
+                p.html_title,
+            ]
+        },
     )
     value_traits = NameTuple(
-        *MenuboxVT.value_traits, "repository", "repository_name", "filesystem.url", "repository.saved_timestamp"
+        *MenuboxVT.value_traits,
+        "repository",
+        "repository_name",
+        "filesystem.url",
+        "repository.saved_timestamp",
     )
 
     @override
@@ -86,14 +97,18 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
                 else:
                     self.set_trait("repository", self.repository)
         if change["name"] == "repository":
-            filesystem: Filesystem = getattr(self.repository, "target_filesystem", None) or self.filesystem
+            filesystem: Filesystem = (
+                getattr(self.repository, "target_filesystem", None) or self.filesystem
+            )
             self.set_trait("filesystem", filesystem)
         self.mb_refresh()
         self.update_repository_name_options()
 
     @mb_async.debounce(0.1)
     async def update_repository_name_options(self):
-        self.repository_name.options = await Repository.list_stored_datasets(self.home.filesystem)
+        self.repository_name.options = await Repository.list_stored_datasets(
+            self.home.filesystem
+        )
 
     @override
     async def button_clicked(self, b: Button):

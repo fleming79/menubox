@@ -35,8 +35,8 @@ dependencies = [
   "docstring_to_markdown",
   "aiologic>=0.15.0",
    "anyio",
-  "async-kernel>=0.10,<0.11",
-  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.9/ipylab-2.0.9-py3-none-any.whl#sha256:a3e966565bce704804667a36bd9924c3b1ba340b44cdd4b3e84a7ad025912330"
+  "async-kernel>=0.10.1,<0.11",
+  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.9/ipylab-2.0.9-py3-none-any.whl#sha256:b91778dfa5bda71d9b93991417a9e9b0d2f999b2ab6a6d543e3ee53eb4b6d7ee"
 ]
 [dependency-groups]
 dev =[
@@ -46,6 +46,8 @@ dev =[
   "pytest >= 8.3",
   "pre-commit",
   "pytest-mock",
+    "basedpyright",
+  "pandas-stubs",
 ]
 
 [project.urls]
@@ -57,17 +59,19 @@ Source = "https://github.com/fleming79/menubox"
 path = "src/menubox/__about__.py"
 
 
-[tool.hatch.envs.default.scripts]
-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=menubox --cov=tests {args}"
-no-cov = "cov --no-cov {args}"
-
+[tool.pytest.ini_options]
+minversion = "6.0"
+xfail_strict = true
+log_cli_level =  "INFO"
+addopts = [
+  "-raXs", "--durations=10", "--color=yes",
+   "--showlocals", "--strict-markers", "--strict-config",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 
-[tool.hatch.envs.hatch-static-analysis]
-config-path = "ruff_defaults.toml"
 
 [tool.coverage.run]
 branch = true
@@ -75,32 +79,55 @@ parallel = true
 
 filterwarnings = ["error", "ignore::UserWarning"]
 [tool.ruff]
-extend = "ruff_defaults.toml"
 target-version = "py312"
 
-[tool.ruff.lint.pylint]
-max-args = 8
+
 [tool.ruff.lint]
 extend-select = [
-  "PTH",  # flake8-use-pathlib
-  "NPY",  # NumPy specific rules
-  "PD",   # pandas-vet
-  "FURB", # refurb
+  "B",        # flake8-bugbear
+  "I",        # isort
+  "F",        # Pyflakes
+  "ARG",      # flake8-unused-arguments
+  "C4",       # flake8-comprehensions
+  "EM",       # flake8-errmsg
+  "ICN",      # flake8-import-conventions
+  "G",        # flake8-logging-format
+  "PERF",     # Perflint
+  "PGH",      # pygrep-hooks
+  "PIE",      # flake8-pie
+  "PL",       # pylint
+  "PLR",      # Refactor
+  "PT",       # flake8-pytest-style
+  "PTH",      # flake8-use-pathlib
+  "RET",      # flake8-return
+  "RUF",      # Ruff-specific
+  "SIM",      # flake8-simplify
+  "T20",      # flake8-print
+  "TRY",      # tryceratops
+  "FURB",     # Refurb
+  "UP",       # pyupgrade
+  "YTT",      # flake8-2020
+  "EXE",      # flake8-executable
+  "NPY",      # NumPy specific rules
+  "PD",       # pandas-vet
+  "PYI",      # flake8-pyi
+  "TC",       # flake8-type-checking
 ]
 ignore = [
-  "ARG002",
-  "G004",
-  "RUF002",
-  "BLE001",
-  "N802",
-  "PD901",
-  "PLR0912",
-  "PLR0915",
-  "PLR2004",
-  "PLR0913",
-  "SLF001",
-  "TC004",
-  "FBT002",
+  "PLR",    # Design related pylint codes
+  "B027", # Allow non-abstract empty methods in abstract base classes
+  "T201", # `print` found
+  "SIM105", # Use `contextlib.suppress(ValueError)` instead of try-except-pass
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "ARG001", # Unused function argument
+  "ARG002",  # Unused method argument
+  "PTH123", # `open()` should be replaced by `Path.open()`
+  "UP031", # Use format specifiers instead of percent format
+  "UP046", # Generic
+  "PT023", # Use `@pytest.mark.skip` over `@pytest.mark.skip()`
+  # "PGH003",
+  "PLC0415", # Import should be at top of file.
+  "G004", # Logging statement uses f-string
 ]
 [tool.ruff.format]
 docstring-code-format = true

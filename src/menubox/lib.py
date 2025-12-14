@@ -27,4 +27,4 @@ def add_css_stylesheet():
 
 @hookimpl
 def get_icon(obj: Menubox):
-    return ipylab.Icon(name=f"{obj!s}-{id(obj)}", svgstr="")
+    return ipylab.Icon()

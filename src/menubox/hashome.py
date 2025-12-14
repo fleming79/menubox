@@ -35,7 +35,7 @@ class Home(Singular):
     @override
     @classmethod
     def get_single_key(cls, name: str, **kwgs) -> Hashable:
-        assert isinstance(name, str)  # noqa: S101
+        assert isinstance(name, str)
         return name
 
     def __new__(cls, name: str | Home, **kwgs):
@@ -94,7 +94,13 @@ class HasHome(HasParent):
         name = self.name
         return f"<{cs}{self.__class__.__name__} {home=} {name=}>"
 
-    def __new__(cls, *, home: Home | str | None = None, parent: HasParent | None = None, **kwargs) -> Self:
+    def __new__(
+        cls,
+        *,
+        home: Home | str | None = None,
+        parent: HasParent | None = None,
+        **kwargs,
+    ) -> Self:
         home = cls.to_home(home, parent)
         inst = super().__new__(cls, home=home, parent=parent, **kwargs)
         if not inst.trait_has_value("home"):

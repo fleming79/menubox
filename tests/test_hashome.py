@@ -23,6 +23,6 @@ async def test_has_home(home: Home):
     hh1 = HasHome(home=home)
     assert hh1.home is home
     with pytest.raises(traitlets.TraitError):
-        hh1.home = home  # type: ignore
+        hh1.home = home  # pyright: ignore[reportAttributeAccessIssue]
     hh2 = HasHome(parent=hh1)
     assert hh2.parent is hh1

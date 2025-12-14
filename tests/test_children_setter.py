@@ -15,7 +15,7 @@ from menubox.trait_types import NameTuple
 
 class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
     views = TF.ViewDict(
-        cast(Self, 0),
+        cast("Self", 0),
         {
             "view a": lambda _: (ipw.Button(description="Button"), ipw.HTML("HTML")),
             "view b": lambda p: (p.button, p.dropdown),
@@ -29,12 +29,21 @@ class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
 class ChildrenSetterTester(mb.MenuboxVT):
     dropdown = TF.Dropdown(description="dropdown")
     label = TF.Label(value="Label")
-    dd_no_default = TF.Dropdown(description="Label no default").configure(TF.IHPMode.X_RN)
-    nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(TF.IHPMode.XLRN)
+    dd_no_default = TF.Dropdown(description="Label no default").configure(
+        TF.IHPMode.X_RN
+    )
+    nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(
+        TF.IHPMode.XLRN
+    )
     dynamic_box = TF.Box().hooks(
         set_children={
             "mode": "monitor",
-            "dottednames": ("dd_no_default", "dropdown", "nested.dropdown", "nested.button"),
+            "dottednames": (
+                "dd_no_default",
+                "dropdown",
+                "nested.dropdown",
+                "nested.button",
+            ),
         },
     )
     dynamic_box_nametuple_children = NameTuple("label")
@@ -56,7 +65,9 @@ class ChildrenSetterTester(mb.MenuboxVT):
 )
 async def test_children_setter_manual(dottednames: tuple):
     cto = ChildrenSetterTester()
-    children_setter = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
+    children_setter = ChildrenSetter(
+        parent=cto, name="plain_box", dottednames=dottednames
+    )
     await children_setter.wait_tasks()
     assert children_setter.dottednames == dottednames
     widgets = tuple(cto.get_widgets(dottednames))
@@ -98,7 +109,11 @@ async def test_children_setter_builtin():
     assert cto.dynamic_box
     await anyio.sleep(0.1)
     assert cto.nested
-    assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
+    assert cto.dynamic_box.children == (
+        cto.dropdown,
+        cto.nested.dropdown,
+        cto.nested.button,
+    )
 
 
 async def test_children_setter_enable():
@@ -107,7 +122,12 @@ async def test_children_setter_enable():
     cto.enable_ihp("dd_no_default")
     await anyio.sleep(0.1)
     assert cto.nested
-    assert cto.dynamic_box.children == (cto.dd_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
+    assert cto.dynamic_box.children == (
+        cto.dd_no_default,
+        cto.dropdown,
+        cto.nested.dropdown,
+        cto.nested.button,
+    )
 
 
 async def test_children_setter_hide():
@@ -126,12 +146,26 @@ async def test_children_setter_nametuple():
     assert cto.dynamic_box_nametuple.children == (cto.label,)
 
     # Check we can dynamically adjust the children
-    cto.dynamic_box_nametuple_children = ("label", "dropdown", "nested.dropdown", "nested.button")
+    cto.dynamic_box_nametuple_children = (
+        "label",
+        "dropdown",
+        "nested.dropdown",
+        "nested.button",
+    )
     await anyio.sleep(0.1)
     assert cto.nested
-    assert cto.dynamic_box_nametuple.children == (cto.label, cto.dropdown, cto.nested.dropdown, cto.nested.button)
+    assert cto.dynamic_box_nametuple.children == (
+        cto.label,
+        cto.dropdown,
+        cto.nested.dropdown,
+        cto.nested.button,
+    )
 
     # Check still dynamically updates
     utils.hide(cto.dropdown)
     await anyio.sleep(0.1)
-    assert cto.dynamic_box_nametuple.children == (cto.label, cto.nested.dropdown, cto.nested.button)
+    assert cto.dynamic_box_nametuple.children == (
+        cto.label,
+        cto.nested.dropdown,
+        cto.nested.button,
+    )
