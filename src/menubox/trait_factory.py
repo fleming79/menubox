@@ -357,6 +357,10 @@ class TF:
     SelectMultipleValidate = staticmethod(
         ihpwrap(menubox.widgets.SelectMultipleValidate, defaults={"value": ()})
     )
+    DropdownAdd = staticmethod(
+        ihpwrap(menubox.widgets.DropdownAdd, defaults={"value": None})
+    )
+
     MarkdownOutput = staticmethod(ihpwrap(menubox.widgets.MarkdownOutput))
 
     # menubox

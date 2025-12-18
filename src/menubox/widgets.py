@@ -54,6 +54,9 @@ class ValidateWidget(ipw.ValueWidget):
         2. specified using dynamic default with [traitlets.default](https://traitlets.readthedocs.io/en/stable/api.html#dynamic-default-values).
 
     If subclassing, `validate` and `check_equality` can be overloaded as methods.
+
+    Notes:
+        - `value = ValidatedTrait(None).tag(sync=True)` must be added to the subclass.
     """
 
     _skip_validate = False
@@ -179,3 +182,18 @@ class MarkdownOutput(ipylab.SimpleOutput):
     @mb_async.debounce(1)
     async def update(self) -> None:
         self._converted_value = self.converter(self.value)
+
+
+class DropdownAdd(ipw.Dropdown, ValidateWidget):
+    "A dropdown that adds the value to its options when it is set."
+
+    value = ValidatedTrait(()).tag(sync=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_validate_func(self.validate)
+
+    def validate(self, value):
+        if value is not None and value not in self.options:
+            self.set_trait("options", (*self.options, value))
+        return value
