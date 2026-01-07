@@ -27,4 +27,10 @@ def add_css_stylesheet():
 
 @hookimpl
 def get_icon(obj: Menubox):
+    if (
+        (parent := obj.parent)
+        and (title := getattr(parent, "title", None))
+        and isinstance(icon := getattr(title, "icon", None), ipylab.Icon)
+    ):
+        return icon
     return ipylab.Icon()
