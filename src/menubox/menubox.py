@@ -145,8 +145,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     task_load_view = TF.Pending()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
-    out_help = TF.MarkdownOutput().hooks(
-        add_css_class=(CSScls.resize_both, CSScls.nested_borderbox)
+    out_help = TF.MarkdownOutput(layout={"height": "400px"}).hooks(
+        add_css_class=(CSScls.resize_vertical, CSScls.nested_borderbox)
     )
 
     # Buttons
@@ -519,7 +519,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             children = (header,) if (header := self.get_header()) else ()
             center = self.get_widgets(self.center)
             if self.show_help and (help_widget := self._get_help_widget()):
-                children = (*children, help_widget)
+                children = (*children, self.button_help, help_widget)
             if box := self.box_center:
                 box.children = center
                 children = (*children, box)
@@ -528,7 +528,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self._simple_outputs:
             self.mb_refresh()
         else:
-            self.set_trait("children", children)
+            self.set_trait("children", self.get_widgets(children))
             if self.border is not None:
                 self.layout.border = self.border if self.view else ""
 

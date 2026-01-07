@@ -360,7 +360,7 @@ class TestMenubox:
                 await m
                 assert m.view == "a"
             case "button_help":
-                assert len(m.children) == 3
+                assert len(m.children) == 4
                 b.click()
                 await m.wait_tasks()
                 await m
