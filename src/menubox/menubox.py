@@ -71,7 +71,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
     MINIMIZED: Final = "Minimized"
     RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
-    HELP_HEADER_TEMPLATE = "<h3>ℹ️ {self.__class__.__qualname__}</h3>\n\n"  # noqa: RUF001
     _setting_view = False
     _mb_configured = False
     _Menubox_init_complete = False
@@ -644,20 +643,16 @@ class Menubox(HasParent, Panel, Generic[RP]):
         Returns:
             ipywidgets.Output: An output widget containing the formatted help text.
         """
-        doc = (getattr(self, "help", None) or self.__doc__ or "No help found").split(
-            "\n", maxsplit=1
-        )
-        help_ = self.fstr(self.HELP_HEADER_TEMPLATE)
-        help_ = (
-            help_ + doc[0] + ("\n" + textwrap.dedent(doc[1]) if len(doc) == 2 else "")
-        )
+        doc = getattr(self, "help", None) or self.__doc__ or "No help found"
+        help_ = textwrap.dedent(doc)
         with contextlib.suppress(Exception):
             help_ = docstring_to_markdown.convert(help_)
         self.out_help.value = help_
         return self.out_help
 
     def update_title(self):
-        """Updates the title and tooltip of the menubox.
+        """
+        Updates the title and tooltip of the menubox.
 
         If the view or title description is not available, the function returns early.
         Otherwise, it enables the 'html_title' widget and formats the title description and tooltip.
