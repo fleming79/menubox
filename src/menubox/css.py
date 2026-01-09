@@ -45,9 +45,9 @@ class CSSvar(enum.StrEnum):
 class CSScls(enum.StrEnum):
     "CSS class names to use in the css stylesheet."
 
-    resize_both = f"{PREFIX}-resize-both"
-    resize_horizontal = f"{PREFIX}-resize-horizontal"
-    resize_vertical = f"{PREFIX}-resize-vertical"
+    resize_both = "ipylab-ResizeBoth"
+    resize_horizontal = "ipylab-ResizeHorizontal"
+    resize_vertical = "ipylab-ResizeVertical"
 
     tab_button = f"{PREFIX}-tab-button"
 
@@ -117,10 +117,6 @@ VARIABLES = {
 }
 
 STYLESHEET = f"""
-.{CSScls.resize_both} {{ resize: both;}}
-.{CSScls.resize_horizontal} {{ resize: horizontal;}}
-.{CSScls.resize_vertical} {{ resize: vertical;}}
-
 .{CSScls.button} {{width: max-content; flex: 0 0 auto;}}
 
 .{CSScls.button}.{CSScls.button_main} {{
