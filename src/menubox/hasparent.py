@@ -312,7 +312,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
             msg (str): The error message to log.
             obj (Any, optional): An object associated with the error. Defaults to None.
         """
-        self.log.exception(msg, obj=obj, exc_info=error)
+        if not isinstance(error, mb_async.PendingCancelled):
+            self.log.exception(msg, obj=obj, exc_info=error)
 
     def enable_ihp(self, name: str, *, override: dict | None = None) -> Self:
         """Enable a InstanceHP trait.

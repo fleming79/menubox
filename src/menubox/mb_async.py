@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 import anyio
 import wrapt
 from async_kernel import Caller
-from async_kernel.pending import Pending
+from async_kernel.pending import Pending, PendingCancelled
 from ipylab import JupyterFrontEnd
 
 import menubox as mb
@@ -84,9 +84,9 @@ def _on_done_callback(pen: Pending):
     ):
         if obj:
             if not obj.closed:
-                obj.on_error(error, msg="run sync failed")
-        else:
-            mb.log.on_error(error, msg="run sync failed")
+                obj.on_error(error, msg="run async failed")
+        elif not isinstance(error, PendingCancelled):
+            mb.log.on_error(error, msg="run async failed")
 
     obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
