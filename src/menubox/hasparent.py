@@ -375,6 +375,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
             return
         super().close()
         # Make the object mostly un-responsive
+        for pen in self.tasks:
+            pen.cancel(f"{self} is closed!")
         for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
             d = getattr(self, n, None)
             if isinstance(d, dict):
