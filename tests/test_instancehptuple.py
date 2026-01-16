@@ -180,9 +180,9 @@ class TestValueTraits:
         hhp2.somelist = (ipw.Text(description="Is a member"),)
         assert len(hhp2.somelist) == 1
         assert not hhp2.somelist[0].value
-        hhp2.somelist = (
+        hhp2.somelist = (  # pyright: ignore[reportAttributeAccessIssue]
             {"description": "Is a member", "value": "The value is updated"},
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        )
         assert isinstance(hhp2.somelist[0], ipw.Text)
         assert hhp2.somelist[0].value == "The value is updated"
 

@@ -982,9 +982,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return self
 
     @override
-    async def add_to_shell(
+    async def add_to_shell(  # pyright: ignore[reportIncompatibleMethodOverride]
         self, **kwgs: Unpack[AddToShellType]
-    ) -> ShellConnection[Self]:  # pyright: ignore[reportIncompatibleMethodOverride]
+    ) -> ShellConnection[Self]:
         assert self.app.ready
         return await super().add_to_shell(**kwgs)
 

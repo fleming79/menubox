@@ -187,12 +187,10 @@ class TF:
         klass = default_value.__class__
         return TF.InstanceHP(
             klass,
-            validate=lambda _, val: klass(val),
+            validate=lambda _, val: klass(val),  # pyright: ignore[reportCallIssue]
             default_value=default_value,
             co_=co_,
-        ).configure(  # pyright: ignore[reportCallIssue]
-            TF.IHPMode.X___
-        )
+        ).configure(TF.IHPMode.X___)
 
     # Custom types
 
@@ -214,9 +212,9 @@ class TF:
         ```
         """
         value = value or {}
-        return InstanceHP(dict, default=lambda _: value.copy(), co_=co_).configure(
+        return InstanceHP(dict, default=lambda _: value.copy(), co_=co_).configure(  # pyright: ignore[reportReturnType, reportAttributeAccessIssue]
             IHPMode.XL__, default_value={}
-        )  # pyright: ignore[reportReturnType, reportAttributeAccessIssue]
+        )
 
     @staticmethod
     def parent(

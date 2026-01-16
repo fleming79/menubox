@@ -516,8 +516,8 @@ def get_widgets(
                         and not (
                             skip_hidden
                             and hasattr(widget, "layout")
-                            and widget.layout.visibility == "hidden"
-                        )  # pyright: ignore[reportAttributeAccessIssue]
+                            and widget.layout.visibility == "hidden"  # pyright: ignore[reportAttributeAccessIssue]
+                        )
                         and not (skip_disabled and getattr(widget, "disabled", False))
                     ):
                         if (panel := getattr(widget, "panel", None)) and isinstance(
@@ -527,10 +527,10 @@ def get_widgets(
                         yield widget
                         last_widget = widget
                         if (show and not hasattr(widget, "layout")) or (
-                            widget.layout,
+                            widget.layout,  # pyright: ignore[reportAttributeAccessIssue]
                             "visibility",
                             "",
-                        ) != "hidden":  # pyright: ignore[reportAttributeAccessIssue]
+                        ) != "hidden":
                             show_ = getattr(widget, "show", None)
                             if callable(show_):
                                 show_()

@@ -785,8 +785,10 @@ def instanceHP_wrapper(
         if defaults_:
             kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # pyright: ignore[reportAssignmentType]
         instance = InstanceHP(
-            klass, lambda c: c["klass"](*args, **kwgs | c["kwgs"]), co_=co_
-        )  # pyright: ignore[reportCallIssue, reportArgumentType]
+            klass,  # pyright: ignore[reportCallIssue, reportArgumentType]
+            lambda c: c["klass"](*args, **kwgs | c["kwgs"]),
+            co_=co_,
+        )
         if hooks:
             instance.hooks(**hooks)
         if tags:

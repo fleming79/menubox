@@ -134,17 +134,18 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
     ):
         """A tuple style trait where elements can be spawned and observed with ValueTraits.on_change."""
         self.trait = InstanceHP(
-            klass, lambda _: "Default should not be called for InstanceHPTuple.trait"
-        )  # pyright: ignore[reportCallIssue, reportArgumentType]
+            klass,  # pyright: ignore[reportCallIssue, reportArgumentType]
+            lambda _: "Default should not be called for InstanceHPTuple.trait",  # pyright: ignore[reportCallIssue, reportArgumentType]
+        )
         if factory and not callable(factory):
             msg = "factory must be callable!"
             raise TypeError(msg)
         super().__init__(klass, default, default_value=default_value, co_=co_)  # pyright: ignore[reportArgumentType]
         self._factory = factory
         self.read_only = read_only
-        self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = (
+        self._close_observers: weakref.WeakKeyDictionary[T, (Callable, str)] = (  # pyright: ignore[reportIncompatibleVariableOverride, reportGeneralTypeIssues]
             weakref.WeakKeyDictionary()
-        )  # pyright: ignore[reportIncompatibleVariableOverride, reportGeneralTypeIssues]
+        )
 
     def class_init(self, cls: type[Any], name: str | None) -> None:
         super().class_init(cls, name)
