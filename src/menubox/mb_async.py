@@ -157,6 +157,8 @@ def run_async(
     if key:
         singular_tasks[key] = pen
     if obj := get_obj_using_metadata(pen.metadata):
+        if obj.closed:
+            pen.cancel(f"{obj=} is closed!")
         obj.tasks.add(pen)
         if handle := pen.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
