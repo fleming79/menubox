@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import async_kernel
+import async_kernel.interface
 import ipylab.ipylab
 import ipylab.log
 import ipywidgets as ipw
@@ -29,8 +29,16 @@ def anyio_backend():
 
 @pytest.fixture(scope="session")
 async def kernel(anyio_backend):
-    async with async_kernel.Kernel() as kernel:
-        yield kernel
+    def send(msg, buffers, requires_reply):
+        assert not requires_reply
+
+    handlers = await async_kernel.interface.start_kernel_callable_interface(
+        send=send, stopped=lambda: None
+    )
+    try:
+        yield async_kernel.Kernel()
+    finally:
+        handlers["stop"]()
 
 
 @pytest.fixture
