@@ -112,33 +112,17 @@ def run_async(
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> Pending[T]:
-    """Run the coroutine function in the main event loop, possibly cancelling a currently
-    running future if the name overlaps.
+    """
+    Run function in the main event loop, possibly cancelling a currently
+    running Pending if the name overlaps.
 
     **Important: A result is returned ONLY when `restart=True`**
 
     Args:
-        func:
-
-    name: The name of the task. If a task with the same name already exists for the object
-    it will be cancelled. See run_async_singular as an easier option to prevent accidental
-    task cancellation.
-    obj:
-        `obj` may be a subclass from HasParent
-        `obj.handle` if provided adds the task to `obj`. Two options exist:
-        1.If the handle is a `set`, `obj` is added to the set
-        2 The task is set to obj.<handle>.
-    widget:
-        A widget is disabled for the duration of the task.
-    loginfo:
-        Provided to aid with the exception details.
-    On completion the task is removed from the set or replaced with `None`.
-    :
-        Make identifiable as an update task as used by HasParent.wait_update_tasks()
-
-    Exceptions for cancelled tasks are not raised.
-    widget: If provided the widget is disabled immediately and then disabled once the
-        awaitable is completed.
+        opts: Options to control how it is called and information to associate with the pending as metadata.
+        func: The function to call.
+        args: positional arguments.
+        kwargs: keyword arguments.
     """
 
     if (
