@@ -186,11 +186,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
             pen.cancel(f"{self} is closed!")
         for inst in self._InstanceHP.values():
             inst._on_obj_close(self)
-        for n in ["_trait_notifiers", "_trait_values", "_trait_validators"]:
-            d = getattr(self, n, None)
-            if isinstance(d, dict):
-                d.clear()
-        self.set_trait("closed", True)
 
     @traitlets.observe("parent", "parent_link", "parent_dlink")
     def _observe_parent(self, change: ChangeType):
@@ -381,7 +376,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if self.closed or (self.KEEP_ALIVE and not force):
             return
         super().close()
-        self.set_trait("closed", True)  # Need to restore this trait to True.
+        self.set_trait("closed", True)
 
     def fstr(
         self, string: str, raise_errors=False, parameters: dict | None = None
