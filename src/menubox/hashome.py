@@ -3,6 +3,7 @@ from __future__ import annotations
 import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
+import anyio
 import traitlets
 from async_kernel.common import Fixed, import_item
 from ipylab.common import Singular
@@ -115,6 +116,9 @@ class HasHome(HasParent):
         if home:
             return Home(home)
         if isinstance(parent, HasHome):
+            if parent.closed:
+                msg = "parent is closed!"
+                raise anyio.ClosedResourceError(msg)
             return parent.home
         if isinstance(parent, Home):
             return parent
