@@ -12,7 +12,6 @@ import orjson
 import pandas as pd
 import ruamel.yaml.scalarstring
 
-from menubox import utils
 from menubox.defaults import NO_VALUE, is_no_value
 
 if TYPE_CHECKING:
@@ -79,7 +78,7 @@ def json_default(obj, unknown_to_str=False):
             return load_yaml(obj)
     if unknown_to_str:
         return str(obj)
-    msg = f"Conversion of {utils.fullname(obj)} to json is unknown"
+    msg = f"Conversion of {obj!r} to json is unknown"
     raise TypeError(msg)
 
 

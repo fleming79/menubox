@@ -202,7 +202,7 @@ class ValueTraits(HasParent):
             return
         if hasattr(self, "vt_validating"):
             msg = (
-                f"{utils.fullname(__class__)}__ini__ BUG. If there are items\n"
+                f"{__class__!r}__ini__ BUG. If there are items\n"
                 f" in {self.SINGLE_BY=} check for bugs in the init of the object.\n"
                 "Otherwise check which validation is occurring before init is complete."
             )
@@ -341,7 +341,7 @@ class ValueTraits(HasParent):
                     else:
                         break
                 else:
-                    msg = f"`{n}` is not a trait or attribute of {utils.fullname(obj)}"
+                    msg = f"'{n}' is not a trait or attribute of {obj!r}"
                     raise TypeError(msg)
                 if n in obj._trait_values:
                     obj = obj._trait_values[n]

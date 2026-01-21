@@ -169,7 +169,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         links = []
         for link in toolz.unique(proposal["value"]):
             if not self.has_trait(link):
-                msg = f"{utils.fullname(self)} does not have the trait '{link}'"
+                msg = f"{self!r} does not have the trait '{link}'"
                 raise AttributeError(msg)
             links.append(link)
         return tuple(links)
