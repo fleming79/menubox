@@ -87,10 +87,13 @@ class IHPChange(TypedDict, Generic[S, T]):
     ihp: InstanceHP[S, T, Any]
 
 
-class SetChildrenSettings(TypedDict):
+class SetChildrenSettings(TypedDict, Generic[S, T]):
     mode: Literal["monitor", "monitor_nametuple"]
     dottednames: NotRequired[tuple[str, ...]]  # 'monitor' `mode` only
     nametuple_name: NotRequired[str]  # 'monitor_nametuple' `mode` only
+    children: NotRequired[
+        Callable[[S], GetWidgetsInputType[T]]
+    ]  # 'monitor' `mode` only
 
 
 class IHPHookMappings(TypedDict, Generic[S, T]):
@@ -101,7 +104,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     set_children: NotRequired[
-        Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings
+        Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings[S, T]
     ]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 

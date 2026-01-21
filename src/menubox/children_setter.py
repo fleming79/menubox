@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar, override
 
-from ipywidgets import Box
-from traitlets import Tuple, Unicode
+from ipywidgets import Box, Widget
+from traitlets import Callable, Tuple, Unicode
 
 from menubox.mb_async import TaskType, debounce
 from menubox.trait_types import ChangeType, NameTuple
@@ -21,7 +21,8 @@ class ChildrenSetter(ValueTraits):
         help="The name in the parent of a tuple to obtain the dotted names"
     )
     parent_dlink = NameTuple("log")
-    value_traits = NameTuple("dottednames", "nametuple_name")
+    value_traits = NameTuple("dottednames", "nametuple_name", "children")
+    children = Callable(None, allow_none=True)
 
     @override
     def on_change(self, change: ChangeType):
@@ -55,7 +56,20 @@ class ChildrenSetter(ValueTraits):
 
     @debounce(0.01, tasktype=TaskType.update)
     def update(self):
+        if not self.dottednames and self.children and self.parent:
+            back = {
+                v: k
+                for k, v in self.parent.trait_values().items()
+                if isinstance(v, Widget)
+            }
+            dottednames = [
+                n
+                for obj in self.parent.get_widgets(self.children)
+                if (n := back.get(obj))
+            ]
+            self.set_trait("dottednames", dottednames)
         if self.parent and (box := getattr(self.parent, self.name)):
             box.set_trait(
-                "children", self.parent.get_widgets(self.dottednames, show=True)
+                "children",
+                self.parent.get_widgets(self.dottednames, self.children, show=True),
             )

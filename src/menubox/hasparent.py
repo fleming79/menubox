@@ -259,25 +259,31 @@ class HasParent(Singular, HasApp, Generic[RP]):
             and isinstance(value, str)
         ) and value == "":
             value = None
-        val = getattr(obj, name, dv.NO_VALUE)
-        if val is not dv.NO_VALUE:
-            if isinstance(val, vt.ValueTraits) and not isinstance(
-                value, vt.ValueTraits
-            ):
-                obj = val
-                name = "value"
-                if callable(obj.setter):
-                    utils.setattr_nested(obj, name, value, default_setter=obj.setter)
-                    return
-            elif (
-                name != "value"
-                and isinstance(val, HasTraits)
-                and not isinstance(value, HasTraits)
-                and val.has_trait("value")
-            ):
-                # Support for loading the value back into a HasTraits instance (Widget)
-                obj = val
-                name = "value"
+        if getattr(obj, "_AUTO_VALUE", False):
+            try:
+                val = getattr(obj, name, dv.NO_VALUE)
+            except traitlets.TraitError:
+                val = dv.NO_VALUE
+            if val is not dv.NO_VALUE:
+                if isinstance(val, vt.ValueTraits) and not isinstance(
+                    value, vt.ValueTraits
+                ):
+                    obj = val
+                    name = "value"
+                    if callable(obj.setter):
+                        utils.setattr_nested(
+                            obj, name, value, default_setter=obj.setter
+                        )
+                        return
+                elif (
+                    name != "value"
+                    and isinstance(val, HasTraits)
+                    and not isinstance(value, HasTraits)
+                    and val.has_trait("value")
+                ):
+                    # Support for loading the value back into a HasTraits instance (Widget)
+                    obj = val
+                    name = "value"
         if isinstance(obj, HasTraits) and obj.has_trait(name):
             obj.set_trait(name, value)
         else:

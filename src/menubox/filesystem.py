@@ -137,16 +137,16 @@ class Filesystem(MenuboxVT):
         set_children=lambda p: (p.protocol, p.kw),
     )
     control_widgets = TF.HBox(
-        layout={"flex": "0 0 auto", "flex_flow": "row wrap"}
+        cast("Self", 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}
     ).hooks(
         set_children={
-            "dottednames": (
-                "button_home",
-                "button_up",
-                "drive",
-                "url",
-                "button_add",
-                "button_update",
+            "children": lambda p: (
+                p.button_home,
+                p.button_up,
+                p.drive,
+                p.url,
+                p.button_add,
+                p.button_update,
             ),
             "mode": "monitor",
         }

@@ -46,6 +46,17 @@ class ChildrenSetterTester(mb.MenuboxVT):
             ),
         },
     )
+    dynamic_box_children = TF.Box(cast("Self", 0)).hooks(
+        set_children={
+            "mode": "monitor",
+            "children": lambda p: (
+                p.dd_no_default,
+                p.dropdown,
+                "nested.dropdown",
+                "nested.button",
+            ),
+        },
+    )
     dynamic_box_nametuple_children = NameTuple("label")
     dynamic_box_nametuple = TF.Box().hooks(
         set_children={
@@ -169,3 +180,10 @@ async def test_children_setter_nametuple():
         cto.nested.dropdown,
         cto.nested.button,
     )
+
+
+async def test_children_setter_children():
+    cto = ChildrenSetterTester()
+    assert not cto.dynamic_box_children.children
+    await anyio.sleep(0.1)
+    assert cto.dynamic_box_children.children
