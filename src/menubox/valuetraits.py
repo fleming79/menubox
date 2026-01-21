@@ -303,7 +303,7 @@ class ValueTraits(HasParent):
             obj.observe(handler, names=name)
 
     @classmethod
-    def _get_observer_pairs(cls, obj: HasTraits, dotname: str) -> Iterator[tuple[HasTraits, str]]:
+    def _get_observer_pairs(cls, obj: HasTraits | Any, dotname: str) -> Iterator[tuple[HasTraits, str]]:
         """Generates pairs of (object, trait_name) for observing a dotted trait name.
 
         This method traverses a dotted trait name, yielding tuples of (object, trait_name)
@@ -327,22 +327,10 @@ class ValueTraits(HasParent):
         """
         parts = dotname.split(".")
         segments = len(parts)
-        try:
-            for i, n in enumerate(parts, 1):
+        for i, n in enumerate(parts, 1):
+            if isinstance(obj, HasTraits):
                 if n in obj._traits:
                     yield (obj, n)
-                elif (obj_ := getattr(obj, n, defaults.NO_VALUE)) is not defaults.NO_VALUE:
-                    # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
-                    if isinstance(obj_, HasTraits):
-                        obj = obj_
-                        if cls._AUTO_VALUE and i == segments and obj.has_trait("value"):
-                            yield (obj, "value")
-                        continue
-                    else:
-                        break
-                else:
-                    msg = f"'{n}' is not a trait or attribute of {obj!r}"
-                    raise TypeError(msg)
                 if n in obj._trait_values:
                     obj = obj._trait_values[n]
                 elif n in getattr(obj, "_InstanceHP", {}):
@@ -358,9 +346,21 @@ class ValueTraits(HasParent):
                     break
                 if cls._AUTO_VALUE and i == segments and n != "value" and "value" in getattr(obj, "_traits", {}):
                     yield (obj, "value")
-        except AttributeError:
-            if not isinstance(obj, Bunched):
-                raise
+            elif isinstance(obj, dict):
+                try:
+                    obj = obj[n]
+                except KeyError:
+                    if not isinstance(obj, Bunched):
+                        raise
+            elif (obj_ := getattr(obj, n, defaults.NO_VALUE)) is not defaults.NO_VALUE:
+                # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
+                if isinstance(obj_, HasTraits):
+                    obj = obj_
+                    if cls._AUTO_VALUE and i == segments and obj.has_trait("value"):
+                        yield (obj, "value")
+                else:
+                    msg = f"'{n}' is not a trait or attribute of {obj!r}"
+                    raise TypeError(msg)
 
     @classmethod
     def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], Any]:
