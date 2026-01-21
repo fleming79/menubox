@@ -83,9 +83,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     toggleviews = StrTuple()
     menuviews = StrTuple()
     tabviews = StrTuple()
-    css_classes = StrTuple(
-        CSScls.Menubox, help="Class names to add when the view_active."
-    )
+    css_classes = StrTuple(CSScls.Menubox, help="Class names to add when the view_active.")
 
     views = TF.ViewDict(cast("Self", 0)).configure(TF.IHPMode.XL__)
     shuffle_button_views = TF.ViewDict(cast("Self", 0)).configure(TF.IHPMode.XL__)
@@ -98,9 +96,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     title_description = TF.Str()
     title_description_tooltip = TF.Str()
 
-    header_left_children = StrTuple(
-        "button_exit", "button_minimize", "box_menu", "button_toggleview"
-    )
+    header_left_children = StrTuple("button_exit", "button_minimize", "box_menu", "button_toggleview")
     header_right_children = StrTuple(
         "button_help",
         "button_activate",
@@ -128,19 +124,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     # Trait instances
     center = traitlets.Any()
-    _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = (
-        TF.Tuple().configure(TF.IHPMode.X_R_)
-    )
+    _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     activate_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](
-        klass=weakref.WeakSet
-    )
-    _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](
-        klass=weakref.WeakSet
-    )
+    _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
+    _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
     task_load_view = TF.Pending()
     html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
@@ -149,15 +139,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
     )
 
     # Buttons
-    button_menu = TF.Button(
-        cast("Self", 0), TF.CSScls.button_menu, icon="bars", tooltip="Open menu"
-    ).configure(TF.IHPMode.X__N)
-    button_toggleview = TF.Button(
-        cast("Self", 0), TF.CSScls.button_menu, icon="arrow-circle-o-right"
-    ).configure(TF.IHPMode.X__N)
-    button_help = TF.Button(
-        cast("Self", 0), TF.CSScls.button_open, icon="question-circle", tooltip="help"
-    ).configure(TF.IHPMode.X__N)
+    button_menu = TF.Button(cast("Self", 0), TF.CSScls.button_menu, icon="bars", tooltip="Open menu").configure(
+        TF.IHPMode.X__N
+    )
+    button_toggleview = TF.Button(cast("Self", 0), TF.CSScls.button_menu, icon="arrow-circle-o-right").configure(
+        TF.IHPMode.X__N
+    )
+    button_help = TF.Button(cast("Self", 0), TF.CSScls.button_open, icon="question-circle", tooltip="help").configure(
+        TF.IHPMode.X__N
+    )
     button_close = TF.Button(
         cast("Self", 0),
         TF.CSScls.button_dangerous,
@@ -173,9 +163,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
     button_maximize = TF.Button(
         cast("Self", 0), TF.CSScls.button_open, icon="window-restore", tooltip="Restore"
     ).configure(TF.IHPMode.X__N)
-    button_exit = TF.Button(
-        cast("Self", 0), TF.CSScls.button_open, description="⇡", tooltip="Leave showbox"
-    ).configure(TF.IHPMode.X__N)
+    button_exit = TF.Button(cast("Self", 0), TF.CSScls.button_open, description="⇡", tooltip="Leave showbox").configure(
+        TF.IHPMode.X__N
+    )
     button_promote = TF.Button(
         cast("Self", 0),
         TF.CSScls.button_open,
@@ -198,11 +188,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             icon="window-maximize",
             tooltip="Add to shell",
         )
-        .hooks(
-            on_set=lambda c: c["obj"].set_trait(
-                "tooltip", f"Add to shell ({utils.fullname(c['owner'])})"
-            )
-        )
+        .hooks(on_set=lambda c: c["obj"].set_trait("tooltip", f"Add to shell ({utils.fullname(c['owner'])})"))
         .configure(TF.IHPMode.X__N)
     )
 
@@ -323,9 +309,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     @traitlets.validate("viewlist", "toggleviews", "tabviews", "menuviews")
     def _validate_viewlist_names(self, proposal: ProposalType):
-        views = (
-            self.views if proposal["trait"].name == "viewlist" else self._current_views
-        )
+        views = self.views if proposal["trait"].name == "viewlist" else self._current_views
         val = tuple(v for v in proposal["value"] if v and v in views)
         if proposal["trait"].name == "viewlist" and not val:
             return tuple(views)
@@ -374,9 +358,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             out.close()
             self.set_trait("children", self._simple_outputs)
 
-    def load_view(
-        self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False
-    ) -> Self:
+    def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False) -> Self:
         """Loads a specified view, handling defaults, reloads, and preventing redundant loads.
 
         Args:
@@ -437,14 +419,10 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if view and view != self.view_previous:
             self.set_trait("view_previous", view)
         for b in self._view_buttons:
-            (b.add_class if b.description == view else b.remove_class)(
-                CSScls.button_active_view
-            )
+            (b.add_class if b.description == view else b.remove_class)(CSScls.button_active_view)
         self.menu_close()
         if self.button_menu:
-            self.button_menu.tooltip = (
-                f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
-            )
+            self.button_menu.tooltip = f"Show menu for {self.__class__.__qualname__}\nCurrent view: {view}"
         if (b := self.button_toggleview) and view in self.toggleviews:
             i = (self.toggleviews.index(view) + 1) % len(self.toggleviews)
             next_view = self.toggleviews[i]
@@ -452,9 +430,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             b.tooltip = f"Current: {view}\nAvailable: {self.toggleviews}"
         return view
 
-    async def get_center(
-        self, view: str | None
-    ) -> tuple[str | None, GetWidgetsInputType[RP]]:
+    async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
         """Override this function to make view loading dynamic.
 
         **DO NOT CALL DIRECTLY**
@@ -492,9 +468,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self.task_load_view and (task := self.task_load_view):
             with self.simple_output() as out:
                 button_cancel = TF.ipw.Button(description="Cancel")
-                button_cancel.on_click(
-                    lambda _: task.cancel("Button click to cancel from mb_refresh")
-                )
+                button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
                 out.push(TF.ipd.HTML(f"<b>Loading view {self.view}</b>"), button_cancel)
                 await task.wait(result=False)
                 button_cancel.close()
@@ -508,9 +482,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.update_title()
             box = self._box_minimized
             assert box
-            box.children = self.get_widgets(
-                self.button_exit, self.button_maximize, *self.minimized_children
-            )
+            box.children = self.get_widgets(self.button_exit, self.button_maximize, *self.minimized_children)
             children = (box,)
         else:
             if mb.DEBUG_ENABLED:
@@ -612,9 +584,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             case "button_menu":
                 (self.enable_ihp if self.button_menu else self.disable_ihp)("box_menu")
             case "toggleviews":
-                (self.enable_ihp if len(self.toggleviews) > 1 else self.disable_ihp)(
-                    "button_toggleview"
-                )
+                (self.enable_ihp if len(self.toggleviews) > 1 else self.disable_ihp)("button_toggleview")
             case "button_close" if b := self.button_close:
                 b.tooltip = f"Close {self}"
             case "button_help" if b := self.button_help:
@@ -623,9 +593,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self._update_shuffle_buttons()
             case "activate_button_views":
                 self._update_activate_buttons()
-            case "shuffle_buttons" | "activate_buttons" if (
-                change["old"] is not traitlets.Undefined
-            ):
+            case "shuffle_buttons" | "activate_buttons" if change["old"] is not traitlets.Undefined:
                 for b in set(change["old"]).difference(change["new"]):
                     b.close()
         if self._mb_configured:
@@ -723,19 +691,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return b
 
     def _update_views_onchange(self):
-        self.set_trait(
-            "viewlist", tuple(v for v in self.viewlist if v in self.views) or self.views
-        )
+        self.set_trait("viewlist", tuple(v for v in self.viewlist if v in self.views) or self.views)
         if self.toggleviews:
-            self.toggleviews = tuple(
-                v for v in self.toggleviews if v in self._current_views
-            )
+            self.toggleviews = tuple(v for v in self.toggleviews if v in self._current_views)
         if self.tabviews:
             self.tabviews = tuple(v for v in self.tabviews if v in self._current_views)
         if self.menuviews:
-            self.menuviews = tuple(
-                v for v in self.menuviews if v in self._current_views
-            )
+            self.menuviews = tuple(v for v in self.menuviews if v in self._current_views)
         if self.view and (
             (self.task_load_view and self.loading_view not in self._current_views)
             or (self.view not in self._current_views)
@@ -768,9 +730,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def _onchange_showbox(self, change: IHPChange):
         if isinstance(change["old"], ipw.Box):
-            change["old"].children = (
-                c for c in change["old"].children if c is not self
-            )
+            change["old"].children = (c for c in change["old"].children if c is not self)
         if self.showbox:
             for name in ("button_exit", "button_promote", "button_demote"):
                 self.enable_ihp(name)
@@ -809,17 +769,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self.set_trait("showbox", None)
             case self.button_help if self.button_help:
                 self.show_help = not self.show_help
-                self.button_help.icon = (
-                    "question-circle-o" if self.show_help else "question-circle"
-                )
+                self.button_help.icon = "question-circle-o" if self.show_help else "question-circle"
                 if self.show_help:
                     self.maximize()
             case self.button_activate:
                 await self.activate(add_to_shell=True)
             case _ if b in self.activate_buttons:
-                for widget in self.get_widgets(
-                    self.activate_button_views[b.description]
-                ):
+                for widget in self.get_widgets(self.activate_button_views[b.description]):
                     if isinstance(widget, Menubox):
                         await widget.activate(add_to_shell=True)
 
@@ -869,10 +825,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     def obj_in_box_shuffle(self, obj: ipw.Widget | tuple) -> ipw.Widget | None:
         for c in self.box_shuffle.children:
-            if c is obj or (
-                isinstance(c, MenuboxWrapper)
-                and ((c.widget is obj) or (c.items == obj))
-            ):
+            if c is obj or (isinstance(c, MenuboxWrapper) and ((c.widget is obj) or (c.items == obj))):
                 return c
         return None
 
@@ -897,9 +850,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             obj = obj[0]
         if isinstance(obj, Menubox):
             obj.maximize()
-        return self.put_obj_in_box_shuffle(
-            obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped
-        )
+        return self.put_obj_in_box_shuffle(obj, position=position, alt_name=alt_name, ensure_wrapped=ensure_wrapped)
 
     def put_obj_in_box_shuffle(
         self,
@@ -938,18 +889,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
         obj_ = obj
         box = self.box_shuffle
         if found := self.obj_in_box_shuffle(obj):
-            if (
-                ensure_wrapped
-                and obj is found
-                and isinstance(obj, Menubox)
-                and obj.showbox is box
-            ):
+            if ensure_wrapped and obj is found and isinstance(obj, Menubox) and obj.showbox is box:
                 obj.set_trait("showbox", None)
             obj_ = found
         self.enable_ihp("box_shuffle")
-        if not isinstance(obj_, mb.Menubox) or (
-            ensure_wrapped and not isinstance(obj_, MenuboxWrapper)
-        ):
+        if not isinstance(obj_, mb.Menubox) or (ensure_wrapped and not isinstance(obj_, MenuboxWrapper)):
             obj_ = MenuboxWrapper(obj_)
             obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in box.children if c not in [obj, obj_])
@@ -1014,11 +958,7 @@ class MenuboxWrapper(Menubox):
     "Wrap a  widget with a Menubox."
 
     DEFAULT_VIEW = "widget"
-    widget = (
-        TF.InstanceHP(klass=ipw.Widget)
-        .configure(TF.IHPMode.X_RN)
-        .hooks(on_replace_close=False)
-    )
+    widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN).hooks(on_replace_close=False)
     items = TF.Tuple()
     views = TF.ViewDict(cast("Self", 0), {"widget": lambda p: p.widget or p.items})
     css_classes = StrTuple(CSScls.Menubox, CSScls.wrapper)

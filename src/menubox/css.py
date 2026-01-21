@@ -80,9 +80,7 @@ class CSScls(enum.StrEnum):
     button_is_busy = "mod-button-busy"
     button_active_view = "mod-active-view"
 
-    nested_borderbox = (
-        f"{PREFIX}-nested-border-box"  # A box using same default border as menubox
-    )
+    nested_borderbox = f"{PREFIX}-nested-border-box"  # A box using same default border as menubox
 
     Menubox_horizontal = "horizontal"  # A modifier applicable to menubox
 
@@ -233,8 +231,6 @@ class MenuboxCSSStyleSheet(Singular, CSSStyleSheet):
             variables: A dictionary of CSS variables to values.
         """
         variables = VARIABLES | variables
-        variables_ = (
-            f":root {{{''.join(f'{k} :{v};\n' for k, v in variables.items())}}}\n"
-        )
+        variables_ = f":root {{{''.join(f'{k} :{v};\n' for k, v in variables.items())}}}\n"
         text = variables_ + text
         await self.replace(text)

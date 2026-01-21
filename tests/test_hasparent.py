@@ -92,9 +92,7 @@ class TestHasParent:
 
         parent.a_dlink2.value = 1.3
         assert hp.a_dlink2 is not parent.a_dlink2
-        assert hp.a_dlink2.value == 1.3, (
-            "Should also dlink widget values not the widget"
-        )
+        assert hp.a_dlink2.value == 1.3, "Should also dlink widget values not the widget"
 
         hp.a_link2.value = 0.98
         assert hp.a_link2 is not parent.a_link2
@@ -201,12 +199,8 @@ class TestHasParent:
         class HPsubclass(HP):
             SINGLE_BY = ("name",)
 
-        hps2 = HPsubclass(
-            a_link=hp.a_link + 3, a_dlink=hp.a_dlink + 4, parent=hp, name="hbs2"
-        )
-        hps3 = HPsubclass(
-            a_link=hp.a_link + 5, a_dlink=hp.a_dlink + 5, parent=hp, name="hps3"
-        )
+        hps2 = HPsubclass(a_link=hp.a_link + 3, a_dlink=hp.a_dlink + 4, parent=hp, name="hbs2")
+        hps3 = HPsubclass(a_link=hp.a_link + 5, a_dlink=hp.a_dlink + 5, parent=hp, name="hps3")
 
         # The exception
         with pytest.raises(Exception, match=match):

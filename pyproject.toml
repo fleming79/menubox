@@ -80,7 +80,7 @@ parallel = true
 filterwarnings = ["error", "ignore::UserWarning"]
 [tool.ruff]
 target-version = "py312"
-
+line-length = 120
 
 [tool.ruff.lint]
 extend-select = [
@@ -131,6 +131,7 @@ ignore = [
 ]
 [tool.ruff.format]
 docstring-code-format = true
+docstring-code-line-length = 80
 
 [tool.codespell]
 write = true

@@ -232,6 +232,4 @@ def to_yaml(
 def deep_copy[T](obj: T, unknown_to_str=False) -> T:
     """Deep copy by orjson roundtrip."""
     _json_default = functools.partial(json_default, unknown_to_str=unknown_to_str)
-    return orjson.loads(
-        orjson.dumps(obj, default=_json_default, option=orjson.OPT_SERIALIZE_NUMPY)
-    )
+    return orjson.loads(orjson.dumps(obj, default=_json_default, option=orjson.OPT_SERIALIZE_NUMPY))

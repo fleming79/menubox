@@ -63,18 +63,12 @@ class HasParent(Singular, HasApp, Generic[RP]):
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
     _hp_reg_parent_link = TF.Set(klass_=cast("type[set[Link]]", 0))
     _hp_reg_parent_dlink = TF.Set(klass_=cast("type[set[Dlink]]", 0))
-    _hasparent_all_links = TF.DictReadOnly(
-        klass_=cast("type[dict[Hashable, Link | Dlink]]", 0)
-    )
-    _button_register = TF.DictReadOnly(
-        klass_=cast("type[dict[tuple[str, ipw.Button], Callable]]", 0)
-    )
+    _hasparent_all_links = TF.DictReadOnly(klass_=cast("type[dict[Hashable, Link | Dlink]]", 0))
+    _button_register = TF.DictReadOnly(klass_=cast("type[dict[tuple[str, ipw.Button], Callable]]", 0))
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
-    parent = TF.parent(cast("type[RP]", "menubox.hasparent.HasParent")).configure(
-        TF.IHPMode.X__N
-    )
+    parent = TF.parent(cast("type[RP]", "menubox.hasparent.HasParent")).configure(TF.IHPMode.X__N)
     tasks = TF.Set(klass_=cast("type[set[Pending[Any]]]", 0))
 
     def __repr__(self):
@@ -192,9 +186,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if change["name"] == "parent":
             if change["old"]:
                 try:
-                    change["old"].unobserve(
-                        self._hp_parent_close_handle, names="closed"
-                    )
+                    change["old"].unobserve(self._hp_parent_close_handle, names="closed")
                 except Exception:
                     pass
             if isinstance(parent := change["new"], HasParent):
@@ -225,11 +217,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         # add new links
         for parent, name in change["new"].difference(old):
             v = getattr(self, name)
-            target = (
-                (v, "value")
-                if isinstance(v, ipw.ValueWidget) and not isinstance(v, HasParent)
-                else (self, name)
-            )
+            target = (v, "value") if isinstance(v, ipw.ValueWidget) and not isinstance(v, HasParent) else (self, name)
             val = getattr(parent, name)
             if isinstance(val, ipw.ValueWidget) and not isinstance(val, HasParent):
                 source = val, "value"
@@ -254,9 +242,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if isinstance(obj, ipw.Combobox) and name == "value":
             value = "" if value is None else str(value)
         if (
-            isinstance(obj, ipw.widget_selection._Selection)
-            and name == "value"
-            and isinstance(value, str)
+            isinstance(obj, ipw.widget_selection._Selection) and name == "value" and isinstance(value, str)
         ) and value == "":
             value = None
         if getattr(obj, "_AUTO_VALUE", False):
@@ -265,15 +251,11 @@ class HasParent(Singular, HasApp, Generic[RP]):
             except traitlets.TraitError:
                 val = dv.NO_VALUE
             if val is not dv.NO_VALUE:
-                if isinstance(val, vt.ValueTraits) and not isinstance(
-                    value, vt.ValueTraits
-                ):
+                if isinstance(val, vt.ValueTraits) and not isinstance(value, vt.ValueTraits):
                     obj = val
                     name = "value"
                     if callable(obj.setter):
-                        utils.setattr_nested(
-                            obj, name, value, default_setter=obj.setter
-                        )
+                        utils.setattr_nested(obj, name, value, default_setter=obj.setter)
                         return
                 elif (
                     name != "value"
@@ -384,9 +366,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         super().close()
         self.set_trait("closed", True)
 
-    def fstr(
-        self, string: str, raise_errors=False, parameters: dict | None = None
-    ) -> str:
+    def fstr(self, string: str, raise_errors=False, parameters: dict | None = None) -> str:
         """Formats string using fstr type notation.
 
         `self`, 'mb', `record` and `df` are available in the namespace.
@@ -399,9 +379,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         except Exception:
             if raise_errors or mb.DEBUG_ENABLED:
                 raise
-            self.log.exception(
-                f"Unable to process fstr for '{string=}' class={utils.fullname(self)}"
-            )
+            self.log.exception(f"Unable to process fstr for '{string=}' class={utils.fullname(self)}")
             return string
 
     def link(
@@ -426,9 +404,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if current_link := self._hasparent_all_links.pop(key, None):
             current_link.close()
         if connect:
-            self._hasparent_all_links[key] = Link(
-                source, target, transform=transform, parent=self
-            )
+            self._hasparent_all_links[key] = Link(source, target, transform=transform, parent=self)
         return None
 
     def dlink(
@@ -449,19 +425,13 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if current_link := self._hasparent_all_links.pop(key, None):
             current_link.close()
         if connect:
-            self._hasparent_all_links[key] = Dlink(
-                source, target, transform=transform, parent=self
-            )
+            self._hasparent_all_links[key] = Dlink(source, target, transform=transform, parent=self)
 
-    def _handle_button_change(
-        self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode
-    ) -> None:
+    def _handle_button_change(self, c: IHPChange[Self, ipw.Button], mode: TF.ButtonMode) -> None:
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
             b.on_click(cb, remove=True)
         if b := c["new"]:
-            taskname = (
-                f"button_clicked[{id(b)}] → {self.__class__.__name__}.{c['name']}"
-            )
+            taskname = f"button_clicked[{id(b)}] → {self.__class__.__name__}.{c['name']}"
             self._button_register[(c["name"], b)] = on_click = functools.partial(
                 self._on_click, weakref.ref(self), taskname, mode
             )
@@ -477,14 +447,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
         b: ipw.Button,
     ):
         if self_ := ref():
-            if mode is TF.ButtonMode.cancel and (
-                pen := mb_async.singular_tasks.get(key)
-            ):
+            if mode is TF.ButtonMode.cancel and (pen := mb_async.singular_tasks.get(key)):
                 pen.cancel()
                 return
-            mb.mb_async.run_async(
-                {"obj": self_, "key": key}, self_._button_clicked, b, mode
-            )
+            mb.mb_async.run_async({"obj": self_, "key": key}, self_._button_clicked, b, mode)
 
     async def _button_clicked(self, b: ipw.Button, mode: TF.ButtonMode):
         description = b.description
@@ -554,9 +520,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
             if tasks := [
                 pen
                 for pen in self.tasks
-                if pen is not current
-                and pen.metadata.get("tasktype", mb_async.TaskType.general)
-                in tasktypes_
+                if pen is not current and pen.metadata.get("tasktype", mb_async.TaskType.general) in tasktypes_
             ]:
                 await Caller().wait(tasks, timeout=timeout)
         return self

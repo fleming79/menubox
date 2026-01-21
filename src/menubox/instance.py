@@ -91,9 +91,7 @@ class SetChildrenSettings(TypedDict, Generic[S, T]):
     mode: Literal["monitor", "monitor_nametuple"]
     dottednames: NotRequired[tuple[str, ...]]  # 'monitor' `mode` only
     nametuple_name: NotRequired[str]  # 'monitor_nametuple' `mode` only
-    children: NotRequired[
-        Callable[[S], GetWidgetsInputType[T]]
-    ]  # 'monitor' `mode` only
+    children: NotRequired[Callable[[S], GetWidgetsInputType[T]]]  # 'monitor' `mode` only
 
 
 class IHPHookMappings(TypedDict, Generic[S, T]):
@@ -103,9 +101,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    set_children: NotRequired[
-        Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings[S, T]
-    ]
+    set_children: NotRequired[Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings[S, T]]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 
 
@@ -152,9 +148,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     validate = None
     default_value = None
     _change_hooks: ClassVar[dict[str, Callable[[IHPChange], None]]] = {}
-    _close_observers: ClassVar[
-        dict[InstanceHP, weakref.WeakKeyDictionary[mhp.HasParent[Any] | Widget, dict]]
-    ] = {}
+    _close_observers: ClassVar[dict[InstanceHP, weakref.WeakKeyDictionary[mhp.HasParent[Any] | Widget, dict]]] = {}
 
     if TYPE_CHECKING:
         name: str  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -346,17 +340,15 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
-            if (
-                obj.SINGLE_BY
-                and self.name in obj.SINGLE_BY
-                and new_value not in obj.single_key
-            ):
+            if obj.SINGLE_BY and self.name in obj.SINGLE_BY and new_value not in obj.single_key:
                 try:
                     raise_error = value != old_value
                 except BaseException:
                     raise_error = True
                 if raise_error:
-                    msg = f"Changing {obj.__class__.__name__}.{self.name} is prohibited because it is in {obj.SINGLE_BY=}"
+                    msg = (
+                        f"Changing {obj.__class__.__name__}.{self.name} is prohibited because it is in {obj.SINGLE_BY=}"
+                    )
                     raise ValueError(msg)
         except KeyError:
             old_value = self.default_value
@@ -429,11 +421,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if self._type:
             self.klass = object  # pyright: ignore[reportAttributeAccessIssue]
         else:
-            klass = (
-                self._klass
-                if inspect.isclass(self._klass)
-                else import_item(self._klass)
-            )
+            klass = self._klass if inspect.isclass(self._klass) else import_item(self._klass)
             assert inspect.isclass(klass)
             self.klass = klass  # pyright: ignore[reportAttributeAccessIssue]
             self._type = klass
@@ -473,9 +461,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             if override:
                 kwgs = kwgs | override
             if default := self._default_override:
-                return default(
-                    IHPCreate(owner=owner, name=self.name, klass=self.klass, kwgs=kwgs)
-                )
+                return default(IHPCreate(owner=owner, name=self.name, klass=self.klass, kwgs=kwgs))
             return self.klass(**kwgs)
 
         except Exception as e:
@@ -509,9 +495,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                         change["owner"].on_error(e, f"Hook error for {self!r} {hook=}")
 
     def _on_obj_close(self, obj: S):
-        if (
-            old := obj._trait_values.pop(self.name, None)
-        ) is not self.default_value or old != self.default_value:
+        if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
             change = Bunched(
                 name=self.name,
                 old=old,
@@ -567,9 +551,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         return self
 
     @classmethod
-    def register_change_hook(
-        cls, name: str, hook: Callable[[IHPChange], None], *, replace=False
-    ):
+    def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
         if not replace and name in cls._change_hooks:
             msg = f"callback hook {name=} is already registered!"
             raise KeyError(msg)
@@ -582,9 +564,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if c["ihp"] not in cls._close_observers:
             cls._close_observers[c["ihp"]] = weakref.WeakKeyDictionary()
         # value closed
-        if (
-            old_observer := cls._close_observers[c["ihp"]].pop(c["owner"], {})
-        ) and isinstance(c["old"], mhp.HasParent | Widget):
+        if (old_observer := cls._close_observers[c["ihp"]].pop(c["owner"], {})) and isinstance(
+            c["old"], mhp.HasParent | Widget
+        ):
             try:
                 c["old"].unobserve(**old_observer)
             except ValueError:
@@ -600,9 +582,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 cname, value = change["name"], change["new"]
                 if (
                     owner
-                    and (
-                        (cname == "closed" and value) or (cname == "comm" and not value)
-                    )
+                    and ((cname == "closed" and value) or (cname == "comm" and not value))
                     and owner._trait_values.get(ihp.name) is change["owner"]
                 ) and (old := owner._trait_values.pop(ihp.name, None)):
                     change_ = Bunched(
@@ -646,9 +626,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     def _on_unset_hook(c: IHPChange[S, T]):
         if c["owner"].closed:
             return
-        if c["old"] is not None and (
-            on_unset := c["ihp"]._hookmappings.get("on_unset")
-        ):
+        if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
             on_unset(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["old"]))
 
     @staticmethod
@@ -663,10 +641,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     @staticmethod
     def _set_parent_hook(c: IHPChange[S, T]):
         if (not c["owner"].closed) and c["ihp"]._hookmappings.get("set_parent"):
-            if (
-                isinstance(c["old"], mhp.HasParent)
-                and getattr(c["old"], "parent", None) is c["owner"]
-            ):
+            if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["owner"]:
                 c["old"].parent = None
             if isinstance(c["new"], mhp.HasParent) and not c["owner"].closed:
                 c["new"].parent = c["owner"]
@@ -677,19 +652,13 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
         if c["owner"].closed:
             return
-        if c["new"] is not None and (
-            children := c["ihp"]._hookmappings.get("set_children")
-        ):
+        if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             if isinstance(children, dict):
                 val = {} | children
                 val.pop("mode")
-                menubox.children_setter.ChildrenSetter(
-                    parent=c["owner"], name=c["ihp"].name, value=val
-                )
+                menubox.children_setter.ChildrenSetter(parent=c["owner"], name=c["ihp"].name, value=val)
             else:
-                children = c["owner"].get_widgets(
-                    children, skip_hidden=False, show=True
-                )
+                children = c["owner"].get_widgets(children, skip_hidden=False, show=True)
                 c["new"].set_trait("children", children)  # pyright: ignore[reportAttributeAccessIssue]
 
     @staticmethod
@@ -707,9 +676,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         super().class_init(cls, name)
         try:
             cls._InstanceHP[name] = self  # pyright: ignore[reportAttributeAccessIssue]
-            if (not self.load_default) and (
-                (self.default_value is not None) or self.allow_none
-            ):
+            if (not self.load_default) and ((self.default_value is not None) or self.allow_none):
                 # Provide static values to bypass unnecessary default calls.
                 cls._static_immutable_initial_values[name] = self.default_value
         except AttributeError:

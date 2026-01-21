@@ -35,18 +35,14 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
 
     SHOW_TEMPLATE_CONTROLS = False
     CONFIGURE_VIEW = "Configure"
-    DESCRIPTION_VIEWER_TEMPLATE = "<details {details_open}><summary><b>Description</b></summary>\n\n{description}\n</details>"
+    DESCRIPTION_VIEWER_TEMPLATE = (
+        "<details {details_open}><summary><b>Description</b></summary>\n\n{description}\n</details>"
+    )
     FANCY_NAME = ""
     RESERVED_VIEWNAMES = (*Menubox.RESERVED_VIEWNAMES, CONFIGURE_VIEW)
-    title_description = TF.Str(
-        "<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>"
-    )
-    title_description_tooltip = TF.Str(
-        "{self.description.value or utils.fullname(self.__class__)}"
-    )
-    header_right_children = StrTuple(
-        "_get_template_controls", "button_configure", *Menubox.header_right_children
-    )
+    title_description = TF.Str("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
+    title_description_tooltip = TF.Str("{self.description.value or utils.fullname(self.__class__)}")
+    header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
 
@@ -108,9 +104,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             c["owner"].dlink(
                 source=(c["owner"], "name"),
                 target=(c["obj"], "disabled"),
-                transform=lambda name: bool(
-                    not c["owner"].RENAMEABLE if name else False
-                ),
+                transform=lambda name: bool(not c["owner"].RENAMEABLE if name else False),
             ),
         ),
     )
@@ -130,16 +124,12 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
     )
     button_configure = (
-        TF.Button(
-            cast("Self", 0), TF.CSScls.button_open, tooltip="Configure", icon="wrench"
-        )
+        TF.Button(cast("Self", 0), TF.CSScls.button_open, tooltip="Configure", icon="wrench")
         .hooks(
             on_set=lambda c: c["owner"].dlink(
                 source=(c["owner"], "view"),
                 target=(c["obj"], "description"),
-                transform=lambda view: "End configure"
-                if view == MenuboxVT.CONFIGURE_VIEW
-                else "",
+                transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "",
             ),
         )
         .configure(TF.IHPMode.X_RN)
@@ -160,9 +150,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         description="Load",
         tooltip="Overwrite existing settings with template.\nExisting settings will be overwritten without warning.",
     )
-    _button_template_info = TF.Button(
-        description="Info", tooltip="Show template details in a read only text editor."
-    )
+    _button_template_info = TF.Button(description="Info", tooltip="Show template details in a read only text editor.")
     subpath = TF.ComboboxValidate(
         validate=utils.sanatise_filename,
         description="Subpath",
@@ -283,9 +271,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
                 )
 
     @override
-    async def get_center(
-        self, view: str | None
-    ) -> tuple[str | None, GetWidgetsInputType[RP]]:
+    async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
         if view == self.CONFIGURE_VIEW:
             return view, (self.text_name, self.description, self.description_viewer)
         return await super().get_center(view)

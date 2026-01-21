@@ -58,11 +58,7 @@ class ProposalType(TypedDict):
 
 
 type GetWidgetsInputType[T] = (
-    None
-    | str
-    | Widget
-    | Callable[[T], GetWidgetsInputType[T]]
-    | Iterable[GetWidgetsInputType[T]]
+    None | str | Widget | Callable[[T], GetWidgetsInputType[T]] | Iterable[GetWidgetsInputType[T]]
 )
 
 
@@ -127,11 +123,7 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
         super().__init__(tuple(self._iterate(default_value)), **kwargs)
 
     def validate(self, obj, value):
-        return (
-            tuple(self._iterate(self._trait._validate(obj, v) for v in value))
-            if value
-            else ()
-        )
+        return tuple(self._iterate(self._trait._validate(obj, v) for v in value)) if value else ()
 
     def _iterate(self, value):
         yield from value
@@ -140,9 +132,7 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
 class NameTuple(StrTuple):
     """A Trait for a tuple of unique dotted object names."""
 
-    info_text = (
-        "A tuple of any length of unique object trait_names (duplicates discarded.)"
-    )
+    info_text = "A tuple of any length of unique object trait_names (duplicates discarded.)"
     _trait_klass = DottedObjectName
 
     def _iterate(self, value):

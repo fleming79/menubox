@@ -44,9 +44,7 @@ __all__ = [
 ]
 
 
-def limited_string(
-    obj, max_len=100, suffix=" …", mode: Literal["start", "end"] = "start"
-):
+def limited_string(obj, max_len=100, suffix=" …", mode: Literal["start", "end"] = "start"):
     """Returns a string rep of obj of length up to max_len."""
     s = str(obj)
     if len(s) > max_len - len(suffix):
@@ -122,9 +120,7 @@ def weak_observe(
     return handle
 
 
-def observe_once(
-    obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str
-):
+def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str):
     "Observe a trait once only"
 
     def _observe_once(change: ChangeType):
@@ -159,9 +155,7 @@ def observe_until(
     obj.observe(_observe_until, name)
 
 
-async def wait_trait_value(
-    obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]
-) -> None:
+async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]) -> None:
     """Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
 
     The trait is then observed until the predicate returns `True`.
@@ -172,9 +166,7 @@ async def wait_trait_value(
         await event
 
 
-def getattr_nested(
-    obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True
-) -> Any:
+def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
     """Retrieve a nested attribute from an object.
 
     This function allows accessing attributes of attributes, specified by a string
@@ -202,14 +194,8 @@ def getattr_nested(
             return None
         return getattr_nested(obj_, b, default=default, hastrait_value=hastrait_value)
     try:
-        val = (
-            getattr(obj, name) if default is NO_DEFAULT else getattr(obj, name, default)
-        )
-        if (
-            hastrait_value
-            and isinstance(val, traitlets.HasTraits)
-            and val.has_trait("value")
-        ):
+        val = getattr(obj, name) if default is NO_DEFAULT else getattr(obj, name, default)
+        if hastrait_value and isinstance(val, traitlets.HasTraits) and val.has_trait("value"):
             val = val.value  # pyright: ignore[reportAttributeAccessIssue]
             name = "value"
         if name == "value":
@@ -370,9 +356,7 @@ def fstr(template: str, raise_errors=False, **globals) -> str:
         return template
 
 
-def sanatise_name(
-    name: str, allow=" _", strip=" ", lstrip="012345679-", replace="", allow_space=True
-) -> str:
+def sanatise_name(name: str, allow=" _", strip=" ", lstrip="012345679-", replace="", allow_space=True) -> str:
     """Sanatises a string to be used as a name.
 
     Args:
@@ -388,12 +372,7 @@ def sanatise_name(
     """
     return (
         "".join(
-            c
-            if (
-                (c.isalpha() or c.isdigit() or c in allow)
-                and (allow_space or not c.isspace())
-            )
-            else replace
+            c if ((c.isalpha() or c.isdigit() or c in allow) and (allow_space or not c.isspace())) else replace
             for c in name
         )
         .strip(strip)
@@ -428,16 +407,10 @@ def joinpaths(*parts):
 
     Note: this will strip trailing slashes.
     """
-    return "/".join(
-        pp
-        for p in iterflatten(parts)
-        if p and (pp := str(p).replace("\\", "/").rstrip("/"))
-    )
+    return "/".join(pp for p in iterflatten(parts) if p and (pp := str(p).replace("\\", "/").rstrip("/")))
 
 
-sanatise_filename = functools.partial(
-    sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_"
-)
+sanatise_filename = functools.partial(sanatise_name, allow=" \\/_==-.,~!@#$%^&()[]{}", lstrip="", replace="_")
 
 
 def iterflatten(iterable: Iterable[T] | Any) -> Generator[T, None, None]:
@@ -494,35 +467,24 @@ def get_widgets(
                     widget = widget()
                 if isinstance(widget, str):
                     if widget in ["H_FILL", "V_FILL"]:
-                        widget = (
-                            mb.defaults.H_FILL
-                            if widget == "H_FILL"
-                            else mb.defaults.V_FILL
-                        )
+                        widget = mb.defaults.H_FILL if widget == "H_FILL" else mb.defaults.V_FILL
                         if widget is not last_widget:
                             yield widget
                     else:
-                        yield from _get_widgets(
-                            getattr_nested(parent, widget, None, hastrait_value=False)
-                        )
+                        yield from _get_widgets(getattr_nested(parent, widget, None, hastrait_value=False))
                     continue
                 if isinstance(widget, ipw.Widget):
                     if (
                         getattr(widget, "_repr_mimebundle_", None)  # Not closed
                         and widget.comm  # closed
-                        and widget
-                        is not parent  # Would likely causes browser to crash with recursion.
+                        and widget is not parent  # Would likely causes browser to crash with recursion.
                         and last_widget is not widget  # Skip side-by-side
                         and not (
-                            skip_hidden
-                            and hasattr(widget, "layout")
-                            and widget.layout.visibility == "hidden"  # pyright: ignore[reportAttributeAccessIssue]
+                            skip_hidden and hasattr(widget, "layout") and widget.layout.visibility == "hidden"  # pyright: ignore[reportAttributeAccessIssue]
                         )
                         and not (skip_disabled and getattr(widget, "disabled", False))
                     ):
-                        if (panel := getattr(widget, "panel", None)) and isinstance(
-                            panel, ipylab.Panel
-                        ):
+                        if (panel := getattr(widget, "panel", None)) and isinstance(panel, ipylab.Panel):
                             widget = panel
                         yield widget
                         last_widget = widget

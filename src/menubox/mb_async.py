@@ -77,11 +77,7 @@ def _on_done_callback(pen: Pending):
                 set_.discard(pen)
             elif getattr(obj, handle) is pen:
                 obj.set_trait(handle, None)
-    if (
-        (not pen.cancelled())
-        and (error := pen.exception())
-        and (not pen.metadata.get("ignore_error"))
-    ):
+    if (not pen.cancelled()) and (error := pen.exception()) and (not pen.metadata.get("ignore_error")):
         if obj:
             if not obj.closed:
                 obj.on_error(error, msg="run async failed")
@@ -98,9 +94,7 @@ def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] |
     obj = metadata.get("obj")
     if isinstance(obj, mb.HasParent):
         return obj
-    if (func := metadata.get("func")) and isinstance(
-        obj := getattr(func, "__self__", None), mb.HasParent
-    ):
+    if (func := metadata.get("func")) and isinstance(obj := getattr(func, "__self__", None), mb.HasParent):
         return obj
     return None
 
@@ -125,11 +119,7 @@ def run_async(
         kwargs: keyword arguments.
     """
 
-    if (
-        (key := opts.get("key"))
-        and (current := singular_tasks.pop(key, None))
-        and not current.done()
-    ):
+    if (key := opts.get("key")) and (current := singular_tasks.pop(key, None)) and not current.done():
         if opts.get("restart", True):
             current.cancel()
         else:
@@ -267,9 +257,7 @@ def periodic(
             info.kwargs = kwargs
             return info.task
         info = _Periodic(wrapped, instance, args, kwargs, wait, mode)
-        info.task = run_async(
-            RunAsyncOptions(key=wrapped, obj=instance, tasktype=tasktype), info
-        )
+        info.task = run_async(RunAsyncOptions(key=wrapped, obj=instance, tasktype=tasktype), info)
         _periodic_tasks[k] = info
         info.task.add_done_callback(functools.partial(on_done, k))
         return info.task

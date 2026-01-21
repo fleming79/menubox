@@ -97,18 +97,14 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
                 else:
                     self.set_trait("repository", self.repository)
         if change["name"] == "repository":
-            filesystem: Filesystem = (
-                getattr(self.repository, "target_filesystem", None) or self.filesystem
-            )
+            filesystem: Filesystem = getattr(self.repository, "target_filesystem", None) or self.filesystem
             self.set_trait("filesystem", filesystem)
         self.mb_refresh()
         self.update_repository_name_options()
 
     @mb_async.debounce(0.1)
     async def update_repository_name_options(self):
-        self.repository_name.options = await Repository.list_stored_datasets(
-            self.home.filesystem
-        )
+        self.repository_name.options = await Repository.list_stored_datasets(self.home.filesystem)
 
     @override
     async def button_clicked(self, b: Button):

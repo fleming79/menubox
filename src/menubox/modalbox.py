@@ -24,9 +24,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     button_collapse = TF.Button(cast("Self", 0), TF.CSScls.button_modal, disabled=True)
     expanded = TF.Bool(False).configure(TF.IHPMode.X_R_)
     html_title = TF.HTML_Title()
-    header = (
-        TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
-    )
+    header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = StrTuple("log")
     parent = TF.parent(cast("type[S]", HasParent))
@@ -87,9 +85,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
             self.html_title.tooltip = fstr(title_tooltip)
         self.header_children = header_children
         self.button_expand.icon = icon
-        self.button_expand.description = fstr(
-            button_expand_description or ("" if icon else title)
-        )
+        self.button_expand.description = fstr(button_expand_description or ("" if icon else title))
         self.button_expand.tooltip = fstr(button_expand_tooltip)
         self.button_collapse.description = fstr(button_collapse_description)
         self.button_collapse.tooltip = fstr(button_collapse_tooltip)
@@ -123,18 +119,10 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         """Show the widget"""
         self.button_collapse.disabled = False
         if self.header:
-            self.header.children = tuple(
-                self._get_widgets(
-                    self.button_collapse, self.html_title, self.header_children
-                )
-            )
+            self.header.children = tuple(self._get_widgets(self.button_collapse, self.html_title, self.header_children))
             if self.layout.flex_flow != "row":
-                self.header.layout.border_bottom = (
-                    self.box.layout.border_top if self.box else self.layout.border_top
-                )
-        children = tuple(
-            self._get_widgets(self.header or self.button_collapse, self.obj)
-        )
+                self.header.layout.border_bottom = self.box.layout.border_top if self.box else self.layout.border_top
+        children = tuple(self._get_widgets(self.header or self.button_collapse, self.obj))
         self.button_expand.disabled = True
         self.set_trait("expanded", True)
         if self.box:
@@ -151,9 +139,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
             self.collapse()
 
     def _get_widgets(self, *items):
-        return utils.get_widgets(
-            *items, parent=self.parent if isinstance(self.parent, HasParent) else None
-        )
+        return utils.get_widgets(*items, parent=self.parent if isinstance(self.parent, HasParent) else None)
 
     @mb_async.debounce(0.1)
     async def collapse(self):

@@ -44,12 +44,8 @@ class Filesystem(MenuboxVT):
     filters = StrTuple()
     ignore = StrTuple()
     minimized_children = StrTuple("url")
-    value_traits = NameTuple(
-        *MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view"
-    )
-    value_traits_persist = NameTuple(
-        "protocol", "url", "kw", "folders_only", "filters", "ignore"
-    )
+    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
+    value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
     views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.prev_protocol})
     html_info = TF.HTML()
 
@@ -62,9 +58,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
-            source=(c["owner"], "read_only"), target=(c["obj"], "disabled")
-        ),
+        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     url = TF.Combobox(
         description="url",
@@ -72,9 +66,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
-            source=(c["owner"], "read_only"), target=(c["obj"], "disabled")
-        ),
+        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     drive = (
         TF.Dropdown(
@@ -91,9 +83,7 @@ class Filesystem(MenuboxVT):
                     target=(c["obj"].layout, "visibility"),
                     transform=lambda protocol: utils.to_visibility(protocol == "file"),
                 ),
-                c["owner"].dlink(
-                    source=(c["owner"], "read_only"), target=(c["obj"], "disabled")
-                ),
+                c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
             )
         )
         .configure(TF.IHPMode.XL_N)
@@ -106,9 +96,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
-            source=(c["owner"], "read_only"), target=(c["obj"], "disabled")
-        ),
+        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     sw_main = TF.Select(
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
@@ -131,14 +119,10 @@ class Filesystem(MenuboxVT):
         icon="plus",
         tooltip="Create new file or folder",
     )
-    box_settings = TF.HBox(
-        cast("Self", 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}
-    ).hooks(
+    box_settings = TF.HBox(cast("Self", 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children=lambda p: (p.protocol, p.kw),
     )
-    control_widgets = TF.HBox(
-        cast("Self", 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}
-    ).hooks(
+    control_widgets = TF.HBox(cast("Self", 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children={
             "children": lambda p: (
                 p.button_home,
@@ -172,11 +156,7 @@ class Filesystem(MenuboxVT):
     @property
     def urlpath(self):
         """URL of currently selected item"""
-        return (
-            ((self.protocol.value or "") + "://" + self.sw_main.value)
-            if self.sw_main.value
-            else None
-        )
+        return ((self.protocol.value or "") + "://" + self.sw_main.value) if self.sw_main.value else None
 
     @override
     async def init_async(self):
@@ -251,10 +231,7 @@ class Filesystem(MenuboxVT):
     async def _button_update_async(self, create=False, url: str | None = None):
         if (not self.view_active and not create) or self.vt_validating:
             return
-        if (
-            self.prev_protocol != self.protocol.value
-            or self.prev_kwargs != self.storage_options
-        ):
+        if self.prev_protocol != self.protocol.value or self.prev_kwargs != self.storage_options:
             self._fs = None  # causes fs to be recreated
             self.set_trait("prev_protocol", self.protocol.value)
             self.prev_kwargs = self.storage_options
@@ -284,11 +261,7 @@ class Filesystem(MenuboxVT):
                     await self._button_update_async(url=utils.splitname(url)[0])
                 return
             listing = sorted(items, key=lambda x: x["name"])
-            listing = [
-                n
-                for n in listing
-                if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self._ignore)
-            ]
+            listing = [n for n in listing if not any(i.match(n["name"].rsplit("/", 1)[-1]) for i in self._ignore)]
             folders = {}
             files = {}
             if await mb_async.to_thread(fs.isdir, url):
@@ -299,9 +272,7 @@ class Filesystem(MenuboxVT):
             if not self.folders_only:
                 for o in listing:
                     if o["type"] == "file":
-                        if self.filters and not any(
-                            o["name"].endswith(ext) for ext in self.filters
-                        ):
+                        if self.filters and not any(o["name"].endswith(ext) for ext in self.filters):
                             continue
                         files["📄 " + o["name"].rsplit("/", 1)[-1]] = o["name"]
             # url = self.sw_main.value
@@ -350,12 +321,10 @@ class RelativePath(Filesystem):
     """A relative filesystem"""
 
     folders_only = TF.Bool(False)
-    box_settings = TF.HBox(
-        cast("Self", 0), layout={"overflow": "hidden", "flex": "0 0 auto"}
-    ).hooks(set_children=lambda p: (p.relative_path,))
-    relative_path = TF.Text(
-        value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"}
+    box_settings = TF.HBox(cast("Self", 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
+        set_children=lambda p: (p.relative_path,)
     )
+    relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple(*Filesystem.value_traits, "kw")
     value_traits_persist = NameTuple()
     parent = TF.parent(klass=Filesystem)
@@ -392,9 +361,7 @@ class RelativePath(Filesystem):
 class DefaultFilesystem(HasHome, Filesystem):
     SINGLE_BY = ("home",)
     KEEP_ALIVE = True
-    name = TF.InstanceHP(
-        str, default=lambda c: f"{c['owner'].home}", co_=cast("Self", 0)
-    )
+    name = TF.InstanceHP(str, default=lambda c: f"{c['owner'].home}", co_=cast("Self", 0))
     read_only = TF.Bool(True).configure(TF.IHPMode.X_R_)
 
     @override
@@ -405,23 +372,17 @@ class DefaultFilesystem(HasHome, Filesystem):
 class HasFilesystem(HasHome):
     filesystem = (
         TF.InstanceHP(Filesystem, co_=cast("Self", 0))
-        .configure(
-            TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["owner"].home)
-        )
+        .configure(TF.IHPMode.XL__, default=lambda c: DefaultFilesystem(home=c["owner"].home))
         .hooks(on_replace_close=False, set_parent=False)
     )
 
-    def __new__(
-        cls, *, home=None, parent=None, filesystem: Filesystem | None = None, **kwargs
-    ):
+    def __new__(cls, *, home=None, parent=None, filesystem: Filesystem | None = None, **kwargs):
         if not filesystem:
             if isinstance(parent, HasFilesystem):
                 filesystem = parent.filesystem
             else:
                 home = cls.to_home(home, parent)
                 filesystem = home.filesystem
-        inst = super().__new__(
-            cls, home=home, parent=parent, filesystem=filesystem, **kwargs
-        )
+        inst = super().__new__(cls, home=home, parent=parent, filesystem=filesystem, **kwargs)
         inst.filesystem = filesystem
         return inst

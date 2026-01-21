@@ -42,9 +42,7 @@ class TestRunAsync:
             fut1.exception()
 
     async def test_run_async_no_restart(self):
-        task1 = run_async(
-            {"key": async_function, "restart": False}, async_function, 5, 0.1
-        )
+        task1 = run_async({"key": async_function, "restart": False}, async_function, 5, 0.1)
         task2 = run_async({"key": async_function, "restart": False}, async_function, 6)
         assert task1 is task2
         assert (await task1) == 5

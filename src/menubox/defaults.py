@@ -20,9 +20,7 @@ if TYPE_CHECKING:
     @overload
     def is_no_value(value: Any) -> bool: ...
     @overload
-    def is_no_value(
-        value: Literal[_NoValue.token, _NoDefault.token], include_na: bool
-    ) -> Literal[True]: ...
+    def is_no_value(value: Literal[_NoValue.token, _NoDefault.token], include_na: bool) -> Literal[True]: ...
     @overload
     def is_no_value(value: Any, include_na: Literal[False]) -> Literal[False]: ...
     @overload
@@ -118,9 +116,7 @@ class NoCloseBox(ipw.Box):
             super().close()
 
 
-H_FILL = NoCloseBox(
-    layout={"flex": "1 10 0%", "justify_content": "space-between", "overflow": "hidden"}
-)
+H_FILL = NoCloseBox(layout={"flex": "1 10 0%", "justify_content": "space-between", "overflow": "hidden"})
 V_FILL = NoCloseBox(
     layout={
         "flex_flow": "column",

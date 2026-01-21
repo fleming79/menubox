@@ -11,23 +11,17 @@ from menubox.trait_factory import TF
 class PMB(mb.Menubox):
     ab_main = TF.InstanceHP(
         AsyncRunButton,
-        lambda c: AsyncRunButton(
-            parent=c["owner"], cfunc=lambda p: p._button_async, description="Button"
-        ),
+        lambda c: AsyncRunButton(parent=c["owner"], cfunc=lambda p: p._button_async, description="Button"),
         co_=cast("Self", 0),
     )
     ab_nested = TF.InstanceHP(
         AsyncRunButton,
-        default=lambda c: AsyncRunButton(
-            parent=c["owner"], cfunc=lambda p: p.ab_main, description="Nested button"
-        ),
+        default=lambda c: AsyncRunButton(parent=c["owner"], cfunc=lambda p: p.ab_main, description="Nested button"),
         co_=cast("Self", 0),
     )
     ab_nested_sub = TF.InstanceHP(
         AsyncRunButton,
-        lambda c: AsyncRunButton(
-            parent=c["owner"], cfunc=lambda p: p.ab_main, description="Sub button"
-        ),
+        lambda c: AsyncRunButton(parent=c["owner"], cfunc=lambda p: p.ab_main, description="Sub button"),
         co_=cast("Self", 0),
     )
     data = TF.Dict()
@@ -75,13 +69,9 @@ async def test_async_run_button_nested():
     assert obj.ab_main.description == "Button"
     b_task = obj.ab_main.start(primary=True)
     assert obj.ab_nested_sub.icon == "stop"
-    assert not obj.ab_nested.disabled, (
-        "A nested button should be allowed to restart a running task."
-    )
+    assert not obj.ab_nested.disabled, "A nested button should be allowed to restart a running task."
     obj.ab_nested.start(description="nested")
-    assert b_task.cancelled(), (
-        "Starting b2 should cancel b.task before stating a new task"
-    )
+    assert b_task.cancelled(), "Starting b2 should cancel b.task before stating a new task"
     assert obj.ab_nested.task is obj.ab_main.task
     assert obj.ab_main.task
     assert obj.ab_main.task in obj.tasks
@@ -93,11 +83,7 @@ async def test_async_run_button_nested():
     # await obj.ab_nested.task
     assert obj.ab_nested.description == "Nested button"
     assert obj.ab_main.icon == "play"
-    assert not obj.data.get("primary"), (
-        "The task should that sets this should be cancelled"
-    )
-    assert obj.data.get("description") == "nested", (
-        "The kwarg should be passed in the called to button_nest.start"
-    )
+    assert not obj.data.get("primary"), "The task should that sets this should be cancelled"
+    assert obj.data.get("description") == "nested", "The kwarg should be passed in the called to button_nest.start"
     assert not obj.ab_nested.task
     assert not obj.tasks

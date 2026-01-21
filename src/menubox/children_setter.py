@@ -17,9 +17,7 @@ class ChildrenSetter(ValueTraits):
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
     dottednames = Tuple(read_only=True)
-    nametuple_name = Unicode(
-        help="The name in the parent of a tuple to obtain the dotted names"
-    )
+    nametuple_name = Unicode(help="The name in the parent of a tuple to obtain the dotted names")
     parent_dlink = NameTuple("log")
     value_traits = NameTuple("dottednames", "nametuple_name", "children")
     children = Callable(None, allow_none=True)
@@ -57,16 +55,8 @@ class ChildrenSetter(ValueTraits):
     @debounce(0.01, tasktype=TaskType.update)
     def update(self):
         if not self.dottednames and self.children and self.parent:
-            back = {
-                v: k
-                for k, v in self.parent.trait_values().items()
-                if isinstance(v, Widget)
-            }
-            dottednames = [
-                n
-                for obj in self.parent.get_widgets(self.children)
-                if (n := back.get(obj))
-            ]
+            back = {v: k for k, v in self.parent.trait_values().items() if isinstance(v, Widget)}
+            dottednames = [n for obj in self.parent.get_widgets(self.children) if (n := back.get(obj))]
             self.set_trait("dottednames", dottednames)
         if self.parent and (box := getattr(self.parent, self.name)):
             box.set_trait(

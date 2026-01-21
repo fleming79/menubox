@@ -146,9 +146,7 @@ class SelectMultipleValidate(ipw.SelectMultiple, ValidateWidget):
     value = ValidatedTrait(()).tag(sync=True)
     options: tuple
 
-    def __init__(
-        self, *, validate: None | Callable[[ProposalType], Any] = None, **kwargs
-    ):
+    def __init__(self, *, validate: None | Callable[[ProposalType], Any] = None, **kwargs):
         super().__init__(validate=validate or self._validate_value_default, **kwargs)
 
     def _validate_value_default(self, value):

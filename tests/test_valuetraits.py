@@ -20,9 +20,7 @@ class VT1(ValueTraits):
     nested = TF.InstanceHP(klass=Nested).configure(TF.IHPMode.XL_N)
     a = TF.Str()
     b = TF.Int(0)
-    c: Fixed[Self, ipw.Dropdown] = Fixed(
-        ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3])
-    )
+    c: Fixed[Self, ipw.Dropdown] = Fixed(ipw.Dropdown, created=lambda info: info["obj"].set_trait("options", [1, 2, 3]))
     change_owners = traitlets.Tuple()
     on_change_counts = TF.Int(0)
 
@@ -166,9 +164,7 @@ async def test_value_traits():
         nested_old,
         "number",
     ) not in vt1._vt_reg_value_traits_persist, "should be deregisetered"
-    assert (nested, "number") in vt1._vt_reg_value_traits_persist, (
-        "should be deregisetered"
-    )
+    assert (nested, "number") in vt1._vt_reg_value_traits_persist, "should be deregisetered"
 
     vt2.on_change_counts = 0
     # Check removing items

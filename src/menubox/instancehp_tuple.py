@@ -125,9 +125,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         klass: type[T] | str | UnionType,
         *,
         default: Callable[[IHPCreate[V, T]], tuple[T, ...]] = lambda _: (),
-        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](
-            **c["kwgs"]
-        ),
+        factory: Callable[[IHPCreate[V, T]], T] | None = lambda c: c["klass"](**c["kwgs"]),
         default_value: tuple[T, ...] = (),
         read_only=False,
         co_: V | Any = None,
@@ -157,10 +155,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             raise TypeError(msg)
         super().subclass_init(cls)
         # Required to ensure instance_init is always called during init
-        if (
-            hasattr(cls, "_instance_inits")
-            and self.instance_init not in cls._instance_inits
-        ):
+        if hasattr(cls, "_instance_inits") and self.instance_init not in cls._instance_inits:
             cls._instance_inits.append(self.instance_init)
 
     def instance_init(self, obj: V):
@@ -174,11 +169,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             return ()
         try:
             if self.validating:
-                return (
-                    getattr(obj, self.name)
-                    if obj.trait_has_value(self.name)
-                    else self.default_value
-                )
+                return getattr(obj, self.name) if obj.trait_has_value(self.name) else self.default_value
             with self._busy_validating():
                 values = []
                 for i, v in enumerate(value):
@@ -197,9 +188,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                             raise
                     if val is None:
                         continue
-                    if id(val) not in map(id, values) and not getattr(
-                        val, "closed", False
-                    ):
+                    if id(val) not in map(id, values) and not getattr(val, "closed", False):
                         values.append(val)
                 return tuple(values)
         except Exception as e:
@@ -222,9 +211,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             msg = f"Cannot create a new instance because a factory is not specified for {self!r}"
             raise RuntimeError(msg)
         kw = {"parent": obj} | kw if self._hookmappings.get("set_parent", False) else kw
-        c = IHPCreate(
-            name=self.name, owner=obj, klass=self.trait.finalize().klass, kwgs=kw
-        )
+        c = IHPCreate(name=self.name, owner=obj, klass=self.trait.finalize().klass, kwgs=kw)
         inst = self._factory(c)
         self.trait._validate(obj, inst)
         return inst
@@ -292,9 +279,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             value.parent = obj
         if isinstance(value, HasParent | Widget) and value not in self._close_observers:
             names = "closed" if isinstance(value, HasParent) else "comm"
-            handle = utils.weak_observe(
-                value, self._observe_obj_closed, names, False, weakref.ref(obj), names
-            )
+            handle = utils.weak_observe(value, self._observe_obj_closed, names, False, weakref.ref(obj), names)
             self._close_observers[value] = handle, names
         if on_add := self._hookmappings.get("on_add"):
             try:
@@ -303,9 +288,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                 obj.on_error(e, f"on_add callback for {self!r}")
 
     def _on_remove(self, obj: V, value: T):
-        if isinstance(value, HasParent | Widget) and (
-            args := self._close_observers.pop(value, None)
-        ):
+        if isinstance(value, HasParent | Widget) and (args := self._close_observers.pop(value, None)):
             value.unobserve(*args)
         if self._hookmappings.get("close_on_remove") and hasattr(value, "close"):
             value.close()  # pyright: ignore[reportAttributeAccessIssue]
@@ -320,11 +303,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
 
     def _observe_obj_closed(self, ref: weakref.ref[V], name: str):
         if (parent := ref()) and not parent.closed:
-            filt = (
-                (lambda obj: not obj.closed)
-                if name == "closed"
-                else lambda obj: obj.comm
-            )
+            filt = (lambda obj: not obj.closed) if name == "closed" else lambda obj: obj.comm
             values = filter(filt, getattr(parent, self.name))
             parent.set_trait(self.name, values)
 

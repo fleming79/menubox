@@ -59,9 +59,7 @@ class TestMenubox:
         await m.wait_tasks()
         assert m.box_menu
         assert m.button_menu_minimize in m.box_menu.children
-        assert len(m.box_menu.children) == 2, (
-            "expected: (button_menu_minimize, button_load_view)"
-        )
+        assert len(m.box_menu.children) == 2, "expected: (button_menu_minimize, button_load_view)"
         b = m.box_menu.children[1]
         assert isinstance(b, ipw.Button)
         assert b.description == "b"

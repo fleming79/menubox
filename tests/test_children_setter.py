@@ -29,12 +29,8 @@ class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
 class ChildrenSetterTester(mb.MenuboxVT):
     dropdown = TF.Dropdown(description="dropdown")
     label = TF.Label(value="Label")
-    dd_no_default = TF.Dropdown(description="Label no default").configure(
-        TF.IHPMode.X_RN
-    )
-    nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(
-        TF.IHPMode.XLRN
-    )
+    dd_no_default = TF.Dropdown(description="Label no default").configure(TF.IHPMode.X_RN)
+    nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(TF.IHPMode.XLRN)
     dynamic_box = TF.Box().hooks(
         set_children={
             "mode": "monitor",
@@ -76,9 +72,7 @@ class ChildrenSetterTester(mb.MenuboxVT):
 )
 async def test_children_setter_manual(dottednames: tuple):
     cto = ChildrenSetterTester()
-    children_setter = ChildrenSetter(
-        parent=cto, name="plain_box", dottednames=dottednames
-    )
+    children_setter = ChildrenSetter(parent=cto, name="plain_box", dottednames=dottednames)
     await children_setter.wait_tasks()
     assert children_setter.dottednames == dottednames
     widgets = tuple(cto.get_widgets(dottednames))

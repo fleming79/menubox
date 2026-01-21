@@ -118,9 +118,7 @@ class TestValueTraits:
         assert vt.added_count == 2
         assert vt.somelist_count == 2
 
-        assert (item1, "value") in vt._vt_tuple_reg["somelist"].reg, (
-            "should be registered"
-        )
+        assert (item1, "value") in vt._vt_tuple_reg["somelist"].reg, "should be registered"
         item1.value = "a new value"
         assert vt.change_count == 3
 
@@ -133,9 +131,7 @@ class TestValueTraits:
         assert vt.change_count == 4
 
         vt2.somelist = (item2,)
-        assert vt2.change_count == 0, (
-            "Value traits should only emit when being monitored"
-        )
+        assert vt2.change_count == 0, "Value traits should only emit when being monitored"
         vt2.add_value_traits("somelist")
         assert vt2.added_count == 1
         item2.value = "item 2 should be monitored by both vt and vt2"
@@ -209,9 +205,7 @@ class TestValueTraits:
 
         number2 = ipw.FloatText()
         vt2.somelist2[0].number = number2
-        assert (number, "value") not in vt2._vt_tuple_reg["somelist2"].reg, (
-            "stop observing"
-        )
+        assert (number, "value") not in vt2._vt_tuple_reg["somelist2"].reg, "stop observing"
         assert (number2, "value") in vt2._vt_tuple_reg["somelist2"].reg
         assert len(vt2._vt_tuple_reg["somelist2"].reg) == 3
 
