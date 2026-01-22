@@ -22,7 +22,7 @@ class HPI(mb.Menubox):
     a = InstanceHP("tests.test_instance.HPI", default=lambda c: HPI(name="a", **c["kwgs"])).configure(TF.IHPMode.XL_N)
     b = InstanceHP("tests.test_instance.HPI", default=lambda c: HPI(name="b", **c["kwgs"])).configure(TF.IHPMode.X___)
     my_button = TF.Button(description="A button")
-    box = TF.HBox().hooks(set_children=lambda p: p.my_button)
+    box = TF.HBox(cast("Self", 0)).hooks(set_children=lambda p: p.my_button)
     clicked = 0
 
     async def button_clicked(self, b: ipw.Button):

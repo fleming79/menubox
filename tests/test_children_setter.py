@@ -32,7 +32,7 @@ class ChildrenSetterTester(mb.MenuboxVT):
     nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(TF.IHPMode.XLRN)
     nested_always = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj)
     dynamic_box = TF.Box(cast("Self", 0)).hooks(
-        set_children=lambda p: (p.dd_no_default, p.dropdown, "nested.dropdown", "nested.button"),
+        set_children=lambda p: (p.dd_no_default, p.dropdown, p.nested.dropdown, p.nested.button),  # pyright: ignore[reportOptionalMemberAccess]
     )
     dynamic_box_children = TF.Box(cast("Self", 0)).hooks(
         set_children=lambda p: (p.dd_no_default, p.dropdown, p.nested_always.button, p.nested_always.label)

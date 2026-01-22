@@ -61,7 +61,7 @@ class IHPMode(enum.IntEnum):
     in that position, it is the disabled mode.
     """
 
-    X___ = 0  #       load_default
+    X___ = 0  #       no load_default
     XL__ = 1  #       load_default
     X__N = 2  #       allow_none
     X_R_ = 4  #       read_only
@@ -99,12 +99,13 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    set_children: NotRequired[Callable[[S], Widget | None | str | tuple[Widget | None | str, ...]]]
+    set_children: NotRequired[Callable[[S], Widget | None | tuple[Widget | None, ...]]]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 
 
 class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
-    """Descriptor for managing instances of a specific class as a trait.
+    """
+    Descriptor for managing instances of a specific class as a trait.
 
     `InstanceHP` is a trait type that manages instances of a particular class.
     It handles instantiation, validation, and interaction with the managed
@@ -503,7 +504,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         set_parent: Set the parent to the parent of the trait (HasParent).
         set_children: <Objects with a children trait **ONLY**>
             Children listed via the dotted paths in `lambda p: p.<attribute>` are synchronised to the
-            `children` of the instance using `ChildrenSetter`.
+            `children` of the instance using `ChildrenSetter`. It is safe to specify on optional parameters,
+            They can  be escaped in Pyright with `# pyright: ignore[reportOptionalMemberAccess]`.
         add_css_class: <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
         remove_on_close: If True, the instance will be removed from the parent when the instance is closed.
