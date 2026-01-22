@@ -37,6 +37,7 @@ __all__ = [
     "observe_until",
     "sanatise_filename",
     "sanatise_name",
+    "set_visibility",
     "setattr_nested",
     "wait_trait_value",
     "weak_observe",
@@ -514,16 +515,22 @@ def get_widgets(
     yield from _get_widgets(items)
 
 
-def hide(widget):
+def hide(widget: ipw.DOMWidget):
     """Hide the widget."""
-    if hasattr(widget, "layout"):
-        widget.layout.visibility = "hidden"
+    if layout := getattr(widget, "layout", None):
+        layout.visibility = "hidden"
 
 
-def unhide(widget):
+def unhide(widget: ipw.DOMWidget):
     """Unhide the widget."""
-    if hasattr(widget, "layout"):
-        widget.layout.visibility = "visible"
+    if layout := getattr(widget, "layout", None):
+        layout.visibility = "visible"
+
+
+def set_visibility(widget: ipw.DOMWidget, visible=True, /):
+    "Hide or unhide the widget."
+    unhide(widget) if visible else hide(widget)
+    return widget
 
 
 def set_border(widget, border: str = f"var({CSSvar.menubox_border})"):
