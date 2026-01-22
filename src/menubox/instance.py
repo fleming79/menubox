@@ -26,21 +26,26 @@ import traitlets
 from async_kernel.common import import_item
 from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
+from wrapt import lazy_import
 
 import menubox as mb
 import menubox.hasparent as mhp
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
-from menubox.trait_types import SS, Bunched, GetWidgetsInputType, P, ReadOnly, S, T, W
+from menubox.trait_types import SS, Bunched, P, ReadOnly, S, T, W
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from menubox.children_setter import ChildrenSetter as ChildrenSetterType
     from menubox.css import CSScls
     from menubox.defaults import NO_DEFAULT_TYPE
 
 
 __all__ = ["InstanceHP", "instanceHP_wrapper"]
+
+
+ChildrenSetter = cast("type[ChildrenSetterType]", lazy_import("menubox.children_setter", "ChildrenSetter"))
 
 
 class IHPMode(enum.IntEnum):
@@ -87,19 +92,6 @@ class IHPChange(TypedDict, Generic[S, T]):
     ihp: InstanceHP[S, T, Any]
 
 
-class SetChildrenSettings(TypedDict, Generic[S, T]):
-    mode: Literal["monitor", "monitor_nametuple"]
-    dottednames: NotRequired[tuple[str, ...]]  # 'monitor' `mode` only
-    nametuple_name: NotRequired[str]  # 'monitor_nametuple' `mode` only
-    children: NotRequired[Callable[[S], GetWidgetsInputType[T]]]  # 'monitor' `mode` only
-    """
-    Use a lambda to provide the objects to be monitored. The children
-    returned by the lambda should point to the same object.
-
-    Use `utils.hide`, `utils.unhide` or `utils.set_visibility` to add/remove the object from the children.
-    """
-
-
 class IHPHookMappings(TypedDict, Generic[S, T]):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
@@ -107,7 +99,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    set_children: NotRequired[Callable[[S], GetWidgetsInputType[T]] | SetChildrenSettings[S, T]]
+    set_children: NotRequired[Callable[[S], Widget | None | str | tuple[Widget | None | str, ...]]]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 
 
@@ -360,14 +352,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             old_value = self.default_value
         obj._trait_values[self.name] = new_value
         if not obj.check_equality(old_value, new_value):
-            change = Bunched(
-                name=self.name,
-                old=old_value,
-                new=new_value,
-                owner=obj,
-                type="change",
-                ihp=self,
-            )
+            change = Bunched(name=self.name, old=old_value, new=new_value, owner=obj, type="change", ihp=self)
             try:
                 self._value_changed(cast("IHPChange", change))
             except Exception as e:
@@ -392,14 +377,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             obj._trait_values[self.name] = value
             dv = self.default_value
             if not obj.check_equality(value, dv):
-                change = Bunched(
-                    name=self.name,
-                    old=dv,
-                    new=value,
-                    owner=obj,
-                    type="change",
-                    ihp=self,
-                )
+                change = Bunched(name=self.name, old=dv, new=value, owner=obj, type="change", ihp=self)
                 self._value_changed(cast("IHPChange", change))
                 obj._notify_observers(change)
             return value
@@ -502,14 +480,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     def _on_obj_close(self, obj: S):
         if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
-            change = Bunched(
-                name=self.name,
-                old=old,
-                new=self.default_value,
-                owner=obj,
-                type="change",
-                ihp=self,
-            )
+            change = Bunched(name=self.name, old=old, new=self.default_value, owner=obj, type="change", ihp=self)
             self._value_changed(cast("IHPChange", change))
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
@@ -526,31 +497,18 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
         Parameters
         ----------
-        on_replace_close: Bool
-            Close the previous instance if it is replaced.
+        on_replace_close: Close the previous instance if it is replaced.
             Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
-        allow_none :  bool
-            Allow the value to be None.
-        set_parent: Bool [True]
-            Set the parent to the parent of the trait (HasParent).
-        set_children: Callable[[S], utils.GetWidgetsInputType] | SetChildrenSettings
-            Children are collected from the parent using `parent.get_widgets`.
-            and passed as the keyword argument `children`= (<widget>,...) when creating a new instance.
-
-            Additionally, if mode is 'monitor', the children will be updated as the state
-            of the children is changed (including add/remove hide/show).
-            If mode is 'monitor_nametuple', the children will be updated as the state
-            of the children is changed (including add/remove hide/show).
-            The children will be passed as a named tuple with the name specified in the
-            `nametuple_name` field.
-        add_css_class: str | tuple[str, ...] <DOMWidget **ONLY**>
+        allow_none: Allow the value to be None.
+        set_parent: Set the parent to the parent of the trait (HasParent).
+        set_children: <Objects with a children trait **ONLY**>
+            Children listed via the dotted paths in `lambda p: p.<attribute>` are synchronised to the
+            `children` of the instance using `ChildrenSetter`.
+        add_css_class: <DOMWidget **ONLY**>
             Class names to add to the instance. Useful for selectors such as context menus.
-        remove_on_close: bool
-            If True, the instance will be removed from the parent when the instance is closed.
-        on_set: IHPChange
-            A new value when it isn't None.
-        on_unset: IHPChange
-            An old value when it isn't None.
+        remove_on_close: If True, the instance will be removed from the parent when the instance is closed.
+        on_set: A new value when it isn't None.
+        on_unset: An old value when it isn't None.
         """
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # pyright: ignore[reportArgumentType]
@@ -654,18 +612,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
 
     @staticmethod
     def _set_children_hook(c: IHPChange[S, T]):
-        import menubox.children_setter
-
-        if c["owner"].closed:
-            return
-        if c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
-            if isinstance(children, dict):
-                val = {} | children
-                val.pop("mode")
-                menubox.children_setter.ChildrenSetter(parent=c["owner"], name=c["ihp"].name, value=val)
-            else:
-                children = c["owner"].get_widgets(children, skip_hidden=False, show=True)
-                c["new"].set_trait("children", children)  # pyright: ignore[reportAttributeAccessIssue]
+        if not c["owner"].closed and c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
+            ChildrenSetter(parent=c["owner"], name=c["ihp"].name, children=children)
 
     @staticmethod
     def _value_changed_hook(c: IHPChange[S, T]):

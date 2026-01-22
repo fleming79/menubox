@@ -6,8 +6,8 @@ import datetime
 import functools
 import inspect
 import weakref
-from collections.abc import Callable, Generator, Iterable
-from typing import TYPE_CHECKING, Any, Concatenate, Literal, overload
+from collections.abc import Callable, Generator, Iterable, Iterator
+from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self, overload
 
 import ipylab
 import ipylab.log
@@ -21,11 +21,15 @@ from menubox.css import CSSvar
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
+    from ipywidgets.widgets.widget_string import HTML
+    from pandas._libs.tslibs.timestamps import Timestamp
+
     from menubox.instance import S
-    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, T
+    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, R, T
 
 
 __all__ = [
+    "extract_keys",
     "fstr",
     "fullname",
     "funcname",
@@ -515,25 +519,24 @@ def get_widgets(
     yield from _get_widgets(items)
 
 
-def hide(widget: ipw.DOMWidget):
+def hide(widget) -> None:
     """Hide the widget."""
     if layout := getattr(widget, "layout", None):
         layout.visibility = "hidden"
 
 
-def unhide(widget: ipw.DOMWidget):
+def unhide(widget) -> None:
     """Unhide the widget."""
     if layout := getattr(widget, "layout", None):
         layout.visibility = "visible"
 
 
-def set_visibility(widget: ipw.DOMWidget, visible=True, /):
+def set_visibility(widget, visible=True, /) -> None:
     "Hide or unhide the widget."
     unhide(widget) if visible else hide(widget)
-    return widget
 
 
-def set_border(widget, border: str = f"var({CSSvar.menubox_border})"):
+def set_border(widget, border: str = f"var({CSSvar.menubox_border})") -> None:
     """Set the layout of the widget."""
 
     if isinstance(widget, mb.Menubox):
@@ -542,7 +545,7 @@ def set_border(widget, border: str = f"var({CSSvar.menubox_border})"):
         widget.layout.border = border
 
 
-def to_visibility(f, invert=False):
+def to_visibility(f, invert=False) -> Literal["visible", "hidden"]:
     """Returns either 'visible' if True else 'hidden'.
 
     invert:
@@ -555,17 +558,16 @@ def to_visibility(f, invert=False):
         f = not f.empty
     if invert:
         f = not f
-    if f:
-        return "visible"
-    return "hidden"
+
+    return "visible" if f else "hidden"
 
 
-def to_hidden(f):
+def to_hidden(f) -> Literal["visible", "hidden"]:
     """to_visibility inverted."""
     return to_visibility(f, invert=True)
 
 
-def move_item(items: tuple, item, direction: Literal[-1, 1]):
+def move_item(items: tuple, item, direction: Literal[-1, 1]) -> tuple[Any, ...]:
     """Move an item within a tuple.
 
     This function moves a specified item within a tuple forward or backward,
@@ -595,7 +597,7 @@ def move_item(items: tuple, item, direction: Literal[-1, 1]):
     return tuple(items_)
 
 
-def download_button(buffer, filename: str, button_description: str):
+def download_button(buffer, filename: str, button_description: str) -> HTML:
     """Loads data from file f into base64 payload embedded into a HTML button.
     Recommended for small files only.
 
@@ -635,7 +637,7 @@ def button_dict(
     accept: Any = True,
     actions=(),
     displayType: Literal["default", "warn"] = "default",
-):
+) -> dict[str, Any]:
     """Useful for dialogs.
 
     See also:
@@ -660,7 +662,7 @@ def bool_button_options(
     yes_type: Literal["warn", "default"] = "default",
     no="No",
     no_type: Literal["warn", "default"] = "warn",
-):
+) -> dict[str, list[dict[str, Any]]]:
     """
     Makes a dict of button options to use with app.dialog.
 
@@ -714,6 +716,57 @@ async def yes_no_dialog(
         return default
 
 
-def now(*, utc=False):
+def now(*, utc=False) -> Timestamp:
     "The timestamp for now using this timezone, our utc if specified."
     return pd.Timestamp.now(datetime.UTC if utc else mb.log.TZ)
+
+
+class DottedPath:
+    __slots__ = ["path"]
+
+    def __init__(self, path: str = "", /) -> None:
+        self.path = path
+
+    def __getattr__(self, name: str, /) -> DottedPath:
+        return DottedPath(f"{self.path}.{name}" if self.path else name)
+
+    def __call__(self, *args: Any, **kwds: Any) -> Self:
+        return self
+
+    def __iter__(self) -> Iterator[Self]:
+        yield self
+
+
+def extract_keys(func: Callable[[R], tuple | Any]) -> Iterator[str]:
+    """
+    Extract the dotted path of the items in `func`.
+
+    Use with functions of the type `lambda p: (p.a.b.c, p.d)` or `lambda p: p.a.b.c`
+    where the lambda function returns a tuple of attributes, or a single attribute on the parent.
+
+
+    """
+    try:
+        items = func(DottedPath())  # pyright: ignore[reportArgumentType]
+    except Exception as e:
+        msg = (
+            "The function contains unsupporated usage of the parent (possibly by creating a Widget). "
+            "Please move the object to a trait or property on the owner. "
+        )
+        raise TypeError(msg) from e
+    else:
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        for k in items:
+            if isinstance(k, DottedPath):
+                if k.path:
+                    yield k.path
+                del k
+            elif isinstance(k, str):
+                yield k
+            else:
+                msg = (
+                    f"{k!r} is not a dotted path on the parent. "
+                    "Please move the object to a trait or property on the owner. "
+                )
+                raise TypeError(msg)

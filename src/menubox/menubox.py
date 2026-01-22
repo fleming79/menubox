@@ -6,17 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import (
-    TYPE_CHECKING,
-    ClassVar,
-    Final,
-    Generic,
-    Literal,
-    Self,
-    Unpack,
-    cast,
-    override,
-)
+from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
 import docstring_to_markdown
 import ipylab.widgets
@@ -31,14 +21,7 @@ from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF, ButtonMode
-from menubox.trait_types import (
-    RP,
-    ChangeType,
-    GetWidgetsInputType,
-    ProposalType,
-    ReadOnly,
-    StrTuple,
-)
+from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
@@ -403,6 +386,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
             await self.mb_configure()
         try:
             view, center = await self.get_center(view)
+            await self.wait_tasks(mb_async.TaskType.update_children)
+            await self.wait_tasks(mb_async.TaskType.update_children)
             self._setting_view = True
             self.view = view
             self._setting_view = False

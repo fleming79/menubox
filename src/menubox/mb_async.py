@@ -36,6 +36,8 @@ class TaskType(int, enum.Enum):
     update = enum.auto()
     init = enum.auto()
     click = enum.auto()
+    update_children = enum.auto()
+    "Children are being updated"
 
 
 class RunAsyncOptions(TypedDict):
@@ -189,6 +191,9 @@ class _Periodic:
         "wait",
         "wrapped",
     )
+
+    def __repr__(self) -> str:
+        return f"<Period {self.mode} {self.wrapped!r}"
 
     def __new__(cls, wrapped, instance, args, kwargs, wait, mode) -> Self:
         self = super().__new__(cls)

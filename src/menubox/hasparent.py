@@ -610,7 +610,7 @@ class Link(HasParent):
             return
         try:
             self._updating = True
-            setattr(self.target[0], self.target[1], self._transform(change["new"]))
+            self.target[0].set_trait(self.target[1], self._transform(change["new"]))
             value = getattr(self.source[0], self.source[1])
             if not self.obj.check_equality(value, change["new"]):
                 msg = f"Broken link {self}: the source value changed while updating the target."
@@ -631,7 +631,7 @@ class Link(HasParent):
             return
         try:
             self._updating = True
-            setattr(self.source[0], self.source[1], self._transform_inv(change["new"]))
+            self.source[0].set_trait(self.source[1], self._transform_inv(change["new"]))
             value = getattr(self.target[0], self.target[1])
             if not self.obj.check_equality(value, change["new"]):
                 msg = f"Broken link {self}: the target value changed while updating the source."

@@ -3,6 +3,7 @@ from typing import Literal
 
 import pytest
 import traitlets
+from ipywidgets import Box
 
 from menubox import utils
 
@@ -69,3 +70,16 @@ def test_getattr_nested_no_hastrait_value():
 def test_getattr_nested_attribute_error():
     with pytest.raises(AttributeError):
         utils.getattr_nested(mock_obj, "d")
+
+
+def test_extract_keys():
+    keys = list(utils.extract_keys(lambda p: (p.a.b.c, p.d(), "e", *p.f)))  # pyright: ignore[reportAttributeAccessIssue]
+    assert keys == ["a.b.c", "d", "e", "f"]
+
+
+def test_extract_keys_raises():
+    with pytest.raises(TypeError, match="contains unsupporated usage"):
+        list(utils.extract_keys(lambda p: Box([p])))
+
+    with pytest.raises(TypeError, match="is not a dotted path on the parent"):
+        list(utils.extract_keys(lambda _: Box()))
