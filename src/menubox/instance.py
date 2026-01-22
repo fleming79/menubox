@@ -92,6 +92,12 @@ class SetChildrenSettings(TypedDict, Generic[S, T]):
     dottednames: NotRequired[tuple[str, ...]]  # 'monitor' `mode` only
     nametuple_name: NotRequired[str]  # 'monitor_nametuple' `mode` only
     children: NotRequired[Callable[[S], GetWidgetsInputType[T]]]  # 'monitor' `mode` only
+    """
+    Use a lambda to provide the objects to be monitored. The children
+    returned by the lambda should point to the same object.
+
+    Use `utils.hide`, `utils.unhide` or `utils.set_visibility` to add/remove the object from the children.
+    """
 
 
 class IHPHookMappings(TypedDict, Generic[S, T]):

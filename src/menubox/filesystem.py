@@ -124,14 +124,7 @@ class Filesystem(MenuboxVT):
     )
     control_widgets = TF.HBox(cast("Self", 0), layout={"flex": "0 0 auto", "flex_flow": "row wrap"}).hooks(
         set_children={
-            "children": lambda p: (
-                p.button_home,
-                p.button_up,
-                p.drive,
-                p.url,
-                p.button_add,
-                p.button_update,
-            ),
+            "children": lambda p: (p.button_home, p.button_up, p.drive, p.url, p.button_add, p.button_update),
             "mode": "monitor",
         }
     )

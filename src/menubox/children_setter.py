@@ -2,64 +2,61 @@ from __future__ import annotations
 
 from typing import ClassVar, override
 
-from ipywidgets import Box, Widget
-from traitlets import Callable, Tuple, Unicode
+from traitlets import Callable, Dict, Tuple, Unicode, observe
 
-from menubox.mb_async import TaskType, debounce
+from menubox import debounce
 from menubox.trait_types import ChangeType, NameTuple
 from menubox.valuetraits import ValueTraits
 
 
 class ChildrenSetter(ValueTraits):
-    "Refreshes the children in an object belonging to dottednames in the parent as they change."
+    "Sets the children in an object belonging to dottednames in the parent as they change."
 
     SINGLE_BY = ("parent", "name")
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
     dottednames = Tuple(read_only=True)
     nametuple_name = Unicode(help="The name in the parent of a tuple to obtain the dotted names")
+    children = Callable(None, allow_none=True)
+    "A callable that should return objects from the parent if they want to be watched."
+    loaded_widgets = Dict()
+    "A mapping to the the loaded_widgets. "
     parent_dlink = NameTuple("log")
     value_traits = NameTuple("dottednames", "nametuple_name", "children")
-    children = Callable(None, allow_none=True)
 
     @override
     def on_change(self, change: ChangeType):
-        if change["owner"] is self.parent:
-            if change["name"] == self.name and isinstance(change["old"], Box):
-                change["old"].set_trait("children", ())
-            elif change["name"] == self.nametuple_name:
-                self._update_dotted_names_from_parent_nametuple()
-        if change["owner"] is self:
-            if change["name"] == "nametuple_name":
-                self._update_dotted_names_from_parent_nametuple()
-            if change["name"] == "dottednames":
-                self.set_trait("value_traits", self._make_traitnames())
         self.update()
 
-    def _update_dotted_names_from_parent_nametuple(self):
-        if self.nametuple_name:
-            dottednames = getattr(self.parent, self.nametuple_name)
-            self.set_trait("dottednames", dottednames)
+    @observe("closed")
+    def _child_setter_observe_closed(self, _):
+        if self.children:
+            self.loaded_widgets.clear()
 
     def _make_traitnames(self):
-        yield "dottednames"
-        yield "nametuple_name"
+        yield from ("dottednames", "nametuple_name", "children", f"parent.{self.name}")
+        for name in self.dottednames:
+            yield f"parent.{name}"
         if self.nametuple_name:
             yield f"parent.{self.nametuple_name}"
-        yield f"parent.{self.name}"
-        for dotname in self.dottednames:
-            yield f"parent.{dotname}"
-            yield f"parent.{dotname}.layout.visibility"
-            yield f"parent.{dotname}.comm"
+            for name in getattr(self.parent, self.nametuple_name, ()):
+                yield f"parent.{name}"
+        for k in self.loaded_widgets:
+            yield from (f"loaded_widgets.{k}.layout.visibility", f"loaded_widgets.{k}.comm")
 
-    @debounce(0.01, tasktype=TaskType.update)
-    def update(self):
-        if not self.dottednames and self.children and self.parent:
-            back = {v: k for k, v in self.parent.trait_values().items() if isinstance(v, Widget)}
-            dottednames = [n for obj in self.parent.get_widgets(self.children) if (n := back.get(obj))]
-            self.set_trait("dottednames", dottednames)
-        if self.parent and (box := getattr(self.parent, self.name)):
-            box.set_trait(
-                "children",
-                self.parent.get_widgets(self.dottednames, self.children, show=True),
-            )
+    @debounce(0.01)
+    async def update(self):
+        # debounce used for thread safety
+        if parent := self.parent:
+            await parent
+            widgets = {}
+            dottednames = list(self.dottednames)
+            if self.nametuple_name:
+                dottednames.extend(getattr(parent, self.nametuple_name, ()))
+            if box := getattr(self.parent, self.name):
+                for widget in self.parent.get_widgets(self.children, dottednames):
+                    k = f"model_id_{widget.model_id}"
+                    widgets[k] = widget
+                box.set_trait("children", tuple(widgets.values()))
+            self.loaded_widgets = widgets
+            self.set_trait("value_traits", self._make_traitnames())
