@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, override
 
 import traitlets
 
-from menubox import ProposalType, TaskType, throttle, utils
+from menubox import TaskType, throttle, utils
 from menubox.trait_types import ChangeType, NameTuple
 from menubox.valuetraits import ValueTraits
 
@@ -15,7 +15,9 @@ if TYPE_CHECKING:
 class ChildrenSetter(ValueTraits):
     """
     Sets the `children` trait of the object `<self.parent>.<self.name>` dynamically when either the object
-    changes or the state of the children changes.
+    changes or the state of a child changes.
+
+    It is available as the InstanceHP hook 'set_children'.
     """
 
     SINGLE_BY = ("parent", "name")
@@ -23,23 +25,25 @@ class ChildrenSetter(ValueTraits):
     _prohibited_value_traits: ClassVar = set()
     _dottednames = NameTuple()
 
-    children = traitlets.Any()
-    "Objects from the parent if they want to be watched."
+    children = traitlets.Callable()
+    "The function that points to widgets relative to the parent to monitor such as `lambda p: p.box`."
 
     parent_dlink = NameTuple("log")
-    value_traits = NameTuple("children")
 
-    @traitlets.validate("children")
-    def _validate_children(self, proposal: ProposalType):
-        value = proposal["value"]
-        self._dottednames = tuple(utils.extract_keys(value) if callable(value) else utils.iterflatten(value))
-        return value
+    @traitlets.observe("children")
+    def _observe_children(self, change: ChangeType):
+        if callable(c := change["new"]):
+            try:
+                self._dottednames = tuple(utils.extract_keys(c) if callable(c) else utils.iterflatten(c))
+            except Exception as e:
+                self.on_error(e, f"Failed to extract keys from {c!r}")
+            self.update()
 
     def __repr__(self) -> str:
         return f"<ChildrenSetter at {id(self)} on {utils.fullname(self.parent)}.{self.name}>"
 
     def _make_traitnames(self) -> Generator[str, Any, None]:
-        yield from ("children", f"parent.{self.name}")
+        yield f"parent.{self.name}"
         for k in self._dottednames:
             yield from (f"parent.{k}.layout.visibility", f"parent.{k}.comm")
 

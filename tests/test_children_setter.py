@@ -51,7 +51,7 @@ class ChildrenSetterTester(mb.MenuboxVT):
 )
 async def test_children_setter_manual(dottednames: tuple):
     cto = ChildrenSetterTester()
-    cs = ChildrenSetter(parent=cto, name="plain_box", children=dottednames)
+    cs = ChildrenSetter(parent=cto, name="plain_box", children=lambda _: dottednames)
     await cs.wait_tasks()
     widgets = tuple(cto.get_widgets(dottednames))
     await cs.wait_tasks()
@@ -61,7 +61,7 @@ async def test_children_setter_manual(dottednames: tuple):
 async def test_children_setter_nested_enable_disable() -> None:
     cto = ChildrenSetterTester()
     dottednames = ("dropdown", "nested.button", "nested.dropdown")
-    cs = ChildrenSetter(parent=cto, name="plain_box", children=dottednames)
+    cs = ChildrenSetter(parent=cto, name="plain_box", children=lambda _: dottednames)
     await cs.wait_tasks()
     widgets = tuple(cto.get_widgets(dottednames))
     await cs.wait_tasks()
