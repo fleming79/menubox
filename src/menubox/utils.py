@@ -736,6 +736,12 @@ class DottedPath:
     def __iter__(self) -> Iterator[Self]:
         yield self
 
+    def __str__(self) -> str:
+        return self.path
+
+    def __repr__(self) -> str:
+        return f'DottedPath("{self.path}")'
+
 
 def extract_keys(func: Callable[[R], tuple | Any]) -> Iterator[str]:
     """
