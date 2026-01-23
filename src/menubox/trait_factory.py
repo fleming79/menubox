@@ -196,13 +196,13 @@ class TF:
     @staticmethod
     def parent(
         klass: type[SS] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[S, SS, SS]:
+    ) -> InstanceHP[Any, SS, SS]:
         """Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent
         """
 
-        def validate_parent(obj: S, value: SS | None):
+        def validate_parent(obj, value: SS | None):
             if not value:
                 return None
             p = value

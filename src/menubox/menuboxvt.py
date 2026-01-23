@@ -9,7 +9,6 @@ import ipywidgets as ipw
 import menubox as mb
 from menubox import utils
 from menubox.css import CSScls
-from menubox.hasparent import HasParent
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_factory import TF
@@ -48,7 +47,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         lambda p: (p._get_template_controls, p.button_configure, *Menubox.header_right_children)
     )
 
-    parent = TF.parent(cast("type[RP]", HasParent)).configure(TF.IHPMode.X__N)
+    parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     header = (
         TF.MenuboxHeader()

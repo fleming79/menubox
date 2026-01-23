@@ -6,7 +6,7 @@ import re
 import textwrap
 import weakref
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
 import docstring_to_markdown
 import ipylab.widgets
@@ -58,7 +58,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _mb_configured = False
     _Menubox_init_complete = False
 
-    parent = TF.parent(cast("type[RP]", HasParent)).configure(TF.IHPMode.X__N)
+    parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     # Traits
     show_help = TF.Bool(False)

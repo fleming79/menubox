@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pathlib
 import re
-from typing import TYPE_CHECKING, ClassVar, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
 
 import psutil
 from async_kernel.pending import PendingCancelled
@@ -17,6 +17,8 @@ from menubox.trait_types import ChangeType, NameTuple, StrTuple
 
 if TYPE_CHECKING:
     from ipywidgets import Button
+
+    from menubox.instance import InstanceHP
 
 
 __all__ = ["Filesystem", "HasFilesystem"]
@@ -317,7 +319,7 @@ class RelativePath(Filesystem):
     relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
     value_traits = NameTuple[Self](lambda p: (*Filesystem.value_traits, p.kw))
     value_traits_persist = NameTuple()
-    parent = TF.parent(klass=Filesystem)
+    parent: InstanceHP[Any, Filesystem, Filesystem] = TF.parent(klass=Filesystem)
 
     def __new__(cls, parent: Filesystem, **kwargs) -> Self:
         return super().__new__(cls, parent=parent, **kwargs)

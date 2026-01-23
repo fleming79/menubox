@@ -15,6 +15,8 @@ from menubox.trait_types import ChangeType, GetWidgetsInputType, NameTuple, S
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from menubox.instance import InstanceHP
+
 __all__ = ["Modalbox"]
 
 
@@ -27,7 +29,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = NameTuple[Self](lambda p: (p.log,))
-    parent = TF.parent(cast("type[S]", HasParent))
+    parent: InstanceHP[Any, S, S] = TF.parent()
 
     @log_exceptions
     def __init__(

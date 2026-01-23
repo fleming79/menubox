@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Callable
 from types import CoroutineType
-from typing import TYPE_CHECKING, Any, Generic, Literal, cast, override
+from typing import TYPE_CHECKING, Any, Generic, Literal, override
 
 import anyio
 import ipywidgets as ipw
@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from types import CoroutineType
 
     from async_kernel import Pending
+
+    from menubox.instance import InstanceHP
 
 
 class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
@@ -42,7 +44,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     _update_disabled = False
     task = TF.Pending()
-    parent = TF.parent(cast("type[S]", HasParent))
+    parent: InstanceHP[Any, S, S] = TF.parent()
 
     def __new__(
         cls,
