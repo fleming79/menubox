@@ -26,7 +26,7 @@ class Repository(MenuboxPersist):
     target_filesystem = Fixed[Self, Filesystem](lambda _: Filesystem())
     box_center = None
     views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.target_filesystem})
-    value_traits_persist = NameTuple("target_filesystem")
+    value_traits_persist = NameTuple[Self](lambda p: (p.target_filesystem,))
 
     def __init__(self, name: str, **kwgs):
         if self._repository_init_called:
@@ -79,12 +79,14 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
             ]
         },
     )
-    value_traits = NameTuple(
-        *MenuboxVT.value_traits,
-        "repository",
-        "repository_name",
-        "filesystem.url",
-        "repository.saved_timestamp",
+    value_traits = NameTuple[Self](
+        lambda p: (
+            *MenuboxVT.value_traits,
+            p.repository,
+            p.repository_name,
+            p.filesystem.url,
+            p.repository.saved_timestamp,  # pyright: ignore[reportOptionalMemberAccess]
+        )
     )
 
     @override

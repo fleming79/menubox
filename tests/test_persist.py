@@ -23,8 +23,10 @@ class MBP(MenuboxPersist):
             transform=lambda df: mb.utils.to_visibility(df.empty, invert=True),
         ),
     )
-    value_traits_persist = mb.NameTuple(*MenuboxPersist.value_traits_persist, "new", "a_widget.value", "just_a_widget")
-    dataframe_persist = mb.NameTuple("df")
+    value_traits_persist = mb.NameTuple[Self](
+        lambda p: (*MenuboxPersist.value_traits_persist, p.new, p.a_widget.value, p.just_a_widget)
+    )
+    dataframe_persist = mb.NameTuple[Self](lambda p: (p.df,))
     df = traitlets.Instance(pd.DataFrame, default_value=pd.DataFrame())
 
     def view_main_get(self):
@@ -133,7 +135,7 @@ async def test_persist_by_classname_name_version(home: mb.Home):
 
 class Numbers(MenuboxPersist):
     a = mb.TypedTuple(traitlets.CFloat(), default_value=range(100))
-    value_traits_persist = mb.NameTuple("a")
+    value_traits_persist = mb.NameTuple[Self](lambda p: (p.a,))
 
 
 async def test_menubox_persist_pool(home: mb.Home):

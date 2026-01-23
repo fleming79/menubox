@@ -73,13 +73,13 @@ def test_getattr_nested_attribute_error():
 
 
 def test_extract_keys():
-    keys = list(utils.extract_keys(lambda p: (p.a.b.c, p.d(), "e", *p.f)))  # pyright: ignore[reportAttributeAccessIssue]
+    keys = list(utils.dottedpath(lambda p: (p.a.b.c, p.d(), "e", *p.f)))  # pyright: ignore[reportAttributeAccessIssue]
     assert keys == ["a.b.c", "d", "e", "f"]
 
 
 def test_extract_keys_raises():
     with pytest.raises(TypeError, match="contains unsupporated usage"):
-        list(utils.extract_keys(lambda p: Box([p])))
+        list(utils.dottedpath(lambda p: Box(children=[p])))
 
     with pytest.raises(TypeError, match="is not a dotted path on the parent"):
-        list(utils.extract_keys(lambda _: Box()))
+        list(utils.dottedpath(lambda _: Box()))

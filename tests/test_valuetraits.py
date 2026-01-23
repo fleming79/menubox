@@ -24,8 +24,8 @@ class VT1(ValueTraits):
     change_owners = traitlets.Tuple()
     on_change_counts = TF.Int(0)
 
-    value_traits_persist = NameTuple("a", "b")
-    parent_dlink = NameTuple("linked_trait")
+    value_traits_persist = NameTuple[Self](lambda p: (p.a, p.b))
+    parent_dlink = NameTuple[Self](lambda p: (p.linked_trait,))
 
     @override
     def on_change(self, change: menubox.ChangeType):
@@ -40,7 +40,7 @@ class VT1(ValueTraits):
 
 
 class VT2(VT1):
-    value_traits_persist = NameTuple("vt1")
+    value_traits_persist = NameTuple[Self](lambda p: (p.vt1,))
     vt1 = traitlets.Instance(VT1, allow_none=True)
     update_counts = TF.Int(0)
     on_change_counts = TF.Int(0)

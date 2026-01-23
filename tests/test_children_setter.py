@@ -38,7 +38,7 @@ class ChildrenSetterTester(mb.MenuboxVT):
         set_children=lambda p: (p.dd_no_default, p.dropdown, p.nested_always.button, p.nested_always.label)
     )
 
-    dynamic_box_nametuple_children = NameTuple("label")
+    dynamic_box_nametuple_children = NameTuple[Self](lambda p: (p.label,))
     plain_box = TF.Box()
 
 

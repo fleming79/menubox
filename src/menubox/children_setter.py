@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
 import traitlets
 
@@ -28,13 +28,13 @@ class ChildrenSetter(ValueTraits):
     children = traitlets.Callable()
     "The function that points to widgets relative to the parent to monitor such as `lambda p: p.box`."
 
-    parent_dlink = NameTuple("log")
+    parent_dlink = NameTuple[Self](lambda p: (p.log,))
 
     @traitlets.observe("children")
     def _observe_children(self, change: ChangeType):
         if callable(c := change["new"]):
             try:
-                self._dottednames = tuple(utils.extract_keys(c) if callable(c) else utils.iterflatten(c))
+                self._dottednames = tuple(utils.dottedpath(c) if callable(c) else utils.iterflatten(c))
             except Exception as e:
                 self.on_error(e, f"Failed to extract keys from {c!r}")
             self.update()

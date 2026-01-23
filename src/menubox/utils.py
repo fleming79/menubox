@@ -25,11 +25,11 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timestamps import Timestamp
 
     from menubox.instance import S
-    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, R, T
+    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, T
 
 
 __all__ = [
-    "extract_keys",
+    "dottedpath",
     "fstr",
     "fullname",
     "funcname",
@@ -743,11 +743,11 @@ class DottedPath:
         return f'DottedPath("{self.path}")'
 
 
-def extract_keys(func: Callable[[R], tuple | Any]) -> Iterator[str]:
+def dottedpath(func: Callable[[T], tuple | Any], /, co_: T | Any = None) -> Iterator[str]:
     """
     Extract the dotted path of the items in `func`.
 
-    Use with functions of the type `lambda p: (p.a.b.c, p.d)` or `lambda p: p.a.b.c`
+    Use with functions of the type `lambda p: (p.a, p.b)` or `lambda p: p.a`
     where the lambda function returns a tuple of attributes, or a single attribute on the parent.
 
 

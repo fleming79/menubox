@@ -11,13 +11,13 @@ from menubox.trait_types import NameTuple
 class VTTP(ValueTraits):
     a = TF.Str()
     b = TF.Int(0)
-    value_traits = NameTuple("a", "b")
+    value_traits = NameTuple[Self](lambda p: (p.a, p.b))
 
 
 class HPP(ValueTraits):
     widgets = InstanceHPTuple(VTTP, co_=cast("Self", 0)).hooks(set_parent=True)
     changecount = TF.Int(0)
-    value_traits_persist = NameTuple("widgets")
+    value_traits_persist = NameTuple[Self](lambda p: (p.widgets,))
 
     @traitlets.observe("widgets")
     def observe_somelist(self, change):

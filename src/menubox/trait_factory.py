@@ -18,16 +18,7 @@ from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
-from menubox.trait_types import (
-    MP,
-    SS,
-    GetWidgetsInputType,
-    H,
-    ReadOnly,
-    S,
-    T,
-    ViewDictType,
-)
+from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
 
 __all__ = ["TF", "IHPCreate", "InstanceHP"]
 

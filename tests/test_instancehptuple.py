@@ -72,7 +72,7 @@ class VT(VTT):
 
 
 class VTT2(mb.ValueTraits):
-    value_traits_persist = tt.NameTuple("somelist", "somelist2")
+    value_traits_persist = tt.NameTuple[Self](lambda p: (p.somelist, p.somelist2))
     somelist = InstanceHPTuple(TF.ipw.Text, factory=None, co_=cast("Self", 0)).hooks(
         update_by="description",
         update_item_names=("value",),

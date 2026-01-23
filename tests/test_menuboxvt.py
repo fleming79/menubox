@@ -22,7 +22,7 @@ class MyNewObj(mb.HasHome, mb.MenuboxVT):
     b = TF.InstanceHP(klass=ipw.FloatText)
     c = TF.InstanceHP(klass=ipw.FloatText)
     views = TF.ViewDict(cast("Self", 0), {"Main": ("description_viewer", "a", "b", "c")})
-    value_traits_persist = mb.NameTuple(*mb.MenuboxVT.value_traits, "a", "c")
+    value_traits_persist = mb.NameTuple[Self](lambda p: (*mb.MenuboxVT.value_traits, p.a, p.c))
 
     async def init_async(self):
         await super().init_async()

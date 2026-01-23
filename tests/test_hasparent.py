@@ -1,5 +1,5 @@
 import logging
-from typing import Any, override
+from typing import Any, Self, override
 
 import ipywidgets as ipw
 import pytest
@@ -14,8 +14,8 @@ match = "This exception is intentional"
 
 
 class HP(mhp.HasParent):
-    parent_dlink = tt.NameTuple("a_dlink", "a_dlink2")
-    parent_link = tt.NameTuple("a_link", "a_link2")
+    parent_dlink = tt.NameTuple[Self](lambda p: (p.a_dlink, p.a_dlink2))
+    parent_link = tt.NameTuple[Self](lambda p: (p.a_link, p.a_link2))
 
     somelist = tt.TypedTuple(traitlets.Instance(ipw.Text))
     a_link = TF.Int(0)

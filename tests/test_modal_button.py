@@ -27,7 +27,7 @@ class PMBB(mb.MenuboxVT):
     )
     mb1_change_count = 0
 
-    value_traits = mb.NameTuple("mb1.expanded")
+    value_traits = mb.NameTuple[Self](lambda p: (p.mb1.expanded,))
 
     async def init_async(self):
         self.header_children = ("mb1", "mb2")

@@ -7,15 +7,9 @@ import toolz
 from ipywidgets import Widget
 from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
-__all__ = [
-    "Bunched",
-    "ChangeType",
-    "FromParent",
-    "NameTuple",
-    "ProposalType",
-    "StrTuple",
-    "TypedTuple",
-]
+import menubox
+
+__all__ = ["Bunched", "ChangeType", "FromParent", "NameTuple", "ProposalType", "StrTuple", "TypedTuple"]
 
 if TYPE_CHECKING:
     from menubox.filesystem import HasFilesystem
@@ -35,6 +29,7 @@ H = TypeVar("H", bound="HasHome")
 HF = TypeVar("HF", bound="HasFilesystem")
 V = TypeVar("V", bound="ValueTraits")
 MP = TypeVar("MP", bound="MenuboxPersist")
+
 
 P = ParamSpec("P")
 
@@ -129,11 +124,19 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
         yield from value
 
 
-class NameTuple(StrTuple):
-    """A Trait for a tuple of unique dotted object names."""
+class NameTuple(StrTuple, Generic[R]):
+    """
+    A Trait for a tuple of unique dotted object names.
+
+    Use a lambda to specify defaults relative to the HasTraits object.
+    `lambda p: (p.dotted.path.to.trait, )
+    """
 
     info_text = "A tuple of any length of unique object trait_names (duplicates discarded.)"
     _trait_klass = DottedObjectName
+
+    def __init__(self, default: Callable[[R], tuple[Any, ...]] | None = None, /, **kwargs) -> None:
+        super().__init__(*menubox.utils.dottedpath(default) if default else (), **kwargs)
 
     def _iterate(self, value):
         yield from toolz.unique(value)

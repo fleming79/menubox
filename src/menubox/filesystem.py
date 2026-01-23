@@ -44,8 +44,8 @@ class Filesystem(MenuboxVT):
     filters = StrTuple()
     ignore = StrTuple()
     minimized_children = StrTuple("url")
-    value_traits = NameTuple(*MenuboxVT.value_traits, "read_only", "sw_main", "drive", "view")
-    value_traits_persist = NameTuple("protocol", "url", "kw", "folders_only", "filters", "ignore")
+    value_traits = NameTuple[Self](lambda p: (*MenuboxVT.value_traits, p.read_only, p.sw_main, p.drive, p.view))
+    value_traits_persist = NameTuple[Self](lambda p: (p.protocol, p.url, p.kw, p.folders_only, p.filters, p.ignore))
     views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.prev_protocol})
     html_info = TF.HTML()
 
@@ -315,7 +315,7 @@ class RelativePath(Filesystem):
         set_children=lambda p: (p.relative_path,)
     )
     relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
-    value_traits = NameTuple(*Filesystem.value_traits, "kw")
+    value_traits = NameTuple[Self](lambda p: (*Filesystem.value_traits, p.kw))
     value_traits_persist = NameTuple()
     parent = TF.parent(klass=Filesystem)
 

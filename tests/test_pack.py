@@ -1,3 +1,5 @@
+from typing import Self
+
 import ipywidgets as ipw
 import traitlets
 
@@ -8,7 +10,7 @@ from menubox.trait_factory import TF
 
 class DemoObj(mb.MenuboxVT):
     _STASH_DEFAULTS = True
-    value_traits_persist = mb.NameTuple("a", "b")
+    value_traits_persist = mb.NameTuple[Self](lambda p: (p.a, p.b))
     a = traitlets.Tuple((1, 2, 3, 4))
     b = TF.Dict(default=lambda _: {"a": 1, "b": "2"})
     c = traitlets.Instance(ipw.Text, ())
