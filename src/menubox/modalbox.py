@@ -10,7 +10,7 @@ from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.log import log_exceptions
 from menubox.trait_factory import TF
-from menubox.trait_types import ChangeType, GetWidgetsInputType, S, StrTuple
+from menubox.trait_types import ChangeType, GetWidgetsInputType, NameTuple, S
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -26,7 +26,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     html_title = TF.HTML_Title()
     header = TF.HBox().configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
-    parent_dlink = StrTuple("log")
+    parent_dlink = NameTuple[Self](lambda p: (p.log,))
     parent = TF.parent(cast("type[S]", HasParent))
 
     @log_exceptions

@@ -13,7 +13,7 @@ from menubox.hasparent import HasParent
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, StrTuple
+from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
 
@@ -42,9 +42,11 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     RESERVED_VIEWNAMES = (*Menubox.RESERVED_VIEWNAMES, CONFIGURE_VIEW)
     title_description = TF.Str("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
     title_description_tooltip = TF.Str("{self.description.value or utils.fullname(self.__class__)}")
-    header_right_children = StrTuple("_get_template_controls", "button_configure", *Menubox.header_right_children)
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
     _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
+    header_right_children = NameTuple[Self](
+        lambda p: (p._get_template_controls, p.button_configure, *Menubox.header_right_children)
+    )
 
     parent = TF.parent(cast("type[RP]", HasParent)).configure(TF.IHPMode.X__N)
 

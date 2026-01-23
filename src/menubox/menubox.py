@@ -21,7 +21,7 @@ from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF, ButtonMode
-from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, ProposalType, ReadOnly, StrTuple
+from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, ProposalType, ReadOnly, StrTuple
 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
@@ -79,25 +79,31 @@ class Menubox(HasParent, Panel, Generic[RP]):
     title_description = TF.Str()
     title_description_tooltip = TF.Str()
 
-    header_left_children = StrTuple("button_exit", "button_minimize", "box_menu", "button_toggleview")
-    header_right_children = StrTuple(
-        "button_help",
-        "button_activate",
-        "button_promote",
-        "button_demote",
-        "button_close",
+    header_left_children = NameTuple[Self](
+        lambda p: (p.button_exit, p.button_minimize, p.box_menu, p.button_toggleview)
     )
-    header_children = StrTuple(
-        "header_left_children",
-        "html_title",
-        "tab_buttons",
-        "shuffle_buttons",
-        "activate_buttons",
-        "H_FILL",
-        "header_right_children",
+    header_right_children = NameTuple[Self](
+        lambda p: (
+            p.button_help,
+            p.button_activate,
+            p.button_promote,
+            p.button_demote,
+            p.button_close,
+        )
     )
-    box_menu_open_children = StrTuple("button_menu_minimize", "get_menu_widgets")
-    minimized_children = StrTuple("html_title", "header_right_children")
+    header_children = NameTuple[Self](
+        lambda p: (
+            p.header_left_children,
+            p.html_title,
+            p.tab_buttons,
+            p.shuffle_buttons,
+            p.activate_buttons,
+            TF.H_FILL,
+            p.header_right_children,
+        )
+    )
+    box_menu_open_children = NameTuple[Self](lambda p: (p.button_menu_minimize, p.get_menu_widgets))
+    minimized_children = NameTuple[Self](lambda p: (p.html_title, p.header_right_children))
 
     loading_view = TF.InstanceHP(
         str | defaults.NO_DEFAULT_TYPE,
@@ -190,41 +196,42 @@ class Menubox(HasParent, Panel, Generic[RP]):
     header = TF.MenuboxHeader().configure(TF.IHPMode.X_RN)
     _box_minimized = TF.HBox().configure(TF.IHPMode.X__N)
     box_center = TF.MenuboxCenter().configure(TF.IHPMode.XLRN)
-    _mb_refresh_traitnames = (
-        "closed",
-        "show_help",
-        "html_title",
-        "border",
-        "name",
-        "title",
-        "title_description",
-        "title_description_tooltip",
-        "header",
-        "header_left_children",
-        "header_right_children",
-        "header_children",
-        "views",
-        "viewlist",
-        "toggleviews",
-        "menuviews",
-        "button_menu",
-        "button_menu_minimize",
-        "button_toggleview",
-        "button_minimize",
-        "button_maximize",
-        "button_promote",
-        "button_demote",
-        "button_exit",
-        "button_help",
-        "button_close",
-        "center",
-        "remover",
-        "tab_buttons",
-        "shuffle_buttons",
-        "shuffle_button_views",
-        "activate_buttons",
-        "activate_button_views",
-        "tabviews",
+    _mb_refresh_traitnames = NameTuple[Self](
+        lambda p: (
+            p.closed,
+            p.show_help,
+            p.html_title,
+            p.border,
+            p.name,
+            p.title,
+            p.title_description,
+            p.title_description_tooltip,
+            p.header,
+            p.header_left_children,
+            p.header_right_children,
+            p.header_children,
+            p.views,
+            p.viewlist,
+            p.toggleviews,
+            p.menuviews,
+            p.button_menu,
+            p.button_menu_minimize,
+            p.button_toggleview,
+            p.button_minimize,
+            p.button_maximize,
+            p.button_promote,
+            p.button_demote,
+            p.button_exit,
+            p.button_help,
+            p.button_close,
+            p.center,
+            p.tab_buttons,
+            p.shuffle_buttons,
+            p.shuffle_button_views,
+            p.activate_buttons,
+            p.activate_button_views,
+            p.tabviews,
+        )
     )
 
     @traitlets.default("title")

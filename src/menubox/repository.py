@@ -9,7 +9,7 @@ from menubox.filesystem import Filesystem, HasFilesystem
 from menubox.menuboxvt import MenuboxVT
 from menubox.persist import MenuboxPersist
 from menubox.trait_factory import TF
-from menubox.trait_types import ChangeType, H, NameTuple, StrTuple
+from menubox.trait_types import ChangeType, H, NameTuple
 
 if TYPE_CHECKING:
     from ipywidgets import Button
@@ -68,7 +68,7 @@ class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
         tooltip="Select/create a new repository (Enter a new repository name to create a new repository).",
     )
     title_description = TF.Str("root: {self.filesystem.root}")
-    header_children = StrTuple()
+    header_children = NameTuple()
     views = TF.ViewDict(
         cast("Self", 0),
         {

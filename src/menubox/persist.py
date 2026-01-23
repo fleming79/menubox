@@ -7,7 +7,6 @@ import anyio
 import ipywidgets as ipw
 import pandas as pd
 
-import menubox
 from menubox import mb_async, pack, utils
 from menubox.filesystem import HasFilesystem
 from menubox.instance import IHPCreate
@@ -15,7 +14,7 @@ from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import MP, ChangeType, S, StrTuple, TypedTuple
+from menubox.trait_types import MP, ChangeType, NameTuple, S, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
@@ -197,17 +196,13 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         .configure(TF.IHPMode.XLRN)
     )
     box_version = TF.Box()
-    header_right_children = StrTuple("menu_load_index", *MenuboxVT.header_right_children)
+    header_right_children = NameTuple[Self](lambda p: (p.menu_load_index, *MenuboxVT.header_right_children))
     task_loading_persistence_data = TF.Pending()
-    value_traits = StrTuple(
-        *MenuboxVT.value_traits,
-        "version",
-        "sw_version_load",
-        "version_widget",
-        "connections",
+    value_traits = NameTuple[Self](
+        lambda p: (*MenuboxVT.value_traits, p.version, p.sw_version_load, p.version_widget, p.connections)
     )
-    value_traits_persist = StrTuple("saved_timestamp", "description")
-    dataframe_persist = StrTuple()
+    value_traits_persist = NameTuple[Self](lambda p: (p.saved_timestamp, p.description))
+    dataframe_persist = NameTuple()
 
     @classmethod
     def validate_name(cls, name: str) -> str:
@@ -597,7 +592,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
             c["owner"].dlink(source=(c["owner"], "names"), target=(c["obj"], "options")),
         )
     )
-    names = menubox.StrTuple()
+    names = StrTuple()
     title_description = TF.Str("<b>{self.name} pool</b>")
     html_info = TF.HTML()
     info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
@@ -607,7 +602,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     )
     box_main = TF.HBox(cast("Self", 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None
-    header_children = StrTuple()
+    header_children = NameTuple()
     views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.box_main})
 
     @override
