@@ -85,6 +85,8 @@ class TF:
     ipw = ipw
     ipylab = ipylab
     # Basic types
+    H_FILL = "H_FILL"
+    V_FILL = "V_FILL"
 
     @staticmethod
     def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str, str]:
