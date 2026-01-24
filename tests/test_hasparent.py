@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Self, override
+from typing import Any, Self, cast, override
 
 import ipywidgets as ipw
 import pytest
@@ -20,8 +20,8 @@ class HP(mhp.HasParent):
     somelist = tt.TypedTuple(traitlets.Instance(ipw.Text))
     a_link = TF.Int(0)
     a_dlink = TF.Float(0)
-    a_link2 = TF.FloatText()
-    a_dlink2 = TF.FloatText()
+    a_link2 = TF.FloatText(cast("Self", 0))
+    a_dlink2 = TF.FloatText(cast("Self", 0))
     caught_errors = TF.Int(0)
 
     @log.log_exceptions

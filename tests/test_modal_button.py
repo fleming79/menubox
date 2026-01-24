@@ -14,7 +14,7 @@ class PMBB(mb.MenuboxVT):
     count = TF.InstanceHP(klass=ipw.FloatText)
     slider = TF.InstanceHP(klass=ipw.IntSlider)
     box_extra = TF.HBox(cast("Self", 0)).hooks(set_children=lambda p: (p.count,))
-    box_mb2 = TF.VBox()
+    box_mb2 = TF.VBox(cast("Self", 0))
     mb1 = TF.Modalbox(cast("Self", 0), obj=lambda p: p.box_extra, title="mb1 open")
     mb2 = TF.Modalbox(
         cast("Self", 0),

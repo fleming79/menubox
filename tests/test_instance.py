@@ -35,7 +35,7 @@ class HPI(mb.Menubox):
 
 class HPI2(HasHome, HPI, mb.MenuboxVT):
     c = InstanceHP(HPI, default=lambda _: HPI(name="C has value")).hooks(set_parent=False)
-    e = Dropdown(description="From a factory").configure(TF.IHPMode.XLRN)
+    e = Dropdown(cast("Self", 0), description="From a factory").configure(TF.IHPMode.XLRN)
     select_repository = TF.SelectRepository(cast("Self", 0))
     button = TF.AsyncRunButton(cast("Self", 0), cfunc=lambda p: p._button_async)
     widgetlist = mb.StrTuple("select_repository", "not a widget")
@@ -45,8 +45,8 @@ class HPI2(HasHome, HPI, mb.MenuboxVT):
 
 
 class HPI3(mb.Menubox):
-    box = TF.Box().configure(TF.IHPMode.XLRN)
-    menubox = TF.Menubox(views={"main": None}).configure(TF.IHPMode.XLRN)
+    box = TF.Box(cast("Self", 0)).configure(TF.IHPMode.XLRN)
+    menubox = TF.Menubox(cast("Self", 0), views={"main": None}).configure(TF.IHPMode.XLRN)
     hpi2 = TF.InstanceHP(HPI2, default=lambda _: HPI2(home="test")).configure(TF.IHPMode.XLRN)
 
 

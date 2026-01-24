@@ -195,7 +195,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         )
         .configure(TF.IHPMode.XLRN)
     )
-    box_version = TF.Box()
+    box_version = TF.Box(cast("Self", 0))
     header_right_children = NameTuple[Self](lambda p: (p.menu_load_index, *MenuboxVT.header_right_children))
     task_loading_persistence_data = TF.Pending()
     value_traits = NameTuple[Self](
@@ -594,8 +594,8 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     )
     names = StrTuple()
     title_description = TF.Str("<b>{self.name} pool</b>")
-    html_info = TF.HTML()
-    info_html_title = TF.HTML(layout={"margin": "0px 20px 0px 40px"})
+    html_info = TF.HTML(cast("Self", 0))
+    info_html_title = TF.HTML(cast("Self", 0), layout={"margin": "0px 20px 0px 40px"})
     button_update_names = TF.Button(description="↻", tooltip="Update options")
     button_activate = TF.Button(cast("Self", 0)).hooks(
         on_set=lambda c: c["obj"].set_trait("description", c["owner"].name)

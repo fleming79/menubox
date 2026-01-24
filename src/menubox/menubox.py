@@ -122,8 +122,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
 
     task_load_view = TF.Pending()
-    html_title = TF.HTML_Title().configure(TF.IHPMode.X__N)
-    out_help = TF.MarkdownOutput(layout={"height": "400px"}).hooks(
+    html_title = TF.HTML_Title(cast("Self", 0)).configure(TF.IHPMode.X__N)
+    out_help = TF.MarkdownOutput(cast("Self", 0), layout={"height": "400px"}).hooks(
         add_css_class=(CSScls.resize_vertical, CSScls.nested_borderbox)
     )
 
@@ -182,8 +182,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
     )
 
     # Boxes
-    box_shuffle = TF.MenuboxShuffle().configure(TF.IHPMode.XL__)
-    box_menu = TF.MenuboxMenu().configure(TF.IHPMode.X__N)
+    box_shuffle = TF.MenuboxShuffle(cast("Self", 0)).configure(TF.IHPMode.XL__)
+    box_menu = TF.MenuboxMenu(cast("Self", 0)).configure(TF.IHPMode.X__N)
     showbox = (
         TF.InstanceHP(ipw.Box, co_=cast("Self", 0))
         .hooks(
@@ -193,9 +193,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         )
         .configure(TF.IHPMode.X__N)
     )
-    header = TF.MenuboxHeader().configure(TF.IHPMode.X_RN)
-    _box_minimized = TF.HBox().configure(TF.IHPMode.X__N)
-    box_center = TF.MenuboxCenter().configure(TF.IHPMode.XLRN)
+    header = TF.MenuboxHeader(cast("Self", 0)).configure(TF.IHPMode.X_RN)
+    _box_minimized = TF.HBox(cast("Self", 0)).configure(TF.IHPMode.X__N)
+    box_center = TF.MenuboxCenter(cast("Self", 0)).configure(TF.IHPMode.XLRN)
     _mb_refresh_traitnames = NameTuple[Self](
         lambda p: (
             p.closed,

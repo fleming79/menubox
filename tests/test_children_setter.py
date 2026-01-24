@@ -21,14 +21,14 @@ class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
         },
     )
     button = TF.Button(description="nested button")
-    dropdown = TF.Dropdown(description="nested dropdown").configure(TF.IHPMode.XLRN)
-    label = TF.Label(value="Nested Label")
+    dropdown = TF.Dropdown(cast("Self", 0), description="nested dropdown").configure(TF.IHPMode.XLRN)
+    label = TF.Label(cast("Self", 0), value="Nested Label")
 
 
 class ChildrenSetterTester(mb.MenuboxVT):
-    dropdown = TF.Dropdown(description="dropdown")
-    label = TF.Label(value="Label")
-    dd_no_default = TF.Dropdown(description="Label no default").configure(TF.IHPMode.X_RN)
+    dropdown = TF.Dropdown(cast("Self", 0), description="dropdown")
+    label = TF.Label(cast("Self", 0), value="Label")
+    dd_no_default = TF.Dropdown(cast("Self", 0), description="Label no default").configure(TF.IHPMode.X_RN)
     nested = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj).configure(TF.IHPMode.XLRN)
     nested_always = TF.InstanceHP(klass=ChildrenSetterTesterNestedObj)
     dynamic_box = TF.Box(cast("Self", 0)).hooks(
@@ -39,7 +39,7 @@ class ChildrenSetterTester(mb.MenuboxVT):
     )
 
     dynamic_box_nametuple_children = NameTuple[Self](lambda p: (p.label,))
-    plain_box = TF.Box()
+    plain_box = TF.Box(cast("Self", 0))
 
 
 @pytest.mark.parametrize(

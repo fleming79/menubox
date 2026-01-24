@@ -49,7 +49,7 @@ class Repository(MenuboxPersist):
 class SelectRepository(HasFilesystem, MenuboxVT, Generic[H]):
     """Select or create a new repository."""
 
-    box_center = TF.HBox()
+    box_center = TF.HBox(cast("Self", 0))
     repository = TF.InstanceHP(Repository).configure(TF.IHPMode.X__N)
     repository_name = TF.Combobox(
         cast("Self", 0),

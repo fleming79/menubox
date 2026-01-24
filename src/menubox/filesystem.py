@@ -49,7 +49,7 @@ class Filesystem(MenuboxVT):
     value_traits = NameTuple[Self](lambda p: (*MenuboxVT.value_traits, p.read_only, p.sw_main, p.drive, p.view))
     value_traits_persist = NameTuple[Self](lambda p: (p.protocol, p.url, p.kw, p.folders_only, p.filters, p.ignore))
     views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.prev_protocol})
-    html_info = TF.HTML()
+    html_info = TF.HTML(cast("Self", 0))
 
     protocol = TF.Dropdown(
         cast("Self", 0),
@@ -63,6 +63,7 @@ class Filesystem(MenuboxVT):
         on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     url = TF.Combobox(
+        cast("Self", 0),
         description="url",
         # continuous_update=False,
         layout={"flex": "1 0 auto", "width": "auto"},
@@ -91,6 +92,7 @@ class Filesystem(MenuboxVT):
         .configure(TF.IHPMode.XL_N)
     )
     kw = TF.TextareaValidate(
+        cast("Self", 0),
         value="{}",
         description="kw",
         validate=to_json_dict,
@@ -101,6 +103,7 @@ class Filesystem(MenuboxVT):
         on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
     )
     sw_main = TF.Select(
+        cast("Self", 0),
         layout={"width": "auto", "flex": "1 0 auto", "padding": "0px 0px 5px 5px"},
     )
     button_update = TF.AsyncRunButton(
@@ -316,7 +319,9 @@ class RelativePath(Filesystem):
     box_settings = TF.HBox(cast("Self", 0), layout={"overflow": "hidden", "flex": "0 0 auto"}).hooks(
         set_children=lambda p: (p.relative_path,)
     )
-    relative_path = TF.Text(value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"})
+    relative_path = TF.Text(
+        cast("Self", 0), value=".", description="Relative path", disabled=True, layout={"flex": "1 0 0%"}
+    )
     value_traits = NameTuple[Self](lambda p: (*Filesystem.value_traits, p.kw))
     value_traits_persist = NameTuple()
     parent: InstanceHP[Any, Filesystem, Filesystem] = TF.parent(klass=Filesystem)

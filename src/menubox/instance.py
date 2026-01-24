@@ -6,11 +6,13 @@ import inspect
 import sys
 import typing
 import weakref
+from collections.abc import Callable
 from types import UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Concatenate,
     Generic,
     Literal,
     NotRequired,
@@ -665,7 +667,7 @@ def instanceHP_wrapper(
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
     **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
-):
+) -> Callable[Concatenate[SS | Any, P], InstanceHP[SS, T, ReadOnly[T]]]:
     """Wraps the InstanceHP trait for use withmhp. HasParent classes.
 
     This function creates a factory that returns an InstanceHP trait,

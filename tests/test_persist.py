@@ -15,7 +15,7 @@ class MBP(MenuboxPersist):
     _STASH_DEFAULTS = True
     PERSIST_MODE = MenuboxPersistMode.by_classname_name_version
     new = TF.Str()
-    a_widget = TF.Text(description="something", value="Using the value")
+    a_widget = TF.Text(cast("Self", 0), description="something", value="Using the value")
     just_a_widget = TF.Dropdown(cast("Self", 0), description="just_a_widget", options=[1, 2, 3]).hooks(
         on_set=lambda c: c["owner"].dlink(
             source=(c["owner"], "df"),

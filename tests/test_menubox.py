@@ -1,3 +1,5 @@
+from typing import Self, cast
+
 import ipylab
 import ipywidgets as ipw
 import pytest
@@ -406,7 +408,7 @@ class TestMenubox:
 
     async def test_menubox_load_shuffle_item(self):
         class MenuboxA(mb.Menubox):
-            a = TF.HTML(value="a")
+            a = TF.HTML(cast("Self", 0), value="a")
 
         m = MenuboxA(views={"a": ipw.HTML("A")})
         m.enable_ihp("box_shuffle")

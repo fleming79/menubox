@@ -50,13 +50,14 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     header = (
-        TF.MenuboxHeader()
+        TF.MenuboxHeader(cast("Self", 0))
         .hooks(
             add_css_class=(CSScls.MenuboxVT_item, CSScls.box_header),
         )
         .configure(TF.IHPMode.XLRN)
     )
     _sw_template = TF.Dropdown(
+        cast("Self", 0),
         value=None,
         description="Templates",
         style={"description_width": "initial"},
@@ -109,8 +110,8 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
             ),
         ),
     )
-    description_preview_label = TF.HTML(value="<b>Description preview</b>")
-    description = TF.CodeEditor(description="Description", mime_type="text/x-markdown")
+    description_preview_label = TF.HTML(cast("Self", 0), value="<b>Description preview</b>")
+    description = TF.CodeEditor(cast("Self", 0), description="Description", mime_type="text/x-markdown")
     description_viewer = TF.InstanceHP(
         MarkdownOutput,
         default=lambda c: MarkdownOutput(
@@ -153,6 +154,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     )
     _button_template_info = TF.Button(description="Info", tooltip="Show template details in a read only text editor.")
     subpath = TF.ComboboxValidate(
+        cast("Self", 0),
         validate=utils.sanatise_filename,
         description="Subpath",
         value="",
