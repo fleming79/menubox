@@ -18,7 +18,7 @@ from ipywidgets import widgets as ipw
 import menubox as mb
 from menubox import defaults, log, mb_async, utils
 from menubox.css import CSScls
-from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL
+from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL, _NoDefault
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF, ButtonMode
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, ProposalType, ReadOnly, StrTuple
@@ -105,7 +105,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_menu_open_children = NameTuple[Self](lambda p: (p.button_menu_minimize, p.get_menu_widgets))
     minimized_children = NameTuple[Self](lambda p: (p.html_title, p.header_right_children))
 
-    loading_view = TF.InstanceHP(
+    loading_view: TF.InstanceHP[Any, _NoDefault | None, ReadOnly[_NoDefault | None]] = TF.InstanceHP(
         str | defaults.NO_DEFAULT_TYPE,
         default=lambda _: defaults.NO_DEFAULT,
         validate=lambda _, value: value,
