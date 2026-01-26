@@ -5,7 +5,7 @@ import functools
 import re
 import textwrap
 import weakref
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Final, Generic, Literal, Self, Unpack, cast, override
 
 import docstring_to_markdown
@@ -16,7 +16,7 @@ from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
 
 import menubox as mb
-from menubox import defaults, log, mb_async, utils
+from menubox import defaults, mb_async, utils
 from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL, _NoDefault
 from menubox.hasparent import HasParent
@@ -46,7 +46,6 @@ class Buttons(traitlets.TraitType[tuple[ipw.Button, ...], Iterable[ipw.Button]])
 class HTMLNoClose(ipw.HTML):
     def close(self):
         return
-
 
 class Menubox(HasParent, Panel, Generic[RP]):
     """An all-purpose widget intended to be subclassed for building gui's."""
@@ -325,8 +324,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return self
 
     @contextlib.contextmanager
-    def simple_output(self):
-        """A context manager that yields an a SimpleOutput.
+    def simple_output(self) -> Generator[SimpleOutput, Any, None]:
+        """
+        A context manager that yields an a SimpleOutput.
 
         The SimpleOutput has no content and will be closed once the context is exited.
 
@@ -771,7 +771,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
                     if isinstance(widget, Menubox):
                         await widget.activate(add_to_shell=True)
 
-    @log.log_exceptions
     def _shuffle_button_on_click(self, b: ipw.Button):
         widgets = tuple(self.get_widgets(self.shuffle_button_views[b.description]))
         self.load_shuffle_item(widgets, alt_name=b.description)

@@ -7,7 +7,7 @@ import traitlets
 
 import menubox.hasparent as mhp
 import menubox.trait_types as tt
-from menubox import log, mb_async
+from menubox import mb_async
 from menubox.trait_factory import TF
 
 match = "This exception is intentional"
@@ -24,7 +24,6 @@ class HP(mhp.HasParent):
     a_dlink2 = TF.FloatText(cast("Self", 0))
     caught_errors = TF.Int(0)
 
-    @log.log_exceptions
     def a_func(self, raise_error=False):
         if raise_error:
             raise ValueError(match)
@@ -186,12 +185,9 @@ class TestHasParent:
         assert await hp.a_func_async() is True
 
         with pytest.raises(ValueError, match=match):
-            hp.a_func(True)
-        assert hp.caught_errors == 1
-        with pytest.raises(ValueError, match=match):
             await mb_async.run_async({}, hp.a_func_async, True)
 
-        assert hp.caught_errors == 2
+        assert hp.caught_errors == 1
 
     async def test_hasparent_cleanup_exceptions(self):
         hp = HP()

@@ -1,6 +1,4 @@
 import datetime
-import functools
-import inspect
 import logging
 import os
 from typing import Any
@@ -8,10 +6,8 @@ from typing import Any
 import ipylab
 import ipylab.log
 import ipywidgets as ipw
-import wrapt
 
 import menubox as mb
-from menubox import utils
 
 PID = os.getpid()
 _tz = datetime.datetime.now(datetime.UTC).astimezone().tzinfo
@@ -21,7 +17,7 @@ if _tz is None:
 TZ = _tz
 
 
-__all__ = ["START_DEBUG", "log_exceptions", "on_error_wrapped"]
+__all__ = ["START_DEBUG", "on_error_wrapped"]
 
 
 def START_DEBUG(*, to_stdio=False):
@@ -46,8 +42,9 @@ def START_DEBUG(*, to_stdio=False):
         app.log.info("Debugging enabled")
 
 
-def on_error(error: BaseException, msg: str, obj: Any = None):
-    """Logs an error message with exception information.
+def on_error(error: BaseException, msg: str, obj: Any = None) -> None:
+    """
+    Logs an error message with exception information.
 
     Args:
         error (Exception): The exception that occurred.
@@ -58,8 +55,9 @@ def on_error(error: BaseException, msg: str, obj: Any = None):
     app.log.exception(msg, obj=obj, exc_info=error)
 
 
-def on_error_wrapped(wrapped, instance, msg, e: Exception):
-    """Log an exception locating most appropriate log first.
+def on_error_wrapped(wrapped, instance, msg, e: Exception) -> None:
+    """
+    Log an exception locating most appropriate log first.
 
     raise_exception: bool
         Will raise the exception after logging the error provided the instance/owner is
@@ -73,39 +71,3 @@ def on_error_wrapped(wrapped, instance, msg, e: Exception):
         instance.on_error(e, msg, obj=wrapped)
     else:
         on_error(e, msg, wrapped)
-
-
-def log_exceptions(wrapped=None, instance=None, *, loginfo: str = ""):
-    callcount = 0
-    if wrapped is None:
-        return functools.partial(log_exceptions, loginfo=loginfo)
-    if not callable(wrapped):
-        msg = f"Wrapped function '{wrapped}' is not callable!"
-        raise TypeError(msg)
-    if inspect.iscoroutinefunction(wrapped):
-        msg = (
-            "`log_exceptions` is not allowed for coroutine functions! "
-            f"{utils.funcname(wrapped)}\n"
-            f"Use run_async({wrapped}, obj=<self ...>) instead."
-        )
-        raise TypeError(msg)
-
-    @wrapt.decorator
-    def _log_exceptions(wrapped, instance, args: tuple, kwargs: dict):
-        """Decorator for logging exceptions.
-
-        Will use `instance.log` if it exists, otherwise will use the module logger.
-        """
-        nonlocal callcount
-        callcount += 1
-        try:
-            return wrapped(*args, **kwargs)
-        except Exception as e:
-            if callcount > 1:
-                raise
-            on_error_wrapped(wrapped, instance, f"{e} <{loginfo}>", e)
-            raise
-        finally:
-            callcount -= 1
-
-    return _log_exceptions(wrapped, instance)  # pyright: ignore[reportCallIssue]

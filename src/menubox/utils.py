@@ -10,7 +10,6 @@ from collections.abc import Callable, Generator, Iterable, Iterator
 from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self, overload
 
 import ipylab
-import ipylab.log
 import ipywidgets as ipw
 import pandas as pd
 import traitlets
@@ -21,7 +20,6 @@ from menubox.css import CSSvar
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
-    from ipywidgets.widgets.widget_string import HTML
     from pandas._libs.tslibs.timestamps import Timestamp
 
     from menubox.instance import S
@@ -595,37 +593,6 @@ def move_item(items: tuple, item, direction: Literal[-1, 1]) -> tuple[Any, ...]:
     else:
         items_.insert(0, items_.pop(idx))
     return tuple(items_)
-
-
-def download_button(buffer, filename: str, button_description: str) -> HTML:
-    """Loads data from file f into base64 payload embedded into a HTML button.
-    Recommended for small files only.
-
-    buffer: open file object ready for reading.
-        A file like object with a read method.
-    filename:    str
-        The name when it is downloaded.
-    button_description: str
-        The text that goes into the button.
-    """
-    import base64
-
-    payload = base64.b64encode(buffer.read()).decode()
-
-    html_button = f"""<html>
-    <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-    <body>
-    <a download="{filename}" href="data:text/csv;base64,{payload}">
-    <button class="p-Widget jupyter-widgets jupyter-button widget-button mod-warning">
-    {button_description}</button>
-    </a>
-    </body>
-    </html>
-    """
-    return ipw.HTML(html_button)
-
 
 def button_dict(
     label="",
