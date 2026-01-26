@@ -9,7 +9,7 @@ from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
 
 import menubox
 
-__all__ = ["Bunched", "ChangeType", "FromParent", "NameTuple", "ProposalType", "StrTuple", "TypedTuple"]
+__all__ = ["Bunched", "ChangeType", "NameTuple", "ProposalType", "StrTuple", "TypedTuple"]
 
 if TYPE_CHECKING:
     from menubox.filesystem import HasFilesystem
@@ -140,28 +140,3 @@ class NameTuple(StrTuple, Generic[R]):
 
     def _iterate(self, value):
         yield from toolz.unique(value)
-
-
-class FromParent(TraitType[Callable[[R], T], Callable[[R], T]], Generic[R, T]):
-    allow_none = False
-
-    def __init__(self, owner: R, default_value: Callable[[R], T], /, *, read_only=True):
-        """
-        A trait for a callable that accepts the parent.
-
-        With support for type directly inside the callable.
-
-        Usage:
-
-        ``` python
-        class MyClass(HasTraits):
-            fp = FromParent(cast(Self, 0), lambda p: p...)
-
-        ```
-        """
-        super().__init__(default_value=default_value, read_only=read_only)
-
-    def validate(self, obj, value):
-        if not callable(value):
-            self.error(obj, value, info="Expected a callable")
-        return value
