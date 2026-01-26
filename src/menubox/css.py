@@ -220,8 +220,9 @@ STYLESHEET = f"""
 
 
 class MenuboxCSSStyleSheet(Singular, CSSStyleSheet):
-    async def load_stylesheet(self, text: str, variables: dict[CSSvar, str]):
-        """Loads a stylesheet with the given text and variables.
+    async def load_stylesheet(self, text: str, variables: dict[CSSvar, str]) -> None:
+        """
+        Loads a stylesheet with the given text and variables.
 
         The stylesheet text will have the `VARIABLES_KEY` replaced with the
         given variables. The variables are combined with the default `VARIABLES`.

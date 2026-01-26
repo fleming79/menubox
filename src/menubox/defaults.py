@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     def is_no_value(value: Any, include_na: Literal[True]) -> bool: ...
 
 
-def is_no_value(value: Any, include_na=False):
+def is_no_value(value: Any, include_na=False) -> bool:
     """Determine if value should be considered as `not a value`."""
     with contextlib.suppress(ValueError):
         if value is NO_VALUE or value is NO_DEFAULT or (include_na and pd.isna(value)):
@@ -36,7 +36,8 @@ def is_no_value(value: Any, include_na=False):
 
 
 class _NoValue(float, enum.Enum):
-    """A literal value that represents a null/NaN/None as a place holder
+    """
+    A literal value that represents a null/NaN/None as a place holder
 
     bool(NO_VALUE) == True
     float(NO_VALUE) == nan

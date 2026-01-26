@@ -88,7 +88,8 @@ def weak_observe(
     *args: P.args,
     **kwgs: P.kwargs,
 ) -> Callable[[ChangeType], T]:
-    """Observes a traitlet of an object using a weak reference to the callback method.
+    """
+    Observes a traitlet of an object using a weak reference to the callback method.
 
     This allows the observed object to be garbage collected even if the callback
     method is still referenced by the traitlet.
@@ -142,7 +143,8 @@ def observe_until(
     predicate: Callable[[Any], bool],
     callback: Callable[[ChangeType], None],
 ):
-    """Observe a trait as it changes until the predicate returns true.
+    """
+    Observe a trait as it changes until the predicate returns true.
 
     Intermediate changes are not passed to the callback until the predicated returns true.
     """
@@ -159,7 +161,8 @@ def observe_until(
 
 
 async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]) -> None:
-    """Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
+    """
+    Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
 
     The trait is then observed until the predicate returns `True`.
     """
@@ -170,7 +173,8 @@ async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Calla
 
 
 def getattr_nested(obj, name: str, default: Any = NO_DEFAULT, *, hastrait_value=True) -> Any:
-    """Retrieve a nested attribute from an object.
+    """
+    Retrieve a nested attribute from an object.
 
     This function allows accessing attributes of attributes, specified by a string
     with dot notation.  It also handles the special case of traitlets objects
@@ -218,7 +222,8 @@ def setattr_nested(
     value: Any,
     default_setter: Callable[[Any, str, Any], None] | None = None,
 ) -> None:
-    """Sets a nested attribute of an object.
+    """
+    Sets a nested attribute of an object.
     The attribute is specified as a string with dot notation, e.g. "foo.bar.baz".
     Args:
         obj: The object to set the attribute on.
@@ -256,7 +261,8 @@ def load_nested_attrs(
     default_setter: Callable[[Any, str, Any], None] = setattr,
     on_error: Callable[[Exception, str, Any], None] | None = None,
 ) -> dict[str, Any]:
-    """Loads nested attributes into an object using `setattr_nested` from a dictionary or a callable that returns a dictionary.
+    """
+    Loads nested attributes into an object using `setattr_nested` from a dictionary or a callable that returns a dictionary.
 
     Args:
         obj: The object to load attributes into.
@@ -317,7 +323,8 @@ def fullname(obj) -> str:
 
 
 def funcname(obj: Any) -> str:
-    """Get function name for a callable or task.
+    """
+    Get function name for a callable or task.
 
     Known to work for standard functions, methods and functools.partial
     """
@@ -343,7 +350,8 @@ def funcname(obj: Any) -> str:
 
 
 def fstr(template: str, raise_errors=False, **globals) -> str:
-    """Evaluate the fstring template with the mapped globals.
+    """
+    Evaluate the fstring template with the mapped globals.
 
     The template must not contain triple quote `'''`.
     """
@@ -360,7 +368,8 @@ def fstr(template: str, raise_errors=False, **globals) -> str:
 
 
 def sanatise_name(name: str, allow=" _", strip=" ", lstrip="012345679-", replace="", allow_space=True) -> str:
-    """Sanatises a string to be used as a name.
+    """
+    Sanatises a string to be used as a name.
 
     Args:
         name (str): The string to sanatise.
@@ -384,7 +393,8 @@ def sanatise_name(name: str, allow=" _", strip=" ", lstrip="012345679-", replace
 
 
 def stem(path: str):
-    """Access the 'stem' from a filename.
+    """
+    Access the 'stem' from a filename.
 
     Args:
         path (str): a typical path.
@@ -393,7 +403,8 @@ def stem(path: str):
 
 
 def splitname(path: str):
-    """Split a path into the root / name
+    """
+    Split a path into the root / name
 
     Args:
         path (str): a typical path.
@@ -403,7 +414,8 @@ def splitname(path: str):
 
 
 def joinpaths(*parts):
-    """Join arbitrary path and convert to posix style.
+    """
+    Join arbitrary path and convert to posix style.
 
     The first part is expected to be a proper root, and only end with a slash
     if it is a root folder.
@@ -437,7 +449,8 @@ def get_widgets(
     show=True,
     parent: S | None = None,
 ) -> Generator[ipw.Widget, None, None]:
-    """Collects widgets omitting duplicate side-by-side instances and self.
+    """
+    Collects widgets omitting duplicate side-by-side instances and self.
 
     Accepts widgets, dotted name attributes and callables that returns one or
     more widgets. Nested lists/tuples are flattened accordingly.
@@ -544,7 +557,8 @@ def set_border(widget, border: str = f"var({CSSvar.menubox_border})") -> None:
 
 
 def to_visibility(f, invert=False) -> Literal["visible", "hidden"]:
-    """Returns either 'visible' if True else 'hidden'.
+    """
+    Returns either 'visible' if True else 'hidden'.
 
     invert:
         invert the result.
@@ -566,7 +580,8 @@ def to_hidden(f) -> Literal["visible", "hidden"]:
 
 
 def move_item(items: tuple, item, direction: Literal[-1, 1]) -> tuple[Any, ...]:
-    """Move an item within a tuple.
+    """
+    Move an item within a tuple.
 
     This function moves a specified item within a tuple forward or backward,
     effectively changing its position in the tuple.
@@ -594,6 +609,7 @@ def move_item(items: tuple, item, direction: Literal[-1, 1]) -> tuple[Any, ...]:
         items_.insert(0, items_.pop(idx))
     return tuple(items_)
 
+
 def button_dict(
     label="",
     ariaLabel="",
@@ -605,7 +621,8 @@ def button_dict(
     actions=(),
     displayType: Literal["default", "warn"] = "default",
 ) -> dict[str, Any]:
-    """Useful for dialogs.
+    """
+    Useful for dialogs.
 
     See also:
         - bool_button_options

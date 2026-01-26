@@ -35,7 +35,8 @@ __all__ = [
 
 
 def json_default(obj, unknown_to_str=False):
-    """Converters for value_traits and numpy arrays. Also checks for _to_dict and
+    """
+    Converters for value_traits and numpy arrays. Also checks for _to_dict and
     name.
 
     usage:
@@ -83,7 +84,8 @@ def json_default(obj, unknown_to_str=False):
 
 
 def to_dict(x) -> dict:
-    """Attempt to convert x to a dict.
+    """
+    Attempt to convert x to a dict.
 
     Will return a new (possibly empty) dict
     """
@@ -116,7 +118,8 @@ def to_dict(x) -> dict:
 
 
 def to_list(x) -> list:
-    """Attempt to convert x to a list.
+    """
+    Attempt to convert x to a list.
 
     Will always return a new (possibly empty) list.
     """
@@ -198,7 +201,8 @@ def to_yaml(
     fs: AbstractFileSystem | None = None,
     path: str | None = None,
 ) -> str | None:
-    """Convert data to yaml string or write to path.
+    """
+    Convert data to yaml string or write to path.
 
     walkstring: Will check for multiline strings and pass them.
     fs: fsspec.AbstractFileSystem

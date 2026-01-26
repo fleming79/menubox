@@ -25,7 +25,8 @@ if TYPE_CHECKING:
 
 
 class MenuboxPersistMode(enum.Enum):
-    """Enumerates the different persistence modes for Menubox data.
+    """
+    Enumerates the different persistence modes for Menubox data.
     This enum defines how Menubox data is stored and retrieved,
     allowing for different levels of granularity in the persistence path.
     The persistence mode determines the structure of the base path used
@@ -53,7 +54,8 @@ class MenuboxPersistMode(enum.Enum):
         name: str,
         version: int | str,
     ):
-        """Create a base path string based on the specified persistence mode.
+        """
+        Create a base path string based on the specified persistence mode.
 
         The base path is used as the root directory for storing data.
         The structure of the path depends on the selected persistence mode,
@@ -93,7 +95,8 @@ class MenuboxPersistMode(enum.Enum):
 
 
 class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
-    """Persistence of nested settings in yaml files plus persistence of dataframes using
+    """
+    Persistence of nested settings in yaml files plus persistence of dataframes using
     filesystem.
 
     Settings to be persisted are defined in the name_tuple `value_traits_persist`.
@@ -292,7 +295,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return path
 
     async def save_dataframes_async(self, name: str, version: int = 1) -> None:
-        """Asynchronously saves dataframes to the filesystem.
+        """
+        Asynchronously saves dataframes to the filesystem.
 
         Iterates through the dataframes specified in `self.dataframe_persist`,
         skipping empty dataframes.  Constructs a file path for each dataframe
@@ -320,7 +324,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         name: str = "",
         version: int = 1,
     ) -> dict[str, pd.DataFrame]:
-        """Asynchronously retrieves a dictionary of pandas DataFrames.
+        """
+        Asynchronously retrieves a dictionary of pandas DataFrames.
 
         Args:
             name (str): The name associated with the DataFrames.
@@ -359,7 +364,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @classmethod
     async def list_stored_datasets(cls, filesystem: Filesystem) -> list[str]:
-        """List the names of all stored datasets in the given filesystem.
+        """
+        List the names of all stored datasets in the given filesystem.
 
         The names are sorted alphabetically.
 
@@ -411,7 +417,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @mb_async.singular_task(tasktype=mb_async.TaskType.update, handle="task_loading_persistence_data")
     async def load_persistence_data(self, version=None, quiet=False, data: dict | None = None, set_version=False):
-        """Asynchronously loads persistence data for the menubox.
+        """
+        Asynchronously loads persistence data for the menubox.
 
         This method retrieves and sets the menubox's data from persistent storage.
         It handles loading both regular data and dataframe data, if applicable.
@@ -480,7 +487,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         return {}
 
     async def get_latest_version(self) -> int:
-        """Retrieves the latest version number from the available versions.
+        """
+        Retrieves the latest version number from the available versions.
 
         If no versions are available, it returns a default version number of 1.
 
@@ -512,7 +520,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @classmethod
     def save_dataframe(cls, df: pd.DataFrame, fs: AbstractFileSystem, path: str):
-        """Save a Pandas DataFrame to a file using the given filesystem.
+        """
+        Save a Pandas DataFrame to a file using the given filesystem.
 
         Args:
             df: The Pandas DataFrame to save.
@@ -545,7 +554,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
     @classmethod
     def load_dataframe(cls, fs: AbstractFileSystem, path: str) -> pd.DataFrame:
-        """Load a dataframe from the given path on the given filesystem.
+        """
+        Load a dataframe from the given path on the given filesystem.
 
         Args:
             fs: The filesystem to load from.

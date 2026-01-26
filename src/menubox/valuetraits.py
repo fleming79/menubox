@@ -29,7 +29,8 @@ __all__ = ["ValueTraits"]
 
 
 class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[str, Any]]):
-    """A trait type for handling values within a ValueTraits object.
+    """
+    A trait type for handling values within a ValueTraits object.
 
     This trait type is responsible for setting, validating, and storing
     values associated with a specific trait name in a ValueTraits instance.
@@ -85,7 +86,8 @@ class _InstanceHPTupleRegister(HasParent):
 
 
 class ValueTraits(HasParent):
-    """ValueTraits is a class that provides a way to manage and observe changes to
+    """
+    ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
 
     It extends HasParent and incorporates features for handling nested traits,
@@ -142,7 +144,8 @@ class ValueTraits(HasParent):
 
     @contextlib.contextmanager
     def ignore_change(self):
-        """Context manager to temporarily ignore changes.
+        """
+        Context manager to temporarily ignore changes.
 
         Whilst in this context all changes register with 'value_traits' and 'value_traits_persist'
         will not be passed to `on_change` and 'value' change will not be emitted immediately.
@@ -186,7 +189,8 @@ class ValueTraits(HasParent):
         value: dict | Callable[[], dict] | None | str | bytes = None,
         **kwargs,
     ):
-        """Initializes the ValueTraits object.
+        """
+        Initializes the ValueTraits object.
 
         Args:
             home (Home | str | None, optional): The home directory. Defaults to None.
@@ -266,7 +270,8 @@ class ValueTraits(HasParent):
 
     @observe("_vt_reg_value_traits", "_vt_reg_value_traits_persist")
     def _vt_observe_vt_reg_value(self, change: ChangeType):
-        """Reacts to changes in the registered value traits.
+        """
+        Reacts to changes in the registered value traits.
 
         This method observes changes in the `_vt_reg_value_traits` and
         `_vt_reg_value_traits_persist` attributes, as well as changes originating
@@ -304,7 +309,8 @@ class ValueTraits(HasParent):
 
     @classmethod
     def _get_observer_pairs(cls, obj: HasTraits | Any, dotname: str) -> Iterator[tuple[HasTraits, str]]:
-        """Generates pairs of (object, trait_name) for observing a dotted trait name.
+        """
+        Generates pairs of (object, trait_name) for observing a dotted trait name.
 
         This method traverses a dotted trait name, yielding tuples of (object, trait_name)
         for each trait encountered along the path. It handles special cases like the
@@ -364,7 +370,8 @@ class ValueTraits(HasParent):
 
     @classmethod
     def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], Any]:
-        """Return the constructor to create a new item that belongs to a typed instance tuple.
+        """
+        Return the constructor to create a new item that belongs to a typed instance tuple.
 
         Args:
             tuplename: Name of the typed instance tuple.
@@ -452,7 +459,8 @@ class ValueTraits(HasParent):
         self._vt_on_change(change)
 
     def _vt_on_change(self, change: ChangeType):
-        """Handles changes to the observed trait values.
+        """
+        Handles changes to the observed trait values.
 
         This method is called when a change occurs in one of the observed traits.
         It updates the internal state, calls the user-defined `on_change` method,
@@ -498,7 +506,8 @@ class ValueTraits(HasParent):
             raise
 
     def add_value_traits(self, *names: str, delay: float | None = None):
-        """Append names to value_traits.
+        """
+        Append names to value_traits.
 
         delay: if it is not None, it will be called with a delay.
             a delay = 0 is equivalent to `mb_async.call_soon`.
@@ -509,7 +518,8 @@ class ValueTraits(HasParent):
         self.set_trait("value_traits", (*self.value_traits, *names))
 
     def drop_value_traits(self, *names: str):
-        """Remove to value_traits.
+        """
+        Remove to value_traits.
 
         value_traits are used for notifications. Dotted paths are permitted.
         """
@@ -537,7 +547,8 @@ class ValueTraits(HasParent):
             )
 
     def get_value(self, dotname: str, default=None) -> Any:
-        """Gets value by dotted name.
+        """
+        Gets value by dotted name.
 
         If dottedname points to a HasTraits object with a value, the value will be
         returned. Uses utils.getattr_nested.
@@ -555,7 +566,8 @@ class ValueTraits(HasParent):
         return val
 
     def to_dict(self, names: None | Iterable[str] = None, hastrait_value=True) -> dict[str, Any]:
-        """Converts the object's value traits to a dictionary.
+        """
+        Converts the object's value traits to a dictionary.
 
         Args:
             names: An optional iterable of attribute names to include in the dictionary.
@@ -592,7 +604,8 @@ class ValueTraits(HasParent):
         option: int = orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_INDENT_2,
         decode=True,
     ) -> str | bytes:
-        """Convert the object to a JSON string.
+        """
+        Convert the object to a JSON string.
 
         Args:
             names (Optional[Iterable[str]]): An optional list of dottednames to include in the JSON instead of thosed listed in the property `value_traits_persist`.
@@ -625,7 +638,9 @@ class ValueTraits(HasParent):
         fs: AbstractFileSystem | None = None,
         path: str | None = None,
     ) -> str:
-        """Convert settings to yaml.
+        """
+        Convert settings to yaml.
+
         Args:
             names (Optional[Iterable[str]]): An optional list of dottednames to include in the JSON instead of thosed listed in `value_traits_persist`.
             fs: fsspec filesystem
@@ -634,7 +649,8 @@ class ValueTraits(HasParent):
         return to_yaml(self.to_dict(names=names), walkstring=True, path=path, fs=fs)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
     def on_change(self, change: ChangeType):
-        """Handle change events of all traits listed in `value_traits` and `value_trait_persist`.
+        """
+        Handle change events of all traits listed in `value_traits` and `value_trait_persist`.
 
         Since nested traits are allowed, trait changes in children are also observed.
         adding, removing and creating (InstanceHP only) of items are all propagated.
@@ -664,7 +680,8 @@ class ValueTraits(HasParent):
             on_change(change)
 
     def get_tuple_obj(self, tuplename: str, add=True, **kwds):
-        """Retrieves or creates an object associated with a `TypedInstaneTuple` tuple trait.
+        """
+        Retrieves or creates an object associated with a `TypedInstaneTuple` tuple trait.
 
         This method retrieves an existing object associated with a tuple trait
         or creates a new one if it doesn't exist. It also adds the new object

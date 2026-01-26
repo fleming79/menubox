@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
 
     from menubox.instance import IHPChange
+    from menubox.widgets import MarkdownOutput
+
 
 CLEANR = re.compile("<.*?>")
 
@@ -46,6 +48,7 @@ class Buttons(traitlets.TraitType[tuple[ipw.Button, ...], Iterable[ipw.Button]])
 class HTMLNoClose(ipw.HTML):
     def close(self):
         return
+
 
 class Menubox(HasParent, Panel, Generic[RP]):
     """An all-purpose widget intended to be subclassed for building gui's."""
@@ -272,13 +275,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.load_view(view)
 
     @override
-    async def init_async(self):
+    async def init_async(self) -> None:
         await super().init_async()
         if not self.trait_has_value("loading_view") and self.DEFAULT_VIEW:
             self.load_view(self.DEFAULT_VIEW)
 
     @traitlets.validate("views")
-    def _vaildate_views(self, proposal: ProposalType):
+    def _vaildate_views(self, proposal: ProposalType) -> Any:
         views = proposal["value"]
         for view in views:
             if view in self.RESERVED_VIEWNAMES:
@@ -287,7 +290,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return views
 
     @traitlets.validate("view")
-    def _vaidate_view(self, proposal: ProposalType):
+    def _vaidate_view(self, proposal: ProposalType) -> Any | str | None:
         if proposal["value"] not in self._current_views:
             msg = f"View {proposal['value']!r} not in {self._current_views}"
             raise IndexError(msg)
@@ -349,14 +352,15 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.set_trait("children", self._simple_outputs)
 
     def load_view(self, view: str | None | defaults.NO_DEFAULT_TYPE = NO_DEFAULT, reload=False) -> Self:
-        """Loads a specified view, handling defaults, reloads, and preventing redundant loads.
+        """
+        Loads a specified view, handling defaults, reloads, and preventing redundant loads.
 
         Args:
-            view (str | None | defaults.NO_DEFAULT_TYPE, optional): The name of the view to load.
-            If NO_DEFAULT or None, defaults to the current view or the first available view.
-            Defaults to NO_DEFAULT.
-            reload (bool, optional): If True, forces a reload of the view even if it's already loaded.
-            Defaults to False.
+            view: The name of the view to load.
+                If NO_DEFAULT or None, defaults to the current view or the first available view.
+                Defaults to NO_DEFAULT.
+                reload (bool, optional): If True, forces a reload of the view even if it's already loaded.
+                Defaults to False.
 
         Returns:
             Self
@@ -423,7 +427,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return view
 
     async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
-        """Override this function to make view loading dynamic.
+        """
+        Override this function to make view loading dynamic.
 
         **DO NOT CALL DIRECTLY**
 
@@ -438,7 +443,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     @mb_async.throttle(0.05, tasktype=mb_async.TaskType.update)
     async def mb_refresh(self) -> None:
-        """Refreshes the menubox content based on its current state.
+        """
+        Refreshes the menubox content based on its current state.
 
         This method updates the menubox's children widgets based on several factors:
         - Whether the menubox is initialized and not closed.
@@ -495,7 +501,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             if self.border is not None:
                 self.layout.border = self.border if self.view else ""
 
-    def get_header(self):
+    def get_header(self) -> ipw.HBox | None:
         self.update_title()
         widgets = tuple(self.get_widgets(*self.header_children))
         if set(widgets).difference((H_FILL, V_FILL)):
@@ -511,7 +517,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.load_view(reload=True)
         return self
 
-    def get_menu_widgets(self):
+    def get_menu_widgets(self) -> list[ipw.Button]:
         view = self.loading_view if self.loading_view is not NO_DEFAULT else self.view
         buttons = [self.get_button_loadview(v) for v in self.menuviews]
         for b in buttons:
@@ -520,19 +526,20 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 b.tooltip = "This is the current view - click to refresh the view."
         return buttons
 
-    def menu_open(self):
+    def menu_open(self) -> None:
         self.enable_ihp("button_menu_minimize")
         if box := self.box_menu:
             box.children = tuple(self.get_widgets(*self.box_menu_open_children))
             box.layout.border = f"var({TF.CSSvar.menubox_border})"
 
-    def menu_close(self):
+    def menu_close(self) -> None:
         if box := self.box_menu:
             box.children = (self.button_menu,) if self.button_menu else ()
             box.layout.border = ""
 
     async def mb_configure(self) -> None:
-        """Configure this widget - called once only when loading the first view.
+        """
+        Configure this widget - called once only when loading the first view.
 
         This includes:
             - Enabling the maximize button if it exists or if the default view is minimized.
@@ -554,7 +561,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self._mb_configured = True
 
     @traitlets.observe(*_mb_refresh_traitnames)
-    def _observe_mb_refresh(self, change: ChangeType):
+    def _observe_mb_refresh(self, change: ChangeType) -> None:
         if self.closed:
             return
         match change["name"]:
@@ -591,7 +598,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self._mb_configured:
             self.mb_refresh()
 
-    def _get_help_widget(self):
+    def _get_help_widget(self) -> MarkdownOutput:
         """
         Generates and returns a help widget containing documentation for the menubox.
 
@@ -610,7 +617,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self.out_help.value = help_
         return self.out_help
 
-    def update_title(self):
+    def update_title(self) -> None:
         """
         Updates the title and tooltip of the menubox.
 
@@ -631,17 +638,17 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.title.label = self.get_title_label()
             self.title.caption = self.get_title_caption()
 
-    def get_html_title_description(self):
+    def get_html_title_description(self) -> str:
         return self.fstr(self.title_description)
 
     def get_html_title_description_tooltip(self):
         return cleanhtml(self.fstr(self.title_description_tooltip))
 
-    def get_title_label(self):
+    def get_title_label(self) -> str:
         "This is used to update the title"
         return cleanhtml(self.fstr(self.title_description))
 
-    def get_title_caption(self):
+    def get_title_caption(self) -> str:
         return cleanhtml(self.fstr(self.title_description_tooltip))
 
     def get_button_loadview(
@@ -651,8 +658,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         description="",
         disabled=False,
         button_type: Literal["open", "tab"] = "open",
-    ):
-        """Creates a button that, when clicked, loads a specified view.
+    ) -> ipw.Button:
+        """
+        Creates a button that, when clicked, loads a specified view.
         Args:
             view: The name of the view to load when the button is clicked. Must be a key in `self._current_views`.
             description: The text to display on the button. If not provided, defaults to the view name.
@@ -682,7 +690,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self._view_buttons.add(b)
         return b
 
-    def _update_views_onchange(self):
+    def _update_views_onchange(self) -> None:
         self.set_trait("viewlist", tuple(v for v in self.viewlist if v in self.views) or self.views)
         if self.toggleviews:
             self.toggleviews = tuple(v for v in self.toggleviews if v in self._current_views)
@@ -696,7 +704,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         ):
             self.load_view(reload=True)
 
-    def _update_tab_buttons(self):
+    def _update_tab_buttons(self) -> None:
         buttons = []
         existing = {b.description: b for b in self._tab_buttons}
         for view in self.tabviews:
@@ -708,19 +716,19 @@ class Menubox(HasParent, Panel, Generic[RP]):
             buttons.append(b)
         self.set_trait("tab_buttons", buttons)
 
-    def _update_shuffle_buttons(self):
+    def _update_shuffle_buttons(self) -> None:
         self.set_trait(
             "shuffle_buttons",
             (self.get_shuffle_button(name) for name in self.shuffle_button_views),
         )
 
-    def _update_activate_buttons(self):
+    def _update_activate_buttons(self) -> None:
         self.set_trait(
             "activate_buttons",
             (self.get_activate_button(name) for name in self.activate_button_views),
         )
 
-    def _onchange_showbox(self, change: IHPChange):
+    def _onchange_showbox(self, change: IHPChange) -> None:
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
         if self.showbox:
@@ -731,7 +739,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             self.show()
 
     @override
-    async def button_clicked(self, b: ipw.Button):
+    async def button_clicked(self, b: ipw.Button) -> None:
         await super().button_clicked(b)
         match b:
             case self.button_menu:
@@ -827,7 +835,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         alt_name="",
         ensure_wrapped=False,
     ):
-        """Load attribute 'name' into the shuffle box.
+        """
+        Load attribute 'name' into the shuffle box.
 
         obj_or_name: ipw.Widget | callable | attribute name (nested attribute permitted)
 
@@ -851,7 +860,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         position: Literal["start", "end"] = "end",
         alt_name="",
     ) -> Menubox | MenuboxWrapper:
-        """Puts an object into the box shuffle container.
+        """
+        Puts an object into the box shuffle container.
 
         If the object is already in the box shuffle, it will be moved to the end or beginning
         depending on the `position` argument. If the object is not a Menubox, it will be wrapped
@@ -930,7 +940,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         view: str | None | defaults.NO_DEFAULT_TYPE = defaults.NO_DEFAULT,
         **kwgs,
     ):
-        """Display the menubox in a dialog.
+        """
+        Display the menubox in a dialog.
 
         Args:
             title: The title of the dialog.

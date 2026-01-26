@@ -51,7 +51,8 @@ ChildrenSetter = cast("type[ChildrenSetterType]", lazy_import("menubox.children_
 
 
 class IHPMode(enum.IntEnum):
-    """The configured modes for the Instance HP instance.
+    """
+    The configured modes for the Instance HP instance.
 
     `XCRN` - X is a common prefix. Underscores indicate the setting is disabled.
 
@@ -296,7 +297,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         | InstanceHP[S, T | None, ReadOnly[T]]
         | InstanceHP[S, T | None, ReadOnly[T | None]]
     ):
-        """Configures the instance with the provided settings.
+        """
+        Configures the instance with the provided settings.
 
         This method allows configuring the instance's behavior regarding read-only status,
         allowing None values, and loading default values.  It uses a builder pattern
@@ -390,7 +392,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             raise traitlets.TraitError(msg) from e
 
     def finalize(self) -> Self:
-        """Finalizes the class associated with this instance.
+        """
+        Finalizes the class associated with this instance.
 
         This method performs several steps:
 
@@ -427,7 +430,8 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         return self
 
     def default(self, owner: S, override: None | dict = None) -> T | None:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Create an instance of the class.
+        """
+        Create an instance of the class.
 
         Args:
             owner: The owning object.
@@ -487,46 +491,45 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             self._value_changed(cast("IHPChange", change))
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
-        """Configure what hooks to use when the instance value changes.
+        """
+        Configure what hooks to use when the instance value changes.
 
         Hooks are merged using a nested replace strategy.
 
         Additional custom hooks are also possible with the class method `register_change_hook`.
 
-        Defaults
-        --------
-        * set_parent: True [HasParent]
-        * on_replace_close: True [HasParent | Widget]
+        Defaults:
+            set_parent: True [HasParent]
+            on_replace_close: True [HasParent | Widget]
 
-        Parameters
-        ----------
-        on_replace_close: Close the previous instance if it is replaced.
-            Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
-        allow_none: Allow the value to be None.
-        set_parent: Set the parent to the parent of the trait (HasParent).
-        set_children: <Objects with a children trait **ONLY**>
-            Children listed via the dotted paths in `lambda p: p.<attribute>` are synchronised to the
-            `children` of the instance using `ChildrenSetter`. It is safe to specify on optional parameters,
-            They can  be escaped in Pyright with `# pyright: ignore[reportOptionalMemberAccess]`.
-        add_css_class: <DOMWidget **ONLY**>
-            Class names to add to the instance. Useful for selectors such as context menus.
-        remove_on_close: If True, the instance will be removed from the parent when the instance is closed.
-        on_set: A new value when it isn't None.
-        on_unset: An old value when it isn't None.
+        Args:
+            on_replace_close: Close the previous instance if it is replaced.
+                Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
+            allow_none: Allow the value to be None.
+            set_parent: Set the parent to the parent of the trait (HasParent).
+            set_children: <Objects with a children trait **ONLY**>
+                Children listed via the dotted paths in `lambda p: p.<attribute>` are synchronised to the
+                `children` of the instance using `ChildrenSetter`. It is safe to specify on optional parameters,
+                They can  be escaped in Pyright with `# pyright: ignore[reportOptionalMemberAccess]`.
+            add_css_class: <DOMWidget **ONLY**>
+                Class names to add to the instance. Useful for selectors such as context menus.
+            remove_on_close: If True, the instance will be removed from the parent when the instance is closed.
+            on_set: A new value when it isn't None.
+            on_unset: An old value when it isn't None.
         """
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # pyright: ignore[reportArgumentType]
         return self
 
     @classmethod
-    def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False):
+    def register_change_hook(cls, name: str, hook: Callable[[IHPChange], None], *, replace=False) -> None:
         if not replace and name in cls._change_hooks:
             msg = f"callback hook {name=} is already registered!"
             raise KeyError(msg)
         cls._change_hooks[name] = hook
 
     @classmethod
-    def _remove_on_close_hook(cls, c: IHPChange[S, T]):
+    def _remove_on_close_hook(cls, c: IHPChange[S, T]) -> None:
         if c["owner"].closed:
             return
         if c["ihp"] not in cls._close_observers:
@@ -544,7 +547,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             owner_ref = weakref.ref(c["owner"])
             ihp = c["ihp"]
 
-            def _observe_closed(change: mb.ChangeType):
+            def _observe_closed(change: mb.ChangeType) -> None:
                 # If the c["owner"] has closed, remove it from c["owner"] if appropriate.
                 owner = owner_ref()
                 cname, value = change["name"], change["new"]
@@ -571,7 +574,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             }
 
     @staticmethod
-    def _on_replace_close_hook(c: IHPChange[S, T]):
+    def _on_replace_close_hook(c: IHPChange[S, T]) -> None:
         if (
             c["ihp"]._hookmappings.get("on_replace_close")
             and isinstance(c["old"], Widget | mhp.HasParent)
@@ -584,21 +587,21 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             c["old"].close()
 
     @staticmethod
-    def _on_set_hook(c: IHPChange[S, T]):
+    def _on_set_hook(c: IHPChange[S, T]) -> None:
         if c["owner"].closed:
             return
         if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
             on_set(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["new"]))
 
     @staticmethod
-    def _on_unset_hook(c: IHPChange[S, T]):
+    def _on_unset_hook(c: IHPChange[S, T]) -> None:
         if c["owner"].closed:
             return
         if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
             on_unset(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["old"]))
 
     @staticmethod
-    def _add_css_class_hook(c: IHPChange[S, T]):
+    def _add_css_class_hook(c: IHPChange[S, T]) -> None:
         if add_css_class := c["ihp"]._hookmappings.get("add_css_class"):
             for cn in utils.iterflatten(add_css_class):
                 if isinstance(c["new"], DOMWidget):
@@ -607,7 +610,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                     c["old"].remove_class(cn)
 
     @staticmethod
-    def _set_parent_hook(c: IHPChange[S, T]):
+    def _set_parent_hook(c: IHPChange[S, T]) -> None:
         if (not c["owner"].closed) and c["ihp"]._hookmappings.get("set_parent"):
             if isinstance(c["old"], mhp.HasParent) and getattr(c["old"], "parent", None) is c["owner"]:
                 c["old"].parent = None
@@ -615,22 +618,22 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 c["new"].parent = c["owner"]
 
     @staticmethod
-    def _set_children_hook(c: IHPChange[S, T]):
+    def _set_children_hook(c: IHPChange[S, T]) -> None:
         if not c["owner"].closed and c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
             ChildrenSetter(parent=c["owner"], name=c["ihp"].name, children=children)
 
     @staticmethod
-    def _value_changed_hook(c: IHPChange[S, T]):
+    def _value_changed_hook(c: IHPChange[S, T]) -> None:
         if value_changed := c["ihp"]._hookmappings.get("value_changed"):
             value_changed(c)
 
     @staticmethod
-    def _validate_hook(c: IHPChange[S, T]):
+    def _validate_hook(c: IHPChange[S, T]) -> None:
         if value_changed := c["ihp"]._hookmappings.get("value_changed"):
             value_changed(c)
 
     @override
-    def class_init(self, cls, name):
+    def class_init(self, cls, name) -> None:
         super().class_init(cls, name)
         try:
             cls._InstanceHP[name] = self  # pyright: ignore[reportAttributeAccessIssue]
@@ -668,7 +671,8 @@ def instanceHP_wrapper(
     tags: None | dict[str, Any] = None,
     **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
 ) -> Callable[Concatenate[SS | Any, P], InstanceHP[SS, T, ReadOnly[T]]]:
-    """Wraps the InstanceHP trait for use withmhp. HasParent classes.
+    """
+    Wraps the InstanceHP trait for use withmhp. HasParent classes.
 
     This function creates a factory that returns an InstanceHP trait,
     configured with the specified settings. It's designed to be used
@@ -700,7 +704,8 @@ def instanceHP_wrapper(
         *args: P.args,
         **kwgs: P.kwargs,
     ) -> InstanceHP[SS, T, ReadOnly[T]]:
-        """Returns an InstanceHP[klass] trait.
+        """
+        Returns an InstanceHP[klass] trait.
 
         Use this to add a trait to new subclass ofmhp. HasParent.
 

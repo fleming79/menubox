@@ -179,7 +179,8 @@ class TestInstance:
 
     @pytest.mark.parametrize("trait", ["box", "menubox", "hpi2"])
     async def test_instance_gc(self, trait, weakref_enabled):
-        """Test that some objects will be automatically garbage collected.
+        """
+        Test that some objects will be automatically garbage collected.
 
         **Requires weakref_enabled.**
         """

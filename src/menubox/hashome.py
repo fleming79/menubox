@@ -79,11 +79,13 @@ class _HomeTrait(traitlets.TraitType[Home, ReadOnly[Home]]):
 
 
 class HasHome(HasParent):
-    """A class to group instances by `home`.
+    """
+    A class to group instances by `home`.
 
     `home` or `parent` must be specified during instance creation and cannot be changed.
     all instances are added to the weakset `home.instances`. All instances are force
-    closed when the home instance is closed."""
+    closed when the home instance is closed.
+    """
 
     home = _HomeTrait()
 

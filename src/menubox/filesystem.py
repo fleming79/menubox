@@ -132,11 +132,11 @@ class Filesystem(MenuboxVT):
     )
 
     @property
-    def root(self):
+    def root(self) -> str:
         return str(self.url.value)
 
     @property
-    def storage_options(self):
+    def storage_options(self) -> dict[Any, Any]:
         """Value of the kwargs box as a dictionary"""
         return to_dict(self.kw.value)
 
@@ -149,12 +149,12 @@ class Filesystem(MenuboxVT):
         return self._fs
 
     @property
-    def urlpath(self):
+    def urlpath(self) -> Any | None:
         """URL of currently selected item"""
         return ((self.protocol.value or "") + "://" + self.sw_main.value) if self.sw_main.value else None
 
     @override
-    async def init_async(self):
+    async def init_async(self) -> None:
         await super().init_async()
         self.layout.flex = "1 0 auto"
         if self.protocol.value == "file" and not self.root:
@@ -180,7 +180,7 @@ class Filesystem(MenuboxVT):
         return await super().get_center(view)
 
     @override
-    def on_change(self, change: ChangeType):
+    def on_change(self, change: ChangeType) -> None:
         super().on_change(change)
         if self.read_only:
             return
@@ -211,7 +211,7 @@ class Filesystem(MenuboxVT):
                     self.button_update.start(url=self.sw_main.value)
 
     @override
-    async def button_clicked(self, b: Button):
+    async def button_clicked(self, b: Button) -> None:
         if self.read_only:
             return
         await super().button_clicked(b)
@@ -223,7 +223,7 @@ class Filesystem(MenuboxVT):
             case self.button_add:
                 await self.button_update.start(url=self.root, create=True)
 
-    async def _button_update_async(self, create=False, url: str | None = None):
+    async def _button_update_async(self, create=False, url: str | None = None) -> None:
         if (not self.view_active and not create) or self.vt_validating:
             return
         if self.prev_protocol != self.protocol.value or self.prev_kwargs != self.storage_options:
@@ -279,7 +279,7 @@ class Filesystem(MenuboxVT):
         finally:
             self.button_add.disabled = exists or self.read_only
 
-    async def get_relative_path(self, title=""):
+    async def get_relative_path(self, title="") -> str:
         "Obtain a relative path using a dialog."
 
         rp = RelativePath(parent=self)
@@ -293,7 +293,7 @@ class Filesystem(MenuboxVT):
         finally:
             rp.close()
 
-    async def write(self, path: str, data: bytes):
+    async def write(self, path: str, data: bytes) -> None:
         "Write the file at path inside a thread"
         await mb_async.to_thread(self._write, path, data)
 
@@ -301,8 +301,9 @@ class Filesystem(MenuboxVT):
         with self.fs.open(path, "wb") as f:
             f.write(data)  # pyright: ignore[reportArgumentType]
 
-    def to_path(self, *parts: str):
-        """Will join the parts. If a local file system, it will return an absolute path.
+    def to_path(self, *parts: str) -> str:
+        """
+        Join the parts. If a local file system, it will return an absolute path.
 
         Returns:
             str: posix style.

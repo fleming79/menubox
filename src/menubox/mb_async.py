@@ -150,7 +150,8 @@ def run_async(
 def singular_task(
     **opts: Unpack[RunAsyncOptions],
 ) -> Callable[[Callable[P, CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
-    """A decorator to wrap a coroutine function to run as a singular task.
+    """
+    A decorator to wrap a coroutine function to run as a singular task.
 
     obj is as the instance.
     kw are passed to run_async_singular such as 'handle'.
@@ -225,7 +226,8 @@ class _Periodic:
 def periodic(
     wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
-    """A wrapper to control the rate at which a function may be called.
+    """
+    A wrapper to control the rate at which a function may be called.
 
     Can wrap functions, coroutines and methods. Several modes are supported.
     Parameters
@@ -273,7 +275,8 @@ def periodic(
 def throttle(
     wait: float, tasktype=TaskType.general
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
-    """A decorator that throttles the call to wrapped function.
+    """
+    A decorator that throttles the call to wrapped function.
 
     Compatible with coroutines, functions and methods.
 
@@ -285,7 +288,8 @@ def throttle(
 def debounce(
     wait: float, tasktype=TaskType.general
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
-    """A decorator that debounces the call to the wrapped function.
+    """
+    A decorator that debounces the call to the wrapped function.
 
     Compatible with coroutines, functions and methods.
 

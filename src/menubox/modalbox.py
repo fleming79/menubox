@@ -8,7 +8,6 @@ import traitlets
 from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
-from menubox.log import log_exceptions
 from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, GetWidgetsInputType, NameTuple, S
 
@@ -31,7 +30,6 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     parent_dlink = NameTuple[Self](lambda p: (p.log,))
     parent: InstanceHP[Any, S, S] = TF.parent()
 
-    @log_exceptions
     def __init__(
         self,
         *,
@@ -152,7 +150,6 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
         self.set_trait("expanded", False)
 
     @traitlets.observe("expanded")
-    @log_exceptions
     def _observe_expanded(self, _: ChangeType):
         if self.expanded:
             self.add_class(CSScls.Modalbox)

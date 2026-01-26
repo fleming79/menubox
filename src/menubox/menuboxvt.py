@@ -190,12 +190,9 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
 
     @staticmethod
     def register_template_root_folder(folder: pathlib.Path):
-        """Register a root folder that contains folders of yaml templates by MenuboxVT
+        """
+        Register a root folder that contains folders of yaml templates by MenuboxVT
         subclass names.
-
-        |templates root folder
-        |-Subclass Folder
-        |--template_name.yaml
         """
         folder = pathlib.Path(folder).absolute()
         if not folder.is_dir():
@@ -207,7 +204,8 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
 
     @property
     def templates(self) -> dict:
-        """Templates for the class will be available in this dict mapping a name to
+        """
+        Templates for the class will be available in this dict mapping a name to
         dict of the settings.
 
         The settings can be defined as yaml files in the _template_folder.

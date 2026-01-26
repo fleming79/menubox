@@ -16,5 +16,5 @@ def add_css_stylesheet() -> tuple[str, dict]:  # pyright: ignore[reportReturnTyp
 
 
 @hookspec(firstresult=True)
-def get_icon(obj: Menubox):
+def get_icon(obj: Menubox) -> None:
     "Get the icon for the object"

@@ -25,7 +25,8 @@ if TYPE_CHECKING:
 
 
 class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
-    """A button that runs the function in a singular task that can be cancelled by
+    """
+    A button that runs the function in a singular task that can be cancelled by
     clicking the button again.
 
     Additional methods are added to the button `start`, `cancel`, `cancel_wait` which
@@ -158,8 +159,12 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         return pen
 
     def cancel(self, *, force=False, message=""):
-        """Schedule cancel if already running.
-        force: if task is already being cancelled force will call cancel again.
+        """
+        Schedule cancel if already running.
+
+        Args:
+            force: If task is already being cancelled force will call cancel again.
+            message: The message.
         """
         if self.task and (force or not self.task.done()):
             self.task.cancel(message or f'Cancelled by call to cancel of :"{self}"')

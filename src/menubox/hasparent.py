@@ -32,7 +32,8 @@ __all__ = ["Dlink", "HasParent", "Link"]
 
 
 class HasParent(Singular, HasApp, Generic[RP]):
-    """A base class for objects that have a parent and can manage links to other objects.
+    """
+    A base class for objects that have a parent and can manage links to other objects.
 
     This class provides a foundation for creating objects that exist within a hierarchical
     structure, allowing for parent-child relationships and the management of links
@@ -78,7 +79,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
     def __init__(self, *, parent: RP | None = None, **kwargs):
-        """Initialize the HasParent class.
+        """
+        Initialize the HasParent class.
 
         Args:
             parent: The parent object.
@@ -102,7 +104,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
             self.set_trait(name, v)
 
     async def init_async(self) -> None:
-        """Perform additional initialisation tasks.
+        """
+        Perform additional initialisation tasks.
 
         When override this method ensure to call:
 
@@ -226,7 +229,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
             method(source, target, key=(mname, name))
 
     def setter(self, obj, name: str, value):
-        """Sets an attribute on an object, handling special cases for ipywidgets and ValueTraits.
+        """
+        Sets an attribute on an object, handling special cases for ipywidgets and ValueTraits.
 
         This function provides a flexible way to set attributes on objects, with specific
         handling for ipywidgets like Combobox and Selection widgets, as well as objects
@@ -273,7 +277,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     @staticmethod
     def check_equality(a, b) -> bool:
-        """Check objects are equal.
+        """
+        Check objects are equal.
 
         Special handling:
          - dict: checks both order and content are equal
@@ -292,7 +297,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         return self.__repr__()
 
     def on_error(self, error: BaseException, msg: str, obj: Any = None) -> None:
-        """Logs an error message with exception information.
+        """
+        Logs an error message with exception information.
 
         Note: When overloading, do not raise the error, it should by the callee after this function returns.
             It may be useful to add a note to the exception if applicable.
@@ -306,7 +312,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
             self.log.exception(msg, obj=obj, exc_info=error)
 
     def enable_ihp(self, name: str, *, override: dict | None = None) -> Self:
-        """Enable a InstanceHP trait.
+        """
+        Enable a InstanceHP trait.
 
         Passing an override will ensure the 'default' is always called.
 
@@ -354,7 +361,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
                     pass
 
     def close(self, force=False):
-        """Closes the object, disconnecting it from its parent and cleaning up resources.
+        """
+        Closes the object, disconnecting it from its parent and cleaning up resources.
 
         Designed to be compatible with `Widget.close`.
 
@@ -367,7 +375,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         self.set_trait("closed", True)
 
     def fstr(self, string: str, raise_errors=False, parameters: dict | None = None) -> str:
-        """Formats string using fstr type notation.
+        """
+        Formats string using fstr type notation.
 
         `self`, 'mb', `record` and `df` are available in the namespace.
         """
@@ -394,7 +403,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         connect=True,
         key: Hashable = None,
     ) -> Link | None:
-        """Does link and keeps a reference link until closed.
+        """
+        Does link and keeps a reference link until closed.
 
         Designed to link the target to one source at a time.
         note: there is no need to use connect=False if simply updating the link for a
@@ -414,8 +424,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
         transform: Callable[[Any], Any] | None = None,
         connect=True,
         key: Hashable = None,
-    ):
-        """Does dlink and and keeps a reference link until closed.
+    ) -> None:
+        """
+        Does dlink and and keeps a reference link until closed.
 
         Designed to dlink target to one source at a time.
         note: there is no need to use connect=False if simply updating the link for a
@@ -445,7 +456,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
         /,
         mode: TF.ButtonMode,
         b: ipw.Button,
-    ):
+    ) -> None:
         if self_ := ref():
             if mode is TF.ButtonMode.cancel and (pen := mb_async.singular_tasks.get(key)):
                 pen.cancel()
@@ -468,8 +479,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
                 b.description = description
             b.remove_class(CSScls.button_is_busy)
 
-    async def button_clicked(self, b: ipw.Button):
-        """Handles button click events.
+    async def button_clicked(self, b: ipw.Button) -> None:
+        """
+        Handles button click events.
 
         When overriding this method, ensure to pass on click events by calling:
 
@@ -494,7 +506,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         return self
 
     async def wait_tasks(self, *tasktypes: mb_async.TaskType, timeout=None) -> Self:
-        """Waits for tasks to complete belonging to this object, with an optional timeout.
+        """
+        Waits for tasks to complete belonging to this object, with an optional timeout.
 
         Tasks are added to this objects `tasks` set automatically when using `mb_async.run_async`.
         The tasktype is also specified when creating the task.
@@ -532,7 +545,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
         skip_hidden=True,
         show=True,
     ) -> Generator[ipw.Widget, None, None]:
-        """Get widgets from a variety of input types ignoring invalid of closed items..
+        """
+        Get widgets from a variety of input types ignoring invalid of closed items.
 
         Args:
             *items: A variable number of arguments, each of which can be:
@@ -561,7 +575,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
 
 class Link(HasParent):
-    """Link traits from different objects together so they remain in sync.
+    """
+    Link traits from different objects together so they remain in sync.
 
     Inspiration traitlets.link
     """
@@ -576,7 +591,7 @@ class Link(HasParent):
         transform: tuple[Callable[[Any], Any], Callable[[Any], Any]] | None = None,
         *,
         parent: S,  # pyright: ignore[reportInvalidTypeVarUse]
-    ):
+    ) -> None:
         self.source, self.target = source, target
         if parent.closed:
             msg = f"{parent=} is closed!"
@@ -597,10 +612,10 @@ class Link(HasParent):
             f"parent={self.parent!r}"
         )
 
-    def _transform(self, x, /):
+    def _transform(self, x, /) -> Any:
         return x
 
-    def _transform_inv(self, x, /):
+    def _transform_inv(self, x, /) -> Any:
         return x
 
     def _update_target(self, change: ChangeType):
@@ -668,7 +683,7 @@ class Dlink(Link):
         transform: Callable[[Any], Any] | None = None,
         *,
         parent: S,  # pyright: ignore[reportInvalidTypeVarUse]
-    ):
+    ) -> None:
         if transform:
             self._transform = transform
         super().__init__(source=source, target=target, parent=parent)

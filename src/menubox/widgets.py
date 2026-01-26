@@ -45,7 +45,8 @@ class ValidatedTrait(traitlets.TraitType):
 
 
 class ValidateWidget(ipw.ValueWidget):
-    """Widget with custom bi-directional validation of the value.
+    """
+    Widget with custom bi-directional validation of the value.
 
     validate:
         A callable that accepts a value and returns another value, or raises an error

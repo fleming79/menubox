@@ -43,7 +43,8 @@ class InstanceHPTupleHookMappings(TypedDict, Generic[V, T]):
 
 
 class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]):
-    """A tuple for `ValueTraits` where elements can be spawned and observed.
+    """
+    A tuple for `ValueTraits` where elements can be spawned and observed.
 
     This class provides a way to manage a tuple of instances within a ValueTraits
     object. It allows for the creation, validation, and updating of instances
@@ -217,7 +218,8 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
         return inst
 
     def _find_update_item(self, obj, kw: dict, index: int | None) -> T | None:
-        """Check if an item exists in current tuple matching update_by in kw.
+        """
+        Check if an item exists in current tuple matching update_by in kw.
 
         The first inst found is updated with kw and returned.
         """
@@ -251,25 +253,26 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
 
     @override
     def hooks(self, **kwgs: Unpack[InstanceHPTupleHookMappings[V, T]]) -> Self:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Hooks to modify the behaviour of the tuple analogous to hooks in InstanceHP.
+        """
+        Hooks to modify the behaviour of the tuple analogous to hooks in InstanceHP.
 
-        kwgs
-        ----
+        Args:
+            kwgs:
+                - update_by: An optional string specifying the attribute to use when updating items.
+                - update_item_names: An optional tuple of strings specifying the item names to update.
+                set_parent: An optional boolean indicating whether to set the parent of added items.
+                - close_on_remove: An optional boolean indicating whether to close items when they are removed.
+                - on_add: An optional callable that is executed when an item is added to the tuple.
+                    It takes the IHPSet as an argument.
+                - on_remove: An optional callable that is executed when an item is removed from the tuple.
+                        It takes the IHPSet as an argument.
+                - value_changed: An optional callable that is executed when the value of an tuple changes.
+                            It takes an IHPChange object as an argument.
 
-        - update_by: An optional string specifying the attribute to use when updating items.
-        - update_item_names: An optional tuple of strings specifying the item names to update.
-        set_parent: An optional boolean indicating whether to set the parent of added items.
-        - close_on_remove: An optional boolean indicating whether to close items when they are removed.
-        - on_add: An optional callable that is executed when an item is added to the tuple.
-               It takes the IHPSet as an argument.
-        - on_remove: An optional callable that is executed when an item is removed from the tuple.
-                  It takes the IHPSet as an argument.
-        - value_changed: An optional callable that is executed when the value of an tuple changes.
-                       It takes an IHPChange object as an argument.
-
-        Tip:
-            To support restoring values by index for a instances of objects that aren't subclassed
-            from ValueTraits, but have a `value` trait: use the hook `update_by = menubox.defaults.INDEX`."""
+            Tip:
+                To support restoring values by index for a instances of objects that aren't subclassed
+                from ValueTraits, but have a `value` trait: use the hook `update_by = menubox.defaults.INDEX`.
+        """
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # pyright: ignore[reportArgumentType]
         return self

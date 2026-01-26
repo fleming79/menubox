@@ -41,7 +41,8 @@ class ButtonMode(enum.Enum):
 
 
 class TF:
-    """A class that provides static methods for creating various types of InstanceHP
+    """
+    A class that provides static methods for creating various types of InstanceHP
     traits, particularly for use with the MenuBox library. It offers shortcuts for
     creating traits based on basic Python types, ipywidgets, and custom MenuBox
     components. These traits are configured using the InstanceHP class (or
@@ -175,7 +176,8 @@ class TF:
     def ViewDict(
         co_: S | Any = None, value: ViewDictType[S] | None = None, /
     ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
-        """A function to generate an InstanceHP trait.
+        """
+        A function to generate an InstanceHP trait.
 
         Use this in MenuBox subclasses to define `views` and `shuffle_button_views`
 
@@ -197,7 +199,8 @@ class TF:
     def parent(
         klass: type[SS] | str = "menubox.hasparent.HasParent",
     ) -> InstanceHP[Any, SS, SS]:
-        """Define a trait as a parent container for a HasParent subclass.
+        """
+        Define a trait as a parent container for a HasParent subclass.
 
         Use this to customize the behaviour of the has parent
         """
@@ -428,7 +431,8 @@ class TF:
         factory: Callable[[IHPCreate], MP] | None = None,
         **kwgs,
     ) -> Fixed[H, menubox.persist.MenuboxPersistPool[H, MP]]:
-        """A Fixed Obj shuffle for any Menubox persist object.
+        """
+        A Fixed Obj shuffle for any Menubox persist object.
 
         ``` python
         MenuboxPersistPool(cast(Self, 0), obj_cls=MyMenuboxPersistClass)
