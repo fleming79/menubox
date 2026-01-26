@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
 import traitlets
 
-from menubox import TaskType, throttle, utils
+from menubox import Menubox, TaskType, throttle, utils
+from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, NameTuple
 from menubox.valuetraits import ValueTraits
 
@@ -59,3 +60,29 @@ class ChildrenSetter(ValueTraits):
             if box := getattr(parent, self.name):
                 box.set_trait("children", parent.get_widgets(self.children))
             self.set_trait("value_traits", self._make_traitnames())
+
+
+class CenterWidgetWatcher(ValueTraits):
+    """
+    Watches layout.visibility of all widgets in `parent._all_center_widgets` for changes in visibility
+    initiate mb_refresh if any widget visibility changes.
+    """
+
+    parent: TF.InstanceHP[Any, Menubox, Menubox] = TF.parent()
+    _AUTO_VALUE = False
+    _prohibited_value_traits: ClassVar = set()
+    value_traits = NameTuple[Self](lambda p: (p.parent._all_center_widgets,))
+
+    def _make_traitnames(self) -> Generator[str, Any, None]:
+        yield "parent._all_center_widgets"
+        if parent := self.parent:
+            for n in parent._all_center_widgets:
+                yield f"parent._all_center_widgets.{n}.layout.visibility"
+
+    @override
+    def on_change(self, change: ChangeType) -> None:
+        if (parent := self.parent) and not parent.closed:
+            if change["name"] == "_all_center_widgets" and change["new"] != change["old"]:
+                self.set_trait("value_traits", self._make_traitnames())
+            elif change["name"] == "visibility" and parent.view_active:
+                parent.mb_refresh()

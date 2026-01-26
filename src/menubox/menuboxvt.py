@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, cast, override
+from typing import Any, ClassVar, Generic, Self, cast, override
 
 import ipylab
 import ipywidgets as ipw
@@ -12,14 +12,12 @@ from menubox.css import CSScls
 from menubox.menubox import Menubox
 from menubox.pack import load_yaml, to_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, StrTuple
+from menubox.trait_types import RP, GetWidgetsInputType, NameTuple, StrTuple
 from menubox.valuetraits import ValueTraits
 from menubox.widgets import ComboboxValidate, MarkdownOutput
 
 _template_folders: set[pathlib.Path] = set()
 
-if TYPE_CHECKING:
-    from menubox.repository import Repository  # noqa: F401
 
 __all__ = ["MenuboxVT"]
 
@@ -28,8 +26,6 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     """
     MenuboxVT Combines Menubox with ValueTraits and provides additional features such as templates,
     copy/paste settings, configuration view and description rendering.
-
-    Create subclasses from this class.
     """
 
     SHOW_TEMPLATE_CONTROLS = False
@@ -290,9 +286,3 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         )
 
         clipboard_set(to_yaml(self.value(), walkstring=True))
-
-    @override
-    def on_change(self, change: ChangeType):
-        super().on_change(change)
-        if change["name"] == "visibility" and self.view_active:
-            self.mb_refresh()

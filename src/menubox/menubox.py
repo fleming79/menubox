@@ -14,6 +14,7 @@ import traitlets
 from aiologic import Event
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
+from wrapt import lazy_import
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
@@ -26,9 +27,11 @@ from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
 
+    from menubox.children_setter import CenterWidgetWatcher
     from menubox.instance import IHPChange
     from menubox.widgets import MarkdownOutput
 
+CenterWidgetWatcher: CenterWidgetWatcher = lazy_import("menubox.children_setter", "CenterWidgetWatcher")  # pyright: ignore[reportInvalidTypeForm, reportGeneralTypeIssues]
 
 CLEANR = re.compile("<.*?>")
 
@@ -56,9 +59,12 @@ class Menubox(HasParent, Panel, Generic[RP]):
     MINIMIZED: Final = "Minimized"
     RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
+    WATCH_CHILDREN = True
     _setting_view = False
     _mb_configured = False
     _Menubox_init_complete = False
+    _all_center_widgets = TF.Dict()
+    "A mapping to all center widgets including those that are hidden used by `CenterWidgetWatcher`."
 
     parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
@@ -397,8 +403,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
             await self.mb_configure()
         try:
             view, center = await self.get_center(view)
-            await self.wait_tasks(mb_async.TaskType.update_children)
-            await self.wait_tasks(mb_async.TaskType.update_children)
             self._setting_view = True
             self.view = view
             self._setting_view = False
@@ -441,7 +445,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         # If you encounter a recursion error, add an await call in a subclss override.
         return view, self.views.get(view, None)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
-    @mb_async.throttle(0.05, tasktype=mb_async.TaskType.update)
+    @mb_async.debounce(0.05, tasktype=mb_async.TaskType.update)
     async def mb_refresh(self) -> None:
         """
         Refreshes the menubox content based on its current state.
@@ -469,6 +473,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
                 out.push(TF.ipd.HTML(f"<b>Loading view {self.view}</b>"), button_cancel)
                 await task.wait(result=False)
+                await self.wait_tasks(mb_async.TaskType.update_children)
                 button_cancel.close()
                 self.mb_refresh()
                 return
@@ -485,8 +490,13 @@ class Menubox(HasParent, Panel, Generic[RP]):
         else:
             if mb.DEBUG_ENABLED:
                 self.enable_ihp("button_activate")
+
+            # The center widgets get tracked for visibility and case mb_refresh to be recalled when the layout changes
+            widgets = {f"widget_{id(w)}": w for w in self.get_widgets(self.center, skip_hidden=False, show=False)}
+            self.set_trait("_all_center_widgets", widgets)
+            center = self.get_widgets(widgets.values())
+
             children = (header,) if (header := self.get_header()) else ()
-            center = self.get_widgets(self.center)
             if self.show_help and (help_widget := self._get_help_widget()):
                 children = (*children, self.button_help, help_widget)
             if box := self.box_center:
@@ -558,6 +568,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if cb := getattr(super(), "mb_configure", None):
             # permit other overloads.
             await cb()
+        if self.WATCH_CHILDREN:
+            CenterWidgetWatcher(parent=self)
         self._mb_configured = True
 
     @traitlets.observe(*_mb_refresh_traitnames)
