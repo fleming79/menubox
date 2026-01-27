@@ -489,3 +489,6 @@ class TestMenubox:
             mb.utils.unhide(widget)
             await m.wait_tasks()
             assert widget in box.children
+        assert m._widget_watcher.widgets
+        m.close()
+        assert not m._widget_watcher.widgets
