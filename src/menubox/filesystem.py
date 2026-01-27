@@ -164,7 +164,7 @@ class Filesystem(MenuboxVT):
     @override
     def load_value(self, data):
         if data is not defaults.NO_VALUE and data:
-            self.button_update.cancel(message="loading data into filesystem")
+            self.button_update.cancel("loading data into filesystem")
             super().load_value(data)
             self.home_url = self.root
             self.button_update.start()

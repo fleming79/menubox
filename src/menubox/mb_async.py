@@ -55,7 +55,7 @@ class RunAsyncOptions(TypedDict):
     ""
     handle: NotRequired[str]
     """
-    The name of the trait on `obj` where to store the future of the task.
+    The name of the trait on `obj` where to store the task.
 
     Both Pending instance and set traits are permitted.
     """

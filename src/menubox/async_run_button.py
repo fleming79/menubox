@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import contextlib
 from collections.abc import Callable
 from types import CoroutineType
 from typing import TYPE_CHECKING, Any, Generic, Literal, override
 
-import anyio
 import ipywidgets as ipw
 import traitlets
 
@@ -133,7 +131,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     def _on_click(self, _: ipw.Button):  # pyright: ignore[reportIncompatibleMethodOverride]
         if self.task:
-            self.cancel(force=True, message="Button clicked to cancel")
+            self.cancel("Button clicked to cancel")
         else:
             self.start()
 
@@ -158,25 +156,22 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         pen.add_done_callback(btn._done_callback)
         return pen
 
-    def cancel(self, *, force=False, message=""):
+    def cancel(self, msg=""):
         """
-        Schedule cancel if already running.
+        Cancel the the task if there is one.
 
         Args:
             force: If task is already being cancelled force will call cancel again.
             message: The message.
         """
-        if self.task and (force or not self.task.done()):
-            self.task.cancel(message or f'Cancelled by call to cancel of :"{self}"')
-
-    async def cancel_wait(self, force=False, msg="Waiting for future to cancel."):
         if task := self.task:
+            task.cancel(msg or f'Cancelled by call to cancel of :"{self}"')
+
+    async def cancel_wait(self, msg="Waiting for task to cancel."):
+        if task := self.task:
+            task.cancel(msg)
             while not task.done():
-                with anyio.move_on_after(1):
-                    self.log.info(msg)
-                    task.cancel(msg)
-                    with contextlib.suppress(Exception):
-                        await task
+                await task.wait(result=False, timeout=1)
 
     @override
     def on_error(self, error: BaseException, msg: str, obj: Any = None) -> None:
