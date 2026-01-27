@@ -299,6 +299,8 @@ class TestMenubox:
 
     async def test_menubox_onchange_showbox(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
+        await m.activate()
+        await m.wait_tasks()
         box = ipw.Box()
         m.set_trait("showbox", box)
         assert m in box.children
@@ -466,3 +468,24 @@ class TestMenubox:
             assert m.children == (out,)
         assert out.closed
         assert not m._simple_outputs
+
+    async def test_widget_watcher(self):
+        box: ipw.Box
+        w1 = ipw.HTML("W1")
+        m = mb.Menubox(title_description="Testing", header_children=["w2"], views={"a": w1})
+        m.w2 = w2 = ipw.HTML("W2")  # pyright: ignore[reportAttributeAccessIssue]
+
+        await m.activate()
+        await m.wait_tasks()
+        assert m.box_center
+        for widget, box in [(w1, m.box_center), (w2, m.header)]:
+            assert widget
+            assert box
+            assert widget in box.children
+            assert w1 in m._widget_watcher.widgets.values()
+            mb.utils.hide(widget)
+            await m.wait_tasks()
+            assert widget not in box.children
+            mb.utils.unhide(widget)
+            await m.wait_tasks()
+            assert widget in box.children

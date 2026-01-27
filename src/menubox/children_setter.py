@@ -12,6 +12,10 @@ from menubox.valuetraits import ValueTraits
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from ipywidgets import Widget
+
+    from menubox.instance import InstanceHP
+
 
 class ChildrenSetter(ValueTraits):
     """
@@ -62,27 +66,29 @@ class ChildrenSetter(ValueTraits):
             self.set_trait("value_traits", self._make_traitnames())
 
 
-class CenterWidgetWatcher(ValueTraits):
+class WidgetWatcher(ValueTraits):
     """
-    Watches layout.visibility of all widgets in `parent._all_center_widgets` for changes in visibility
-    initiate mb_refresh if any widget visibility changes.
+    Watches for visibility changes in the `widgets` dict calling `parent.mb_refresh` when a change is observed.
+
+    Parent must set both itself and the dict of widgets to observe.
     """
 
-    parent: TF.InstanceHP[Any, Menubox, Menubox] = TF.parent()
+    parent: TF.InstanceHP[Any, Menubox, Menubox] = TF.parent(Menubox)
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
-    value_traits = NameTuple[Self](lambda p: (p.parent._all_center_widgets,))
+    widgets: InstanceHP[Any, dict[str, Widget], dict[str, Widget]] = TF.Dict()
+    value_traits = NameTuple[Self](lambda p: (p.widgets,))
 
     def _make_traitnames(self) -> Generator[str, Any, None]:
-        yield "parent._all_center_widgets"
-        if parent := self.parent:
-            for n in parent._all_center_widgets:
-                yield f"parent._all_center_widgets.{n}.layout.visibility"
+        yield "widgets"
+        for n in self.widgets:
+            yield f"widgets.{n}.layout.visibility"
+            yield f"widgets.{n}.comm"
 
     @override
     def on_change(self, change: ChangeType) -> None:
         if (parent := self.parent) and not parent.closed:
-            if change["name"] == "_all_center_widgets" and change["new"] != change["old"]:
+            if (change["name"] == "widgets") and change["new"] != change["old"]:
                 self.set_trait("value_traits", self._make_traitnames())
-            elif change["name"] == "visibility" and parent.view_active:
+            elif parent.view_active and change["name"] == "visibility":
                 parent.mb_refresh()

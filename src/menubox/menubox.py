@@ -14,7 +14,6 @@ import traitlets
 from aiologic import Event
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
-from wrapt import lazy_import
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
@@ -27,11 +26,10 @@ from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
 
-    from menubox.children_setter import CenterWidgetWatcher
+    from menubox.children_setter import WidgetWatcher
     from menubox.instance import IHPChange
     from menubox.widgets import MarkdownOutput
 
-CenterWidgetWatcher: CenterWidgetWatcher = lazy_import("menubox.children_setter", "CenterWidgetWatcher")  # pyright: ignore[reportInvalidTypeForm, reportGeneralTypeIssues]
 
 CLEANR = re.compile("<.*?>")
 
@@ -59,12 +57,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
     MINIMIZED: Final = "Minimized"
     RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (MINIMIZED,)
     DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
-    WATCH_CHILDREN = True
+    _widget_watcher = TF.InstanceHP(cast("type[WidgetWatcher]", "menubox.children_setter.WidgetWatcher"))
     _setting_view = False
     _mb_configured = False
     _Menubox_init_complete = False
-    _all_center_widgets = TF.Dict()
-    "A mapping to all center widgets including those that are hidden used by `CenterWidgetWatcher`."
+    "A mapping to all center widgets including those that are hidden used by `WidgetWatcher`."
 
     parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
@@ -490,12 +487,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         else:
             if mb.DEBUG_ENABLED:
                 self.enable_ihp("button_activate")
-
-            # The center widgets get tracked for visibility and case mb_refresh to be recalled when the layout changes
-            widgets = {f"widget_{id(w)}": w for w in self.get_widgets(self.center, skip_hidden=False, show=False)}
-            self.set_trait("_all_center_widgets", widgets)
-            center = self.get_widgets(widgets.values())
-
+            center = self.get_widgets(self.center)
             children = (header,) if (header := self.get_header()) else ()
             if self.show_help and (help_widget := self._get_help_widget()):
                 children = (*children, self.button_help, help_widget)
@@ -504,6 +496,17 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 children = (*children, box)
             else:
                 children = (*children, *center)
+        self._widget_watcher.widgets = {  # pyright: ignore[reportAttributeAccessIssue]
+            w.model_id: w
+            for w in self.get_widgets(
+                self.center,
+                self.header_children,
+                self.header_left_children,
+                self.header_right_children,
+                skip_hidden=False,
+                show=False,
+            )
+        }
         if self._simple_outputs:
             self.mb_refresh()
         else:
@@ -514,12 +517,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
     def get_header(self) -> ipw.HBox | None:
         self.update_title()
         widgets = tuple(self.get_widgets(*self.header_children))
-        if set(widgets).difference((H_FILL, V_FILL)):
+        if return_header := bool(set(widgets).difference((H_FILL, V_FILL))):
             self.enable_ihp("header")
-            if header := self.header:
-                header.children = widgets
-            return self.header
-        return None
+        if header := self.header:
+            header.children = widgets
+        return header if return_header else None
 
     def refresh_view(self, force=False) -> Self:
         """Refreshes the view by reloading if the view isn't already loading."""
@@ -568,8 +570,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if cb := getattr(super(), "mb_configure", None):
             # permit other overloads.
             await cb()
-        if self.WATCH_CHILDREN:
-            CenterWidgetWatcher(parent=self)
         self._mb_configured = True
 
     @traitlets.observe(*_mb_refresh_traitnames)
