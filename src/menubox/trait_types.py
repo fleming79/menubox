@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, Literal, ParamSpec, TypedDict, T
 
 import toolz
 from ipywidgets import Widget
-from traitlets import Bunch, DottedObjectName, HasTraits, TraitType, Unicode
+from traitlets import Bunch, HasTraits, TraitType, Unicode
 
 import menubox
 
@@ -126,14 +126,15 @@ class StrTuple(TraitType[tuple[str, ...], Iterable[str]]):
 
 class NameTuple(StrTuple, Generic[R]):
     """
-    A Trait for a tuple of unique dotted object names.
+    A Trait to provide typechecker access when specifying defaults.
 
-    Use a lambda to specify defaults relative to the HasTraits object.
+    Any string is accepted and no validation is perform.
+
+    Use a lambda to specify defaults relative to the instance where it belongs.
     `lambda p: (p.dotted.path.to.trait, )
     """
 
-    info_text = "A tuple of any length of unique object trait_names (duplicates discarded.)"
-    _trait_klass = DottedObjectName
+    info_text = "A tuple of any length of unique items."
 
     def __init__(self, default: Callable[[R], tuple[Any, ...]] | None = None, /, **kwargs) -> None:
         super().__init__(*menubox.utils.dottedpath(default) if default else (), **kwargs)
