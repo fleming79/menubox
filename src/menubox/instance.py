@@ -359,7 +359,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if not obj.check_equality(old_value, new_value):
             change = Bunched(name=self.name, old=old_value, new=new_value, owner=obj, type="change", ihp=self)
             try:
-                self._value_changed(cast("IHPChange", change))
+                self._value_changed(change)  # pyright: ignore[reportArgumentType]
             except Exception as e:
                 obj.on_error(e, f"Instance configuration error for {self!r}.")
             obj._notify_trait(self.name, old_value, new_value)
@@ -383,7 +383,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             dv = self.default_value
             if not obj.check_equality(value, dv):
                 change = Bunched(name=self.name, old=dv, new=value, owner=obj, type="change", ihp=self)
-                self._value_changed(cast("IHPChange", change))
+                self._value_changed(change)  # pyright: ignore[reportArgumentType]
                 obj._notify_observers(change)
             return value
         except Exception as e:
@@ -486,9 +486,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                         change["owner"].on_error(e, f"Hook error for {self!r} {hook=}")
 
     def _on_obj_close(self, obj: S):
-        if (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value:
+        if (
+            (old := obj._trait_values.pop(self.name, None)) is not self.default_value or old != self.default_value
+        ) and self._hookmappings:
             change = Bunched(name=self.name, old=old, new=self.default_value, owner=obj, type="change", ihp=self)
-            self._value_changed(cast("IHPChange", change))
+            self._value_changed(change)  # pyright: ignore[reportArgumentType]
 
     def hooks(self, **kwgs: Unpack[IHPHookMappings[S, T]]) -> Self:
         """
@@ -553,6 +555,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
                 cname, value = change["name"], change["new"]
                 if (
                     owner
+                    and ihp._hookmappings
                     and ((cname == "closed" and value) or (cname == "comm" and not value))
                     and owner._trait_values.get(ihp.name) is change["owner"]
                 ) and (old := owner._trait_values.pop(ihp.name, None)):
