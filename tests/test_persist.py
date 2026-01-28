@@ -53,7 +53,7 @@ async def test_persist_by_classname(home: mb.Home):
     p = MBPByClass(parent=None, home=home, name="main")
     p.just_a_widget.value = 2
     p.df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
-    await p.button_save_persistence_data.start()
+    await p.button_save_persistence_data.start(False)
     assert (await p.get_persistence_versions(p.filesystem)) == (1,)
     data = await p.get_persistence_data(p.filesystem)
     df_data = await p.get_dataframes_async(p.filesystem, dotted_names=p.dataframe_persist)
@@ -69,7 +69,7 @@ async def test_persist_by_classname_name(home: mb.Home):
     p = MBPByClassName(parent=None, home=home, name="main")
     p.just_a_widget.value = 2
     p.df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
-    await p.button_save_persistence_data.start()
+    await p.button_save_persistence_data.start(False)
     assert (await p.get_persistence_versions(p.filesystem, p.name)) == (1,)
     data = await p.get_persistence_data(p.filesystem, p.name)
     df_data = await p.get_dataframes_async(p.filesystem, dotted_names=p.dataframe_persist, name=p.name)
@@ -89,7 +89,7 @@ async def test_persist_by_classname_name_version(home: mb.Home):
     d = p.to_dict(hastrait_value=False)
     assert d["just_a_widget"] is p.just_a_widget
 
-    await p.button_save_persistence_data.start()
+    await p.button_save_persistence_data.start(False)
 
     for view in p.views:
         await p.load_view(view).activate()
@@ -120,7 +120,7 @@ async def test_persist_by_classname_name_version(home: mb.Home):
     assert p.version == 2
     await p.wait_update_tasks()
     p.just_a_widget.value = 3
-    await p.button_save_persistence_data.start()
+    await p.button_save_persistence_data.start(False)
 
     # sw_version_load
     assert 2 in p.sw_version_load.options
@@ -152,6 +152,6 @@ async def test_menubox_persist_pool(home: mb.Home):
     mpp.obj_name.value = name
     await mpp.wait_tasks()
     assert not obj.versions
-    await obj.button_save_persistence_data.start()
+    await obj.button_save_persistence_data.start(False)
     assert obj.versions
     await mpp.wait_tasks()

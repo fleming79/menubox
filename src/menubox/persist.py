@@ -514,7 +514,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         if str(existing) != str(current) and await utils.yes_no_dialog(
             self.app, "Save changes", f"Save changes for {self}?"
         ):
-            await self.button_save_persistence_data.start()
+            await self.button_save_persistence_data.start(True)
         if ask_close and await utils.yes_no_dialog(self.app, "Close", f"Close {self}"):
             self.close(force=True)
 

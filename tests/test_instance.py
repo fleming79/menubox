@@ -85,7 +85,7 @@ class TestInstance:
         hp2_b = hp2.b
         hp2.set_trait("b", await HPI())
         assert not hp2_b.parent, "hp2.parent should be removed when hp2 is replaced"
-        assert await hp2.button.start() is True
+        assert await hp2.button.start(False) is True
 
         # Check replacement (validation)
         assert not hp2.parent, "No parent by default."

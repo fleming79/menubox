@@ -40,7 +40,7 @@ async def test_async_run_button_description_and_task():
     obj = PMB()
     assert obj.ab_main.description == "Button"
     assert obj.ab_main.icon == "play"
-    pen = obj.ab_main.start()
+    pen = obj.ab_main.start(False)
     assert obj.ab_main.task is pen
     assert pen in obj.tasks
     assert obj.ab_main.icon == "stop"
@@ -52,13 +52,13 @@ async def test_async_run_button_description_and_task():
 
 async def test_async_run_button_kwargs():
     obj = PMB()
-    task = obj.ab_main.start(a=False)
+    task = obj.ab_main.start(False, a=False)
     obj.ab_main.start(False, a=False)
     assert obj.ab_main.task is task
     await task
     assert not obj.data.get("a")
 
-    obj.ab_main.start()
+    obj.ab_main.start(False)
     await obj.ab_main.cancel_wait()
     assert not has_task(obj.ab_main)
 
@@ -67,10 +67,10 @@ async def test_async_run_button_nested():
     obj = PMB()
     assert obj.ab_nested.description == "Nested button"
     assert obj.ab_main.description == "Button"
-    b_task = obj.ab_main.start(primary=True)
+    b_task = obj.ab_main.start(False, primary=True)
     assert obj.ab_nested_sub.icon == "stop"
     assert not obj.ab_nested.disabled, "A nested button should be allowed to restart a running task."
-    obj.ab_nested.start(description="nested")
+    obj.ab_nested.start(True, description="nested")
     assert b_task.cancelled(), "Starting b2 should cancel b.task before stating a new task"
     assert obj.ab_nested.task is obj.ab_main.task
     assert obj.ab_main.task

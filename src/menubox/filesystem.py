@@ -167,7 +167,7 @@ class Filesystem(MenuboxVT):
             self.button_update.cancel("loading data into filesystem")
             super().load_value(data)
             self.home_url = self.root
-            self.button_update.start()
+            self.button_update.start(True)
 
     @override
     async def get_center(self, view: str | None):
@@ -200,15 +200,15 @@ class Filesystem(MenuboxVT):
         if change["owner"] is self:
             match change["name"]:
                 case "view" if self.view_active:
-                    self.button_update.start()
+                    self.button_update.start(False)
                 case "ignore":
                     self._ignore = tuple(re.compile(i) for i in self.ignore)
         elif self.view_active:
             match change["owner"]:
                 case self.url:
-                    self.button_update.start()
+                    self.button_update.start(True)
                 case self.sw_main:
-                    self.button_update.start(url=self.sw_main.value)
+                    self.button_update.start(True, url=self.sw_main.value)
 
     @override
     async def button_clicked(self, b: Button) -> None:
@@ -217,11 +217,11 @@ class Filesystem(MenuboxVT):
         await super().button_clicked(b)
         match b:
             case self.button_home:
-                await self.button_update.start(url=self.home_url)
+                await self.button_update.start(True, url=self.home_url)
             case self.button_up:
-                await self.button_update.start(url=self.fs._parent(self.root))
+                await self.button_update.start(True, url=self.fs._parent(self.root))
             case self.button_add:
-                await self.button_update.start(url=self.root, create=True)
+                await self.button_update.start(True, url=self.root, create=True)
 
     async def _button_update_async(self, create=False, url: str | None = None) -> None:
         if (not self.view_active and not create) or self.vt_validating:

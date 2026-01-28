@@ -133,14 +133,19 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         if self.task:
             self.cancel("Button clicked to cancel")
         else:
-            self.start()
+            self.start(True)
 
     def _done_callback(self, pen: Pending):
         if pen is self.task:
             self.set_trait("task", None)
 
-    def start(self, restart=True, /, *args, **kwargs) -> Pending:
-        """Start always unless restart=False."""
+    def start(self, restart: bool, /, *args, **kwargs) -> Pending:  # pyright: ignore[reportGeneralTypeIssues]
+        """
+        Start the associated coroutine.
+
+        Args:
+            restart:
+        """
         if self.disabled:
             msg = f"'{self}' is disabled!"
             raise RuntimeError(msg)
