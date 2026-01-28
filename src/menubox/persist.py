@@ -339,11 +339,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         values = {}
         for dotted_name in dotted_names:
             path = filesystem.to_path(cls.get_df_filename(name, version, dotted_name))
-            coro = mb_async.to_thread(cls.load_dataframe, filesystem.fs, path)
-            try:
-                values[dotted_name] = await coro
-            except FileNotFoundError:
-                continue
+            if filesystem.fs.exists(path):
+                values[dotted_name] = await mb_async.to_thread(cls.load_dataframe, filesystem.fs, path)
         return values
 
     @classmethod
