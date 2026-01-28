@@ -108,7 +108,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         )
     )
     box_menu_open_children = NameTuple[Self](lambda p: (p.button_menu_minimize, p.get_menu_widgets))
-    minimized_children = NameTuple[Self](lambda p: (p.html_title, p.header_right_children))
+    minimized_children = NameTuple[Self](lambda p: (p.html_title, TF.H_FILL, p.header_right_children))
 
     loading_view: TF.InstanceHP[Any, _NoDefault | None, ReadOnly[_NoDefault | None]] = TF.InstanceHP(
         str | defaults.NO_DEFAULT_TYPE,
