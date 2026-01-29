@@ -19,7 +19,7 @@ from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, S
+from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
@@ -29,6 +29,25 @@ if TYPE_CHECKING:
     from menubox.instance import IHPChange, InstanceHP
 
 __all__ = ["Dlink", "HasParent", "Link"]
+
+
+def get_obj_value_tuple(obj: R, func: Callable[[R], Any], /) -> tuple[HasTraits, str]:
+    """
+    Convert the relative path pointed to by `func` to a tuple (`HasTraits`, `trait_name`).
+
+    This is provide to enable link and dlink by using lambdas that provide the dotted path
+    to the trait to link.
+
+
+    Example:
+        ```python
+            to_obj_value_tuple(lambda p: p.a.description, obj)
+        ```
+    """
+    paths = next(iter(utils.dottedpath(func))).split(".")
+    for subpath in paths[0:-1]:
+        obj = getattr(obj, subpath)
+    return obj, paths[-1]
 
 
 class HasParent(Singular, HasApp, Generic[RP]):
@@ -393,8 +412,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     def link(
         self,
-        source: tuple[HasTraits, str],
-        target: tuple[HasTraits, str],
+        source: tuple[HasTraits, str] | Callable[[Self], Any],
+        target: tuple[HasTraits, str] | Callable[[Self], Any],
         transform: tuple[
             Callable[[Any], Any],
             Callable[[Any], Any],
@@ -410,6 +429,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
         note: there is no need to use connect=False if simply updating the link for a
         new source.
         """
+        if callable(source):
+            source = get_obj_value_tuple(self, source)
+        if callable(target):
+            target = get_obj_value_tuple(self, target)
         key = key or ("link", target)
         if current_link := self._hasparent_all_links.pop(key, None):
             current_link.close()
@@ -419,8 +442,8 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     def dlink(
         self,
-        source: tuple[HasTraits, str],
-        target: tuple[HasTraits, str],
+        source: tuple[HasTraits, str] | Callable[[Self], Any],
+        target: tuple[HasTraits, str] | Callable[[Self], Any],
         transform: Callable[[Any], Any] | None = None,
         connect=True,
         key: Hashable = None,
@@ -432,6 +455,11 @@ class HasParent(Singular, HasApp, Generic[RP]):
         note: there is no need to use connect=False if simply updating the link for a
         new source.
         """
+        if callable(source):
+            source = get_obj_value_tuple(self, source)
+        if callable(target):
+            target = get_obj_value_tuple(self, target)
+        self.source, self.target = source, target
         key = key or ("dlink", target)
         if current_link := self._hasparent_all_links.pop(key, None):
             current_link.close()

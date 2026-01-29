@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Self, cast, override
+from typing import TYPE_CHECKING, Any, Self, cast, override
 
 import ipywidgets as ipw
 import pytest
@@ -10,10 +12,14 @@ import menubox.trait_types as tt
 from menubox import mb_async
 from menubox.trait_factory import TF
 
+if TYPE_CHECKING:
+    from menubox.instance import InstanceHP
+
 match = "This exception is intentional"
 
 
 class HP(mhp.HasParent):
+    parent: InstanceHP[Any, HP, HP]
     parent_dlink = tt.NameTuple[Self](lambda p: (p.a_dlink, p.a_dlink2))
     parent_link = tt.NameTuple[Self](lambda p: (p.a_link, p.a_link2))
 
@@ -106,7 +112,7 @@ class TestHasParent:
         parent = HP(a_link=2, a_dlink=4)
         hp.parent = parent
 
-        hp.parent = None
+        hp.parent = None  # pyright: ignore[reportAttributeAccessIssue]
         parent.a_link = parent.a_dlink = 0
         parent.a_link2.value = parent.a_dlink2.value = 0.2
 
@@ -167,14 +173,42 @@ class TestHasParent:
         hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2, name="hps")
         hp.parent = parent
         hps.parent = hp
+        assert len(hps._hasparent_all_links) == 4
 
         hps.link((parent, "a_link"), (hps, "a_dlink"))
         hps.dlink((parent, "a_dlink"), (parent, "a_dlink"))
+        assert len(hps._hasparent_all_links) == 6
 
         hps.link((parent, "a_link"), (hps, "a_dlink"), connect=False)
         hps.dlink((parent, "a_dlink"), (parent, "a_dlink"), connect=False)
+        assert len(hps._hasparent_all_links) == 4
 
         hps.link((parent, "a_link"), (hps, "a_dlink"))
+        hps.dlink((parent, "a_dlink"), (parent, "a_dlink"))
+        assert len(hps._hasparent_all_links) == 6
+        hps.close()
+
+    async def test_hasparent_link_lambda(self):
+        hp = HP()
+        parent = HP(a_link=2, a_dlink=4)
+
+        class HPsubclass(HP):
+            SINGLE_BY = ("name",)
+
+        hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2, name="hps")
+        hp.parent = parent
+        hps.parent = hp
+        assert len(hps._hasparent_all_links) == 4
+
+        hps.link(lambda p: p.parent.a_link, lambda p: p.a_dlink)
+        hps.dlink(lambda p: p.parent.a_dlink, lambda p: p.parent.a_dlink)
+        assert len(hps._hasparent_all_links) == 6
+
+        hps.link(lambda p: p.parent.a_link, lambda p: p.a_dlink, connect=False)
+        hps.dlink(lambda p: p.parent.a_dlink, lambda p: p.parent.a_dlink, connect=False)
+        assert len(hps._hasparent_all_links) == 4
+
+        hps.link(lambda p: p.parent.a_link, lambda p: p.a_dlink)
         hps.dlink((parent, "a_dlink"), (parent, "a_dlink"))
         assert len(hps._hasparent_all_links) == 6
         hps.close()
