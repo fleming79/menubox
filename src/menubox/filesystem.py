@@ -60,7 +60,10 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["owner"].dlink(
+            source=lambda p: p.read_only,
+            target=lambda p: p.protocol.disabled,
+        )
     )
     url = TF.Combobox(
         cast("Self", 0),
@@ -69,7 +72,10 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["owner"].dlink(
+            source=lambda p: p.read_only,
+            target=lambda p: p.url.disabled,
+        ),
     )
     drive = (
         TF.Dropdown(
@@ -82,11 +88,14 @@ class Filesystem(MenuboxVT):
         .hooks(
             on_set=lambda c: (
                 c["owner"].dlink(
-                    source=(c["owner"].protocol, "value"),
-                    target=(c["obj"].layout, "visibility"),
+                    source=lambda p: p.protocol.value,
+                    target=lambda p: p.drive.layout.visibility,  # pyright: ignore[reportOptionalMemberAccess]
                     transform=lambda protocol: utils.to_visibility(protocol == "file"),
                 ),
-                c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
+                c["owner"].dlink(
+                    source=lambda p: p.read_only,
+                    target=lambda p: p.drive.disabled,  # pyright: ignore[reportOptionalMemberAccess]
+                ),
             )
         )
         .configure(TF.IHPMode.XL_N)
@@ -100,7 +109,10 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(source=(c["owner"], "read_only"), target=(c["obj"], "disabled")),
+        on_set=lambda c: c["owner"].dlink(
+            source=lambda p: p.read_only,
+            target=lambda p: p.kw.disabled,
+        ),
     )
     sw_main = TF.Select(
         cast("Self", 0),

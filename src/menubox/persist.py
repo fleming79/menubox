@@ -159,8 +159,8 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         layout={"width": "max-content"},
     ).hooks(
         on_set=lambda c: c["owner"].dlink(
-            source=(c["owner"], "versions"),
-            target=(c["obj"], "options"),
+            source=lambda p: p.versions,
+            target=lambda p: p.sw_version_load.options,
         ),
     )
     button_save_persistence_data = TF.AsyncRunButton(
@@ -188,11 +188,13 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         .hooks(
             on_set=lambda c: (
                 c["owner"].dlink(
-                    source=(c["owner"], "versions"),
-                    target=(c["obj"], "max"),
-                    transform=lambda versions: 1
-                    if c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
-                    else max(versions or (0,)) + 1,
+                    source=lambda p: p.versions,
+                    target=lambda p: p.version_widget.max,  # pyright: ignore[reportOptionalMemberAccess]
+                    transform=lambda versions: (
+                        1
+                        if c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
+                        else max(versions or (0,)) + 1
+                    ),
                 ),
             )
         )
