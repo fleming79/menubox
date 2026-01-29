@@ -87,7 +87,9 @@ class TF:
     ipylab = ipylab
     # Basic types
     H_FILL = "H_FILL"
+    "An empty box that fills the space horizontally."
     V_FILL = "V_FILL"
+    "An empty box that fills the space vertically."
 
     @staticmethod
     def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str, str]:
