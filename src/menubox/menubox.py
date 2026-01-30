@@ -587,6 +587,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
             case "views" | "viewlist":
                 self._update_views_onchange()
                 return
+            case "header":
+                self.get_header()
+                return
             case "tabviews":
                 self._update_tab_buttons()
                 return
