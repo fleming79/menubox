@@ -13,6 +13,7 @@ from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.hasparent import HasParent
+from menubox.instance import InstanceHP
 from menubox.pack import json_default, to_yaml
 from menubox.trait_factory import TF
 from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, ReadOnly
@@ -70,7 +71,7 @@ class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
     parent = TF.parent(klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
-    reg: TF.InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
+    reg: InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
 
     @observe("reg")
     def _observe_reg(self, change: ChangeType):
@@ -335,15 +336,19 @@ class ValueTraits(HasParent):
         segments = len(parts)
         for i, n in enumerate(parts, 1):
             if isinstance(obj, HasTraits):
-                if n in obj._traits:
+                if is_trait := n in obj._traits:
                     yield (obj, n)
                 if n in obj._trait_values:
                     obj = obj._trait_values[n]
                 elif n in getattr(obj, "_InstanceHP", {}):
                     break
                 else:
+                    if is_trait and isinstance(obj, InstanceHP) and n not in obj._trait_values:
+                        # InstanceHP always emits a {'type':'change', ...}, event when loading the default
+                        break
                     try:
-                        # obj is not an instance of HasParent and/or n is not an InstanceHP trait
+                        # HasTraits instead emits a {'type':'default', ...} event, which provides {'value', ...} rather than {'new':... 'old':..., ...}
+                        # We ensure it is loaded instead trying to deal with with a 'default' event.
                         obj = getattr(obj, n)
                     except TraitError:
                         # No default - so okay to break
