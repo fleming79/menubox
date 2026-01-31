@@ -95,6 +95,12 @@ class IHPChange(TypedDict, Generic[S, T]):
     ihp: InstanceHP[S, T, Any]
 
 
+class ChildrenSetterOptions(TypedDict):
+    "Options to use with the hook 'set_children'."
+    autohide: bool
+    "Hide the box when there are no children (default=True)."
+
+
 class IHPHookMappings(TypedDict, Generic[S, T]):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
@@ -102,7 +108,10 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
-    set_children: NotRequired[Callable[[S], Widget | None | tuple[Widget | None, ...]]]
+    set_children: NotRequired[
+        Callable[[S], Widget | None | tuple[Widget | None, ...]]
+        | tuple[Callable[[S], Widget | None | tuple[Widget | None, ...]], ChildrenSetterOptions]
+    ]
     value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 
 
@@ -623,7 +632,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
     @staticmethod
     def _set_children_hook(c: IHPChange[S, T]) -> None:
         if not c["owner"].closed and c["new"] is not None and (children := c["ihp"]._hookmappings.get("set_children")):
-            ChildrenSetter(parent=c["owner"], name=c["ihp"].name, children=children)
+            if isinstance(children, tuple):
+                children, options = children
+                ChildrenSetter(parent=c["owner"], name=c["ihp"].name, children=children, **options)  # pyright: ignore[reportArgumentType]
+            else:
+                ChildrenSetter(parent=c["owner"], name=c["ihp"].name, children=children)
 
     @staticmethod
     def _value_changed_hook(c: IHPChange[S, T]) -> None:
@@ -653,11 +666,11 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             cls._on_replace_close_hook,
             cls._set_parent_hook,
             cls._remove_on_close_hook,
+            cls._set_children_hook,
+            cls._add_css_class_hook,
+            cls._value_changed_hook,
             cls._on_set_hook,
             cls._on_unset_hook,
-            cls._add_css_class_hook,
-            cls._set_children_hook,
-            cls._value_changed_hook,
         ):
             cls.register_change_hook(cb.__name__.removesuffix("hook").strip("_"), cb)
 

@@ -28,6 +28,8 @@ class ChildrenSetter(ValueTraits):
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
     _dottednames = NameTuple()
+    autohide = TF.Bool(True)
+    "Hides the box when there are not children and vice versa."
 
     children = traitlets.Any()
     "The function that points to widgets relative to the parent to monitor such as `lambda p: p.box`."
@@ -62,9 +64,9 @@ class ChildrenSetter(ValueTraits):
             if box := getattr(parent, self.name):
                 children = tuple(parent.get_widgets(self.children))
                 if children != box.children:
-                    with box.hold_trait_notifications():
-                        box.set_trait("children", children)
-                        utils.set_visibility(box, bool(children))  # Hide/show the box based on if it has children
+                    box.set_trait("children", children)
+                if self.autohide:
+                    utils.set_visibility(box, bool(children))  # Hide/show the box based on if it has children
             self.set_trait("value_traits", self._make_traitnames())
 
     @debounce(0.01, tasktype=TaskType.update_children)
