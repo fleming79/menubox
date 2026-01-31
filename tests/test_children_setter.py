@@ -97,6 +97,12 @@ async def test_children_setter_builtin():
         cto.nested.dropdown,
         cto.nested.button,
     )
+    assert cto.dynamic_box.layout.visibility == "visible"
+    for c in cto.dynamic_box.children:
+        mb.utils.hide(c)
+    await anyio.sleep(0.02)
+    assert not cto.dynamic_box.children
+    assert cto.dynamic_box.layout.visibility == "hidden"
 
 
 async def test_children_setter_enable():

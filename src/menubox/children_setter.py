@@ -14,13 +14,12 @@ if TYPE_CHECKING:
 
     from ipywidgets import Widget
 
-    from menubox.instance import InstanceHP
-
 
 class ChildrenSetter(ValueTraits):
     """
     Sets the `children` trait of the object `<self.parent>.<self.name>` dynamically when either the object
-    changes or the state of a child changes.
+    changes or the state of a child changes. `parent.layout.visibility` is set to 'hidden' when there are no
+    children and `visible` when it does.
 
     It is available as the InstanceHP hook 'set_children'.
     """
@@ -62,7 +61,11 @@ class ChildrenSetter(ValueTraits):
     def update(self):
         if (parent := self.parent) and not self.parent.closed:
             if box := getattr(parent, self.name):
-                box.set_trait("children", parent.get_widgets(self.children))
+                children = tuple(parent.get_widgets(self.children))
+                if children != box.children:
+                    with box.hold_trait_notifications():
+                        box.set_trait("children", children)
+                        utils.set_visibility(box, bool(children))  # Hide/show the box based on if it has children
             self.set_trait("value_traits", self._make_traitnames())
 
 
