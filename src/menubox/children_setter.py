@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
 import traitlets
 
-from menubox import Menubox, TaskType, throttle, utils
+from menubox import Menubox, TaskType, debounce, utils
 from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, NameTuple
 from menubox.valuetraits import ValueTraits
@@ -29,36 +29,35 @@ class ChildrenSetter(ValueTraits):
     _prohibited_value_traits: ClassVar = set()
     _dottednames = NameTuple()
 
-    children = traitlets.Callable()
+    children = traitlets.Any()
     "The function that points to widgets relative to the parent to monitor such as `lambda p: p.box`."
 
     parent_dlink = NameTuple[Self](lambda p: (p.log,))
-
-    @traitlets.observe("children")
-    def _observe_children(self, change: ChangeType):
-        if callable(c := change["new"]):
-            try:
-                self._dottednames = tuple(utils.dottedpath(c) if callable(c) else utils.iterflatten(c))
-            except Exception as e:
-                self.on_error(e, f"Failed to extract keys from {c!r}")
-            self.update()
+    value_traits = NameTuple[Self](lambda p: (p.parent, p.children))
 
     def __repr__(self) -> str:
         return f"<ChildrenSetter at {id(self)} on {utils.fullname(self.parent)}.{self.name}>"
 
     def _make_traitnames(self) -> Generator[str, Any, None]:
-        yield f"parent.{self.name}"
+        yield from (f"parent.{self.name}", "children")
         for k in self._dottednames:
             yield from (f"parent.{k}.layout.visibility", f"parent.{k}.comm")
 
     @override
     def on_change(self, change: ChangeType) -> None:
-        if (parent := self.parent) and not self.parent.closed and (pen := self.update()) and pen not in parent.tasks:
-            parent.tasks.add(pen)
-            pen.add_done_callback(parent.tasks.discard)
+        if (parent := self.parent) and not self.parent.closed:
+            if change["name"] == "children":
+                if callable(c := change["new"]):
+                    try:
+                        self._dottednames = tuple(utils.dottedpath(c) if callable(c) else utils.iterflatten(c))
+                    except Exception as e:
+                        self.on_error(e, f"Failed to extract keys from {c!r}")
+                    self._update()
+            elif self.trait_has_value("children") and (pen := self.update()) and pen not in parent.tasks:
+                parent.tasks.add(pen)
+                pen.add_done_callback(parent.tasks.discard)
 
-    @throttle(0.01, tasktype=TaskType.update_children)
-    def update(self):
+    def _update(self):
         if (parent := self.parent) and not self.parent.closed:
             if box := getattr(parent, self.name):
                 children = tuple(parent.get_widgets(self.children))
@@ -67,6 +66,10 @@ class ChildrenSetter(ValueTraits):
                         box.set_trait("children", children)
                         utils.set_visibility(box, bool(children))  # Hide/show the box based on if it has children
             self.set_trait("value_traits", self._make_traitnames())
+
+    @debounce(0.01, tasktype=TaskType.update_children)
+    def update(self):
+        self._update()
 
 
 class WidgetWatcher(ValueTraits):

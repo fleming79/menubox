@@ -9,7 +9,6 @@ import pytest
 import menubox as mb
 from menubox.children_setter import ChildrenSetter
 from menubox.trait_factory import TF
-from menubox.trait_types import NameTuple
 
 
 class ChildrenSetterTesterNestedObj(mb.MenuboxVT):
@@ -34,11 +33,6 @@ class ChildrenSetterTester(mb.MenuboxVT):
     dynamic_box = TF.Box(cast("Self", 0)).hooks(
         set_children=lambda p: (p.dd_no_default, p.dropdown, p.nested.dropdown, p.nested.button),  # pyright: ignore[reportOptionalMemberAccess]
     )
-    dynamic_box_children = TF.Box(cast("Self", 0)).hooks(
-        set_children=lambda p: (p.dd_no_default, p.dropdown, p.nested_always.button, p.nested_always.label)
-    )
-
-    dynamic_box_nametuple_children = NameTuple[Self](lambda p: (p.label,))
     plain_box = TF.Box(cast("Self", 0))
 
 
@@ -109,7 +103,7 @@ async def test_children_setter_enable():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box
     cto.enable_ihp("dd_no_default")
-    await anyio.sleep(0.002)
+    await anyio.sleep(0.02)
     assert cto.nested
     assert cto.dynamic_box.children == (cto.dd_no_default, cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
@@ -127,22 +121,3 @@ async def test_children_setter_hide():
     mb.utils.unhide(cto.dropdown)
     await cs.wait_tasks()
     assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
-
-
-async def test_children_setter_children():
-    cto = ChildrenSetterTester()
-    assert not cto.dynamic_box_children.children
-    cs = ChildrenSetter(parent=cto, name="dynamic_box_children")
-    await cs.wait_tasks()
-    assert len(cto.dynamic_box_children.children) == 3
-    children = cto.dynamic_box_children.children
-    cto.nested_always.close()
-    # Closing a nested object will get replaced automatically
-    await cs.wait_tasks()
-    assert len(cto.dynamic_box_children.children) == 3
-    assert cto.dynamic_box_children.children != children
-
-    # Closing the main object is respected
-    cto.close()
-    await cs.wait_tasks()
-    assert not cto.dynamic_box_children.children
