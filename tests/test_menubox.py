@@ -482,7 +482,7 @@ class TestMenubox:
             assert widget
             assert box
             assert widget in box.children
-            assert w1 in m._widget_watcher.widgets.values()
+            assert w1 in m._widget_watcher._widgets.values()
             mb.utils.hide(widget)
             await m.wait_tasks()
             assert widget not in box.children
@@ -490,5 +490,7 @@ class TestMenubox:
             await m.wait_tasks()
             assert widget in box.children
         assert m._widget_watcher.widgets
+        assert m._widget_watcher._widgets
         m.close()
         assert not m._widget_watcher.widgets
+        assert not m._widget_watcher._widgets

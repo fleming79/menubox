@@ -70,20 +70,28 @@ class WidgetWatcher(ValueTraits):
     """
     Watches for visibility changes in the `widgets` dict calling `parent.mb_refresh` when a change is observed.
 
-    Parent must set both itself and the dict of widgets to observe.
+    Both `parent` and `widgets` should be set externally.
     """
 
     parent: TF.InstanceHP[Any, Menubox, Menubox] = TF.parent(Menubox)
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
-    widgets: InstanceHP[Any, dict[str, Widget], dict[str, Widget]] = TF.Dict()
+    widgets: TF.InstanceHP[Any, set[Widget], set[Widget]] = TF.Set()
+    "A mapping of `widget.model_id`:`widget` that are to be watched."
+    _widgets = TF.Dict()
     value_traits = NameTuple[Self](lambda p: (p.widgets,))
 
     def _make_traitnames(self) -> Generator[str, Any, None]:
+        reg, current = self._widgets, set()
         yield "widgets"
-        for n in self.widgets:
-            yield f"widgets.{n}.layout.visibility"
-            yield f"widgets.{n}.comm"
+        for widget in self.widgets:
+            k = widget.model_id
+            reg[k] = widget
+            current.add(k)
+            yield f"_widgets.{k}.layout.visibility"
+            yield f"_widgets.{k}.comm"
+        for k in current.difference(reg):
+            reg.pop(k)
 
     @override
     def on_change(self, change: ChangeType) -> None:

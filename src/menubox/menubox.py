@@ -496,9 +496,8 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 children = (*children, box)
             else:
                 children = (*children, *center)
-        self._widget_watcher.widgets = {  # pyright: ignore[reportAttributeAccessIssue]
-            w.model_id: w
-            for w in self.get_widgets(
+        self._widget_watcher.widgets = set(
+            self.get_widgets(
                 self.center,
                 self.header_children,
                 self.header_left_children,
@@ -506,7 +505,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 skip_hidden=False,
                 show=False,
             )
-        }
+        )
         if self._simple_outputs:
             self.mb_refresh()
         else:
