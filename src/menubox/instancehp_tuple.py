@@ -21,7 +21,7 @@ from traitlets import TraitType
 import menubox as mb
 from menubox import defaults, utils
 from menubox.hasparent import HasParent
-from menubox.instance import IHPChange, IHPCreate, IHPSet, InstanceHP
+from menubox.instance import IHPChange, IHPCreate, InstanceHP
 from menubox.trait_types import T, V
 from menubox.valuetraits import ValueTraits
 
@@ -37,8 +37,8 @@ class InstanceHPTupleHookMappings(TypedDict, Generic[V, T]):
     update_item_names: NotRequired[tuple[str, ...]]
     set_parent: NotRequired[bool]
     close_on_remove: NotRequired[bool]
-    on_add: NotRequired[Callable[[IHPSet[V, T]], Any]]
-    on_remove: NotRequired[Callable[[IHPSet[V, T]], Any]]
+    on_add: NotRequired[Callable[[V, T], Any]]
+    on_remove: NotRequired[Callable[[V, T], Any]]
     value_changed: NotRequired[Callable[[IHPChange[V, T]], None]]
 
 
@@ -263,9 +263,9 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
                 set_parent: An optional boolean indicating whether to set the parent of added items.
                 - close_on_remove: An optional boolean indicating whether to close items when they are removed.
                 - on_add: An optional callable that is executed when an item is added to the tuple.
-                    It takes the IHPSet as an argument.
+                    It takes two positional arguments: `(owner,  obj)`
                 - on_remove: An optional callable that is executed when an item is removed from the tuple.
-                        It takes the IHPSet as an argument.
+                        It takes two positional arguments: `(owner,  obj)`
                 - value_changed: An optional callable that is executed when the value of an tuple changes.
                             It takes an IHPChange object as an argument.
 
@@ -286,7 +286,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             self._close_observers[value] = handle, names
         if on_add := self._hookmappings.get("on_add"):
             try:
-                on_add(IHPSet(name=self.name, owner=obj, obj=value))
+                on_add(obj, value)
             except Exception as e:
                 obj.on_error(e, f"on_add callback for {self!r}")
 
@@ -297,7 +297,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]
             value.close()  # pyright: ignore[reportAttributeAccessIssue]
         if on_remove := self._hookmappings.get("on_remove"):
             try:
-                on_remove(IHPSet(name=self.name, owner=obj, obj=value))
+                on_remove(obj, value)
             except Exception as e:
                 obj.on_error(e, msg=f"on_remove callback for {self!r}")
 

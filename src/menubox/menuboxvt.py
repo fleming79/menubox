@@ -97,12 +97,12 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         ),
         co_=cast("Self", 0),
     ).hooks(
-        on_set=lambda c: (
-            c["owner"].link(source=lambda p: p.name, target=lambda p: p.text_name.value),
-            c["owner"].dlink(
+        on_set=lambda p, _: (
+            p.link(source=lambda p: p.name, target=lambda p: p.text_name.value),
+            p.dlink(
                 source=lambda p: p.name,
                 target=lambda p: p.text_name.disabled,
-                transform=lambda name: bool(not c["owner"].RENAMEABLE if name else False),
+                transform=lambda name: bool(not p.RENAMEABLE if name else False),
             ),
         ),
     )
@@ -116,7 +116,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         ).add_class(CSScls.resize_vertical),
         co_=cast("Self", 0),
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
+        on_set=lambda p, _: p.dlink(
             source=lambda p: p.description.value,
             target=lambda p: p.description_viewer.value,
         )
@@ -124,7 +124,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
     button_configure = (
         TF.Button(cast("Self", 0), TF.CSScls.button_open, tooltip="Configure", icon="wrench")
         .hooks(
-            on_set=lambda c: c["owner"].dlink(
+            on_set=lambda p, _: p.dlink(
                 source=lambda p: p.view,
                 target=lambda p: p.button_configure.description,  # pyright: ignore[reportOptionalMemberAccess]
                 transform=lambda view: "End configure" if view == MenuboxVT.CONFIGURE_VIEW else "",

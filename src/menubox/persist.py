@@ -158,9 +158,9 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
         index=None,
         layout={"width": "max-content"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
+        on_set=lambda p, obj: p.dlink(
             source=lambda p: p.versions,
-            target=lambda p: p.sw_version_load.options,
+            target=(obj, "options"),
         ),
     )
     button_save_persistence_data = TF.AsyncRunButton(
@@ -186,13 +186,13 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
             co_=cast("Self", 0),
         )
         .hooks(
-            on_set=lambda c: (
-                c["owner"].dlink(
+            on_set=lambda p, _: (
+                p.dlink(
                     source=lambda p: p.versions,
                     target=lambda p: p.version_widget.max,  # pyright: ignore[reportOptionalMemberAccess]
                     transform=lambda versions: (
                         1
-                        if c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
+                        if p.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
                         else max(versions or (0,)) + 1
                     ),
                 ),
@@ -596,10 +596,13 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
         placeholder="Enter name or select existing",
         continuous_update=True,
     ).hooks(
-        on_set=lambda c: (
-            c["owner"].update_names(),
-            c["owner"].dlink(source=(c["owner"], "names"), target=(c["obj"], "options")),
-        )
+        on_set=lambda p, _: [
+            p.update_names(),
+            p.dlink(
+                source=lambda p: p.names,
+                target=lambda p: p.obj_name.options,
+            ),
+        ]
     )
     names = StrTuple()
     title_description = TF.Str("<b>{self.name} pool</b>")
@@ -607,7 +610,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
     info_html_title = TF.HTML(cast("Self", 0), layout={"margin": "0px 20px 0px 40px"})
     button_update_names = TF.Button(description="↻", tooltip="Update options")
     button_activate = TF.Button(cast("Self", 0)).hooks(
-        on_set=lambda c: c["obj"].set_trait("description", c["owner"].name)
+        on_set=lambda p, _: p.button_activate.set_trait("description", p.name)
     )
     box_main = TF.HBox(cast("Self", 0)).hooks(set_children=lambda p: (p.obj_name, p.button_update_names))
     box_center = None

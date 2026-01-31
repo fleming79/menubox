@@ -60,7 +60,7 @@ class Filesystem(MenuboxVT):
         layout={"width": "200px"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
+        on_set=lambda p, _: p.dlink(
             source=lambda p: p.read_only,
             target=lambda p: p.protocol.disabled,
         )
@@ -72,7 +72,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 0 auto", "width": "auto"},
         style={"description_width": "25px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
+        on_set=lambda p, _: p.dlink(
             source=lambda p: p.read_only,
             target=lambda p: p.url.disabled,
         ),
@@ -86,13 +86,13 @@ class Filesystem(MenuboxVT):
             options=list_drives(),
         )
         .hooks(
-            on_set=lambda c: (
-                c["owner"].dlink(
+            on_set=lambda p, _: (
+                p.dlink(
                     source=lambda p: p.protocol.value,
                     target=lambda p: p.drive.layout.visibility,  # pyright: ignore[reportOptionalMemberAccess]
                     transform=lambda protocol: utils.to_visibility(protocol == "file"),
                 ),
-                c["owner"].dlink(
+                p.dlink(
                     source=lambda p: p.read_only,
                     target=lambda p: p.drive.disabled,  # pyright: ignore[reportOptionalMemberAccess]
                 ),
@@ -109,7 +109,7 @@ class Filesystem(MenuboxVT):
         layout={"flex": "1 1 0%", "width": "inherit", "height": "inherit"},
         style={"description_width": "60px"},
     ).hooks(
-        on_set=lambda c: c["owner"].dlink(
+        on_set=lambda p, _: p.dlink(
             source=lambda p: p.read_only,
             target=lambda p: p.kw.disabled,
         ),

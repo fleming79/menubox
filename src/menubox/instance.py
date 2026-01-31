@@ -81,12 +81,6 @@ class IHPCreate(TypedDict, Generic[S, T]):
     kwgs: dict
 
 
-class IHPSet(TypedDict, Generic[S, T]):
-    name: str
-    owner: S
-    obj: T
-
-
 class IHPChange(TypedDict, Generic[S, T]):
     name: str
     owner: S
@@ -97,6 +91,7 @@ class IHPChange(TypedDict, Generic[S, T]):
 
 class ChildrenSetterOptions(TypedDict):
     "Options to use with the hook 'set_children'."
+
     autohide: bool
     "Hide the box when there are no children (default=True)."
 
@@ -104,8 +99,8 @@ class ChildrenSetterOptions(TypedDict):
 class IHPHookMappings(TypedDict, Generic[S, T]):
     set_parent: NotRequired[bool]
     add_css_class: NotRequired[str | tuple[str | CSScls, ...]]
-    on_set: NotRequired[Callable[[IHPSet[S, T]], Any]]
-    on_unset: NotRequired[Callable[[IHPSet[S, T]], Any]]
+    on_set: NotRequired[Callable[[S, T], Any]]
+    on_unset: NotRequired[Callable[[S, T], Any]]
     on_replace_close: NotRequired[bool]
     remove_on_close: NotRequired[bool]
     set_children: NotRequired[
@@ -525,8 +520,13 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             add_css_class: <DOMWidget **ONLY**>
                 Class names to add to the instance. Useful for selectors such as context menus.
             remove_on_close: If True, the instance will be removed from the parent when the instance is closed.
-            on_set: A new value when it isn't None.
-            on_unset: An old value when it isn't None.
+            on_set: Called when the value changes and the new value is not None.
+            on_unset: Called when the value changes and the old value is not None.
+
+        Tips:
+            - Methods `link` and `dlink` accept a lambda function based on `self` it is not possible to use the
+                lambda method relative to object. Instead, use the object name `p.object_name.sub_object.trait_name`
+                or if the path isn't available specify as a `(obj, trait_name)` tuple `(obj.sub_object, "trait_name")`.
         """
         if kwgs:
             merge(self._hookmappings, kwgs, strategy=Strategy.REPLACE)  # pyright: ignore[reportArgumentType]
@@ -603,14 +603,14 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         if c["owner"].closed:
             return
         if c["new"] is not None and (on_set := c["ihp"]._hookmappings.get("on_set")):
-            on_set(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["new"]))
+            on_set(c["owner"], c["new"])
 
     @staticmethod
     def _on_unset_hook(c: IHPChange[S, T]) -> None:
         if c["owner"].closed:
             return
         if c["old"] is not None and (on_unset := c["ihp"]._hookmappings.get("on_unset")):
-            on_unset(IHPSet(name=c["ihp"].name, owner=c["owner"], obj=c["old"]))
+            on_unset(c["owner"], c["old"])
 
     @staticmethod
     def _add_css_class_hook(c: IHPChange[S, T]) -> None:

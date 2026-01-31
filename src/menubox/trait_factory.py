@@ -282,9 +282,9 @@ class TF:
     MenuboxHeader = staticmethod(
         ihpwrap(
             ipw.HBox,
-            on_set=lambda c: c["owner"].dlink(
-                source=(c["owner"], "border"),
-                target=(c["obj"].layout, "border_bottom"),
+            on_set=lambda p, obj: p.dlink(
+                source=lambda p: p.border,  # pyright: ignore[reportAttributeAccessIssue]
+                target=(obj.layout, "border_bottom"),
             ),
             add_css_class=(CSScls.Menubox_item, CSScls.box_header),
         )

@@ -182,7 +182,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             icon="window-maximize",
             tooltip="Add to shell",
         )
-        .hooks(on_set=lambda c: c["obj"].set_trait("tooltip", f"Add to shell ({utils.fullname(c['owner'])})"))
+        .hooks(on_set=lambda p, obj: obj.set_trait("tooltip", f"Add to shell ({utils.fullname(p)})"))
         .configure(TF.IHPMode.X__N)
     )
 

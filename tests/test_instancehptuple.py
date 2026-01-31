@@ -6,9 +6,7 @@ import traitlets
 from traitlets import Instance
 
 import menubox as mb
-import menubox.instancehp_tuple
 import menubox.trait_types as tt
-from menubox.instance import IHPSet
 from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.trait_factory import TF
 
@@ -27,8 +25,8 @@ class VTT(mb.ValueTraits):
         update_by="description",
         update_item_names=("value",),
         set_parent=False,
-        on_add=lambda c: c["owner"].on_add(c),
-        on_remove=lambda c: c["owner"].on_remove(c),
+        on_add=lambda c, t: c.on_add(t),
+        on_remove=lambda c, t: c.on_remove(t),
     )
     menuboxvts = InstanceHPTuple(
         mb.MenuboxVT | MenuboxSingleton,
@@ -38,8 +36,8 @@ class VTT(mb.ValueTraits):
         update_by="name",
         update_item_names=("value",),
         set_parent=False,
-        on_add=lambda c: c["owner"].on_add(c),
-        on_remove=lambda c: c["owner"].on_remove(c),
+        on_add=lambda c, t: c.on_add(t),
+        on_remove=lambda c, t: c.on_remove(t),
     )
 
     @override
@@ -52,10 +50,10 @@ class VTT(mb.ValueTraits):
         assert isinstance(self, VTT)
         self.somelist_count += 1
 
-    def on_add(self, c: IHPSet):
+    def on_add(self, t):
         self.added_count += 1
 
-    def on_remove(self, c: IHPSet):
+    def on_remove(self, t):
         self.removed_count += 1
 
     def _new_menubox(self, **kwargs):
@@ -67,7 +65,7 @@ class VT(VTT):
 
     number = Instance(ipw.FloatText, ())
 
-    def on_remove(self, c: IHPSet):
+    def on_remove(self, t: ipw.FloatText):
         self.removed_count -= 10
 
 
