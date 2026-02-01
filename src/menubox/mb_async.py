@@ -10,6 +10,7 @@ import anyio
 import wrapt
 from async_kernel import Caller
 from async_kernel.pending import Pending, PendingCancelled
+from async_kernel.typing import PendingCreateOptions
 from ipylab import JupyterFrontEnd
 
 import menubox as mb
@@ -127,7 +128,10 @@ def run_async(
         else:
             singular_tasks[key] = current
             return current
-    pen = Caller("MainThread").call_later(opts.get("delay", 0), func, *args, **kwargs)
+    pending_create_options = (
+        PendingCreateOptions(allow_tracking=False) if opts.get("tasktype") is TaskType.continuous else None
+    )
+    pen = Caller("MainThread").schedule_call(func, args, kwargs, pending_create_options, delay=opts.get("delay", 0))
     pen.add_done_callback(_on_done_callback)
     pen.metadata.update(opts)
     if key:
