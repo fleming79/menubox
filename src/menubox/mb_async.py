@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import functools
 import inspect
+import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 
@@ -128,10 +129,15 @@ def run_async(
         else:
             singular_tasks[key] = current
             return current
-    pending_create_options = (
-        PendingCreateOptions(allow_tracking=False) if opts.get("tasktype") is TaskType.continuous else None
+
+    pen = Caller("MainThread").schedule_call(
+        func,
+        args,
+        kwargs,
+        PendingCreateOptions(allow_tracking=False) if opts.get("tasktype") is TaskType.continuous else None,
+        delay=opts.get("delay", 0),
+        start_time=time.monotonic(),
     )
-    pen = Caller("MainThread").schedule_call(func, args, kwargs, pending_create_options, delay=opts.get("delay", 0))
     pen.add_done_callback(_on_done_callback)
     pen.metadata.update(opts)
     if key:
