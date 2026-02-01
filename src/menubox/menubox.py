@@ -254,9 +254,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """Indicate the view is not None."""
         return self.view is not None
 
-    def __await__(self) -> Generator[Any, None, Self]:
-        return self.wait_tasks(mb_async.TaskType.update_children, timeout=10).__await__()
-
     def __init__(
         self,
         *,

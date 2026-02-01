@@ -18,6 +18,7 @@ import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
+from menubox.mb_async import TaskType
 from menubox.trait_factory import TF
 from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S
 
@@ -97,6 +98,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
         cs = "closed: " if self.closed else ""
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
+    def __await__(self) -> Generator[Any, None, Self]:
+        return self.wait_tasks(TaskType.update_children, TaskType.init, timeout=10).__await__()
+
     def __init__(self, *, parent: RP | None = None, **kwargs):
         """
         Initialize the HasParent class.
@@ -114,7 +118,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
             if name in self._InstanceHP:
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
-        mb_async.run_async({"tasktype": mb_async.TaskType.init}, self.init_async)
+        mb_async.run_async({"tasktype": TaskType.init}, self.init_async)
         super().__init__(**kwargs)
         if parent:
             self.parent = parent
@@ -500,7 +504,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
             if mode is TF.ButtonMode.cancel and (pen := mb_async.singular_tasks.get(key)):
                 pen.cancel()
                 return
-            mb.mb_async.run_async({"obj": self_, "key": key}, self_._button_clicked, b, mode)
+            mb_async.run_async({"obj": self_, "key": key}, self_._button_clicked, b, mode)
 
     async def _button_clicked(self, b: ipw.Button, mode: TF.ButtonMode):
         description = b.description
@@ -536,15 +540,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
             await button_clicked(b)
 
     async def wait_update_tasks(self, timeout=None) -> Self:
-        await self.wait_tasks(
-            mb_async.TaskType.update,
-            mb_async.TaskType.init,
-            mb_async.TaskType.click,
-            timeout=timeout,
-        )
+        await self.wait_tasks(TaskType.update, TaskType.init, TaskType.click, timeout=timeout)
         return self
 
-    async def wait_tasks(self, *tasktypes: mb_async.TaskType, timeout=None) -> Self:
+    async def wait_tasks(self, *tasktypes: TaskType, timeout=None) -> Self:
         """
         Waits for tasks to complete belonging to this object, with an optional timeout.
 
@@ -563,16 +562,16 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
         if self.tasks:
             tasktypes_ = []
-            for tt in tasktypes or mb_async.TaskType:
-                if not isinstance(tt, mb_async.TaskType):
+            for tt in tasktypes or TaskType:
+                if not isinstance(tt, TaskType):
                     raise TypeError(str(tt))
-                if tt is not mb_async.TaskType.continuous:
+                if tt is not TaskType.continuous:
                     tasktypes_.append(tt)
             current = Caller.current_pending()
             if tasks := [
                 pen
                 for pen in self.tasks
-                if pen is not current and pen.metadata.get("tasktype", mb_async.TaskType.general) in tasktypes_
+                if pen is not current and pen.metadata.get("tasktype", TaskType.general) in tasktypes_
             ]:
                 await Caller().wait(tasks, timeout=timeout)
         return self
