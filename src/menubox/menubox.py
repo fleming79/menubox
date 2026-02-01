@@ -480,8 +480,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if self.view is None:
             children = ()
         if self.view == self.MINIMIZED:
-            for n in ("button_maximize", "button_minimize", "_box_minimized"):
-                self.enable_ihp(n)
+            self.enable_ihp(lambda p: (p.button_maximize, p.button_minimize, p._box_minimized))
             self.update_title()
             box = self._box_minimized
             assert box
@@ -520,7 +519,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self.update_title()
         widgets = tuple(self.get_widgets(*self.header_children))
         if return_header := bool(set(widgets).difference((H_FILL, V_FILL))):
-            self.enable_ihp("header")
+            self.enable_ihp(lambda p: p.header)
         if header := self.header:
             header.children = widgets
         return header if return_header else None
@@ -541,7 +540,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         return buttons
 
     def menu_open(self) -> None:
-        self.enable_ihp("button_menu_minimize")
+        self.enable_ihp(lambda p: p.button_menu_minimize)
         if box := self.box_menu:
             box.children = tuple(self.get_widgets(*self.box_menu_open_children))
             box.layout.border = f"var({TF.CSSvar.menubox_border})"
@@ -563,9 +562,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
             - Calling the super class's mb_configure method if it exists.
         """
         if self.menuviews:
-            self.enable_ihp("button_menu")
+            self.enable_ihp(lambda p: p.button_menu)
         if len(self.toggleviews) > 1:
-            self.enable_ihp("button_toggleview")
+            self.enable_ihp(lambda p: p.button_toggleview)
         self._update_tab_buttons()
         self._update_shuffle_buttons()
         self._update_activate_buttons()
@@ -596,11 +595,11 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 self._update_tab_buttons()
                 return
             case "menuviews":
-                (self.enable_ihp if self.menuviews else self.disable_ihp)("button_menu")
+                (self.enable_ihp if self.menuviews else self.disable_ihp)(lambda p: p.button_menu)
             case "button_menu":
-                (self.enable_ihp if self.button_menu else self.disable_ihp)("box_menu")
+                (self.enable_ihp if self.button_menu else self.disable_ihp)(lambda p: p.box_menu)
             case "toggleviews":
-                (self.enable_ihp if len(self.toggleviews) > 1 else self.disable_ihp)("button_toggleview")
+                (self.enable_ihp if len(self.toggleviews) > 1 else self.disable_ihp)(lambda p: p.button_toggleview)
             case "button_close" if b := self.button_close:
                 b.tooltip = f"Close {self}"
             case "button_help" if b := self.button_help:
@@ -644,9 +643,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         Finally, it updates the label and caption of the title with the cleaned description and tooltip.
         """
         if not self.title_description:
-            self.disable_ihp("html_title")
+            self.disable_ihp(lambda p: p.html_title)
             return
-        self.enable_ihp("html_title")
+        self.enable_ihp(lambda p: p.html_title)
         if self.html_title:
             self.html_title.description_allow_html = True
             self.html_title.description = self.get_html_title_description()
@@ -749,8 +748,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         if isinstance(change["old"], ipw.Box):
             change["old"].children = (c for c in change["old"].children if c is not self)
         if self.showbox:
-            for name in ("button_exit", "button_promote", "button_demote"):
-                self.enable_ihp(name)
+            self.enable_ihp(lambda p: (p.button_promote, p.button_demote))
             if isinstance(self.showbox, ipw.Box) and self not in self.showbox.children:
                 self.showbox.children = (*self.showbox.children, self)
             self.show()
@@ -905,18 +903,19 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 msg = f"Adding a menubox to its own shuffle_box is prohibited! {self=}"
                 raise RuntimeError(msg)
         obj_ = obj
+        self.enable_ihp(lambda p: p.box_shuffle)
         box = self.box_shuffle
         if found := self.obj_in_box_shuffle(obj):
             if ensure_wrapped and obj is found and isinstance(obj, Menubox) and obj.showbox is box:
                 obj.set_trait("showbox", None)
             obj_ = found
-        self.enable_ihp("box_shuffle")
         if not isinstance(obj_, mb.Menubox) or (ensure_wrapped and not isinstance(obj_, MenuboxWrapper)):
             obj_ = MenuboxWrapper(obj_)
             obj_.title_description = f"<b>{alt_name}<b>" if alt_name else ""
         children = (c for c in box.children if c not in [obj, obj_])
         box.children = (*children, obj_) if position == "end" else (obj_, *children)
         obj_.set_trait("showbox", box)
+        obj_.enable_ihp(lambda p: p.button_exit)
         if obj_.button_exit:
             mb.mb_async.run_async({"obj": obj_, "delay": 0.1}, obj_.button_exit.focus)
         return obj_
