@@ -92,8 +92,15 @@ class IHPChange(TypedDict, Generic[S, T]):
 class ChildrenSetterOptions(TypedDict):
     "Options to use with the hook 'set_children'."
 
-    autohide: bool
+    autohide: NotRequired[bool]
     "Hide the box when there are no children (default=True)."
+    set_showbox: NotRequired[bool]
+    """
+    Treat the container as a 'showbox'. This enables additional widgets on Menubox instances for navigation.
+
+    The `set_children` hook should point to a single tuple, preferably an InstanceHPTuple. Only the first
+    path is considered.
+    """
 
 
 class IHPHookMappings(TypedDict, Generic[S, T]):

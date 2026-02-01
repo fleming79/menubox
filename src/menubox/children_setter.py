@@ -30,6 +30,8 @@ class ChildrenSetter(ValueTraits):
     _dottednames = NameTuple()
     autohide = TF.Bool(True)
     "Hides the box when there are not children and vice versa."
+    set_showbox = TF.Bool(False)
+    "Enable 'showbox' functionality on widgets. 'children' must point to a tuple on the parent to synchronise."
 
     children = traitlets.Any()
     "The function that points to widgets relative to the parent to monitor such as `lambda p: p.box`."
@@ -42,6 +44,8 @@ class ChildrenSetter(ValueTraits):
 
     def _make_traitnames(self) -> Generator[str, Any, None]:
         yield from (f"parent.{self.name}", "children")
+        if self.set_showbox:
+            yield f"parent.{self.name}.children"
         for k in self._dottednames:
             yield from (f"parent.{k}.layout.visibility", f"parent.{k}.comm")
 
@@ -49,12 +53,20 @@ class ChildrenSetter(ValueTraits):
     def on_change(self, change: ChangeType) -> None:
         if (parent := self.parent) and not self.parent.closed:
             if change["name"] == "children":
-                if callable(c := change["new"]):
-                    try:
-                        self._dottednames = tuple(utils.dottedpath(c) if callable(c) else utils.iterflatten(c))
-                    except Exception as e:
-                        self.on_error(e, f"Failed to extract keys from {c!r}")
-                    self._update()
+                if change["owner"] is self:
+                    if callable(c := change["new"]):
+                        try:
+                            self._dottednames = tuple(utils.dottedpath(c) if callable(c) else utils.iterflatten(c))
+                        except Exception as e:
+                            self.on_error(e, f"Failed to extract keys from {c!r}")
+                        if self.set_showbox:
+                            assert len(self._dottednames) == 1
+                        self._update()
+                elif self.set_showbox and change["owner"] is getattr(parent, self.name):
+                    utils.setattr_nested(parent, self._dottednames[0], change["new"])
+                    for c in set(change["old"]).difference(change["new"]):
+                        if isinstance(c, Menubox):
+                            c.showbox = None
             elif self.trait_has_value("children") and (pen := self.update()) and pen not in parent.tasks:
                 parent.tasks.add(pen)
                 pen.add_done_callback(parent.tasks.discard)
@@ -67,6 +79,10 @@ class ChildrenSetter(ValueTraits):
                     box.set_trait("children", children)
                 if self.autohide:
                     utils.set_visibility(box, bool(children))  # Hide/show the box based on if it has children
+                if self.set_showbox:
+                    for c in children:
+                        if isinstance(c, Menubox):
+                            c.showbox = box
             self.set_trait("value_traits", self._make_traitnames())
 
     @debounce(0.01, tasktype=TaskType.update_children)

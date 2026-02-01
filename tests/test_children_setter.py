@@ -121,3 +121,35 @@ async def test_children_setter_hide():
     mb.utils.unhide(cto.dropdown)
     await cs.wait_tasks()
     assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
+
+
+async def test_children_setter_showbox_link():
+    class ChildrenSetterTesterShowboxLink(mb.MenuboxVT):
+        my_tuple = mb.InstanceHPTuple(mb.Menubox)
+        box = TF.VBox(cast("Self", 0)).hooks(set_children=(lambda p: p.my_tuple, {"set_showbox": True}))
+
+    cb = ChildrenSetterTesterShowboxLink()
+    b1 = cb.get_tuple_obj("my_tuple", name="b1")
+    assert cb.box
+    assert b1.showbox
+    assert b1 in cb.my_tuple
+    b2 = cb.get_tuple_obj("my_tuple", name="b2")
+    b3 = cb.get_tuple_obj("my_tuple", name="b3")
+    assert cb.my_tuple == (b1, b2, b3)
+    await cb
+
+    # promote
+    assert b3.button_promote
+    await b3.button_clicked(b3.button_promote)
+    assert cb.my_tuple == (b1, b3, b2)
+
+    # demote
+    assert b3.button_demote
+    await b3.button_clicked(b3.button_demote)
+    await b3
+    assert cb.my_tuple == (b1, b2, b3)
+
+    # exit
+    assert b2.button_exit
+    await b2.button_clicked(b2.button_exit)
+    assert cb.my_tuple == (b1, b3)
