@@ -143,9 +143,6 @@ class HasParent(Singular, HasApp, Generic[RP]):
         cls._cls_update_InstanceHP_register()
         super().__init_subclass__(**kwargs)
 
-    def __await__(self) -> Generator[Any, None, Self]:
-        return self.wait_update_tasks(timeout=10).__await__()
-
     @classmethod
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
         if not cls.SINGLE_BY:
@@ -330,31 +327,45 @@ class HasParent(Singular, HasApp, Generic[RP]):
         if not isinstance(error, mb_async.PendingCancelled):
             self.log.exception(msg, obj=obj, exc_info=error)
 
-    def enable_ihp(self, name: str, *, override: dict | None = None) -> Self:
+    def enable_ihp(self, name: str | Callable[[Self], Any], *, override: dict | None = None) -> Self:
         """
         Enable a InstanceHP trait.
 
         Passing an override will ensure the 'default' is always called.
 
         Args:
-            name: The name of the instance HP to enable or disable.
-            enable:
-            If True or a dict, the instance HP is enabled. If a dict, it
-            becomes the value of the instance HP. If False or None, the
-            instance HP is disabled (set to None).
-        Raises:
-            KeyError: If the given name is not a valid instance HP.
-        """
+            name: The name of the InstanceHP trait to enable or disable.
 
-        ihp = self._InstanceHP[name]
-        if override is not None or getattr(self, name, None) is None:
-            self.set_trait(name, ihp.default(self, override=override or {}))
+                If a callable is passed, it should be a lambda function pointing
+                to one or more traits to enable.
+        Raises:
+            KeyError: If the given name is not a valid InstanceHP trait.
+        """
+        if callable(name):
+            for n in utils.dottedpath(name):
+                self.enable_ihp(n, override=override)
+        else:
+            ihp = self._InstanceHP[name]
+            if override is not None or getattr(self, name, None) is None:
+                self.set_trait(name, ihp.default(self, override=override or {}))
         return self
 
-    def disable_ihp(self, name: str) -> Self:
-        """Disables an InstanceHP trait."""
-        ihp = self._InstanceHP[name]
-        self.set_trait(name, ihp.default_value)
+    def disable_ihp(self, name: str | Callable[[Self], Any]) -> Self:
+        """
+        Disables an InstanceHP trait.
+
+        Args:
+            name: The name of the InstanceHP trait to disable.
+
+                If a callable is passed, it should be a lambda function pointing
+                to one or more traits to enable.
+        """
+        if callable(name):
+            for n in utils.dottedpath(name):
+                self.disable_ihp(n)
+        else:
+            ihp = self._InstanceHP[name]
+            self.set_trait(name, ihp.default_value)
         return self
 
     def _reset_trait(self, name: str):

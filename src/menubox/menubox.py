@@ -254,6 +254,9 @@ class Menubox(HasParent, Panel, Generic[RP]):
         """Indicate the view is not None."""
         return self.view is not None
 
+    def __await__(self) -> Generator[Any, None, Self]:
+        return self.wait_tasks(mb_async.TaskType.update_children, timeout=10).__await__()
+
     def __init__(
         self,
         *,
@@ -393,7 +396,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         self._load_view(view)
         return self
 
-    @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update)
+    @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update_children)
     async def _load_view(self, view: str | None):
         self.mb_refresh()
         if view and not self._mb_configured:
@@ -442,7 +445,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
         # If you encounter a recursion error, add an await call in a subclss override.
         return view, self.views.get(view, None)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
-    @mb_async.debounce(0.05, tasktype=mb_async.TaskType.update)
+    @mb_async.debounce(0.05, tasktype=mb_async.TaskType.update_children)
     async def mb_refresh(self) -> None:
         """
         Refreshes the menubox content based on its current state.
@@ -470,7 +473,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
                 button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
                 out.push(TF.ipd.HTML(f"<b>Loading view {self.view}</b>"), button_cancel)
                 await task.wait(result=False)
-                await self.wait_tasks(mb_async.TaskType.update_children)
+                await self
                 button_cancel.close()
                 self.mb_refresh()
                 return
@@ -486,7 +489,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             children = (box,)
         else:
             if mb.DEBUG_ENABLED:
-                self.enable_ihp("button_activate")
+                self.enable_ihp(lambda p: p.button_activate)
             center = self.get_widgets(self.center)
             children = (header,) if (header := self.get_header()) else ()
             if self.show_help and (help_widget := self._get_help_widget()):

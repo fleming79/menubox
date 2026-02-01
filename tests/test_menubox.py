@@ -73,7 +73,7 @@ class TestMenubox:
         wa, wb = ipw.HTML("A"), ipw.HTML("B")
         m = mb.Menubox(views={"a": wa, "b": wb})
         m.title_description = "M"
-        m.enable_ihp("button_help")
+        m.enable_ihp(lambda p: p.button_help)
         assert m.button_help
         await m
         m.refresh_view()
@@ -228,7 +228,7 @@ class TestMenubox:
         m.enable_ihp("button_promote", override={"description": "test"})
         assert m.button_promote
         assert m.button_promote.description == "test"
-        m.disable_ihp("button_promote")
+        m.disable_ihp(lambda p: p.button_promote)
         assert m.button_promote is None
 
     async def test_menubox_get_center(self):

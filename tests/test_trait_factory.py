@@ -5,7 +5,7 @@ import pytest
 from async_kernel import Caller, Pending
 from traitlets import TraitError
 
-from menubox import HasParent
+from menubox import HasParent, Menubox
 from menubox.trait_factory import TF
 
 
@@ -36,7 +36,7 @@ class TestTraitFactory:
             p.parent = obj
 
     async def test_button_restart_mode(self):
-        class BaseTestButton(HasParent):
+        class BaseTestButton(Menubox):
             button = TF.Button(cast("Self", 0), mode=TF.ButtonMode.restart)
             clicked = TF.Dict()
 
@@ -61,7 +61,7 @@ class TestTraitFactory:
         await t2.wait(protect=True, result=False)
 
     async def test_button_cancel_mode(self):
-        class BaseTestButton(HasParent):
+        class BaseTestButton(Menubox):
             button = TF.Button(
                 cast(
                     "Self",
@@ -93,7 +93,7 @@ class TestTraitFactory:
 
     async def test_button_disable_mode(self):
         # TODO: merge this with above two tests using pytest.mark.parametrize
-        class BaseTestButton(HasParent):
+        class BaseTestButton(Menubox):
             button = TF.Button(cast("Self", 0), mode=TF.ButtonMode.disable)
             clicked = TF.Dict()
 
