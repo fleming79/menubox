@@ -21,6 +21,7 @@ from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, ReadOnly
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator
 
+    from async_kernel.typing import T
     from fsspec import AbstractFileSystem
 
     from menubox.instancehp_tuple import InstanceHPTuple
@@ -373,28 +374,6 @@ class ValueTraits(HasParent):
                     msg = f"'{n}' is not a trait or attribute of {obj!r}"
                     raise TypeError(msg)
 
-    @classmethod
-    def _get_new_update_inst(cls, tuplename: str) -> Callable[[ValueTraits, dict, int | None], Any]:
-        """
-        Return the constructor to create a new item that belongs to a typed instance tuple.
-
-        Args:
-            tuplename: Name of the typed instance tuple.
-
-        Raises:
-            KeyError: If the tuple name is not registered.
-
-        Returns:
-            Constructor for the typed instance tuple.
-        """
-        if tuplename not in cls._InstanceHPTuple:
-            msg = (
-                f"{tuplename=} is not a registered typed_instance_tuple "
-                f"Register tuple names ={list(cls._InstanceHPTuple)}!"
-            )
-            raise KeyError(msg)
-        return cls._InstanceHPTuple[tuplename].update_or_create_inst
-
     def _vt_update_reg_value_traits(self):
         pairs = set()
         if not self.closed:
@@ -684,7 +663,7 @@ class ValueTraits(HasParent):
         if callable(on_change):
             on_change(change)
 
-    def get_tuple_obj(self, tuplename: str, add=True, **kwds):
+    def get_tuple_obj(self, tuplename: str | Callable[[Self], tuple[T, ...]], /, add=True, **kwds) -> T:
         """
         Retrieves or creates an object associated with a `TypedInstaneTuple` tuple trait.
 
@@ -702,11 +681,18 @@ class ValueTraits(HasParent):
         Returns:
             The object associated with the `TypedInstaneTuple` tuple trait.
         """
-        new_update_inst = self._get_new_update_inst(tuplename)
+        if callable(tuplename):
+            tuplename = next(iter(utils.dottedpath(tuplename)))
+        if not (ihp_tuple := self._InstanceHPTuple.get(tuplename)):
+            msg = (
+                f"{tuplename=} is not a registered typed_instance_tuple "
+                f"Register tuple names ={list(self._InstanceHPTuple)}!"
+            )
+            raise KeyError(msg)
         index = kwds.pop("index", None)
-        obj = new_update_inst(self, kwds, index)
+        obj = ihp_tuple.update_or_create_inst(self, kwds, index)
         if add:
-            t = getattr(self, tuplename)  # type:tuple
+            t = getattr(self, tuplename)
             if obj not in t:
                 self.set_trait(tuplename, (*t, obj))
-        return obj
+        return cast("T", obj)
