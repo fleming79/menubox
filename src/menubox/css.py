@@ -187,7 +187,6 @@ STYLESHEET = f"""
 .{CSScls.Menubox_item}.{CSScls.box_shuffle} {{
     flex-flow: row wrap;
     border: {CSSvar.menubox_border};
-    align-self: flex-start;
     max-width:100%;
     height: auto;}}
 
@@ -204,7 +203,6 @@ STYLESHEET = f"""
     border-bottom: var({CSSvar.menubox_vt_border});}}
 .{CSScls.Modalbox}{{
     flex: 0 0 auto;
-    align-self: flex-start;
     overflow: hidden;
     border: var({CSSvar.menubox_border});}}
 .{CSScls.ModalboxHeader} {{
