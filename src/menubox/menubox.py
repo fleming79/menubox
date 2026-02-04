@@ -18,7 +18,7 @@ from ipywidgets import widgets as ipw
 import menubox as mb
 from menubox import defaults, mb_async, utils
 from menubox.css import CSScls
-from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL, _NoDefault
+from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL, NoCloseBox, _NoDefault
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF, ButtonMode
 from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, ProposalType, ReadOnly, StrTuple
@@ -253,6 +253,16 @@ class Menubox(HasParent, Panel, Generic[RP]):
     def view_active(self) -> bool:
         """Indicate the view is not None."""
         return self.view is not None
+
+    @property
+    def H_FILL(self) -> NoCloseBox:
+        "Horizontal spacer."
+        return H_FILL
+
+    @property
+    def V_FILL(self) -> NoCloseBox:
+        "Vertical spacer."
+        return V_FILL
 
     def __init__(
         self,
