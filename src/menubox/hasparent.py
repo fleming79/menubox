@@ -372,8 +372,10 @@ class HasParent(Singular, HasApp, Generic[RP]):
             self.set_trait(name, ihp.default_value)
         return self
 
-    def _reset_trait(self, name: str):
+    def reset_trait(self, name: str | Callable[[Self], Any]):
         """Reset the trait to an unloaded stated."""
+        if callable(name):
+            name = next(iter(utils.dottedpath(name)))
         if name in self._trait_values:
             self.log.debug("InstanceHP resetting trait %s", name)
             if self._InstanceHP[name].allow_none:

@@ -85,7 +85,7 @@ async def test_value_traits():
     vt1.disable_ihp("nested")
     assert vt1.on_change_counts == 1
     assert vt1.value_change_count == 2
-    vt1._reset_trait("nested")
+    vt1.reset_trait("nested")
     assert vt1.nested
     assert vt1.value_change_count == 3
     vt1.drop_value_traits("nested.number.value")
