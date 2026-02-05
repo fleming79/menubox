@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timestamps import Timestamp
 
     from menubox.instance import S
-    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, T
+    from menubox.trait_types import ChangeType, GetWidgetsInputType, P, R, T
 
 
 __all__ = [
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     def weak_observe(
         obj: traitlets.HasTraits,
         method: Callable[Concatenate[ChangeType, P], T],
-        names: str = ...,
+        names: str | Iterable[str] | Callable[[R], tuple | Any] = ...,
         pass_change: Literal[True] = True,
         *args: P.args,
         **kwgs: P.kwargs,
@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     def weak_observe(
         obj: traitlets.HasTraits,
         method: Callable[P, T],
-        names: str = ...,
+        names: str | Iterable[str] | Callable[[R], tuple | Any] = ...,
         pass_change: Literal[False] = ...,
         *args: P.args,
         **kwgs: P.kwargs,
@@ -83,7 +83,7 @@ if TYPE_CHECKING:
 def weak_observe(
     obj: traitlets.HasTraits,
     method: Callable[P, T] | Callable[Concatenate[ChangeType, P], T],
-    names="value",
+    names: str | Iterable[str] | Callable[[R], tuple | Any] = "value",
     pass_change=False,
     *args: P.args,
     **kwgs: P.kwargs,
@@ -103,6 +103,9 @@ def weak_observe(
     Returns:
         The handle function that was registered as an observer, which can be used to unobserve.
     """
+
+    if callable(names):
+        names = tuple(dottedpath(names))
 
     def handle(change: ChangeType) -> T:
         method_ = ref()
@@ -124,8 +127,10 @@ def weak_observe(
     return handle
 
 
-def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None], name: str):
+def observe_once(obj: R, callback: Callable[[ChangeType], None], name: str | Callable[[R], tuple | Any]):
     "Observe a trait once only"
+    if callable(name):
+        name = next(iter(dottedpath(name)))
 
     def _observe_once(change: ChangeType):
         change["owner"].unobserve(_observe_once, names=name)
@@ -138,8 +143,8 @@ def observe_once(obj: traitlets.HasTraits, callback: Callable[[ChangeType], None
 
 
 def observe_until(
-    obj: traitlets.HasTraits,
-    name: str,
+    obj: R,
+    name: str | Callable[[R], tuple | Any],
     predicate: Callable[[Any], bool],
     callback: Callable[[ChangeType], None],
 ):
@@ -148,6 +153,8 @@ def observe_until(
 
     Intermediate changes are not passed to the callback until the predicated returns true.
     """
+    if callable(name):
+        name = next(iter(dottedpath(name)))
 
     def _observe_until(change: ChangeType):
         if predicate(change["new"]):
@@ -160,12 +167,16 @@ def observe_until(
     obj.observe(_observe_until, name)
 
 
-async def wait_trait_value(obj: traitlets.HasTraits, name: str, predicate: Callable[[Any], bool]) -> None:
+async def wait_trait_value(
+    obj: R, name: str | Callable[[R], tuple | Any], predicate: Callable[[Any], bool] = bool
+) -> None:
     """
     Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
 
     The trait is then observed until the predicate returns `True`.
     """
+    if callable(name):
+        name = next(iter(dottedpath(name)))
     if not predicate(getattr(obj, name)):
         event = Event()
         mb.utils.observe_until(obj, name, predicate, lambda _: event.set())
