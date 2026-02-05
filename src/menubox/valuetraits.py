@@ -680,8 +680,7 @@ class ValueTraits(HasParent):
         Returns:
             The object associated with the `TypedInstaneTuple` tuple trait.
         """
-        if callable(tuplename):
-            tuplename = next(iter(utils.dottedpath(tuplename)))
+        tuplename = utils.parse_object_name(tuplename)
         if not (ihp_tuple := self._InstanceHPTuple.get(tuplename)):
             msg = (
                 f"{tuplename=} is not a registered typed_instance_tuple "

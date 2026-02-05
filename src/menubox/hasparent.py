@@ -11,7 +11,7 @@ import toolz
 import traitlets
 from async_kernel import Caller
 from ipylab.common import HasApp, Singular
-from traitlets import HasTraits
+from traitlets import HasTraits, TraitError
 
 import menubox
 import menubox as mb
@@ -20,7 +20,7 @@ from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.mb_async import TaskType
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S
+from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
@@ -45,7 +45,7 @@ def get_obj_value_tuple(obj: R, func: Callable[[R], Any], /) -> tuple[HasTraits,
             to_obj_value_tuple(lambda p: p.a.description, obj)
         ```
     """
-    paths = next(iter(utils.dottedpath(func))).split(".")
+    paths = utils.parse_object_name(func).split(".")
     for subpath in paths[0:-1]:
         obj = getattr(obj, subpath)
     return obj, paths[-1]
@@ -372,14 +372,23 @@ class HasParent(Singular, HasApp, Generic[RP]):
             self.set_trait(name, ihp.default_value)
         return self
 
+    def set_trait(self, name: str | Callable[[Self], T], value: T) -> None:
+        "Set the trait to the value even if it is read_only."
+        if callable(name):
+            name = utils.parse_object_name(name)
+        if name not in self._traits:
+            msg = f"{self} does not have a trait with {name=}"
+            raise TraitError(msg)
+        getattr(self.__class__, name).set(self, value)
+
     def reset_trait(self, name: str | Callable[[Self], Any]):
         """Reset the trait to an unloaded stated."""
         if callable(name):
-            name = next(iter(utils.dottedpath(name)))
+            name = utils.parse_object_name(name)
         if name in self._trait_values:
             self.log.debug("InstanceHP resetting trait %s", name)
             if self._InstanceHP[name].allow_none:
-                self.set_trait(name, None)
+                self.set_trait(name, value=None)
             self._trait_values.pop(name)
 
     def _notify_observers(self, event) -> None:

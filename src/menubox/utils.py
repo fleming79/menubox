@@ -13,7 +13,7 @@ import ipylab
 import ipywidgets as ipw
 import pandas as pd
 import traitlets
-from aiologic import Event
+from aiologic.lowlevel import create_async_event
 
 import menubox as mb
 from menubox.css import CSSvar
@@ -128,42 +128,38 @@ def weak_observe(
 
 def observe_until(
     obj: R,
-    name: str | Callable[[R], tuple | Any],
-    predicate: Callable[[Any], bool],
+    name: str | Callable[[T], R],
     callback: Callable[[ChangeType], None],
+    predicate: Callable[[R], bool] = bool,
 ):
     """
     Observe a trait as it changes until the predicate returns true.
 
     Intermediate changes are not passed to the callback until the predicated returns true.
     """
-    if callable(name):
-        name = next(iter(dottedpath(name)))
+    name_ = parse_object_name(name)
 
     def _observe_until(change: ChangeType):
         if predicate(change["new"]):
-            change["owner"].unobserve(_observe_until, names=name)
+            change["owner"].unobserve(_observe_until, names=name_)
             try:
                 callback(change)
             except Exception as e:
                 mb.log.on_error(e, "observe once callback failed", obj)
 
-    obj.observe(_observe_until, name)
+    obj.observe(_observe_until, name_)
 
 
-async def wait_trait_value(
-    obj: R, name: str | Callable[[R], tuple | Any], predicate: Callable[[Any], bool] = bool
-) -> None:
+async def wait_trait_value(obj: R, name: str | Callable[[R], T], predicate: Callable[[T], bool] = bool) -> None:
     """
     Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
 
     The trait is then observed until the predicate returns `True`.
     """
-    if callable(name):
-        name = next(iter(dottedpath(name)))
+    name = parse_object_name(name)
     if not predicate(getattr(obj, name)):
-        event = Event()
-        mb.utils.observe_until(obj, name, predicate, lambda _: event.set())
+        event = create_async_event()
+        mb.utils.observe_until(obj, name, lambda _: event.set(), predicate)  # pyright: ignore[reportArgumentType]
         await event
 
 
@@ -344,18 +340,18 @@ def funcname(obj: Any) -> str:
         return str(obj)
 
 
-def fstr(template: str, raise_errors=False, **globals) -> str:
+def fstr(template: str, raise_errors=False, **glbls) -> str:
     """
     Evaluate the fstring template with the mapped globals.
 
     The template must not contain triple quote `'''`.
     """
     try:
-        return eval(f"f''' {template} '''", globals)[1:-1]
+        return eval(f"f''' {template} '''", glbls)[1:-1]
     except Exception as e:
         if template.find("'''") >= 0:
             template = template.replace("'''", '"""')
-            return fstr(template, raise_errors=raise_errors, **globals)[1:-1]
+            return fstr(template, raise_errors=raise_errors, **glbls)[1:-1]
         if raise_errors:
             msg = f"An error occurred evaluating the string '{template}' "
             raise RuntimeError(msg) from e
@@ -755,3 +751,10 @@ def dottedpath(func: Callable[[T], tuple | Any], /, co_: T | Any = None) -> Iter
                     "Please move the object to a trait or property on the owner. "
                 )
                 raise TypeError(msg)
+
+
+def parse_object_name(name: str | Callable[[T], Any]) -> str:
+    ""
+    if callable(name):
+        return next(iter(dottedpath(name)))
+    return name
