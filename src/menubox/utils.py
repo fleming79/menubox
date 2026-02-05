@@ -35,7 +35,6 @@ __all__ = [
     "iterflatten",
     "limited_string",
     "now",
-    "observe_once",
     "observe_until",
     "sanatise_filename",
     "sanatise_name",
@@ -125,21 +124,6 @@ def weak_observe(
 
     ref = weakref.WeakMethod(method, disconnect)
     return handle
-
-
-def observe_once(obj: R, callback: Callable[[ChangeType], None], name: str | Callable[[R], tuple | Any]):
-    "Observe a trait once only"
-    if callable(name):
-        name = next(iter(dottedpath(name)))
-
-    def _observe_once(change: ChangeType):
-        change["owner"].unobserve(_observe_once, names=name)
-        try:
-            callback(change)
-        except Exception as e:
-            mb.log.on_error(e, "observe once callback failed", obj)
-
-    obj.observe(_observe_once, name)
 
 
 def observe_until(
