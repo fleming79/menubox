@@ -172,11 +172,10 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
         if task := self.task:
             task.cancel(msg or f'Cancelled by call to cancel of :"{self}"')
 
-    async def cancel_wait(self, msg="Waiting for task to cancel."):
+    async def cancel_wait(self, msg="Cancelled by cancel_wait", timeout: float | None = None):
         if task := self.task:
             task.cancel(msg)
-            while not task.done():
-                await task.wait(result=False, timeout=1)
+            await task.wait(result=False, timeout=timeout)
 
     @override
     def on_error(self, error: BaseException, msg: str, obj: Any = None) -> None:
