@@ -228,7 +228,7 @@ class _Periodic:
             if getattr(self.instance, "closed", False):
                 break
             result = self.wrapped(*self.args, **self.kwargs)
-            while inspect.isawaitable(result):
+            if inspect.iscoroutine(result):
                 result = await result
             await anyio.sleep(0 if self.mode is PeriodicMode.debounce else self.wait)
 
