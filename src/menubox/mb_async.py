@@ -87,9 +87,7 @@ def _on_done_callback(pen: Pending):
                 obj.on_error(error, msg="run async failed")
         elif not isinstance(error, PendingCancelled):
             mb.log.on_error(error, msg="run async failed")
-
-    obj = obj or JupyterFrontEnd()
-    if obj.log.getEffectiveLevel() == 10:
+    elif obj and obj.log.getEffectiveLevel() == 10:
         obj.log.debug(f"Task complete: {pen}")
 
 
