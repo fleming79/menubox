@@ -10,8 +10,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Unpack
 import anyio
 import wrapt
 from async_kernel import Caller
-from async_kernel.pending import Pending, PendingCancelled
-from async_kernel.typing import PendingCreateOptions
+from async_kernel.pending import Pending, PendingCancelled, PendingManager, PendingTracker
 from ipylab import JupyterFrontEnd
 
 import menubox as mb
@@ -132,7 +131,7 @@ def run_async(
         func,
         args,
         kwargs,
-        PendingCreateOptions(allow_tracking=False) if opts.get("tasktype") is TaskType.continuous else None,
+        trackers=PendingManager if opts.get("tasktype") is TaskType.continuous else PendingTracker,
         delay=opts.get("delay", 0),
         start_time=time.monotonic(),
     )
