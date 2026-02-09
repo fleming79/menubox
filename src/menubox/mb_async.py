@@ -37,8 +37,19 @@ class TaskType(int, enum.Enum):
     update = enum.auto()
     init = enum.auto()
     click = enum.auto()
+    debounce = enum.auto()
+    throttle = enum.auto()
     update_children = enum.auto()
     "Children are being updated"
+
+
+manager_only = [TaskType.continuous, TaskType.throttle, TaskType.debounce, TaskType.update_children]
+
+
+def get_trackers(task_type: TaskType | None, /) -> type[PendingManager | PendingTracker]:
+    if task_type in manager_only:
+        return PendingManager
+    return PendingTracker
 
 
 class RunAsyncOptions(TypedDict):
@@ -131,7 +142,7 @@ def run_async(
         func,
         args,
         kwargs,
-        trackers=PendingManager if opts.get("tasktype") is TaskType.continuous else PendingTracker,
+        trackers=get_trackers(opts.get("tasktype")),
         delay=opts.get("delay", 0),
         start_time=time.monotonic(),
     )
@@ -280,7 +291,7 @@ def periodic(
 
 
 def throttle(
-    wait: float, tasktype=TaskType.general
+    wait: float, tasktype=TaskType.throttle
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """
     A decorator that throttles the call to wrapped function.
@@ -293,7 +304,7 @@ def throttle(
 
 
 def debounce(
-    wait: float, tasktype=TaskType.general
+    wait: float, tasktype=TaskType.debounce
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """
     A decorator that debounces the call to the wrapped function.
