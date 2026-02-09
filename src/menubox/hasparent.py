@@ -20,7 +20,7 @@ from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.mb_async import TaskType
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S, T
+from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S, T, W
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
@@ -438,13 +438,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     def link(
         self,
-        source: tuple[HasTraits, str] | Callable[[Self], Any],
-        target: tuple[HasTraits, str] | Callable[[Self], Any],
-        transform: tuple[
-            Callable[[Any], Any],
-            Callable[[Any], Any],
-        ]
-        | None = None,
+        source: tuple[HasTraits, str] | Callable[[Self], T],
+        target: tuple[HasTraits, str] | Callable[[Self], W],
+        transform: tuple[Callable[[T], W], Callable[[W], T]] | None = None,
         connect=True,
         key: Hashable = None,
     ) -> Link | None:
@@ -468,9 +464,9 @@ class HasParent(Singular, HasApp, Generic[RP]):
 
     def dlink(
         self,
-        source: tuple[HasTraits, str] | Callable[[Self], Any],
-        target: tuple[HasTraits, str] | Callable[[Self], Any],
-        transform: Callable[[Any], Any] | None = None,
+        source: tuple[HasTraits, str] | Callable[[Self], T],
+        target: tuple[HasTraits, str] | Callable[[Self], W],
+        transform: Callable[[T], W] | None = None,
         connect=True,
         key: Hashable = None,
     ) -> None:
