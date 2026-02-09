@@ -20,6 +20,7 @@ from menubox.css import CSSvar
 from menubox.defaults import NO_DEFAULT
 
 if TYPE_CHECKING:
+    from aiologic.lowlevel._events import AsyncEvent
     from pandas._libs.tslibs.timestamps import Timestamp
 
     from menubox.instance import S
@@ -40,6 +41,7 @@ __all__ = [
     "sanatise_name",
     "set_visibility",
     "setattr_nested",
+    "trait_event",
     "wait_trait_value",
     "weak_observe",
     "yes_no_dialog",
@@ -150,6 +152,26 @@ def observe_until(
     obj.observe(_observe_until, name_)
 
 
+def trait_event(
+    obj: R, name: str | Callable[[R], T], predicate: Callable[[T], bool] = bool, *, check_current=True
+) -> AsyncEvent:
+    """
+    Create a single use event that triggers as soon as the predicate is satisfied.
+
+    Args:
+        obj: The HasTraits instance.
+        name: The name of the trait.
+        check_current: Check the predicate against the current trait value.
+    """
+    name = parse_object_name(name)
+    event = create_async_event()
+    if check_current and predicate(getattr(obj, name)):
+        event.set()
+    if not event:
+        mb.utils.observe_until(obj, name, lambda _: event.set(), predicate)  # pyright: ignore[reportArgumentType]
+    return event
+
+
 async def wait_trait_value(obj: R, name: str | Callable[[R], T], predicate: Callable[[T], bool] = bool) -> None:
     """
     Wait until the trait `name` on `obj` returns True from the predicate. The initial value is compared.
@@ -158,8 +180,7 @@ async def wait_trait_value(obj: R, name: str | Callable[[R], T], predicate: Call
     """
     name = parse_object_name(name)
     if not predicate(getattr(obj, name)):
-        event = create_async_event()
-        mb.utils.observe_until(obj, name, lambda _: event.set(), predicate)  # pyright: ignore[reportArgumentType]
+        event = trait_event(obj, name, predicate)
         await event
 
 
