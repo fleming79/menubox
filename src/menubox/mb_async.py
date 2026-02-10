@@ -43,11 +43,12 @@ class TaskType(int, enum.Enum):
     "Children are being updated"
 
 
-manager_only = [TaskType.continuous, TaskType.throttle, TaskType.debounce, TaskType.update_children]
+MANAGER_ONLY = [TaskType.continuous, TaskType.throttle, TaskType.debounce, TaskType.update_children]
+"A list of TaskTypes which should be omitted from PendingGroup trackers."
 
 
 def get_trackers(task_type: TaskType | None, /) -> type[PendingManager | PendingTracker]:
-    if task_type in manager_only:
+    if task_type in MANAGER_ONLY:
         return PendingManager
     return PendingTracker
 
@@ -142,7 +143,8 @@ def run_async(
         func,
         args,
         kwargs,
-        trackers=get_trackers(opts.get("tasktype")),
+        None,
+        get_trackers(opts.get("tasktype")),
         delay=opts.get("delay", 0),
         start_time=time.monotonic(),
     )
