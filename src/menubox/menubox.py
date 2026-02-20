@@ -229,6 +229,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
             p.button_exit,
             p.button_help,
             p.button_close,
+            p.button_activate,
             p.center,
             p.tab_buttons,
             p.shuffle_buttons,
