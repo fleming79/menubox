@@ -34,7 +34,7 @@ import menubox as mb
 import menubox.hasparent as mhp
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
-from menubox.trait_types import SS, Bunched, P, ReadOnly, S, T, W
+from menubox.trait_types import SS, Bunched, P, S, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -86,7 +86,7 @@ class IHPChange(TypedDict, Generic[S, T]):
     owner: S
     old: T | None
     new: T | None
-    ihp: InstanceHP[S, T, Any]
+    ihp: InstanceHP[S, T]
 
 
 class ChildrenSetterOptions(TypedDict):
@@ -117,7 +117,7 @@ class IHPHookMappings(TypedDict, Generic[S, T]):
     value_changed: NotRequired[Callable[[IHPChange[S, T]], Any]]
 
 
-class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
+class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
     """
     Descriptor for managing instances of a specific class as a trait.
 
@@ -144,15 +144,14 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         `co_`: cast `Self` for improved type hints.
 
     Type hints:
-    -----------
-    Option 1:
-        Pass `co_=cast(Self, 0)` during init to provide extended type hinting for 'owner'.
-    Option 2:
-        Define both types on the class with `InstanceHP[Self, Getter, Setter]`
-        ` `Self` : Provides for introspection on lambda methods for safer type hinting.
-        - `Getter`: Is provides typing when retrieving the attribute
-        - `Setter`: Allows to define the types that can be used for setting. Notably,
-            the type can be wrapped with `ReadOnly` to show when the trait is read only.
+        In contrast to HasTraits. InstanceHP traits are generic by [Self, Trait] rather than [Getter Setter]
+
+        Option 1:
+            Pass `co_=cast(Self, 0)` during init to provide extended type hinting for 'owner'.
+        Option 2:
+            Define both types on the class with `InstanceHP[Self, type of trait]`
+            ` `Self` : Provides for introspection on lambda methods for safer type hinting.
+            - `Type of trait`: Is provides typing when retrieving the attribute.
     """
 
     klass: type[T]
@@ -176,7 +175,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = ...,
             co_: S = ...,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+        ) -> InstanceHP[S, T]: ...
         @overload
         def __new__(
             cls,
@@ -186,9 +185,9 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
             co_: S = ...,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+        ) -> InstanceHP[S, T]: ...
 
-    def __set__(self, obj: mhp.HasParent, value: W) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def __set__(self, obj: mhp.HasParent, value: T) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         if self.read_only:
             msg = f'The "{self!r}" is read-only.'
             raise traitlets.TraitError(msg)
@@ -200,7 +199,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
         *,
         validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
-        default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
+        default_value: T | None | NO_DEFAULT_TYPE = NO_DEFAULT,
         co_: S | Any = None,
     ) -> None:
         self._hookmappings = {}
@@ -241,57 +240,24 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         @overload
         def configure(
             self,
-            mode: Literal[IHPMode.XLR_] = ...,
+            mode: Literal[IHPMode.XL__, IHPMode.X___, IHPMode.X_R_, IHPMode.XLR_] = ...,
             /,
             *,
             default_value: NO_DEFAULT_TYPE | T | None = ...,
             default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
             validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
+        ) -> InstanceHP[S, T]: ...
 
         @overload
         def configure(
             self,
-            mode: Literal[IHPMode.X_R_,],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T = ...,
-            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
-            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
-        ) -> InstanceHP[S, T, ReadOnly[T]]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.XL__, IHPMode.X___],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T = ...,
-            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
-            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
-        ) -> InstanceHP[S, T, T]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.X__N, IHPMode.XL_N],
+            mode: Literal[IHPMode.X__N, IHPMode.XL_N, IHPMode.X_RN, IHPMode.XLRN],
             /,
             *,
             default_value: NO_DEFAULT_TYPE | T | None = ...,
             default: Callable[[IHPCreate[S, T]], T | None] | NO_DEFAULT_TYPE = ...,
             validate: Callable[[S, T | Any], T | None] | NO_DEFAULT_TYPE = ...,
-        ) -> InstanceHP[S, T | None, T | None]: ...
-
-        @overload
-        def configure(
-            self,
-            mode: Literal[IHPMode.XLRN, IHPMode.X_RN],
-            /,
-            *,
-            default_value: NO_DEFAULT_TYPE | T | None = ...,
-            default: Callable[[IHPCreate[S, T]], T | None] | NO_DEFAULT_TYPE = ...,
-            validate: Callable[[S, T | Any], T | None] | NO_DEFAULT_TYPE = ...,
-        ) -> InstanceHP[S, T | None, ReadOnly[T | None]]: ...
+        ) -> InstanceHP[S, T | None]: ...
 
     def configure(
         self,
@@ -301,13 +267,7 @@ class InstanceHP(traitlets.TraitType[T, W], Generic[S, T, W]):
         default_value: T | None | NO_DEFAULT_TYPE = NO_DEFAULT,
         default: Callable[[IHPCreate[S, T]], T | None] | NO_DEFAULT_TYPE = NO_DEFAULT,
         validate: Callable[[S, T | None], T | None] | NO_DEFAULT_TYPE = NO_DEFAULT,
-    ) -> (
-        InstanceHP[S, T, T]
-        | InstanceHP[S, T, ReadOnly]
-        | InstanceHP[S, T | None, T | None]
-        | InstanceHP[S, T | None, ReadOnly[T]]
-        | InstanceHP[S, T | None, ReadOnly[T | None]]
-    ):
+    ) -> InstanceHP[S, T] | InstanceHP[S, T | None]:
         """
         Configures the instance with the provided settings.
 
@@ -693,7 +653,7 @@ def instanceHP_wrapper(
     strategy=Strategy.REPLACE,
     tags: None | dict[str, Any] = None,
     **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
-) -> Callable[Concatenate[SS | Any, P], InstanceHP[SS, T, ReadOnly[T]]]:
+) -> Callable[Concatenate[SS | Any, P], InstanceHP[SS, T]]:
     """
     Wraps the InstanceHP trait for use withmhp. HasParent classes.
 
@@ -726,7 +686,7 @@ def instanceHP_wrapper(
         /,
         *args: P.args,
         **kwgs: P.kwargs,
-    ) -> InstanceHP[SS, T, ReadOnly[T]]:
+    ) -> InstanceHP[SS, T]:
         """
         Returns an InstanceHP[klass] trait.
 

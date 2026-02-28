@@ -19,7 +19,7 @@ match = "This exception is intentional"
 
 
 class HP(mhp.HasParent):
-    parent: InstanceHP[Any, HP, HP]
+    parent: InstanceHP[Any, HP]
     parent_dlink = tt.NameTuple[Self](lambda p: (p.a_dlink, p.a_dlink2))
     parent_link = tt.NameTuple[Self](lambda p: (p.a_link, p.a_link2))
 

@@ -79,7 +79,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     KEEP_ALIVE = False
     SINGLE_BY: ClassVar[tuple[str, ...] | None] = None
     single_key: tuple[Hashable, ...]
-    _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any, Any]]] = {}
+    _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
     _HasParent_init_complete = False
     PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
     _hp_reg_parent_link = TF.Set(klass_=cast("type[set[Link]]", 0))
@@ -89,7 +89,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
-    parent: InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
+    parent: InstanceHP[Any, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
     tasks = TF.Set(klass_=cast("type[set[Pending[Any]]]", 0))
 
     def __repr__(self):

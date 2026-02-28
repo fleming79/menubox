@@ -43,7 +43,7 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         lambda p: (p._get_template_controls, p.button_configure, *Menubox.header_right_children)
     )
 
-    parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
+    parent: TF.InstanceHP[Any, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     header = (
         TF.MenuboxHeader(cast("Self", 0))

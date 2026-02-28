@@ -97,10 +97,10 @@ class WidgetWatcher(ValueTraits):
     Both `parent` and `widgets` should be set externally.
     """
 
-    parent: TF.InstanceHP[Any, Menubox, Menubox] = TF.parent(Menubox)
+    parent: TF.InstanceHP[Any, Menubox] = TF.parent(Menubox)
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
-    widgets: TF.InstanceHP[Any, set[Widget], set[Widget]] = TF.Set()
+    widgets: TF.InstanceHP[Any, set[Widget]] = TF.Set()
     "A mapping of `widget.model_id`:`widget` that are to be watched."
     _widgets = TF.Dict()
     value_traits = NameTuple[Self](lambda p: (p.widgets,))

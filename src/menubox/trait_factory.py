@@ -18,7 +18,7 @@ from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
-from menubox.trait_types import MP, SS, GetWidgetsInputType, H, ReadOnly, S, T, ViewDictType
+from menubox.trait_types import MP, SS, GetWidgetsInputType, H, S, T, ViewDictType
 
 __all__ = ["TF", "IHPCreate", "InstanceHP"]
 
@@ -71,7 +71,6 @@ class TF:
     IHPChange = IHPChange
     IHPCreate = IHPCreate
     IHPMode = IHPMode
-    ReadOnly = ReadOnly
     GetWidgetsInputType = GetWidgetsInputType
     ViewDictType = ViewDictType
     ButtonMode = ButtonMode
@@ -92,15 +91,15 @@ class TF:
     "An empty box that fills the space vertically."
 
     @staticmethod
-    def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str, str]:
+    def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str]:
         return InstanceHP(str, co_=co_).configure(IHPMode.X___, default_value=default_value)
 
     @staticmethod
-    def Bool(default_value: bool, /, *, co_: S | Any = None) -> InstanceHP[S, bool, bool]:
+    def Bool(default_value: bool, /, *, co_: S | Any = None) -> InstanceHP[S, bool]:
         return InstanceHP(bool, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
 
     @staticmethod
-    def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int, int]:
+    def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int]:
         return InstanceHP(
             int,
             lambda _: default_value,
@@ -110,7 +109,7 @@ class TF:
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float, float]:
+    def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float]:
         return InstanceHP(
             float,
             lambda _: default_value,
@@ -126,7 +125,7 @@ class TF:
         *,
         klass_: type[T] = tuple,  # noqa: ARG004
         co_: S | Any = None,  # pyright: ignore[reportUnusedParameter]
-    ) -> InstanceHP[S, T, T]:
+    ) -> InstanceHP[S, T]:
         def validate_tuple(owner, value):
             if isinstance(value, tuple):
                 return value
@@ -141,7 +140,7 @@ class TF:
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Set(*, klass_: type[T] = set, co_: S | Any = None) -> InstanceHP[S, T, T]:  # noqa: ARG004
+    def Set(*, klass_: type[T] = set, co_: S | Any = None) -> InstanceHP[S, T]:  # noqa: ARG004
         return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)  # pyright: ignore[reportReturnType]
 
     @staticmethod
@@ -149,7 +148,7 @@ class TF:
         default: Callable[[IHPCreate], dict] | None = None,
         klass_: type[T] = dict,  # noqa: ARG004
         co_: S | Any = None,
-    ) -> InstanceHP[S, T, T]:
+    ) -> InstanceHP[S, T]:
         "A dict type. Note: klass_ & co_ are only used for type hinting."
         return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XL__)  # pyright: ignore[reportReturnType]
 
@@ -158,12 +157,12 @@ class TF:
         default: Callable[[IHPCreate], dict] | None = None,
         klass_: type[T] = dict,  # noqa: ARG004
         co_: S | Any = None,
-    ) -> InstanceHP[S, T, ReadOnly[T]]:
+    ) -> InstanceHP[S, T]:
         "A dict type. Note: klass_ & co_ are only used for type hinting."
         return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XLR_)  # pyright: ignore[reportReturnType]
 
     @staticmethod
-    def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T, T]:
+    def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T]:
         klass = default_value.__class__
         return TF.InstanceHP(
             klass,
@@ -175,9 +174,7 @@ class TF:
     # Custom types
 
     @staticmethod
-    def ViewDict(
-        co_: S | Any = None, value: ViewDictType[S] | None = None, /
-    ) -> InstanceHP[S, ViewDictType[S], ViewDictType[S]]:
+    def ViewDict(co_: S | Any = None, value: ViewDictType[S] | None = None, /) -> InstanceHP[S, ViewDictType[S]]:
         """
         A function to generate an InstanceHP trait.
 
@@ -200,7 +197,7 @@ class TF:
     @staticmethod
     def parent(
         klass: type[SS] | str = "menubox.hasparent.HasParent",
-    ) -> InstanceHP[Any, SS, SS]:
+    ) -> InstanceHP[Any, SS]:
         """
         Define a trait as a parent container for a HasParent subclass.
 
@@ -266,7 +263,7 @@ class TF:
         css_class=CSScls.button_main,
         mode=ButtonMode.restart,
         **kwargs,
-    ) -> InstanceHP[S, ipw.Button, ReadOnly[ipw.Button]]:
+    ) -> InstanceHP[S, ipw.Button]:
         "Kwargs are passed to the button init"
         return (
             InstanceHP(ipw.Button, co_=co_)

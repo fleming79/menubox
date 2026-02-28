@@ -9,7 +9,6 @@ from async_kernel.common import Fixed, import_item
 from ipylab.common import Singular
 
 from menubox.hasparent import HasParent
-from menubox.trait_types import ReadOnly
 
 __all__ = ["HasParent", "Home"]
 
@@ -68,7 +67,7 @@ class Home(Singular):
                     item.close()
 
 
-class _HomeTrait(traitlets.TraitType[Home, ReadOnly[Home]]):
+class _HomeTrait(traitlets.TraitType[Home, Home | str]):
     def _validate(self, obj, value: Home | str):
         home = Home(value)
         if obj.trait_has_value("home"):

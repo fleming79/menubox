@@ -43,7 +43,7 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     _update_disabled = False
     task = TF.Pending()
-    parent: InstanceHP[Any, S, S] = TF.parent()
+    parent: InstanceHP[Any, S] = TF.parent()
 
     def __new__(
         cls,

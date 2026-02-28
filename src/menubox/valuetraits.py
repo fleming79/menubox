@@ -16,7 +16,7 @@ from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default, to_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, ReadOnly, T
+from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, T
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator
@@ -71,7 +71,7 @@ class _InstanceHPTupleRegister(HasParent):
     """A simple register to track observer,name pairs."""
 
     parent = TF.parent(klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
-    reg: InstanceHP[Self, set[tuple[HasTraits, str]], ReadOnly[set]] = TF.Set().configure(TF.IHPMode.XLR_)
+    reg: InstanceHP[Self, set[tuple[HasTraits, str]]] = TF.Set().configure(TF.IHPMode.XLR_)
 
     @observe("reg")
     def _observe_reg(self, change: ChangeType):

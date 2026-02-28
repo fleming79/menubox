@@ -337,7 +337,7 @@ class RelativePath(Filesystem):
     )
     value_traits = NameTuple[Self](lambda p: (*Filesystem.value_traits, p.kw))
     value_traits_persist = NameTuple()
-    parent: InstanceHP[Any, Filesystem, Filesystem] = TF.parent(klass=Filesystem)
+    parent: InstanceHP[Any, Filesystem] = TF.parent(klass=Filesystem)
 
     def __new__(cls, parent: Filesystem, **kwargs) -> Self:
         return super().__new__(cls, parent=parent, **kwargs)

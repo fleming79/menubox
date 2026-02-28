@@ -42,7 +42,7 @@ class InstanceHPTupleHookMappings(TypedDict, Generic[V, T]):
     value_changed: NotRequired[Callable[[IHPChange[V, T]], None]]
 
 
-class InstanceHPTuple(InstanceHP[V, tuple[T, ...], tuple[T, ...]], Generic[V, T]):
+class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
     """
     A tuple for `ValueTraits` where elements can be spawned and observed.
 

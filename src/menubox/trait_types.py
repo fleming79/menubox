@@ -34,10 +34,6 @@ MP = TypeVar("MP", bound="MenuboxPersist")
 P = ParamSpec("P")
 
 
-class ReadOnly(Generic[T]):
-    "The value is read only"
-
-
 class ChangeType(TypedDict):
     new: Any
     old: Any
@@ -75,7 +71,7 @@ class TypedTuple(TraitType[tuple[T, ...], Iterable[T]]):
 
     def __init__(
         self,
-        trait: TraitType[T, T] | InstanceHP[Any, T, Any],
+        trait: TraitType[T, T] | InstanceHP[Any, T],
         default_value=(),
         **kwargs: Any,
     ) -> None:

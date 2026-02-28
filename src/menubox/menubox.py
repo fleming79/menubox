@@ -21,7 +21,7 @@ from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL, NoCloseBox, _NoDefault
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF, ButtonMode
-from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, ProposalType, ReadOnly, StrTuple
+from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, ProposalType, StrTuple
 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
@@ -63,7 +63,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _Menubox_init_complete = False
     "A mapping to all center widgets including those that are hidden used by `WidgetWatcher`."
 
-    parent: TF.InstanceHP[Any, RP, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
+    parent: TF.InstanceHP[Any, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     # Traits
     show_help = TF.Bool(False)
@@ -110,21 +110,21 @@ class Menubox(HasParent, Panel, Generic[RP]):
     box_menu_open_children = NameTuple[Self](lambda p: (p.button_menu_minimize, p.get_menu_widgets))
     minimized_children = NameTuple[Self](lambda p: (p.html_title, TF.H_FILL, p.header_right_children))
 
-    loading_view: TF.InstanceHP[Any, _NoDefault | None, ReadOnly[_NoDefault | None]] = TF.InstanceHP(
+    loading_view: TF.InstanceHP[Any, str | _NoDefault | None] = TF.InstanceHP(
         str | defaults.NO_DEFAULT_TYPE,
-        default=lambda _: defaults.NO_DEFAULT,
+        default=lambda _: cast("str | defaults.NO_DEFAULT_TYPE", defaults.NO_DEFAULT),
         validate=lambda _, value: value,
     ).configure(TF.IHPMode.XLRN)
 
     # Trait instances
     center = traitlets.Any()
-    _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput], ReadOnly] = TF.Tuple().configure(TF.IHPMode.X_R_)
+    _simple_outputs: TF.InstanceHP[Self, tuple[ipylab.SimpleOutput]] = TF.Tuple().configure(TF.IHPMode.X_R_)
     tab_buttons = Buttons(read_only=True)
     shuffle_buttons = Buttons(read_only=True)
     activate_buttons = Buttons(read_only=True)
     # Trait factory
-    _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
-    _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button], ReadOnly](klass=weakref.WeakSet)
+    _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
+    _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
 
     task_load_view = TF.Pending()
     html_title = TF.HTML_Title(cast("Self", 0)).configure(TF.IHPMode.X__N)

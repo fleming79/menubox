@@ -28,7 +28,7 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     header = TF.HBox(cast("Self", 0)).configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = NameTuple[Self](lambda p: (p.log,))
-    parent: InstanceHP[Any, S, S] = TF.parent()
+    parent: InstanceHP[Any, S] = TF.parent()
 
     def __init__(
         self,
