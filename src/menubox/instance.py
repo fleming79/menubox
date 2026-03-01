@@ -166,23 +166,12 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
         name: str  # pyright: ignore[reportIncompatibleVariableOverride]
         _hookmappings: IHPHookMappings[S, T]
 
-        @overload
-        def __new__(  # pyright: ignore[reportNoOverloadImplementation]
-            cls,
-            klass: UnionType,
-            default: Callable[[IHPCreate[S, T]], T],
-            *,
-            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
-            default_value: NO_DEFAULT_TYPE | T | None = ...,
-            co_: S = ...,
-        ) -> InstanceHP[S, T]: ...
-        @overload
         def __new__(
             cls,
-            klass: type[T] | str,
-            default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = ...,
+            klass: type[T] | str | UnionType,
+            default: Callable[[IHPCreate[S, T]], Any] | NO_DEFAULT_TYPE = ...,
             *,
-            validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = ...,
+            validate: Callable[[S, T | Any], Any] | NO_DEFAULT_TYPE = ...,
             default_value: NO_DEFAULT_TYPE | T | None = NO_DEFAULT,
             co_: S = ...,
         ) -> InstanceHP[S, T]: ...
@@ -196,9 +185,9 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
     def __init__(
         self,
         klass: type[T] | str | UnionType,
-        default: Callable[[IHPCreate[S, T]], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        default: Callable[[IHPCreate[S, T]], Any] | NO_DEFAULT_TYPE = NO_DEFAULT,
         *,
-        validate: Callable[[S, T | Any], T] | NO_DEFAULT_TYPE = NO_DEFAULT,
+        validate: Callable[[S, T | Any], Any] | NO_DEFAULT_TYPE = NO_DEFAULT,
         default_value: T | None | NO_DEFAULT_TYPE = NO_DEFAULT,
         co_: S | Any = None,
     ) -> None:
