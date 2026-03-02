@@ -34,7 +34,7 @@ import menubox as mb
 import menubox.hasparent as mhp
 from menubox import utils
 from menubox.defaults import NO_DEFAULT
-from menubox.trait_types import SS, Bunched, P, S, T
+from menubox.trait_types import SS, Bunched, P, S, S_co, T
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from menubox.defaults import NO_DEFAULT_TYPE
 
 
-__all__ = ["InstanceHP", "instanceHP_wrapper"]
+__all__ = ["InstanceHP", "InstanceHPFactory"]
 
 
 ChildrenSetter = cast("type[ChildrenSetterType]", lazy_import("menubox.children_setter", "ChildrenSetter"))
@@ -634,70 +634,65 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
 InstanceHP._register_default_hooks()
 
 
-def instanceHP_wrapper(
-    klass: Callable[P, T] | str,
-    /,
-    *,
-    defaults: None | dict[str, Any] = None,
-    strategy=Strategy.REPLACE,
-    tags: None | dict[str, Any] = None,
-    **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
-) -> Callable[Concatenate[SS | Any, P], InstanceHP[SS, T]]:
-    """
-    Wraps the InstanceHP trait for use withmhp. HasParent classes.
+class InstanceHPFactory(Generic[P, T]):
+    "A Factory class for creating an InstanceHP instance based on klass that looks like the klass."
 
-    This function creates a factory that returns an InstanceHP trait,
-    configured with the specified settings. It's designed to be used
-    when adding a trait to a new subclass ofmhp. HasParent.
-    Args:
-        klass: The class or a string representation of the class to be instantiated by the InstanceHP trait.
-        defaults: A dictionary of default keyword arguments to be passed to the class constructor.
-        strategy: The merging strategy to use when combining defaults with instance-specific keyword arguments.
-                  Defaults to Strategy.REPLACE.
-        tags: A dictionary of tags to be applied to the InstanceHP trait.
-        **hooks: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
-    Returns:
-        A factory function that, when called, returns an InstanceHP trait instance.  The factory
-        function accepts *args and **kwgs which are passed to the constructor of `klass` when the
-        trait's default value is requested.
-    Usage:
-        Use this function to add an InstanceHP trait to a class that inherits frommhp. HasParent.
-        The returned factory should be assigned as a class-level attribute.  When the trait
-        is accessed for the first time on an instance of the class, the InstanceHP trait will
-        be instantiated and configured.
-    """
+    if TYPE_CHECKING:
 
-    defaults_ = merge({}, defaults) if defaults else {}
-    tags = dict(tags) if tags else {}
+        def __new__(
+            cls,
+            klass: Callable[P, T] | str,
+            /,
+            *,
+            defaults: None | dict[str, Any] = None,
+            strategy=Strategy.REPLACE,
+            tags: None | dict[str, Any] = None,
+            **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
+        ) -> Callable[Concatenate[SS, P], InstanceHP[SS, T]]: ...
 
-    def instanceHP_factory(
-        co_: SS | Any = None,
+    def __init__(
+        self,
+        klass: Callable[P, T] | str,
         /,
-        *args: P.args,
-        **kwgs: P.kwargs,
-    ) -> InstanceHP[SS, T]:
+        *,
+        defaults: None | dict[str, Any] = None,
+        strategy=Strategy.REPLACE,
+        tags: None | dict[str, Any] = None,
+        **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
+    ) -> None:
         """
-        Returns an InstanceHP[klass] trait.
-
-        Use this to add a trait to new subclass ofmhp. HasParent.
-
-        Specify *args and **kwgs to pass when creating the 'default' (when the trait default is requested).
-
-        cast: Provided specifically for type checking. use: `c(Self, c)`
-
-        Follow the link (ctrl + click): function-> klass to see the class definition and what *args and **kwargs are available.
+        Args:
+            klass: The class or a string representation of the class to be instantiated by the InstanceHP trait.
+            defaults: A dictionary of default keyword arguments to be passed to the class constructor.
+            strategy: The merging strategy to use when combining defaults with instance-specific keyword arguments.
+                      Defaults to Strategy.REPLACE.
+            tags: A dictionary of tags to be applied to the InstanceHP trait.
+            **hooks: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
+        Returns:
+            A factory function that, when called, returns an InstanceHP trait instance.  The factory
+            function accepts *args and **kwgs which are passed to the constructor of `klass` when the
+            trait's default value is requested.
+        Usage:
+            Use this function to add an InstanceHP trait to a class that inherits frommhp. HasParent.
+            The returned factory should be assigned as a class-level attribute.  When the trait
+            is accessed for the first time on an instance of the class, the InstanceHP trait will
+            be instantiated and configured.
         """
-        if defaults_:
-            kwgs = merge({}, defaults_, kwgs, strategy=strategy)  # pyright: ignore[reportAssignmentType]
+
+        self.klass = klass
+        self.defaults_ = merge({}, defaults) if defaults else {}
+        self.tags = dict(tags) if tags else {}
+        self.hooks = hooks
+
+    def __call__(self, co_: S_co, /, *args: P.args, **kwgs: P.kwargs) -> InstanceHP[S_co, T]:
+        if self.defaults_:
+            kwgs = merge({}, self.defaults_, kwgs, strategy=Strategy.REPLACE)  # pyright: ignore[reportAssignmentType]
         instance = InstanceHP(
-            klass,  # pyright: ignore[reportCallIssue, reportArgumentType]
+            self.klass,  # pyright: ignore[reportCallIssue, reportArgumentType]
             lambda c: c["klass"](*args, **kwgs | c["kwgs"]),
-            co_=co_,
         )
-        if hooks:
+        if hooks := self.hooks:
             instance.hooks(**hooks)
-        if tags:
+        if tags := self.tags:
             instance.tag(**tags)
         return instance
-
-    return instanceHP_factory

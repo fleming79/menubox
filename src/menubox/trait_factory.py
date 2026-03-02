@@ -16,8 +16,7 @@ import menubox.widgets
 from menubox import mb_async
 from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
-from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
-from menubox.instance import instanceHP_wrapper as ihpwrap
+from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP, InstanceHPFactory
 from menubox.trait_types import MP, SS, GetWidgetsInputType, H, S, S_co, T, ViewDictType
 
 __all__ = ["TF", "IHPCreate", "InstanceHP"]
@@ -64,7 +63,7 @@ class TF:
     - A trait for managing persistent objects within MenuBox (MenuboxPersistPool).
     Each method returns an InstanceHP object (or a Fixed object), configured with
     appropriate default values, validation logic, and hooks for seamless
-    integration with the MenuBox ecosystem.  The `ihpwrap` function is used to
+    integration with the MenuBox ecosystem.  The `InstanceHPFactory` function is used to
     simplify the creation of traits for ipywidgets."""
 
     InstanceHP = InstanceHP
@@ -225,38 +224,38 @@ class TF:
         )
 
     # Ipywidgets shortcuts
-    Box = staticmethod(ihpwrap(ipw.Box))
-    VBox = staticmethod(ihpwrap(ipw.VBox))
-    HBox = staticmethod(ihpwrap(ipw.HBox))
+    Box = InstanceHPFactory(ipw.Box)
+    VBox = InstanceHPFactory(ipw.VBox)
+    HBox = InstanceHPFactory(ipw.HBox)
 
-    HTML = staticmethod(ihpwrap(ipw.HTML))
-    Dropdown = staticmethod(ihpwrap(ipw.Dropdown))
-    Combobox = staticmethod(ihpwrap(ipw.Combobox))
-    Select = staticmethod(ihpwrap(ipw.Select))
-    Text = staticmethod(ihpwrap(ipw.Text))
-    Label = staticmethod(ihpwrap(ipw.Label))
-    SelectionSlider = staticmethod(ihpwrap(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)}))
+    HTML = InstanceHPFactory(ipw.HTML)
+    Dropdown = InstanceHPFactory(ipw.Dropdown)
+    Combobox = InstanceHPFactory(ipw.Combobox)
+    Select = InstanceHPFactory(ipw.Select)
+    Text = InstanceHPFactory(ipw.Text)
+    Label = InstanceHPFactory(ipw.Label)
+    SelectionSlider = InstanceHPFactory(ipw.SelectionSlider, defaults={"options": (NO_VALUE,)})
 
-    Accordion = staticmethod(ihpwrap(ipw.Accordion))
-    IntText = staticmethod(ihpwrap(ipw.IntText))
-    RadioButtons = staticmethod(ihpwrap(ipw.RadioButtons))
-    Checkbox = staticmethod(ihpwrap(ipw.Checkbox))
-    Textarea = staticmethod(ihpwrap(ipw.Textarea))
-    GridBox = staticmethod(ihpwrap(ipw.GridBox))
-    SelectMultiple = staticmethod(ihpwrap(ipw.SelectMultiple))
-    ValueWidget = staticmethod(ihpwrap(ipw.ValueWidget))
-    Widget = staticmethod(ihpwrap(ipw.Widget))
-    BoundedIntText = staticmethod(ihpwrap(ipw.BoundedIntText))
-    FloatText = staticmethod(ihpwrap(ipw.FloatText))
-    FloatSlider = staticmethod(ihpwrap(ipw.FloatSlider))
-    FloatRangeSlider = staticmethod(ihpwrap(ipw.FloatRangeSlider))
-    FloatLogSlider = staticmethod(ihpwrap(ipw.FloatLogSlider))
-    FloatProgress = staticmethod(ihpwrap(ipw.FloatProgress))
-    IntSlider = staticmethod(ihpwrap(ipw.IntSlider))
-    Play = staticmethod(ihpwrap(ipw.Play))
-    BoundedFloatText = staticmethod(ihpwrap(ipw.BoundedFloatText))
-    SelectionRangeSlider = staticmethod(ihpwrap(ipw.SelectionRangeSlider))
-    ColorPicker = staticmethod(ihpwrap(ipw.ColorPicker))
+    Accordion = InstanceHPFactory(ipw.Accordion)
+    IntText = InstanceHPFactory(ipw.IntText)
+    RadioButtons = InstanceHPFactory(ipw.RadioButtons)
+    Checkbox = InstanceHPFactory(ipw.Checkbox)
+    Textarea = InstanceHPFactory(ipw.Textarea)
+    GridBox = InstanceHPFactory(ipw.GridBox)
+    SelectMultiple = InstanceHPFactory(ipw.SelectMultiple)
+    ValueWidget = InstanceHPFactory(ipw.ValueWidget)
+    Widget = InstanceHPFactory(ipw.Widget)
+    BoundedIntText = InstanceHPFactory(ipw.BoundedIntText)
+    FloatText = InstanceHPFactory(ipw.FloatText)
+    FloatSlider = InstanceHPFactory(ipw.FloatSlider)
+    FloatRangeSlider = InstanceHPFactory(ipw.FloatRangeSlider)
+    FloatLogSlider = InstanceHPFactory(ipw.FloatLogSlider)
+    FloatProgress = InstanceHPFactory(ipw.FloatProgress)
+    IntSlider = InstanceHPFactory(ipw.IntSlider)
+    Play = InstanceHPFactory(ipw.Play)
+    BoundedFloatText = InstanceHPFactory(ipw.BoundedFloatText)
+    SelectionRangeSlider = InstanceHPFactory(ipw.SelectionRangeSlider)
+    ColorPicker = InstanceHPFactory(ipw.ColorPicker)
 
     # Button
 
@@ -277,58 +276,55 @@ class TF:
             .configure(default=lambda c: ipw.Button(**kwargs | c["kwgs"]))
         )
 
-    FileUpload = staticmethod(ihpwrap(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main)))
+    FileUpload = InstanceHPFactory(ipw.FileUpload, add_css_class=(CSScls.button, CSScls.button_main))
 
-    MenuboxHeader = staticmethod(
-        ihpwrap(
-            ipw.HBox,
-            on_set=lambda p, obj: p.dlink(
-                source=lambda p: p.border,  # pyright: ignore[reportAttributeAccessIssue]
-                target=(obj.layout, "border_bottom"),
-            ),
-            add_css_class=(CSScls.Menubox_item, CSScls.box_header),
-        )
+    MenuboxHeader = InstanceHPFactory(
+        ipw.HBox,
+        on_set=lambda p, obj: p.dlink(
+            source=lambda p: p.border,  # pyright: ignore[reportAttributeAccessIssue]
+            target=(obj.layout, "border_bottom"),
+        ),
+        add_css_class=(CSScls.Menubox_item, CSScls.box_header),
     )
-    MenuboxCenter = staticmethod(ihpwrap(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox)))
-    MenuboxMenu = staticmethod(ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_menu)))
-    MenuboxShuffle = staticmethod(ihpwrap(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle)))
+
+    MenuboxCenter = InstanceHPFactory(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox))
+    MenuboxMenu = InstanceHPFactory(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_menu))
+    MenuboxShuffle = InstanceHPFactory(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle))
 
     # Ipywidget String
-    HTML_Title = staticmethod(
-        ihpwrap(
-            ipw.HTML,
-            defaults={
-                "layout": {
-                    "width": "max-content",
-                    "padding": "0px 10px 0px 15px",
-                    "flex": "0 0 auto",
-                },
-                "style": {"description_width": "initial"},
-                "description_allow_html": True,
+    HTML_Title = InstanceHPFactory(
+        ipw.HTML,
+        defaults={
+            "layout": {
+                "width": "max-content",
+                "padding": "0px 10px 0px 15px",
+                "flex": "0 0 auto",
             },
-        )
+            "style": {"description_width": "initial"},
+            "description_allow_html": True,
+        },
     )
 
-    TextareaValidate = staticmethod(ihpwrap(menubox.widgets.TextareaValidate, defaults={"value": ""}))
-    ComboboxValidate = staticmethod(ihpwrap(menubox.widgets.ComboboxValidate, defaults={"value": ""}))
-    TextValidate = staticmethod(ihpwrap(menubox.widgets.TextValidate, defaults={"value": ""}))
-    FloatTextValidate = staticmethod(ihpwrap(menubox.widgets.FloatTextValidate, defaults={"value": 0}))
-    IntTextValidate = staticmethod(ihpwrap(menubox.widgets.IntTextValidate, defaults={"value": 0}))
-    SelectMultipleValidate = staticmethod(ihpwrap(menubox.widgets.SelectMultipleValidate, defaults={"value": ()}))
-    DropdownAdd = staticmethod(ihpwrap(menubox.widgets.DropdownAdd, defaults={"value": None}))
+    TextareaValidate = InstanceHPFactory(menubox.widgets.TextareaValidate, defaults={"value": ""})
+    ComboboxValidate = InstanceHPFactory(menubox.widgets.ComboboxValidate, defaults={"value": ""})
+    TextValidate = InstanceHPFactory(menubox.widgets.TextValidate, defaults={"value": ""})
+    FloatTextValidate = InstanceHPFactory(menubox.widgets.FloatTextValidate, defaults={"value": 0})
+    IntTextValidate = InstanceHPFactory(menubox.widgets.IntTextValidate, defaults={"value": 0})
+    SelectMultipleValidate = InstanceHPFactory(menubox.widgets.SelectMultipleValidate, defaults={"value": ()})
+    DropdownAdd = InstanceHPFactory(menubox.widgets.DropdownAdd, defaults={"value": None})
 
-    MarkdownOutput = staticmethod(ihpwrap(menubox.widgets.MarkdownOutput))
+    MarkdownOutput = InstanceHPFactory(menubox.widgets.MarkdownOutput)
 
     # menubox
 
-    Menubox = staticmethod(ihpwrap(cast("type[menubox.menubox.Menubox]", "menubox.menubox.Menubox")))
-    MenuboxVT = staticmethod(ihpwrap(cast("type[menubox.menuboxvt.MenuboxVT]", "menubox.menubox.MenuboxVT")))
+    Menubox = InstanceHPFactory(cast("type[menubox.menubox.Menubox]", "menubox.menubox.Menubox"))
+    MenuboxVT = InstanceHPFactory(cast("type[menubox.menuboxvt.MenuboxVT]", "menubox.menubox.MenuboxVT"))
 
     # ipylab
 
-    CodeEditor = staticmethod(ihpwrap(ipylab.CodeEditor))
-    SimpleOutput = staticmethod(ihpwrap(ipylab.SimpleOutput))
-    SplitPanel = staticmethod(ihpwrap(ipylab.SplitPanel))
+    CodeEditor = InstanceHPFactory(ipylab.CodeEditor)
+    SimpleOutput = InstanceHPFactory(ipylab.SimpleOutput)
+    SplitPanel = InstanceHPFactory(ipylab.SplitPanel)
 
     @staticmethod
     def AsyncRunButton(

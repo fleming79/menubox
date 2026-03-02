@@ -12,10 +12,10 @@ from traitlets import TraitError
 import menubox as mb
 from menubox.hashome import HasHome
 from menubox.hasparent import HasParent
-from menubox.instance import InstanceHP, instanceHP_wrapper
+from menubox.instance import InstanceHP, InstanceHPFactory
 from menubox.trait_factory import TF
 
-Dropdown = instanceHP_wrapper(ipw.Dropdown, defaults={"options": [1, 2, 3]})
+Dropdown = InstanceHPFactory(ipw.Dropdown, defaults={"options": [1, 2, 3]})
 
 
 class HPI(mb.Menubox):
