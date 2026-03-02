@@ -18,7 +18,7 @@ from menubox.css import CSScls, CSSvar
 from menubox.defaults import NO_VALUE
 from menubox.instance import IHPChange, IHPCreate, IHPMode, InstanceHP
 from menubox.instance import instanceHP_wrapper as ihpwrap
-from menubox.trait_types import MP, SS, GetWidgetsInputType, H, S, T, ViewDictType
+from menubox.trait_types import MP, SS, GetWidgetsInputType, H, S, S_co, T, ViewDictType
 
 __all__ = ["TF", "IHPCreate", "InstanceHP"]
 
@@ -81,6 +81,7 @@ class TF:
     H = H
     S = S
     T = T
+    S_co = S_co
     ipd = ipd
     ipw = ipw
     ipylab = ipylab
@@ -91,15 +92,15 @@ class TF:
     "An empty box that fills the space vertically."
 
     @staticmethod
-    def Str(default_value: str = "", /, *, co_: S | Any = None) -> InstanceHP[S, str]:
+    def Str(default_value: str = "", /, *, co_: S_co | Any = None) -> InstanceHP[S_co, str]:
         return InstanceHP(str, co_=co_).configure(IHPMode.X___, default_value=default_value)
 
     @staticmethod
-    def Bool(default_value: bool, /, *, co_: S | Any = None) -> InstanceHP[S, bool]:
+    def Bool(default_value: bool, /, *, co_: S_co | Any = None) -> InstanceHP[S_co, bool]:
         return InstanceHP(bool, lambda _: default_value, default_value=default_value, co_=co_).configure(IHPMode.X___)
 
     @staticmethod
-    def Int(default_value: int, /, *, co_: S | Any = None) -> InstanceHP[S, int]:
+    def Int(default_value: int, /, *, co_: S_co | Any = None) -> InstanceHP[S_co, int]:
         return InstanceHP(
             int,
             lambda _: default_value,
@@ -109,7 +110,7 @@ class TF:
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Float(default_value=math.nan, /, *, co_: S | Any = None) -> InstanceHP[S, float]:
+    def Float(default_value=math.nan, /, *, co_: S_co | Any = None) -> InstanceHP[S_co, float]:
         return InstanceHP(
             float,
             lambda _: default_value,
@@ -124,8 +125,8 @@ class TF:
         /,
         *,
         klass_: type[T] = tuple,  # noqa: ARG004
-        co_: S | Any = None,  # pyright: ignore[reportUnusedParameter]
-    ) -> InstanceHP[S, T]:
+        co_: S_co | Any = None,  # pyright: ignore[reportUnusedParameter]
+    ) -> InstanceHP[S_co, T]:
         def validate_tuple(owner, value):
             if isinstance(value, tuple):
                 return value
@@ -140,15 +141,15 @@ class TF:
         ).configure(IHPMode.X___)
 
     @staticmethod
-    def Set(*, klass_: type[T] = set, co_: S | Any = None) -> InstanceHP[S, T]:  # noqa: ARG004
+    def Set(*, klass_: type[T] = set, co_: S_co | Any = None) -> InstanceHP[S_co, T]:  # noqa: ARG004
         return InstanceHP(set, lambda _: set(), default_value=set(), co_=co_).configure(IHPMode.XL__)  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def Dict(
         default: Callable[[IHPCreate], dict] | None = None,
         klass_: type[T] = dict,  # noqa: ARG004
-        co_: S | Any = None,
-    ) -> InstanceHP[S, T]:
+        co_: S_co | Any = None,
+    ) -> InstanceHP[S_co, T]:
         "A dict type. Note: klass_ & co_ are only used for type hinting."
         return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XL__)  # pyright: ignore[reportReturnType]
 
@@ -156,13 +157,13 @@ class TF:
     def DictReadOnly(
         default: Callable[[IHPCreate], dict] | None = None,
         klass_: type[T] = dict,  # noqa: ARG004
-        co_: S | Any = None,
-    ) -> InstanceHP[S, T]:
+        co_: S_co | Any = None,
+    ) -> InstanceHP[S_co, T]:
         "A dict type. Note: klass_ & co_ are only used for type hinting."
         return InstanceHP(dict, default or (lambda _: {}), default_value={}, co_=co_).configure(IHPMode.XLR_)  # pyright: ignore[reportReturnType]
 
     @staticmethod
-    def use_enum(default_value: T, *, co_: S | Any = None) -> InstanceHP[S, T]:
+    def use_enum(default_value: T, *, co_: S_co | Any = None) -> InstanceHP[S_co, T]:
         klass = default_value.__class__
         return TF.InstanceHP(
             klass,
@@ -174,7 +175,9 @@ class TF:
     # Custom types
 
     @staticmethod
-    def ViewDict(co_: S | Any = None, value: ViewDictType[S] | None = None, /) -> InstanceHP[S, ViewDictType[S]]:
+    def ViewDict(
+        co_: S_co | Any = None, value: ViewDictType[S_co] | None = None, /
+    ) -> InstanceHP[S_co, ViewDictType[S_co]]:
         """
         A function to generate an InstanceHP trait.
 
@@ -259,11 +262,11 @@ class TF:
 
     @staticmethod
     def Button(
-        co_: S | Any = None,
+        co_: S_co | Any = None,
         css_class=CSScls.button_main,
         mode=ButtonMode.restart,
         **kwargs,
-    ) -> InstanceHP[S, ipw.Button]:
+    ) -> InstanceHP[S_co, ipw.Button]:
         "Kwargs are passed to the button init"
         return (
             InstanceHP(ipw.Button, co_=co_)
@@ -329,13 +332,13 @@ class TF:
 
     @staticmethod
     def AsyncRunButton(
-        co_: S,
+        co_: S_co,
         /,
-        cfunc: Callable[[S], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
+        cfunc: Callable[[S_co], Callable[..., CoroutineType] | menubox.async_run_button.AsyncRunButton],
         description="",
         icon="play",
         cancel_icon="stop",
-        kw: Callable[[S], dict] | None = None,
+        kw: Callable[[S_co], dict] | None = None,
         style: dict | None = None,
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
@@ -365,21 +368,21 @@ class TF:
 
     @staticmethod
     def Modalbox(
-        co_: S,
+        co_: S_co,
         /,
-        obj: Callable[[S], GetWidgetsInputType[S]],
+        obj: Callable[[S_co], GetWidgetsInputType[S_co]],
         title: str,
         expand=False,
-        box: Callable[[S], ipw.Box] | None = None,
+        box: Callable[[S_co], ipw.Box] | None = None,
         title_tooltip="",
         icon="",
         button_expand_description="",
         button_expand_tooltip="Expand",
         button_collapse_description="🗕",
         button_collapse_tooltip="Collapse",
-        header_children: Callable[[S], GetWidgetsInputType[S]] = lambda _: "H_FILL",
-        on_expand: Callable[[S], Any] = lambda _: None,
-        on_collapse: Callable[[S], Any] = lambda _: None,
+        header_children: Callable[[S_co], GetWidgetsInputType[S_co]] = lambda _: "H_FILL",
+        on_expand: Callable[[S_co], Any] = lambda _: None,
+        on_collapse: Callable[[S_co], Any] = lambda _: None,
         orientation="vertical",
         **kwargs,
     ):
