@@ -14,7 +14,7 @@ from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.menuboxvt import MenuboxVT
 from menubox.pack import deep_copy, load_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import MP, ChangeType, NameTuple, S, StrTuple, TypedTuple
+from menubox.trait_types import MP, ChangeType, NameTuple, S_co, StrTuple, TypedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
@@ -94,7 +94,7 @@ class MenuboxPersistMode(enum.Enum):
                 raise NotImplementedError
 
 
-class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
+class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     """
     Persistence of nested settings in yaml files plus persistence of dataframes using
     filesystem.
@@ -577,13 +577,13 @@ class MenuboxPersist(HasFilesystem, MenuboxVT, Generic[S]):
 
 
 @final
-class MenuboxPersistPool(HasFilesystem, MenuboxVT, Generic[S, MP]):
+class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
     """A Menubox that can load MenuboxPersist instances into the shell."""
 
     SINGLE_BY = ("klass", "filesystem")
     RENAMEABLE = False
-    pool = InstanceHPTuple(
-        MenuboxPersist,
+    pool: InstanceHPTuple[Self, MP] = InstanceHPTuple(
+        cast("type[MP]", MenuboxPersist),
         factory=lambda c: c["owner"].factory_pool(**c["kwgs"]),
         co_=cast("Self", 0),
     ).hooks(

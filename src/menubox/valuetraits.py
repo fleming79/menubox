@@ -16,7 +16,7 @@ from menubox.hasparent import HasParent
 from menubox.instance import InstanceHP
 from menubox.pack import json_default, to_yaml
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, Bunched, ChangeType, NameTuple, T
+from menubox.trait_types import Bunched, ChangeType, NameTuple, S_co, T
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator
@@ -43,7 +43,7 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
     info_text = "ValueTraits value"
     default_value = defaults.NO_VALUE
 
-    def set(self, obj: ValueTraits, value):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def set(self, obj: ValueTraits, value) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         try:
             if obj.vt_validating:
                 return
@@ -67,18 +67,17 @@ class _ValueTraitsValueTrait(TraitType[Callable[[], dict[str, Any]], str | dict[
             obj.vt_validating = False
 
 
-class _InstanceHPTupleRegister(HasParent):
+class _InstanceHPTupleRegister(HasParent["ValueTraits[Any]"]):
     """A simple register to track observer,name pairs."""
 
-    parent = TF.parent(klass=cast("type[ValueTraits]", "menubox.valuetraits.ValueTraits"))
     reg: InstanceHP[Self, set[tuple[HasTraits, str]]] = TF.Set().configure(TF.IHPMode.XLR_)
 
     @observe("reg")
-    def _observe_reg(self, change: ChangeType):
+    def _observe_reg(self, change: ChangeType) -> None:
         if parent := self.parent:
             parent._vt_observe_vt_reg_value(change)
 
-    def change_handler(self, change: ChangeType):
+    def change_handler(self, change: ChangeType) -> None:
         """"""
         if parent := self.parent:
             parent._vt_on_reg_tuples_change(change, self.name)
@@ -86,7 +85,7 @@ class _InstanceHPTupleRegister(HasParent):
             pass
 
 
-class ValueTraits(HasParent[RP], Generic[RP]):
+class ValueTraits(HasParent[S_co], Generic[S_co]):
     """
     ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.
@@ -184,12 +183,12 @@ class ValueTraits(HasParent[RP], Generic[RP]):
     def __init__(
         self,
         *,
-        parent: RP = None,  # pyright: ignore[reportInvalidTypeVarUse]
+        parent: S_co | None = None,
         value_traits: Collection[str] | None = None,
         value_traits_persist: Collection[str] | None = None,
         value: dict | Callable[[], dict] | None | str | bytes = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initializes the ValueTraits object.
 
@@ -251,7 +250,7 @@ class ValueTraits(HasParent[RP], Generic[RP]):
             self._DEFAULTS = self.to_yaml()
 
     @observe("closed")
-    def _vt_observe_closed(self, change: ChangeType):
+    def _vt_observe_closed(self, change: ChangeType) -> None:
         # Unobserve by clearing the registers
         self._ignore_change_cnt = self._ignore_change_cnt + 1
         for reg in self._vt_tuple_reg.values():
@@ -270,7 +269,7 @@ class ValueTraits(HasParent[RP], Generic[RP]):
         raise NotImplementedError(msg)
 
     @observe("_vt_reg_value_traits", "_vt_reg_value_traits_persist")
-    def _vt_observe_vt_reg_value(self, change: ChangeType):
+    def _vt_observe_vt_reg_value(self, change: ChangeType) -> None:
         """
         Reacts to changes in the registered value traits.
 
@@ -373,7 +372,7 @@ class ValueTraits(HasParent[RP], Generic[RP]):
                     msg = f"'{n}' is not a trait or attribute of {obj!r}"
                     raise TypeError(msg)
 
-    def _vt_update_reg_value_traits(self):
+    def _vt_update_reg_value_traits(self) -> None:
         pairs = set()
         if not self.closed:
             for dotname in self.value_traits:
@@ -381,7 +380,7 @@ class ValueTraits(HasParent[RP], Generic[RP]):
                     pairs.add(pair)
             self.set_trait("_vt_reg_value_traits", pairs)
 
-    def _vt_update_reg_value_traits_persist(self):
+    def _vt_update_reg_value_traits_persist(self) -> None:
         pairs: set[tuple[HasTraits, str]] = set()
         if not self.closed:
             for dotname in self.value_traits_persist:
@@ -389,7 +388,7 @@ class ValueTraits(HasParent[RP], Generic[RP]):
                     pairs.add(pair)
             self._vt_reg_value_traits_persist = pairs
 
-    def _vt_update_reg_tuples(self, tuplename: str):
+    def _vt_update_reg_tuples(self, tuplename: str) -> None:
         if update_item_names := self._InstanceHPTuple[tuplename]._hookmappings.get("update_item_names", ()):
             items = getattr(self, tuplename)
             pairs = set()
@@ -399,7 +398,7 @@ class ValueTraits(HasParent[RP], Generic[RP]):
                         pairs.add((owner, n))
             self._get_tuple_register(tuplename).set_trait("reg", pairs)
 
-    def _vt_value_traits_observe(self, change: ChangeType):
+    def _vt_value_traits_observe(self, change: ChangeType) -> None:
         if mb.DEBUG_ENABLED and self._prohibited_value_traits.intersection(change["new"]):
             msg = f"A prohibited value trait has been detected: {self._prohibited_value_traits.intersection(change['new'])}"
             raise RuntimeError(msg)
@@ -420,28 +419,28 @@ class ValueTraits(HasParent[RP], Generic[RP]):
                 if mb.DEBUG_ENABLED:
                     raise
 
-    def _vt_on_reg_value_traits_change(self, change: ChangeType):
+    def _vt_on_reg_value_traits_change(self, change: ChangeType) -> None:
         if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
             change["new"] is not change["old"]
         ):
             self._vt_update_reg_value_traits()
         self._vt_on_change(change)
 
-    def _vt_on_value_traits_persist_change(self, change: ChangeType):
+    def _vt_on_value_traits_persist_change(self, change: ChangeType) -> None:
         if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
             change["new"] is not change["old"]
         ):
             self._vt_update_reg_value_traits_persist()
         self._vt_on_change(change)
 
-    def _vt_on_reg_tuples_change(self, change, traitname):
+    def _vt_on_reg_tuples_change(self, change, traitname) -> None:
         if (isinstance(change["new"], HasTraits) or isinstance(change["old"], HasTraits)) and (
             change["new"] is not change["old"]
         ):
             self._vt_update_reg_tuples(traitname)
         self._vt_on_change(change)
 
-    def _vt_on_change(self, change: ChangeType):
+    def _vt_on_change(self, change: ChangeType) -> None:
         """
         Handles changes to the observed trait values.
 

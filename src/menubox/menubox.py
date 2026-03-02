@@ -21,7 +21,7 @@ from menubox.css import CSScls
 from menubox.defaults import H_FILL, NO_DEFAULT, V_FILL, NoCloseBox, _NoDefault
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF, ButtonMode
-from menubox.trait_types import RP, ChangeType, GetWidgetsInputType, NameTuple, ProposalType, StrTuple
+from menubox.trait_types import ChangeType, GetWidgetsInputType, NameTuple, ProposalType, S_co, StrTuple
 
 if TYPE_CHECKING:
     from ipylab.widgets import AddToShellType
@@ -51,7 +51,7 @@ class HTMLNoClose(ipw.HTML):
         return
 
 
-class Menubox(HasParent[RP], Panel, Generic[RP]):
+class Menubox(HasParent[S_co], Panel, Generic[S_co]):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
     MINIMIZED: Final = "Minimized"
@@ -266,9 +266,9 @@ class Menubox(HasParent[RP], Panel, Generic[RP]):
     def __init__(
         self,
         *,
-        parent: RP = None,
+        parent: S_co | None = None,
         view=NO_DEFAULT,
-        views: dict[str, GetWidgetsInputType[RP]] | None = None,
+        views: dict[str, GetWidgetsInputType[S_co]] | None = None,
         viewlist: Iterable[str] | None = None,
         tabviews: Iterable[str] | None = None,
         **kwargs,
@@ -436,7 +436,7 @@ class Menubox(HasParent[RP], Panel, Generic[RP]):
             b.tooltip = f"Current: {view}\nAvailable: {self.toggleviews}"
         return view
 
-    async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[RP]]:
+    async def get_center(self, view: str | None) -> tuple[str | None, GetWidgetsInputType[Any]]:
         """
         Override this function to make view loading dynamic.
 
@@ -851,7 +851,7 @@ class Menubox(HasParent[RP], Panel, Generic[RP]):
 
     def load_shuffle_item(
         self,
-        obj: GetWidgetsInputType[RP],
+        obj: GetWidgetsInputType[S_co],
         position: Literal["start", "end"] = "start",
         alt_name="",
         ensure_wrapped=False,

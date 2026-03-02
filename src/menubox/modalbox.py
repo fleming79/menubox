@@ -9,7 +9,7 @@ from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF
-from menubox.trait_types import ChangeType, GetWidgetsInputType, NameTuple, S
+from menubox.trait_types import ChangeType, GetWidgetsInputType, NameTuple, S_co
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 __all__ = ["Modalbox"]
 
 
-class Modalbox(HasParent, ipw.VBox, Generic[S]):
+class Modalbox(HasParent[S_co], ipw.VBox, Generic[S_co]):
     obj = traitlets.Callable(read_only=True)
     button_expand = TF.Button(cast("Self", 0), TF.CSScls.button_modal)
     button_collapse = TF.Button(cast("Self", 0), TF.CSScls.button_modal, disabled=True)
@@ -28,25 +28,25 @@ class Modalbox(HasParent, ipw.VBox, Generic[S]):
     header = TF.HBox(cast("Self", 0)).configure(TF.IHPMode.XLRN).hooks(add_css_class=CSScls.ModalboxHeader)
     _box_children = traitlets.Tuple()
     parent_dlink = NameTuple[Self](lambda p: (p.log,))
-    parent: InstanceHP[Any, S] = TF.parent()
+    parent: InstanceHP[Any, S_co] = TF.parent()  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
         *,
-        parent: S,
-        obj: Callable[[S], GetWidgetsInputType[S]],
+        parent: S_co,
+        obj: Callable[[S_co], GetWidgetsInputType[S_co]],
         title: str,
         expand=False,
-        box: Callable[[S], ipw.Box] | None = None,
+        box: Callable[[S_co], ipw.Box] | None = None,
         title_tooltip="",
         icon="",
         button_expand_description="",
         button_expand_tooltip="Expand",
         button_collapse_description="🗕",
         button_collapse_tooltip="Collapse",
-        header_children: Callable[[S], GetWidgetsInputType[S]] = lambda _: "H_FILL",
-        on_expand: Callable[[S], Any] = lambda _: None,
-        on_collapse: Callable[[S], Any] = lambda _: None,
+        header_children: Callable[[S_co], GetWidgetsInputType[S_co]] = lambda _: "H_FILL",
+        on_expand: Callable[[S_co], Any] = lambda _: None,
+        on_collapse: Callable[[S_co], Any] = lambda _: None,
         orientation="vertical",
         **kwargs,
     ) -> None:

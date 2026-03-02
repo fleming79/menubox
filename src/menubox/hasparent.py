@@ -20,7 +20,7 @@ from menubox import mb_async, utils
 from menubox.css import CSScls
 from menubox.mb_async import TaskType
 from menubox.trait_factory import TF
-from menubox.trait_types import RP, ChangeType, NameTuple, ProposalType, R, S, T, W
+from menubox.trait_types import ChangeType, NameTuple, ProposalType, R, S, S_co, T, W
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Hashable
@@ -51,7 +51,7 @@ def get_obj_value_tuple(obj: R, func: Callable[[R], Any], /) -> tuple[HasTraits,
     return obj, paths[-1]
 
 
-class HasParent(Singular, HasApp, Generic[RP]):
+class HasParent(Singular, HasApp, Generic[S_co]):
     """
     A base class for objects that have a parent and can manage links to other objects.
 
@@ -89,7 +89,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     parent_dlink = NameTuple()
     parent_link = NameTuple()
     name = TF.Str()
-    parent: InstanceHP[Any, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
+    parent: InstanceHP[Any, S_co | None] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
     tasks = TF.Set(klass_=cast("type[set[Pending[Any]]]", 0))
 
     def __repr__(self):
@@ -101,7 +101,7 @@ class HasParent(Singular, HasApp, Generic[RP]):
     def __await__(self) -> Generator[Any, None, Self]:
         return self.wait_tasks(TaskType.update_children, TaskType.init, timeout=10).__await__()
 
-    def __init__(self, *, parent: RP | None = None, **kwargs):
+    def __init__(self, *, parent: S_co | None = None, **kwargs):
         """
         Initialize the HasParent class.
 

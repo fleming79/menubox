@@ -11,7 +11,7 @@ from menubox import hasparent, mb_async, utils
 from menubox.css import CSScls
 from menubox.hasparent import HasParent
 from menubox.trait_factory import TF
-from menubox.trait_types import ChangeType, S
+from menubox.trait_types import ChangeType, S, S_co
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,9 +19,10 @@ if TYPE_CHECKING:
 
     from async_kernel import Pending
 
+    from menubox.instance import InstanceHP
 
 
-class AsyncRunButton(HasParent[S], ipw.Button, Generic[S]):
+class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
     """
     A button that runs the function in a singular task that can be cancelled by
     clicking the button again.
@@ -42,20 +43,21 @@ class AsyncRunButton(HasParent[S], ipw.Button, Generic[S]):
 
     _update_disabled = False
     task = TF.Pending()
+    parent: InstanceHP[Any, S_co] = TF.parent().configure(TF.IHPMode.X___)  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __new__(
         cls,
-        cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton],
-        parent: S,
+        cfunc: Callable[[S_co], Callable[..., CoroutineType] | AsyncRunButton],
+        parent: S_co,
         **kwargs,
     ):
         return super().__new__(cls, parent=parent, cfunc=cfunc, **kwargs)
 
     def __init__(
         self,
-        cfunc: Callable[[S], Callable[..., CoroutineType] | AsyncRunButton],
+        cfunc: Callable[[S_co], Callable[..., CoroutineType] | AsyncRunButton],
         *,
-        parent: S,
+        parent: S_co,
         description="",
         icon="play",
         cancel_icon="stop",
@@ -70,7 +72,7 @@ class AsyncRunButton(HasParent[S], ipw.Button, Generic[S]):
         if style is None:
             style = {}
         self._cfunc = cfunc
-        self._kw: Callable[[S], dict[Any, Any]] | Callable[..., dict[Any, Any]] = kw or (lambda _: {})
+        self._kw: Callable[[S_co], dict[Any, Any]] | Callable[..., dict[Any, Any]] = kw or (lambda _: {})
         self._icon = icon
         self._cancel_icon = cancel_icon
         self._style = style

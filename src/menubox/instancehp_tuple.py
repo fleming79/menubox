@@ -99,7 +99,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
         finally:
             self.validating = False
 
-    def __set_name__(self, owner: ValueTraits, name: str):
+    def __set_name__(self, owner: V, name: str):
         # Register this tuplename with owner (class)
         self.name = name
         d = dict(owner._InstanceHPTuple or {})
