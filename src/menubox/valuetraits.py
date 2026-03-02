@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, overload
 
 import orjson
 import ruamel.yaml
@@ -86,7 +86,7 @@ class _InstanceHPTupleRegister(HasParent):
             pass
 
 
-class ValueTraits(HasParent):
+class ValueTraits(HasParent[RP], Generic[RP]):
     """
     ValueTraits is a class that provides a way to manage and observe changes to
     a collection of traits, particularly those that represent values or settings.

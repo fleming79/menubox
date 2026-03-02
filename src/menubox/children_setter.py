@@ -90,14 +90,13 @@ class ChildrenSetter(ValueTraits):
         self._update()
 
 
-class WidgetWatcher(ValueTraits):
+class WidgetWatcher(ValueTraits[Menubox]):
     """
     Watches for visibility changes in the `widgets` dict calling `parent.mb_refresh` when a change is observed.
 
     Both `parent` and `widgets` should be set externally.
     """
 
-    parent: TF.InstanceHP[Any, Menubox] = TF.parent(Menubox)
     _AUTO_VALUE = False
     _prohibited_value_traits: ClassVar = set()
     widgets: TF.InstanceHP[Any, set[Widget]] = TF.Set()

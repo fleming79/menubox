@@ -19,10 +19,9 @@ if TYPE_CHECKING:
 
     from async_kernel import Pending
 
-    from menubox.instance import InstanceHP
 
 
-class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
+class AsyncRunButton(HasParent[S], ipw.Button, Generic[S]):
     """
     A button that runs the function in a singular task that can be cancelled by
     clicking the button again.
@@ -43,7 +42,6 @@ class AsyncRunButton(HasParent, ipw.Button, Generic[S]):
 
     _update_disabled = False
     task = TF.Pending()
-    parent: InstanceHP[Any, S] = TF.parent()
 
     def __new__(
         cls,

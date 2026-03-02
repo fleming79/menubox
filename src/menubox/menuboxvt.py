@@ -22,7 +22,7 @@ _template_folders: set[pathlib.Path] = set()
 __all__ = ["MenuboxVT"]
 
 
-class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
+class MenuboxVT(ValueTraits, Menubox[RP], Generic[RP]):
     """
     MenuboxVT Combines Menubox with ValueTraits and provides additional features such as templates,
     copy/paste settings, configuration view and description rendering.
@@ -43,7 +43,6 @@ class MenuboxVT(ValueTraits, Menubox, Generic[RP]):
         lambda p: (p._get_template_controls, p.button_configure, *Menubox.header_right_children)
     )
 
-    parent: TF.InstanceHP[Any, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     header = (
         TF.MenuboxHeader(cast("Self", 0))

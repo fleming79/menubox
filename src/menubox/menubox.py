@@ -51,7 +51,7 @@ class HTMLNoClose(ipw.HTML):
         return
 
 
-class Menubox(HasParent, Panel, Generic[RP]):
+class Menubox(HasParent[RP], Panel, Generic[RP]):
     """An all-purpose widget intended to be subclassed for building gui's."""
 
     MINIMIZED: Final = "Minimized"
@@ -62,8 +62,6 @@ class Menubox(HasParent, Panel, Generic[RP]):
     _mb_configured = False
     _Menubox_init_complete = False
     "A mapping to all center widgets including those that are hidden used by `WidgetWatcher`."
-
-    parent: TF.InstanceHP[Any, RP] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
 
     # Traits
     show_help = TF.Bool(False)
@@ -112,7 +110,7 @@ class Menubox(HasParent, Panel, Generic[RP]):
 
     loading_view: TF.InstanceHP[Any, str | _NoDefault | None] = TF.InstanceHP(
         str | defaults.NO_DEFAULT_TYPE,
-        default=lambda _: cast("str | defaults.NO_DEFAULT_TYPE", defaults.NO_DEFAULT),
+        default=lambda _: defaults.NO_DEFAULT,
         validate=lambda _, value: value,
     ).configure(TF.IHPMode.XLRN)
 
