@@ -92,28 +92,30 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
 
     It extends HasParent and incorporates features for handling nested traits,
     typed instance tuples, and change notifications.
+
     Key Features:
-    - Value Trait Management: Allows defining and observing changes to a set of
-        value traits, specified by dotted names (e.g., "a.b.c").  Changes to these
-        traits trigger the `on_change` method.
-    - Persistence: Supports a separate set of value traits that are persisted
-        (e.g., saved to a file).
-    - Typed Instance Tuples: Integrates with InstanceHPTuple to manage
-        collections of objects with specific types and observe changes within those
-        collections.
-    - Change Notifications: Provides a mechanism for handling change events,
-        including the ability to temporarily ignore changes and to propagate
-        changes to parent objects.
-    - Initialization: Ensures proper initialization of the object, including
-        setting up the home directory, parent object, and initial values.
-    - Data Loading and Conversion: Supports loading values from dictionaries,
-        YAML strings, and callables, and converting the object's state to
-        dictionaries, JSON, and YAML.
-    - Error Handling: Includes error handling for invalid trait names, data
-        loading errors, and change event errors.
-    - Utilities: Offers utility methods for getting and setting values,
-        converting the object to a dictionary, and generating JSON and YAML
-        representations.
+        - Value Trait Management: Allows defining and observing changes to a set of
+            value traits, specified by dotted names (e.g., "a.b.c").  Changes to these
+            traits trigger the `on_change` method.
+        - Persistence: Supports a separate set of value traits that are persisted
+            (e.g., saved to a file).
+        - Typed Instance Tuples: Integrates with InstanceHPTuple to manage
+            collections of objects with specific types and observe changes within those
+            collections.
+        - Change Notifications: Provides a mechanism for handling change events,
+            including the ability to temporarily ignore changes and to propagate
+            changes to parent objects.
+        - Initialization: Ensures proper initialization of the object, including
+            setting up the home directory, parent object, and initial values.
+        - Data Loading and Conversion: Supports loading values from dictionaries,
+            YAML strings, and callables, and converting the object's state to
+            dictionaries, JSON, and YAML.
+        - Error Handling: Includes error handling for invalid trait names, data
+            loading errors, and change event errors.
+        - Utilities: Offers utility methods for getting and setting values,
+            converting the object to a dictionary, and generating JSON and YAML
+            representations.
+
     The class uses traitlets for defining and observing traits, and it
     incorporates features for handling nested traits, typed instance tuples,
     and change notifications. It also provides a way to load values from
@@ -193,11 +195,11 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         Initializes the ValueTraits object.
 
         Args:
-            home (Home | str | None, optional): The home directory. Defaults to None.
-            parent (HasParent | None, optional): The parent object. Defaults to None.
-            value_traits (Collection[str] | None, optional): A collection of value trait names. Defaults to None.
-            value_traits_persist (Collection[str] | None, optional): A collection of value trait names that persist. Defaults to None.
-            value (dict | Callable[[], dict] | None | str, optional): The initial value, which can be a dictionary, a callable that returns a dictionary, a YAML string, or None (defaults to an empty dictionary).
+            home: The home directory. Defaults to None.
+            parent: The parent object. Defaults to None.
+            value_traits: A collection of value trait names. Defaults to None.
+            value_traits_persist: A collection of value trait names that persist. Defaults to None.
+            value: The initial value, which can be a dictionary, a callable that returns a dictionary, a YAML string, or None (defaults to an empty dictionary).
             **kwargs: Additional keyword arguments.
         """
 
@@ -277,16 +279,6 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         `_vt_reg_value_traits_persist` attributes, as well as changes originating
         from a `_TypedTupleRegister`. It then appropriately observes or unobserves
         the relevant objects based on the changes.
-        Args:
-            change (ChangeType): A dictionary describing the change that occurred.
-                It should contain keys like 'name' (the name of the attribute that
-                changed), 'old' (the old value of the attribute), 'new' (the new
-                value of the attribute), and 'owner' (the object that owns the
-                attribute).
-        Raises:
-            NotImplementedError: If the change event does not originate from
-                `_vt_reg_value_traits`, `_vt_reg_value_traits_persist`, or a
-                `_TypedTupleRegister`.
         """
         if self.closed:
             return
@@ -321,15 +313,7 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
             obj: The starting HasTraits object.
             dotname: The dotted trait name to observe (e.g., "a.b.c").
 
-        Yields:
-            tuple[HasTraits, str]: Pairs of (object, trait_name) to observe.  The object is a
-            HasTraits instance, and the trait_name is a string representing the name of a trait
-            on that object.
-
-        Raises:
-            TypeError: If a non-trait attribute is encountered in the dotname (except for the
-            first level) or if the attribute is not a HasTraits instance.
-            AttributeError: If an attribute in the dotname does not exist and the object is not a Bunched instance.
+        Yields: tuple[HasTraits, str]: Pairs of (object, trait_name) to observe.
         """
         parts = dotname.split(".")
         segments = len(parts)
@@ -491,8 +475,10 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         """
         Append names to value_traits.
 
-        delay: if it is not None, it will be called with a delay.
-            a delay = 0 is equivalent to `mb_async.call_soon`.
+        Args:
+            *names: The dotted names of `value_traits` to add.
+            delay: if it is not None, it will be called with a delay.
+                a delay = 0 is equivalent to `mb_async.call_soon`.
         """
         if delay is not None:
             mb_async.run_async({"obj": self, "delay": delay}, self.add_value_traits, *names)
@@ -501,16 +487,30 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
 
     def drop_value_traits(self, *names: str):
         """
-        Remove to value_traits.
+        Stop monitoring one or more `value_traits`.
 
-        value_traits are used for notifications. Dotted paths are permitted.
+        Args:
+            *names: The dotted names of `value_traits` to add.
         """
         self.set_trait("value_traits", (v for v in self.value_traits if v not in names))
 
     def load_value(
         self,
         data: Literal[defaults._NoValue.token] | dict | Callable[[], dict] | pathlib.Path | str,
-    ):
+    ) -> None:
+        """
+        Load settings into the instance.
+
+        Multiple formats are supported including:
+
+        - dict
+        - yaml
+        -json
+        - Path (to a settings file)
+
+        Args:
+            data: The data to load.
+        """
         if data is not defaults.NO_VALUE and data:
             while callable(data):
                 data = data()
@@ -528,16 +528,22 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
                 on_error=self.on_error,
             )
 
-    def get_value(self, dotname: str, default=None) -> Any:
+    def get_value(self, dotname: str, default=None, hastrait_value=True) -> Any:
         """
-        Gets value by dotted name.
+        Gets value by dotted name using `utils.getattr_nested`.
+
+        Args:
+            dotname: The dotted name of a value to obtain.
+            default: A default to use if the value is not available.
+            hastrait_value: If `dotname` points to a HasTraits instance which has a trait 'value', it will return the value instead of the instance
+            .
 
         If dottedname points to a HasTraits object with a value, the value will be
         returned. Uses utils.getattr_nested.
 
         (Callables will be evaluated).
         """
-        return utils.getattr_nested(self, dotname, default=default)
+        return utils.getattr_nested(self, dotname, default=default, hastrait_value=hastrait_value)
 
     @staticmethod
     def getattr(obj, name, default=defaults.NO_VALUE):
@@ -590,12 +596,11 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         Convert the object to a JSON string.
 
         Args:
-            names (Optional[Iterable[str]]): An optional list of dottednames to include in the JSON instead of thosed listed in the property `value_traits_persist`.
-            option (int): orjson options.
-            decode (bool): If True, decode the JSON string to a string. Defaults to True.
+            names: An optional list of dottednames to include in the JSON instead of thosed listed in the property `value_traits_persist`.
+            option: orjson options.
+            decode: If True, decode the JSON string to a string. Defaults to True.
 
-        Returns:
-            str | bytes: A JSON string representation of the object.
+        Returns: A JSON string representation of the object.
         """
         try:
             data = self.to_dict(names, hastrait_value=True)
@@ -624,9 +629,11 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         Convert settings to yaml.
 
         Args:
-            names (Optional[Iterable[str]]): An optional list of dottednames to include in the JSON instead of thosed listed in `value_traits_persist`.
+            names: An optional list of dottednames to include in the JSON instead of thosed listed in `value_traits_persist`.
             fs: fsspec filesystem
             path: When fs and path are provided the yaml is written to the file in the fs at path.
+
+        Returns: A yaml string if fs is provide and path not provided.
         """
         return to_yaml(self.to_dict(names=names), walkstring=True, path=path, fs=fs)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
@@ -670,14 +677,12 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         to the tuple trait if specified.
 
         Args:
-            tuplename (str): The name of the tuple trait.
-            add (bool, optional): Whether to add the new object to the tuple.
-            Defaults to True.
+            tuplename: The name of the tuple trait.
+            add: Whether to add the new object to the tuple.
             **kwds: Keyword arguments to pass to the object's constructor.
-            Can include 'index' to specify the index of the object.
+                Can include 'index' to specify the index of the object.
 
-        Returns:
-            The object associated with the `TypedInstaneTuple` tuple trait.
+        Returns: The object associated with the `TypedInstaneTuple` tuple trait.
         """
         tuplename = utils.parse_object_name(tuplename)
         if not (ihp_tuple := self._InstanceHPTuple.get(tuplename)):
