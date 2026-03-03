@@ -75,6 +75,7 @@ class MenuboxPersistMode(enum.Enum):
             ValueError: If the version is less than 1 when required by the mode.
             NotImplementedError: If an unsupported persistence mode is provided.
         """
+        mode = MenuboxPersistMode(mode)
         match mode:
             case MenuboxPersistMode.by_classname:
                 return f"{root}/{classname}".lower()
@@ -376,7 +377,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
         """
         datasets = set()
         ptn = filesystem.to_path(cls._get_persist_name("*", "[1-9]*"))
-        strip_version = cls.PERSIST_MODE.value >= MenuboxPersistMode.by_classname_version.value
+        strip_version = "version" in cls.PERSIST_MODE.name
         for f in await mb_async.to_thread(filesystem.fs.glob, ptn):
             name = utils.stem(f)  # pyright: ignore[reportArgumentType]
             datasets.add(name.rsplit("_v", maxsplit=1)[0] if strip_version else name)
@@ -587,7 +588,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
         factory=lambda c: c["owner"].factory_pool(**c["kwgs"]),
         co_=cast("Self", 0),
     ).hooks(
-        update_item_names=("name", "versions"),
+        update_item_names=("name", "versions", "saved_timestamp"),
         set_parent=True,
         close_on_remove=False,
     )
@@ -616,6 +617,11 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
     box_center = None
     header_children = NameTuple()
     views = TF.ViewDict(cast("Self", 0), {"Main": lambda p: p.box_main})
+
+    @override
+    def on_change(self, change: ChangeType) -> None:
+        super().on_change(change)
+        self.update_names()
 
     @override
     @classmethod
@@ -662,9 +668,14 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
 
     @override
     async def activate(self, *, add_to_shell=True, **kwgs):
-        result = await self.show_in_dialog(kwgs.get("title") or self.get_title_label())
-        if result["value"] is False:
-            raise anyio.get_cancelled_exc_class()
+        if self.klass.PERSIST_MODE in [
+            MenuboxPersistMode.by_classname_name,
+            MenuboxPersistMode.by_classname_name_version,
+        ]:
+            result = await self.show_in_dialog(kwgs.get("title") or self.get_title_label())
+            if result["value"] is False:
+                raise anyio.get_cancelled_exc_class()
         obj = self.get_obj(self.obj_name.value)
         self.obj_name.value = ""
+        self.update_names()
         return await obj.activate(add_to_shell=add_to_shell)
