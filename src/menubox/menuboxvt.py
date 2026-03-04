@@ -85,13 +85,8 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
             validate=c["owner"]._validate_name,
             description="Name",
             continuous_update=False,
-            layout={
-                "width": "auto",
-                "flex": "1 0 auto",
-                "min_width": "100px",
-                "max_width": "600px",
-            },
-            style={"description_width": "initial"},
+            layout={"width": "auto"},
+            style={"description_width": "80px"},
         ),
         co_=cast("Self", 0),
     ).hooks(
@@ -105,7 +100,12 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
         ),
     )
     description_preview_label = TF.HTML(cast("Self", 0), value="<b>Description preview</b>")
-    description = TF.CodeEditor(cast("Self", 0), description="Description", mime_type="text/x-markdown")
+    description = TF.CodeEditor(
+        cast("Self", 0),
+        description="Description",
+        mime_type="text/x-markdown",
+        style={"description_width": "80px"},
+    )
     description_viewer = TF.InstanceHP(
         MarkdownOutput,
         default=lambda c: MarkdownOutput(
