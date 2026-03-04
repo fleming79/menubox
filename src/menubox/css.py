@@ -185,9 +185,11 @@ STYLESHEET = f"""
     flex: 0 1 auto;
     flex-flow: row wrap;}}
 .{CSScls.Menubox_item}.{CSScls.box_shuffle} {{
-    flex-flow: row wrap;
-    border: {CSSvar.menubox_border};
-    max-width:100%;
+    flex: 1 1 auto;
+    flex-flow: column;
+    border: var({CSSvar.menubox_border});
+    margin: 5px;
+    padding: 5px;
     height: auto;}}
 
 .{CSScls.Menubox}.{CSScls.wrapper} {{

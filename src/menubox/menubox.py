@@ -185,7 +185,18 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
     )
 
     # Boxes
-    box_shuffle = TF.MenuboxShuffle(cast("Self", 0)).configure(TF.IHPMode.XL__)
+    box_shuffle = (
+        TF.MenuboxShuffle(cast("Self", 0))
+        .configure(TF.IHPMode.XL__)
+        .hooks(
+            on_set=lambda p, _: p.dlink(
+                source=lambda p: p.box_shuffle.children,
+                target=lambda p: p.box_shuffle.layout.visibility,
+                transform=utils.to_visibility,
+            )
+        )
+    )
+
     box_menu = TF.MenuboxMenu(cast("Self", 0)).configure(TF.IHPMode.X__N)
     showbox = (
         TF.InstanceHP(ipw.Box, co_=cast("Self", 0))
