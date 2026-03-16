@@ -179,18 +179,16 @@ STYLESHEET = f"""
     height: max-content;
     border-bottom: var({CSSvar.menubox_border});}}
 .{CSScls.Menubox_item}.{CSScls.centerbox} {{
-    flex: 1 0 auto;
     height: auto;}}
 .{CSScls.Menubox_item}.{CSScls.box_menu} {{
     flex: 0 1 auto;
     flex-flow: row wrap;}}
 .{CSScls.Menubox_item}.{CSScls.box_shuffle} {{
-    flex: 1 1 auto;
-    flex-flow: column;
+    flex: 1 0 auto;
+    height: max-content;
     border: var({CSSvar.menubox_border});
     margin: 5px;
-    padding: 5px;
-    height: auto;}}
+    padding: 5px;}}
 
 .{CSScls.Menubox}.{CSScls.wrapper} {{
     border: var({CSSvar.menubox_vt_border});
