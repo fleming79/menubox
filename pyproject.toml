@@ -36,7 +36,7 @@ dependencies = [
   "aiologic>=0.15.0",
    "anyio",
   "async-kernel>=0.13.2,<0.14",
-  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.13/ipylab-2.0.13-py3-none-any.whl#sha256:a9b4eccfdb68b925409350e2c2c7f7559e4f27d26b3db37b810fa61eab18888b"
+  "ipylab @ https://github.com/fleming79/ipylab/releases/download/v2.0.14/ipylab-2.0.13-py3-none-any.whl#sha256:91cdcd8fb8d5a713f7718896d27964e47c7bb0159eb1935ee1bbb8f15dfef43a"
 ]
 [dependency-groups]
 dev =[
