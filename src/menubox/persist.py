@@ -3,9 +3,9 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING, ClassVar, Generic, Self, cast, final, override
 
-import anyio
 import ipywidgets as ipw
 import pandas as pd
+from async_kernel.pending import PendingCancelled
 
 from menubox import mb_async, pack, utils
 from menubox.filesystem import HasFilesystem
@@ -674,7 +674,8 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
         ]:
             result = await self.show_in_dialog(kwgs.get("title") or self.get_title_label())
             if result["value"] is False:
-                raise anyio.get_cancelled_exc_class()
+                msg = "Cancelled by user."
+                raise PendingCancelled(msg)
         obj = self.get_obj(self.obj_name.value)
         self.obj_name.value = ""
         self.update_names()
