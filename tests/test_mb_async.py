@@ -32,20 +32,20 @@ class TestRunAsync:
         assert mb.mb_async.singular_tasks.get("my key") is None
 
     async def test_run_async_restart(self):
-        fut1 = run_async({"key": async_function}, async_function, 3, 0.1)
-        fut2 = run_async({"key": async_function}, async_function, 4)
-        assert fut1.cancelled()
-        assert fut1 is not fut2
-        assert await fut2 == 4
-        assert fut1.done()
+        pen_1 = run_async({"key": async_function}, async_function, 3, 0.1)
+        pen_2 = run_async({"key": async_function}, async_function, 4)
+        assert pen_1.cancelled()
+        assert pen_1 is not pen_2
+        assert await pen_2 == 4
+        assert pen_1.done()
         with pytest.raises(PendingCancelled):
-            fut1.exception()
+            pen_1.exception()
 
     async def test_run_async_no_restart(self):
-        task1 = run_async({"key": async_function, "restart": False}, async_function, 5, 0.1)
-        task2 = run_async({"key": async_function, "restart": False}, async_function, 6)
-        assert task1 is task2
-        assert (await task1) == 5
+        pen_1 = run_async({"key": async_function, "restart": False}, async_function, 5, 0.1)
+        pen_2 = run_async({"key": async_function, "restart": False}, async_function, 6)
+        assert pen_1 is pen_2
+        assert (await pen_1) == 5
 
     async def test_run_async_timeout(self):
         with pytest.raises(TimeoutError):
@@ -100,13 +100,12 @@ class MBRunAsyncSingular(HasParent):
 class TestSingularTaskDecorator:
     async def test_singular_task_decorator(self):
         obj = MBRunAsyncSingular()
-        fut1 = obj.async_singular_function(1)
-        fut2 = obj.async_singular_function(2)
-        assert fut1 is not fut2
-        assert not fut1.done()
-        assert not fut2.done()
-        assert (await fut2) == ((2,), {}), "Task restarts by default"
-        assert fut1.cancelled()
+        pen_1 = obj.async_singular_function(1)
+        pen_2 = obj.async_singular_function(2)
+        assert pen_1 is not pen_2
+        assert not pen_2.done()
+        assert (await pen_2) == ((2,), {}), "Task restarts by default"
+        assert pen_1.cancelled()
         task4 = obj.async_singular_function(a=3)
         assert (await task4) == ((), {"a": 3}), "Pass keyword argument"
         obj.close()
@@ -114,10 +113,10 @@ class TestSingularTaskDecorator:
 
     async def test_singular_task_decorator_restart_false_default(self):
         obj = MBRunAsyncSingular()
-        fut1 = obj.async_singular_function_restart_false(1)
-        fut2 = obj.async_singular_function_restart_false(2)
-        assert fut1 is fut2
-        assert (await fut1) == ((1,), {})
+        pen_1 = obj.async_singular_function_restart_false(1)
+        pen_2 = obj.async_singular_function_restart_false(2)
+        assert pen_1 is pen_2
+        assert (await pen_1) == ((1,), {})
         obj.close()
         await obj.wait_tasks()
 

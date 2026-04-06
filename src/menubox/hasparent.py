@@ -199,7 +199,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
 
     @traitlets.observe("closed")
     def _observe_hasparent_closed(self, _):
-        for pen in self.tasks:
+        for pen in self.tasks.copy():
             pen.cancel(f"{self} is closed!")
         for inst in self._InstanceHP.values():
             inst._on_obj_close(self)
@@ -577,7 +577,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
             current = Caller.current_pending()
             if tasks := [
                 pen
-                for pen in self.tasks
+                for pen in self.tasks.copy()
                 if pen is not current and pen.metadata.get("tasktype", TaskType.general) in tasktypes_
             ]:
                 await Caller().wait(tasks, timeout=timeout)

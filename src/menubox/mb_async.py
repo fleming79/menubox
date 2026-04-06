@@ -83,7 +83,7 @@ class RunAsyncOptions(TypedDict):
 
 
 def _on_done_callback(pen: Pending):
-    if (key := pen.metadata.get("key")) and singular_tasks[key] is pen:
+    if (key := pen.metadata.get("key")) and singular_tasks.get(key) is pen:
         singular_tasks.pop(key)
     if obj := get_obj_using_metadata(pen.metadata):
         obj.tasks.discard(pen)
