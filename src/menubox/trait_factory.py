@@ -5,6 +5,7 @@ import math
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import ipylab
+import ipylab.widgets
 import ipywidgets as ipw
 import traitlets
 from async_kernel.common import Fixed, import_item
@@ -325,6 +326,7 @@ class TF:
     CodeEditor = InstanceHPFactory(ipylab.CodeEditor)
     SimpleOutput = InstanceHPFactory(ipylab.SimpleOutput)
     SplitPanel = InstanceHPFactory(ipylab.SplitPanel)
+    AutoScroll = InstanceHPFactory(ipylab.simple_output.AutoScroll)
 
     @staticmethod
     def AsyncRunButton(
