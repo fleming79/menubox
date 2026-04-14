@@ -168,7 +168,7 @@ def trait_event(
     if check_current and predicate(getattr(obj, name)):
         event.set()
     if not event:
-        mb.utils.observe_until(obj, name, lambda _: event.set(), predicate)  # pyright: ignore[reportArgumentType]
+        observe_until(obj, name, lambda _: event.set(), predicate)  # pyright: ignore[reportArgumentType]
     return event
 
 
