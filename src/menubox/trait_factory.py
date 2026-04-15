@@ -290,7 +290,7 @@ class TF:
 
     MenuboxCenter = InstanceHPFactory(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.centerbox))
     MenuboxMenu = InstanceHPFactory(ipw.HBox, add_css_class=(CSScls.Menubox_item, CSScls.box_menu))
-    MenuboxShuffle = InstanceHPFactory(ipw.VBox, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle))
+    MenuboxShuffle = InstanceHPFactory(ipw.Box, add_css_class=(CSScls.Menubox_item, CSScls.box_shuffle))
 
     # Ipywidget String
     HTML_Title = InstanceHPFactory(

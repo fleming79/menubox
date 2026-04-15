@@ -40,6 +40,8 @@ class CSSvar(enum.StrEnum):
 
     menubox_border = f"{V_PREFIX}-Menubox-border"
     menubox_vt_border = f"{V_PREFIX}-MenuboxVT-border"
+    padding = f"{V_PREFIX}-MenuboxVT-padding"
+    margin = f"{V_PREFIX}-MenuboxVT-margin"
 
 
 class CSScls(enum.StrEnum):
@@ -112,6 +114,8 @@ VARIABLES = {
     CSSvar.button_active_view_border: "solid 2px var(--jp-border-color1)",
     CSSvar.menubox_border: "solid 1px var(--jp-border-color3)",
     CSSvar.menubox_vt_border: "solid 1px var(--jp-border-color2)",
+    CSSvar.padding: "5px",
+    CSSvar.margin: "5px",
 }
 
 STYLESHEET = f"""
@@ -170,32 +174,37 @@ STYLESHEET = f"""
 
 /* Boxes */
 .{CSScls.Menubox} {{
-    border: var({CSSvar.menubox_border});}}
+    border: var({CSSvar.menubox_border});
+    max-width: 100%;}}
 .{CSScls.Menubox}.horizontal {{
     flex-flow: row wrap;}}
 .{CSScls.Menubox_item}.{CSScls.box_header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
     height: max-content;
-    border-bottom: var({CSSvar.menubox_border});}}
+    border-bottom: var({CSSvar.menubox_border});
+    }}
 .{CSScls.Menubox_item}.{CSScls.centerbox} {{
     height: auto;}}
 .{CSScls.Menubox_item}.{CSScls.box_menu} {{
     flex: 0 1 auto;
     flex-flow: row wrap;}}
 .{CSScls.Menubox_item}.{CSScls.box_shuffle} {{
-    flex: 1 1 auto;
-    height: max-content;
+    flex: 1 0 auto;
+    flex-flow: column wrap;
     border: var({CSSvar.menubox_border});
-    margin: 5px;
-    padding: 5px;}}
+    margin: var({CSSvar.margin});
+    padding: var({CSSvar.padding});
+    max-width: calc(100% - var({CSSvar.margin}) * 2);}}
 
 .{CSScls.Menubox}.{CSScls.wrapper} {{
     border: var({CSSvar.menubox_vt_border});
-    margin: 5px 5px 5px 5px;}}
+    margin: var({CSSvar.margin});}}
 
 .{CSScls.MenuboxVT} {{
-    border: var({CSSvar.menubox_vt_border});}}
+    border: var({CSSvar.menubox_vt_border});
+    margin: var({CSSvar.margin});
+    max-width: calc(100% - var({CSSvar.margin}) * 2);}}
 .{CSScls.MenuboxVT_item}.{CSScls.box_header} {{
     flex: 0 0 auto;
     flex-flow: row wrap;
@@ -211,8 +220,9 @@ STYLESHEET = f"""
     border: var({CSSvar.menubox_border});}}
 .{CSScls.nested_borderbox} {{
     flex: 0 0 auto;
-    margin: 5px;
-    padding: 0px;
+    margin: var({CSSvar.margin});
+    padding: var({CSSvar.margin});
+    max-width: calc(100% - var({CSSvar.margin}) * 2)}};
     border: var({CSSvar.menubox_border});}}
 """
 
