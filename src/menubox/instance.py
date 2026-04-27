@@ -645,7 +645,6 @@ class InstanceHPFactory(Generic[P, T]):
             /,
             *,
             defaults: None | dict[str, Any] = None,
-            strategy=Strategy.REPLACE,
             tags: None | dict[str, Any] = None,
             **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
         ) -> Callable[Concatenate[SS, P], InstanceHP[SS, T]]: ...
@@ -656,7 +655,6 @@ class InstanceHPFactory(Generic[P, T]):
         /,
         *,
         defaults: None | dict[str, Any] = None,
-        strategy=Strategy.REPLACE,
         tags: None | dict[str, Any] = None,
         **hooks: Unpack[IHPHookMappings[mhp.HasParent, T]],
     ) -> None:
@@ -664,8 +662,6 @@ class InstanceHPFactory(Generic[P, T]):
         Args:
             klass: The class or a string representation of the class to be instantiated by the InstanceHP trait.
             defaults: A dictionary of default keyword arguments to be passed to the class constructor.
-            strategy: The merging strategy to use when combining defaults with instance-specific keyword arguments.
-                      Defaults to Strategy.REPLACE.
             tags: A dictionary of tags to be applied to the InstanceHP trait.
             **hooks: Additional keyword arguments to be passed to the InstanceHP trait's configure method.
         Returns:
