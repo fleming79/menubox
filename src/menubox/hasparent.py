@@ -80,6 +80,9 @@ class HasParent(Singular, HasApp, Generic[S_co]):
     _keep_alive: ClassVar[bool] = False
     _single_by: ClassVar[tuple[str, ...] | None] = None
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
+    _forevername: ClassVar[str] = ""
+    _forever_classes: ClassVar[dict[str, type[Self]]] = {}
+
     _HasParent_init_complete = False
     _prohibited_parent_links: ClassVar[set[str]] = {"home"}
     _hp_reg_parent_link = TF.Set(klass_=cast("type[set[Link]]", 0))
@@ -146,6 +149,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         single_by: tuple = (),
         keep_alive=False,
         prohibited_parent_links: tuple[str, ...] = (),
+        forevername: str = "",
         **kwargs,
     ) -> None:
         if "name" in single_by:
@@ -156,6 +160,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         cls._single_by = single_by
         cls._renameable = True if renameable is NoValue else renameable
         cls._keep_alive = keep_alive
+        cls._forevername = forevername
         if prohibited_parent_links:
             if "home" not in prohibited_parent_links:
                 msg = "'home' must be included in prohibited_parent_links"

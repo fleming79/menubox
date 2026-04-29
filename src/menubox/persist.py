@@ -666,7 +666,7 @@ class MenuboxPersistPool(
             return
         self.klass = klass
         self._factory = factory
-        self.name = name or getattr(klass, "class_forevername", klass.__name__)
+        self.name = name or klass._forevername
         super().__init__(**kwgs)
 
     @override
