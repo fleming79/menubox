@@ -80,7 +80,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
     _keep_alive: ClassVar[bool] = False
     _single_by: ClassVar[tuple[str, ...] | None] = None
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
-    _forevername: ClassVar[str] = ""
+    class_forevername: ClassVar[str] = ""
     _forever_classes: ClassVar[dict[str, type[Self]]] = {}
 
     _HasParent_init_complete = False
@@ -157,17 +157,17 @@ class HasParent(Singular, HasApp, Generic[S_co]):
                 msg = "When 'single_by' includes 'name' it must can not renameable!"
                 raise RuntimeError(msg)
             renameable = False
+        super().__init_subclass__(**kwargs)
         cls._single_by = single_by
         cls._renameable = True if renameable is NoValue else renameable
         cls._keep_alive = keep_alive
-        cls._forevername = forevername
+        cls.class_forevername = forevername
         if prohibited_parent_links:
             if "home" not in prohibited_parent_links:
                 msg = "'home' must be included in prohibited_parent_links"
                 raise RuntimeError(msg)
             cls._prohibited_parent_links = set(prohibited_parent_links)
         cls._cls_update_InstanceHP_register()
-        super().__init_subclass__(**kwargs)
 
     @classmethod
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003

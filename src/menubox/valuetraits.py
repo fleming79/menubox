@@ -187,12 +187,12 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
                     "in the class definition."
                 )
                 raise RuntimeError(msg)
+        super().__init_subclass__(**kwargs)
         cls._InstanceHPTuple = tn_
         cls._auto_value = auto_value
         cls._stash_defaults = stash_defaults
         if prohibited_value_traits:
             cls._prohibited_value_traits = set(prohibited_value_traits)
-        super().__init_subclass__(**kwargs)
 
     def __init__(
         self,

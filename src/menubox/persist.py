@@ -134,7 +134,7 @@ class MenuboxPersist(
     _extn: str
     _autoload: ClassVar[bool]
     _ask_save: ClassVar[bool] = True
-    _persist_mode: ClassVar = cast("MenuboxPersistMode", MenuboxPersistMode.by_classname_name)
+    _persist_mode: ClassVar[MenuboxPersistMode]
     _mbp_async_init_complete = False
 
     title_description = TF.Str("<b>{self._fancy_name}&emsp;{self.name.replace('_',' ').capitalize()}")
@@ -213,16 +213,18 @@ class MenuboxPersist(
         autoload: bool = True,
         extn: str = ".yaml",
         persist_foldername: str = "settings",
+        persist_mode=MenuboxPersistMode.by_classname_name,
         ask_save: bool = True,
         default_view=None,
         renameable=False,
         **kwargs,
     ) -> None:
+        super().__init_subclass__(default_view=default_view, renameable=renameable, **kwargs)
+        cls._persist_mode = persist_mode
         cls._autoload = autoload
         cls._extn = extn
         cls._persist_foldername = persist_foldername
         cls._ask_save = ask_save
-        super().__init_subclass__(default_view=default_view, renameable=renameable, **kwargs)
 
     @classmethod
     def validate_name(cls, name: str) -> str:
@@ -666,7 +668,7 @@ class MenuboxPersistPool(
             return
         self.klass = klass
         self._factory = factory
-        self.name = name or klass._forevername
+        self.name = name or klass.class_forevername
         super().__init__(**kwgs)
 
     @override

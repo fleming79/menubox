@@ -170,9 +170,9 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
                     f"Current mro: {smo}"
                 )
                 raise TypeError(msg)
+        super().__init_subclass__(**kwgs)
         cls._fancy_name = fancy_name or cls.__qualname__
         cls._show_template_controls = show_template_controls
-        super().__init_subclass__(**kwgs)
 
     def _get_template_controls(self):
         if self._show_template_controls:

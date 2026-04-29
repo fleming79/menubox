@@ -275,8 +275,8 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         return V_FILL
 
     def __init_subclass__(cls, default_view=None, **kwargs):
-        cls._default_view = default_view
         super().__init_subclass__(**kwargs)
+        cls._default_view = default_view
 
     def __init__(
         self,
