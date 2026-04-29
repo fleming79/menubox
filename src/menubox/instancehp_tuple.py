@@ -16,7 +16,7 @@ from typing import (
 
 from ipywidgets import Widget
 from mergedeep import Strategy, merge
-from traitlets import TraitType
+from traitlets.traitlets import TraitType
 
 import menubox as mb
 from menubox import defaults, utils

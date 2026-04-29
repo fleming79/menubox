@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
-import traitlets
+from traitlets import traitlets
 
 from menubox import Menubox, TaskType, debounce, utils
 from menubox.trait_factory import TF

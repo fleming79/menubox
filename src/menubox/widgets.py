@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any
 
 import ipylab
 import ipywidgets as ipw
-import traitlets
 from IPython import display as ipd
+from traitlets import traitlets
 
 import menubox
 from menubox import defaults, mb_async

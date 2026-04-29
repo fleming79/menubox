@@ -2,8 +2,8 @@ from typing import Self, cast, override
 
 import ipywidgets as ipw
 import pytest
-import traitlets
-from traitlets import Instance
+from traitlets import traitlets
+from traitlets.traitlets import Instance
 
 import menubox as mb
 import menubox.trait_types as tt

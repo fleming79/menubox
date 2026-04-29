@@ -1,5 +1,5 @@
 import pytest
-import traitlets
+from traitlets import traitlets
 
 from menubox.filesystem import DefaultFilesystem, Filesystem
 from menubox.hashome import HasHome, Home

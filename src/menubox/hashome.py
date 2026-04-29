@@ -4,9 +4,9 @@ import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import anyio
-import traitlets
 from async_kernel.common import Fixed, import_item
 from ipylab.common import Singular
+from traitlets import traitlets
 
 from menubox.hasparent import HasParent
 

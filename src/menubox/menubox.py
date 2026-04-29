@@ -10,10 +10,10 @@ from typing import TYPE_CHECKING, Any, ClassVar, Final, Generic, Literal, Self, 
 
 import docstring_to_markdown
 import ipylab.widgets
-import traitlets
 from aiologic import Event
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
+from traitlets import traitlets
 
 import menubox as mb
 from menubox import defaults, mb_async, utils

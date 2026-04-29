@@ -7,7 +7,7 @@ from typing import Self, cast
 import anyio
 import ipywidgets as ipw
 import pytest
-from traitlets import TraitError
+from traitlets.traitlets import TraitError
 
 import menubox as mb
 from menubox.hashome import HasHome

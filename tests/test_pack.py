@@ -1,7 +1,7 @@
 from typing import Self
 
 import ipywidgets as ipw
-import traitlets
+from traitlets import traitlets
 
 import menubox as mb
 from menubox.pack import deep_copy, to_dict, to_yaml, to_yaml_dict

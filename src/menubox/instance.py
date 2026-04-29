@@ -24,10 +24,10 @@ from typing import (
     override,
 )
 
-import traitlets
 from async_kernel.common import import_item
 from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
+from traitlets import traitlets
 from wrapt import lazy_import
 
 import menubox as mb

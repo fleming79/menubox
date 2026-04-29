@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, o
 
 import orjson
 import ruamel.yaml
-from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
+from traitlets.traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils

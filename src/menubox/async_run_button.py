@@ -5,7 +5,7 @@ from types import CoroutineType
 from typing import TYPE_CHECKING, Any, Generic, Literal, override
 
 import ipywidgets as ipw
-import traitlets
+from traitlets import traitlets
 
 from menubox import hasparent, mb_async, utils
 from menubox.css import CSScls

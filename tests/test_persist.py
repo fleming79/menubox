@@ -4,7 +4,7 @@ from typing import Self, cast
 
 import pandas as pd
 import pytest
-import traitlets
+from traitlets import traitlets
 
 import menubox as mb
 from menubox.persist import MenuboxPersist, MenuboxPersistMode, MenuboxPersistPool

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Self, cast, override
 
 import ipywidgets as ipw
 import pytest
-import traitlets
+from traitlets import traitlets
 
 import menubox.hasparent as mhp
 import menubox.trait_types as tt

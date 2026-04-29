@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, o
 import ipywidgets as ipw
 import pandas as pd
 import toolz
-import traitlets
 from async_kernel import Caller
 from ipylab.common import HasApp, Singular
-from traitlets import HasTraits, TraitError
+from traitlets import traitlets
+from traitlets.traitlets import HasTraits, TraitError
 
 import menubox
 import menubox as mb

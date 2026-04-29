@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Generic, Self, cast, override
 
 import ipywidgets as ipw
-import traitlets
+from traitlets import traitlets
 
 from menubox import mb_async, utils
 from menubox.css import CSScls

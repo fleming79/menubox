@@ -3,7 +3,7 @@ from typing import Self, cast
 import anyio
 import pytest
 from async_kernel import Caller, Pending
-from traitlets import TraitError
+from traitlets.traitlets import TraitError
 
 from menubox import HasParent, Menubox
 from menubox.trait_factory import TF

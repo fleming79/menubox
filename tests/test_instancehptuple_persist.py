@@ -1,6 +1,6 @@
 from typing import Self, cast
 
-import traitlets
+from traitlets import traitlets
 
 from menubox import ValueTraits
 from menubox.instancehp_tuple import InstanceHPTuple
