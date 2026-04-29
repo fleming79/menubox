@@ -1,15 +1,14 @@
 from typing import Self
 
 import ipywidgets as ipw
-import traitlets
+from traitlets import traitlets
 
 import menubox as mb
 from menubox.pack import deep_copy, to_dict, to_yaml, to_yaml_dict
 from menubox.trait_factory import TF
 
 
-class DemoObj(mb.MenuboxVT):
-    _STASH_DEFAULTS = True
+class DemoObj(mb.MenuboxVT, stash_defaults=True):
     value_traits_persist = mb.NameTuple[Self](lambda p: (p.a, p.b))
     a = traitlets.Tuple((1, 2, 3, 4))
     b = TF.Dict(default=lambda _: {"a": 1, "b": "2"})

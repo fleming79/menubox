@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self, overload
 import ipylab
 import ipywidgets as ipw
 import pandas as pd
-import traitlets
 from aiologic.lowlevel import create_async_event
+from traitlets import traitlets
 
 import menubox as mb
 from menubox.css import CSSvar

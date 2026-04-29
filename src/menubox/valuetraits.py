@@ -3,12 +3,12 @@ from __future__ import annotations
 import contextlib
 import json
 import pathlib
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, overload
 
 import orjson
 import ruamel.yaml
-from traitlets import HasTraits, TraitError, TraitType, Undefined, observe
+from traitlets.traitlets import HasTraits, TraitError, TraitType, Undefined, observe
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
@@ -123,29 +123,29 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
     state to dictionaries, JSON, and YAML.
     """
 
-    _STASH_DEFAULTS = False
-    _AUTO_VALUE = True  # Also connects the trait 'value' on the trait if it is found.
+    _stash_defaults: ClassVar[bool] = False
+    _auto_value: ClassVar[bool] = True
+    _InstanceHPTuple: ClassVar[
+        dict[str, InstanceHPTuple]
+    ] = ()  # We use empty tuple to provide iterable  # pyright: ignore[reportAssignmentType]
+
     _ignore_change_cnt = 0
     _vt_reg_value_traits_persist = TF.Set()
     _vt_reg_value_traits = TF.Set()
     _vt_tuple_reg = TF.DictReadOnly(co_=cast("Self", 0), klass_=cast("type[dict[str, _InstanceHPTupleRegister]]", 0))
-    _InstanceHPTuple: ClassVar[
-        dict[str, InstanceHPTuple]
-    ] = ()  # We use empty tuple to provide iterable  # pyright: ignore[reportAssignmentType]
     _vt_busy_updating_count = 0
     _vt_init_complete = False
     dtype = "dict"
     value = _ValueTraitsValueTrait()
     value_traits = NameTuple()
     value_traits_persist = NameTuple()
-    PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = {"home"}
     _prohibited_value_traits: ClassVar[set[str]] = {"parent"}
 
     if TYPE_CHECKING:
         json_default: Callable
 
     @contextlib.contextmanager
-    def ignore_change(self):
+    def ignore_change(self) -> Generator[None, Any, None]:
         """
         Context manager to temporarily ignore changes.
 
@@ -162,8 +162,16 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
     def __str__(self):
         return self.__repr__()
 
-    def __init_subclass__(cls, **kwargs) -> None:
-        tn_ = dict(cls._InstanceHPTuple or {})
+    def __init_subclass__(
+        cls,
+        *,
+        prohibited_value_traits: tuple | None = None,
+        auto_value: bool = True,
+        stash_defaults: bool = False,
+        **kwargs,
+    ) -> None:
+
+        tn_: dict[str, InstanceHPTuple[Any, Any]] = dict(cls._InstanceHPTuple or {})
         for c in cls.mro():
             if c is __class__:
                 break
@@ -180,6 +188,10 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
                 )
                 raise RuntimeError(msg)
         cls._InstanceHPTuple = tn_
+        cls._auto_value = auto_value
+        cls._stash_defaults = stash_defaults
+        if prohibited_value_traits:
+            cls._prohibited_value_traits = set(prohibited_value_traits)
         super().__init_subclass__(**kwargs)
 
     def __init__(
@@ -209,7 +221,7 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         if hasattr(self, "vt_validating"):
             msg = (
                 f"{__class__!r}__ini__ BUG. If there are items\n"
-                f" in {self.SINGLE_BY=} check for bugs in the init of the object.\n"
+                f" in {self._single_by=} check for bugs in the init of the object.\n"
                 "Otherwise check which validation is occurring before init is complete."
             )
             raise RuntimeError(msg)
@@ -248,7 +260,7 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         self._vt_init_complete = True
         super().__init__(parent=parent, **kwargs)
         self.set_trait("value", value)
-        if self._STASH_DEFAULTS:
+        if self._stash_defaults:
             self._DEFAULTS = self.to_yaml()
 
     @observe("closed")
@@ -309,7 +321,7 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         'value' trait and ignores first-level-non-traits assuming they will not be changed.
 
         Args:
-            cls: The class that this method is bound to (used for accessing class-level attributes like _AUTO_VALUE).
+            cls: The class that this method is bound to (used for accessing class-level attributes).
             obj: The starting HasTraits object.
             dotname: The dotted trait name to observe (e.g., "a.b.c").
 
@@ -338,7 +350,7 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
                         break
                 if obj is None:
                     break
-                if cls._AUTO_VALUE and i == segments and n != "value" and "value" in getattr(obj, "_traits", {}):
+                if cls._auto_value and i == segments and n != "value" and "value" in getattr(obj, "_traits", {}):
                     yield (obj, "value")
             elif isinstance(obj, dict):
                 try:
@@ -350,7 +362,7 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
                 # We tolerate non-traits in a HasTraits object assuming they are 'fixed' for the life of object in which they reside.
                 if isinstance(obj_, HasTraits):
                     obj = obj_
-                    if cls._AUTO_VALUE and i == segments and obj.has_trait("value"):
+                    if cls._auto_value and i == segments and obj.has_trait("value"):
                         yield (obj, "value")
                 else:
                     msg = f"'{n}' is not a trait or attribute of {obj!r}"

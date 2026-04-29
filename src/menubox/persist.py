@@ -95,7 +95,9 @@ class MenuboxPersistMode(enum.Enum):
                 raise NotImplementedError
 
 
-class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
+class MenuboxPersist(
+    HasFilesystem, MenuboxVT[S_co], Generic[S_co], single_by=("filesystem", "name"), show_template_controls=True
+):
     """
     Persistence of nested settings in yaml files plus persistence of dataframes using
     filesystem.
@@ -108,7 +110,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
 
     If persistence data exists, a task is created to load persistence data after init.
 
-    Multiple versions of persistence data may be possible, if `PERSIST_MODE`
+    Multiple versions of persistence data may be possible, if `persist_mode`
     is False. Loading of persistence data is possible by selecting the version in the
     version widget.
 
@@ -127,20 +129,15 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     as the yaml data.
     """
 
-    SINGLE_BY = ("filesystem", "name")
-    PERSIST_FOLDERNAME = "settings"
-    _extn = ".yaml"
+    _persist_foldername: str
 
-    AUTOLOAD = True
-    ASK_SAVE = True
-    PERSIST_MODE: ClassVar = cast("MenuboxPersistMode", MenuboxPersistMode.by_classname_name)
-    SHOW_TEMPLATE_CONTROLS = True
-    DEFAULT_VIEW = None
+    _extn: str
+    _autoload: ClassVar[bool]
+    _ask_save: ClassVar[bool] = True
+    _persist_mode: ClassVar = cast("MenuboxPersistMode", MenuboxPersistMode.by_classname_name)
     _mbp_async_init_complete = False
 
-    title_description = TF.Str(
-        "<b>{self.FANCY_NAME or self.__class__.__name__}&emsp;{self.name.replace('_',' ').capitalize()}"
-    )
+    title_description = TF.Str("<b>{self._fancy_name}&emsp;{self.name.replace('_',' ').capitalize()}")
     version = TF.Int(1).configure(TF.IHPMode.XLR_)
     versions = TypedTuple(TF.Int(1))
     saved_timestamp = TF.Str()
@@ -182,7 +179,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
                 tooltip="Changing the version will switch to the new version dropping unsaved changes. \n"
                 "If a new version doesn't exist, the present values are retained and can be saved in the new version.",
                 layout={"width": "130px"},
-                disabled=c["owner"].PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value,
+                disabled=c["owner"]._persist_mode.value < MenuboxPersistMode.by_classname_version.value,
             ),
             co_=cast("Self", 0),
         )
@@ -193,7 +190,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
                     target=lambda p: p.version_widget.max,  # pyright: ignore[reportOptionalMemberAccess]
                     transform=lambda versions: (
                         1
-                        if p.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value
+                        if p._persist_mode.value < MenuboxPersistMode.by_classname_version.value
                         else max(versions or (0,)) + 1
                     ),
                 ),
@@ -210,6 +207,23 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     value_traits_persist = NameTuple[Self](lambda p: (p.saved_timestamp, p.description))
     dataframe_persist = NameTuple()
 
+    def __init_subclass__(
+        cls,
+        *,
+        autoload: bool = True,
+        extn: str = ".yaml",
+        persist_foldername: str = "settings",
+        ask_save: bool = True,
+        default_view=None,
+        renameable=False,
+        **kwargs,
+    ) -> None:
+        cls._autoload = autoload
+        cls._extn = extn
+        cls._persist_foldername = persist_foldername
+        cls._ask_save = ask_save
+        super().__init_subclass__(default_view=default_view, renameable=renameable, **kwargs)
+
     @classmethod
     def validate_name(cls, name: str) -> str:
         return utils.sanatise_filename(name).lower()
@@ -224,10 +238,10 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     async def init_async(self):
         try:
             await super().init_async()
-            if self.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value:
+            if self._persist_mode.value < MenuboxPersistMode.by_classname_version.value:
                 self.set_trait("version_widget", None)
                 self.drop_value_traits("version_widget")
-            if self.name or self.PERSIST_MODE in [
+            if self.name or self._persist_mode in [
                 MenuboxPersistMode.by_classname,
                 MenuboxPersistMode.by_classname_version,
             ]:
@@ -245,13 +259,13 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
         if not self._mbp_async_init_complete or not self.name:
             return
         if change["owner"] is self:
-            if self.AUTOLOAD and change["name"] in ["name", "version"] and self.version in self.versions:
+            if self._autoload and change["name"] in ["name", "version"] and self.version in self.versions:
                 self.load_persistence_data(self.version, set_version=True)
             if change["name"] == "connections":
                 if b := self.button_activate:
                     utils.hide(b) if self.connections else utils.unhide(b)
                     self.mb_refresh()
-                if self.ASK_SAVE and not self.connections:
+                if self._ask_save and not self.connections:
                     self.ask_save_close()
         else:
             match change["owner"]:
@@ -355,9 +369,9 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     @classmethod
     def get_persistence_base(cls, name: str = "*", version: int | str = "[1-9]*") -> str:
         return MenuboxPersistMode.create_base_path(
-            mode=cls.PERSIST_MODE,
+            mode=cls._persist_mode,
             classname=cls.__name__,
-            root=cls.PERSIST_FOLDERNAME,
+            root=cls._persist_foldername,
             name=name,
             version=version,
         )
@@ -377,7 +391,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
         """
         datasets = set()
         ptn = filesystem.to_path(cls._get_persist_name("*", "[1-9]*"))
-        strip_version = "version" in cls.PERSIST_MODE.name
+        strip_version = "version" in cls._persist_mode.name
         for f in await mb_async.to_thread(filesystem.fs.glob, ptn):
             name = utils.stem(f)  # pyright: ignore[reportArgumentType]
             datasets.add(name.rsplit("_v", maxsplit=1)[0] if strip_version else name)
@@ -395,7 +409,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
         ptn = cls._get_persist_name(name, version="[1-9]*")
         path = filesystem.to_path(ptn)
         files: list[str] = await mb_async.to_thread(filesystem.fs.glob, path)  # pyright: ignore[reportAssignmentType]
-        if cls.PERSIST_MODE.value < MenuboxPersistMode.by_classname_version.value:
+        if cls._persist_mode.value < MenuboxPersistMode.by_classname_version.value:
             return (1,) if files else ()
         versions = set()
         base_ = utils.stem(ptn).rsplit("v", maxsplit=1)[0]
@@ -408,7 +422,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
 
     @override
     async def get_center(self, view: str | None):
-        if not self.name and self.PERSIST_MODE not in [
+        if not self.name and self._persist_mode not in [
             MenuboxPersistMode.by_classname_name,
             MenuboxPersistMode.by_classname_name_version,
         ]:
@@ -578,11 +592,11 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
 
 
 @final
-class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
+class MenuboxPersistPool(
+    HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP], renameable=False, single_by=("klass", "filesystem")
+):
     """A Menubox that can load MenuboxPersist instances into the shell."""
 
-    SINGLE_BY = ("klass", "filesystem")
-    RENAMEABLE = False
     pool: InstanceHPTuple[Self, MP] = InstanceHPTuple(
         cast("type[MP]", MenuboxPersist),
         factory=lambda c: c["owner"].factory_pool(**c["kwgs"]),
@@ -668,7 +682,7 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
 
     @override
     async def activate(self, *, add_to_shell=True, **kwgs):
-        if self.klass.PERSIST_MODE in [
+        if self.klass._persist_mode in [
             MenuboxPersistMode.by_classname_name,
             MenuboxPersistMode.by_classname_name_version,
         ]:

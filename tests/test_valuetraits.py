@@ -1,8 +1,8 @@
 from typing import Self, override
 
 import ipywidgets as ipw
-import traitlets
 from async_kernel.common import Fixed
+from traitlets import traitlets
 
 import menubox
 from menubox import HasParent, ValueTraits

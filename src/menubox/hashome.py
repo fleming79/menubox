@@ -4,9 +4,9 @@ import weakref
 from typing import TYPE_CHECKING, ClassVar, Self, final, override
 
 import anyio
-import traitlets
 from async_kernel.common import Fixed, import_item
 from ipylab.common import Singular
+from traitlets import traitlets
 
 from menubox.hasparent import HasParent
 
@@ -25,8 +25,7 @@ class Home(Singular):
     Closing Home will also force close all HasHome instances.
     """
 
-    SINGLE_BY: ClassVar = ("name",)
-    KEEP_ALIVE = True
+    _keep_alive: ClassVar[bool] = True
     name = traitlets.Unicode(read_only=True)
     filesystem = Fixed[Self, "DefaultFilesystem"](
         lambda c: import_item("menubox.filesystem.DefaultFilesystem")(home=c["owner"])

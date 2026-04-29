@@ -11,8 +11,7 @@ assert templates_folder.exists()
 mb.MenuboxVT.register_template_root_folder(templates_folder)
 
 
-class MyNewObj(mb.HasHome, mb.MenuboxVT):
-    SHOW_TEMPLATE_CONTROLS = True
+class MyNewObj(mb.HasHome, mb.MenuboxVT, show_template_controls=True):
     select_repository = TF.SelectRepository(cast("Self", 0))
     a_has_changed = False
     b_has_changed = False
@@ -95,7 +94,7 @@ async def test_menuboxvt(home: mb.Home):
 
     m.text_name.value = "renamed"
     assert m.name == "renamed"
-    m.RENAMEABLE = False
+    m._renameable = False  # pyright: ignore[reportAttributeAccessIssue]
     m.text_name.value = "renamed again"
     assert m.name == "renamed"
     assert m.text_name.value == "renamed"

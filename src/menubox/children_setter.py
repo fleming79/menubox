@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, Any, Self, override
 
-import traitlets
+from traitlets import traitlets
 
 from menubox import Menubox, TaskType, debounce, utils
 from menubox.trait_factory import TF
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ipywidgets import Widget
 
 
-class ChildrenSetter(ValueTraits):
+class ChildrenSetter(ValueTraits, single_by=("parent", "name"), prohibited_value_traits=(), auto_value=False):
     """
     Sets the `children` trait of the object `<self.parent>.<self.name>` dynamically when either the object
     changes or the state of a child changes. `parent.layout.visibility` is set to 'hidden' when there are no
@@ -24,9 +24,6 @@ class ChildrenSetter(ValueTraits):
     It is available as the InstanceHP hook 'set_children'.
     """
 
-    SINGLE_BY = ("parent", "name")
-    _AUTO_VALUE = False
-    _prohibited_value_traits: ClassVar = set()
     _dottednames = NameTuple()
     autohide = TF.Bool(True)
     "Hides the box when there are not children and vice versa."
@@ -90,15 +87,13 @@ class ChildrenSetter(ValueTraits):
         self._update()
 
 
-class WidgetWatcher(ValueTraits[Menubox]):
+class WidgetWatcher(ValueTraits[Menubox], auto_value=False, prohibited_value_traits=()):
     """
     Watches for visibility changes in the `widgets` dict calling `parent.mb_refresh` when a change is observed.
 
     Both `parent` and `widgets` should be set externally.
     """
 
-    _AUTO_VALUE = False
-    _prohibited_value_traits: ClassVar = set()
     widgets: TF.InstanceHP[Any, set[Widget]] = TF.Set()
     "A mapping of `widget.model_id`:`widget` that are to be watched."
     _widgets = TF.Dict()

@@ -15,11 +15,7 @@ if TYPE_CHECKING:
     from ipywidgets import Button
 
 
-class Repository(MenuboxPersist):
-    SINGLE_BY = ("home", "name")
-    KEEP_ALIVE = True
-    FANCY_NAME = "Repository"
-
+class Repository(MenuboxPersist, single_by=("home", "name"), keep_alive=True, fancy_name="Repository"):
     _repository_init_called = False
     title_description = TF.Str("<b>Repository: &emsp; {self.name}</b>")
     title_description_tooltip = TF.Str("{self.repository}")

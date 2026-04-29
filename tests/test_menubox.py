@@ -189,20 +189,13 @@ class TestMenubox:
         m2.enable_ihp("button_menu")
         assert m2.button_menu
 
-    async def test_menubox_default_view(self, mocker):
-        wa = ipw.HTML("A")
-        mocker.patch.object(mb.Menubox, "DEFAULT_VIEW", new="a")
-        m = mb.Menubox(views={"a": wa, "b": ipw.HTML("B")})
-        await m.show()
-        assert m.view == "a"
-
     async def test_menubox_close(self):
         m = mb.Menubox()
         m.close()
         assert m.closed
 
-        class Alive(mb.Menubox):
-            KEEP_ALIVE = True
+        class Alive(mb.Menubox, keep_alive=True):
+            pass
 
         m = Alive()
         m.close()

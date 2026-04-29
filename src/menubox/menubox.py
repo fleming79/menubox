@@ -10,10 +10,10 @@ from typing import TYPE_CHECKING, Any, ClassVar, Final, Generic, Literal, Self, 
 
 import docstring_to_markdown
 import ipylab.widgets
-import traitlets
 from aiologic import Event
 from ipylab import Panel, ShellConnection, SimpleOutput
 from ipywidgets import widgets as ipw
+from traitlets import traitlets
 
 import menubox as mb
 from menubox import defaults, mb_async, utils
@@ -56,7 +56,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
 
     MINIMIZED: Final = "Minimized"
     RESERVED_VIEWNAMES: ClassVar[tuple[str | None, ...]] = (MINIMIZED,)
-    DEFAULT_VIEW: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
+    _default_view: ClassVar[str | None | defaults.NO_DEFAULT_TYPE] = None
     _widget_watcher = TF.InstanceHP(cast("type[WidgetWatcher]", "menubox.children_setter.WidgetWatcher"))
     _setting_view = False
     _mb_configured = False
@@ -274,6 +274,10 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         "Vertical spacer."
         return V_FILL
 
+    def __init_subclass__(cls, default_view=None, **kwargs):
+        cls._default_view = default_view
+        super().__init_subclass__(**kwargs)
+
     def __init__(
         self,
         *,
@@ -300,8 +304,8 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
     @override
     async def init_async(self) -> None:
         await super().init_async()
-        if not self.trait_has_value("loading_view") and self.DEFAULT_VIEW:
-            self.load_view(self.DEFAULT_VIEW)
+        if not self.trait_has_value("loading_view") and self._default_view:
+            self.load_view(self._default_view)
 
     @traitlets.validate("views")
     def _vaildate_views(self, proposal: ProposalType) -> Any:
@@ -399,7 +403,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
             if not view or view not in current:
                 view = self.loading_view
                 if view not in current:
-                    view = self.DEFAULT_VIEW or self._current_views[0]
+                    view = self._default_view or self._current_views[0]
         elif view not in self._current_views:
             msg = f'{view=} is not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
@@ -989,10 +993,9 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         return await self.app.dialog.show_dialog(title, body=self, **kwgs)
 
 
-class MenuboxWrapper(Menubox):
+class MenuboxWrapper(Menubox, default_view="widget"):
     "Wrap a  widget with a Menubox."
 
-    DEFAULT_VIEW = "widget"
     widget = TF.InstanceHP(klass=ipw.Widget).configure(TF.IHPMode.X_RN).hooks(on_replace_close=False)
     items = TF.Tuple()
     views = TF.ViewDict(cast("Self", 0), {"widget": lambda p: p.widget or p.items})

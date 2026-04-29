@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Self, cast, override
 
 import ipywidgets as ipw
 import pytest
-import traitlets
+from traitlets import traitlets
 
 import menubox.hasparent as mhp
 import menubox.trait_types as tt
@@ -133,8 +133,8 @@ class TestHasParent:
 
         hp2.parent = hp
 
-        class HPsubclass(HP):
-            SINGLE_BY = ("name",)
+        class HPsubclass(HP, single_by=("name",)):
+            pass
 
         with pytest.raises(KeyError):
             hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2)
@@ -167,8 +167,8 @@ class TestHasParent:
         hp = HP()
         parent = HP(a_link=2, a_dlink=4)
 
-        class HPsubclass(HP):
-            SINGLE_BY = ("name",)
+        class HPsubclass(HP, single_by=("name",)):
+            pass
 
         hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2, name="hps")
         hp.parent = parent
@@ -192,8 +192,8 @@ class TestHasParent:
         hp = HP()
         parent = HP(a_link=2, a_dlink=4)
 
-        class HPsubclass(HP):
-            SINGLE_BY = ("name",)
+        class HPsubclass(HP, single_by=("name",)):
+            pass
 
         hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2, name="hps")
         hp.parent = parent
@@ -226,8 +226,8 @@ class TestHasParent:
     async def test_hasparent_cleanup_exceptions(self):
         hp = HP()
 
-        class HPsubclass(HP):
-            SINGLE_BY = ("name",)
+        class HPsubclass(HP, single_by=("name",)):
+            pass
 
         hps2 = HPsubclass(a_link=hp.a_link + 3, a_dlink=hp.a_dlink + 4, parent=hp, name="hbs2")
         hps3 = HPsubclass(a_link=hp.a_link + 5, a_dlink=hp.a_dlink + 5, parent=hp, name="hps3")

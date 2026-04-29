@@ -4,16 +4,14 @@ from typing import Self, cast
 
 import pandas as pd
 import pytest
-import traitlets
+from traitlets import traitlets
 
 import menubox as mb
 from menubox.persist import MenuboxPersist, MenuboxPersistMode, MenuboxPersistPool
 from menubox.trait_factory import TF
 
 
-class MBP(MenuboxPersist):
-    _STASH_DEFAULTS = True
-    PERSIST_MODE = MenuboxPersistMode.by_classname_name_version
+class MBP(MenuboxPersist, persist_mode=MenuboxPersistMode.by_classname_name_version, stash_defaults=True):
     new = TF.Str()
     a_widget = TF.Text(cast("Self", 0), description="something", value="Using the value")
     just_a_widget = TF.Dropdown(cast("Self", 0), description="just_a_widget", options=[1, 2, 3]).hooks(
@@ -47,8 +45,8 @@ def test_MenuboxPersistMode_create_base_path(mode: MenuboxPersistMode, result: s
 
 
 async def test_persist_by_classname(home: mb.Home):
-    class MBPByClass(MBP):
-        PERSIST_MODE = MenuboxPersistMode.by_classname
+    class MBPByClass(MBP, persist_mode=MenuboxPersistMode.by_classname):
+        pass
 
     p = MBPByClass(parent=None, home=home, name="main")
     p.just_a_widget.value = 2
@@ -63,8 +61,8 @@ async def test_persist_by_classname(home: mb.Home):
 
 
 async def test_persist_by_classname_name(home: mb.Home):
-    class MBPByClassName(MBP):
-        PERSIST_MODE = MenuboxPersistMode.by_classname_name
+    class MBPByClassName(MBP, persist_mode=MenuboxPersistMode.by_classname_name):
+        pass
 
     p = MBPByClassName(parent=None, home=home, name="main")
     p.just_a_widget.value = 2

@@ -368,9 +368,7 @@ class RelativePath(Filesystem):
                 await self._button_update_async(url=base)
 
 
-class DefaultFilesystem(HasHome, Filesystem):
-    SINGLE_BY = ("home",)
-    KEEP_ALIVE = True
+class DefaultFilesystem(HasHome, Filesystem, single_by=("home",), keep_alive=True):
     name = TF.InstanceHP(str, default=lambda c: f"{c['owner'].home}", co_=cast("Self", 0))
     read_only = TF.Bool(True).configure(TF.IHPMode.X_R_)
 

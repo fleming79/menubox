@@ -2,8 +2,7 @@ from typing import Self, cast, override
 
 import ipywidgets as ipw
 import pytest
-import traitlets
-from traitlets import Instance
+from traitlets import traitlets
 
 import menubox as mb
 import menubox.trait_types as tt
@@ -11,8 +10,8 @@ from menubox.instancehp_tuple import InstanceHPTuple
 from menubox.trait_factory import TF
 
 
-class MenuboxSingleton(mb.HasHome, mb.MenuboxVT):
-    SINGLE_BY = ("home", "name")
+class MenuboxSingleton(mb.HasHome, mb.MenuboxVT, single_by=("home", "name")):
+    pass
 
 
 class VTT(mb.ValueTraits):
@@ -63,7 +62,7 @@ class VTT(mb.ValueTraits):
 class VT(VTT):
     removed_count = 0
 
-    number = Instance(ipw.FloatText, ())
+    number = traitlets.Instance(ipw.FloatText, ())
 
     def on_remove(self, t: ipw.FloatText):
         self.removed_count -= 10

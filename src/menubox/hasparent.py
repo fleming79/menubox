@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, o
 import ipywidgets as ipw
 import pandas as pd
 import toolz
-import traitlets
 from async_kernel import Caller
+from async_kernel.typing import NoValue
 from ipylab.common import HasApp, Singular
-from traitlets import HasTraits, TraitError
+from traitlets import traitlets
+from traitlets.traitlets import HasTraits
 
 import menubox
 import menubox as mb
@@ -75,13 +76,12 @@ class HasParent(Singular, HasApp, Generic[S_co]):
     # NOTE: This class requires a running event loop to initialize.
     """
 
-    RENAMEABLE = True
-    KEEP_ALIVE = False
-    SINGLE_BY: ClassVar[tuple[str, ...] | None] = None
-    single_key: tuple[Hashable, ...]
+    _renameable: ClassVar[bool] = True
+    _keep_alive: ClassVar[bool] = False
+    _single_by: ClassVar[tuple[str, ...] | None] = None
     _InstanceHP: ClassVar[dict[str, InstanceHP[Self, Any]]] = {}
     _HasParent_init_complete = False
-    PROHIBITED_PARENT_LINKS: ClassVar[set[str]] = set()
+    _prohibited_parent_links: ClassVar[set[str]] = {"home"}
     _hp_reg_parent_link = TF.Set(klass_=cast("type[set[Link]]", 0))
     _hp_reg_parent_dlink = TF.Set(klass_=cast("type[set[Dlink]]", 0))
     _hasparent_all_links = TF.DictReadOnly(klass_=cast("type[dict[Hashable, Link | Dlink]]", 0))
@@ -111,7 +111,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         """
         if self._HasParent_init_complete:
             return
-        if self.SINGLE_BY:
+        if self._single_by:
             assert isinstance(self.single_key, tuple)
         values = {}
         for name in tuple(kwargs):
@@ -139,23 +139,40 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         if corofunc := getattr(super(), "init_async", None):
             await corofunc()
 
-    def __init_subclass__(cls, **kwargs) -> None:
-        if cls.SINGLE_BY:
-            assert isinstance(cls.SINGLE_BY, tuple)
-            if cls.SINGLE_BY and "name" in cls.SINGLE_BY:
-                cls.RENAMEABLE = False
+    def __init_subclass__(
+        cls,
+        *,
+        renameable: bool | NoValue = NoValue,  # pyright: ignore[reportInvalidTypeForm]
+        single_by: tuple = (),
+        keep_alive=False,
+        prohibited_parent_links: tuple[str, ...] = (),
+        **kwargs,
+    ) -> None:
+        if "name" in single_by:
+            if renameable is True:
+                msg = "When 'single_by' includes 'name' it must can not renameable!"
+                raise RuntimeError(msg)
+            renameable = False
+        cls._single_by = single_by
+        cls._renameable = True if renameable is NoValue else renameable
+        cls._keep_alive = keep_alive
+        if prohibited_parent_links:
+            if "home" not in prohibited_parent_links:
+                msg = "'home' must be included in prohibited_parent_links"
+                raise RuntimeError(msg)
+            cls._prohibited_parent_links = set(prohibited_parent_links)
         cls._cls_update_InstanceHP_register()
         super().__init_subclass__(**kwargs)
 
     @classmethod
     def get_single_key(cls, *args, **kwgs) -> Hashable:  # noqa: ARG003
-        if not cls.SINGLE_BY:
+        if not cls._single_by:
             return None
         try:
-            return tuple(cls if k == "cls" else kwgs[k] for k in cls.SINGLE_BY)
+            return tuple(cls if k == "cls" else kwgs[k] for k in cls._single_by)
         except KeyError:
-            missing = [k for k in cls.SINGLE_BY if (k != "cls") and k not in kwgs]
-            msg = f"The following SINGLE_BY keys were not provided {missing}"
+            missing = [k for k in cls._single_by if (k != "cls") and k not in kwgs]
+            msg = f"The following 'single_by' keys were not provided {missing}"
             raise KeyError(msg) from None
 
     @classmethod
@@ -176,7 +193,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         return name.strip()
 
     def _validate_name(self, name: str):
-        if not self.RENAMEABLE and self.trait_has_value("name") and self.name:
+        if not self._renameable and self.trait_has_value("name") and self.name:
             return self.name
         return self.validate_name(name)
 
@@ -186,7 +203,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
 
     @traitlets.validate("parent_link", "parent_dlink")
     def _parent_link_dlink_validate(self, proposal: ProposalType):
-        if prohibited := self.PROHIBITED_PARENT_LINKS.intersection(proposal["value"]):
+        if prohibited := self._prohibited_parent_links.intersection(proposal["value"]):
             msg = f"Prohibited links detected: {prohibited}"
             raise NameError(msg)
         links = []
@@ -269,7 +286,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
             isinstance(obj, ipw.widget_selection._Selection) and name == "value" and isinstance(value, str)
         ) and value == "":
             value = None
-        if getattr(obj, "_AUTO_VALUE", False):
+        if isinstance(obj, vt.ValueTraits):
             try:
                 val = getattr(obj, name, dv.NO_VALUE)
             except traitlets.TraitError:
@@ -378,7 +395,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
             name = utils.parse_object_name(name)
         if name not in self._traits:
             msg = f"{self} does not have a trait with {name=}"
-            raise TraitError(msg)
+            raise traitlets.TraitError(msg)
         getattr(self.__class__, name).set(self, value)
 
     def reset_trait(self, name: str | Callable[[Self], Any]):
@@ -412,9 +429,9 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         Designed to be compatible with `Widget.close`.
 
         Args:
-            force (bool, optional): If True, forces the object to close even if KEEP_ALIVE is set. Defaults to False.
+            force (bool, optional): If True, forces the object to close even if when the class is marked with keep_alive. Defaults to False.
         """
-        if self.closed or (self.KEEP_ALIVE and not force):
+        if self.closed or (self._keep_alive and not force):
             return
         super().close()
         self.set_trait("closed", True)

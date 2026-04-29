@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import ipylab
 import ipylab.widgets
 import ipywidgets as ipw
-import traitlets
 from async_kernel.common import Fixed, import_item
 from async_kernel.pending import Pending
 from IPython import display as ipd
+from traitlets import traitlets
 
 import menubox.async_run_button
 import menubox.widgets

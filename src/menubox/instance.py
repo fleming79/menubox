@@ -24,10 +24,10 @@ from typing import (
     override,
 )
 
-import traitlets
 from async_kernel.common import import_item
 from ipywidgets import DOMWidget, Widget
 from mergedeep import Strategy, merge
+from traitlets import traitlets
 from wrapt import lazy_import
 
 import menubox as mb
@@ -303,15 +303,13 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
             value.parent = obj
         try:
             old_value = obj._trait_values[self.name]
-            if obj.SINGLE_BY and self.name in obj.SINGLE_BY and new_value not in obj.single_key:
+            if obj._single_by and self.name in obj._single_by and new_value not in obj.single_key:
                 try:
                     raise_error = value != old_value
                 except BaseException:
                     raise_error = True
                 if raise_error:
-                    msg = (
-                        f"Changing {obj.__class__.__name__}.{self.name} is prohibited because it is in {obj.SINGLE_BY=}"
-                    )
+                    msg = f"Changing {obj.__class__.__name__}.{self.name} is prohibited because it is in {obj._single_by=}"
                     raise ValueError(msg)
         except KeyError:
             old_value = self.default_value
@@ -360,7 +358,7 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
         1.  Resolves the class: If `_klass` is a string, it imports the class.
         2.  Sets `self.klass` to the resolved class.
         3.  Updates hook mappings based on class properties and inheritance:
-            -   If the class has `KEEP_ALIVE = True`, disables `on_replace_close`.
+            -   If the class has `_keep_alive==True` it will disable `on_replace_close`.
             -   Sets default values for `on_replace_close`, `set_parent`, and `remove_on_close`
             based on whether the class inherits from `HasParent` or `Widget`.
         4.  Sets the `_set_parent` attribute based on the `set_parent` hook mapping.
@@ -375,11 +373,11 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
             assert inspect.isclass(klass)
             self.klass = klass  # pyright: ignore[reportAttributeAccessIssue]
             self._type = klass
-            if getattr(klass, "KEEP_ALIVE", False):
+            if getattr(klass, "_keep_alive", False):
                 m["on_replace_close"] = False
             if "on_replace_close" not in m:
                 if issubclass(klass, mhp.HasParent):
-                    m["on_replace_close"] = not klass.SINGLE_BY
+                    m["on_replace_close"] = not klass._single_by
                 elif issubclass(klass, Widget) and "on_replace_close":
                     m["on_replace_close"] = True
             if issubclass(klass, mhp.HasParent) and "set_parent" not in m:
@@ -466,7 +464,7 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
 
         Args:
             on_replace_close: Close the previous instance if it is replaced.
-                Note: HasParent will not close if its the property `KEEP_ALIVE` is True.
+                Note: HasParent will not close if the subclass has been created with keep_alive=True.
             allow_none: Allow the value to be None.
             set_parent: Set the parent to the parent of the trait (HasParent).
             set_children: <Objects with a children trait **ONLY**>
@@ -546,7 +544,7 @@ class InstanceHP(traitlets.TraitType[T, T], Generic[S, T]):
         if (
             c["ihp"]._hookmappings.get("on_replace_close")
             and isinstance(c["old"], Widget | mhp.HasParent)
-            and not getattr(c["old"], "KEEP_ALIVE", False)
+            and not getattr(c["old"], "_keep_alive", False)
         ):
             if mb.DEBUG_ENABLED:
                 c["owner"].log.debug(

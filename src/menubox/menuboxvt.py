@@ -28,21 +28,21 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
     copy/paste settings, configuration view and description rendering.
     """
 
-    SHOW_TEMPLATE_CONTROLS = False
     CONFIGURE_VIEW = "Configure"
+    RESERVED_VIEWNAMES = (*Menubox.RESERVED_VIEWNAMES, CONFIGURE_VIEW)
     DESCRIPTION_VIEWER_TEMPLATE = (
         "<details {details_open}><summary><b>Description</b></summary>\n\n{description}\n</details>"
     )
-    FANCY_NAME = ""
-    RESERVED_VIEWNAMES = (*Menubox.RESERVED_VIEWNAMES, CONFIGURE_VIEW)
-    title_description = TF.Str("<b>{self.FANCY_NAME or self.__class__.__qualname__}&emsp;{self.name}</b>")
+    _show_template_controls: ClassVar[bool] = False
+    _fancy_name: ClassVar[str] = ""
+    _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
+
+    title_description = TF.Str("<b>{self._fancy_name}&emsp;{self.name}</b>")
     title_description_tooltip = TF.Str("{self.description.value or utils.fullname(self.__class__)}")
     css_classes = StrTuple(CSScls.Menubox, CSScls.MenuboxVT)
-    _description_params: ClassVar[dict[str, Any]] = {"details_open": ""}
     header_right_children = NameTuple[Self](
         lambda p: (p._get_template_controls, p.button_configure, *Menubox.header_right_children)
     )
-
     header = (
         TF.MenuboxHeader(cast("Self", 0))
         .hooks(
@@ -76,7 +76,7 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
         obj=lambda p: p.box_template_controls,
         title="Copy and load settings",
         icon="file-text-o",
-        button_expand_tooltip="Templates for and copy/paste settings for {self.FANCY_NAME} {self.__class__.__qualname__}.",
+        button_expand_tooltip="Templates for and copy/paste settings for {self._fancy_name}.",
         on_expand=lambda p: p._on_template_controls_expand(),
     ).configure(TF.IHPMode.XLRN)
     text_name = TF.InstanceHP(
@@ -95,7 +95,7 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
             p.dlink(
                 source=lambda p: p.name,
                 target=lambda p: p.text_name.disabled,
-                transform=lambda name: bool(not p.RENAMEABLE if name else False),
+                transform=lambda name: bool(not p._renameable if name else False),
             ),
         ),
     )
@@ -156,7 +156,7 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
         layout={"width": "auto", "flex": "1 0 auto", "min_width": "100px"},
     )
 
-    def __init_subclass__(cls, **kwargs) -> None:
+    def __init_subclass__(cls, *, fancy_name=None, show_template_controls=False, **kwgs) -> None:
         if getattr(mb, "DEBUG_ENABLED", True):
             mro = cls.mro()
             if mro.index(ValueTraits) < mro.index(__class__):
@@ -170,10 +170,12 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
                     f"Current mro: {smo}"
                 )
                 raise TypeError(msg)
-        super().__init_subclass__(**kwargs)
+        cls._fancy_name = fancy_name or cls.__qualname__
+        cls._show_template_controls = show_template_controls
+        super().__init_subclass__(**kwgs)
 
     def _get_template_controls(self):
-        if self.SHOW_TEMPLATE_CONTROLS:
+        if self._show_template_controls:
             return self.template_controls
         return None
 

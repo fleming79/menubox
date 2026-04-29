@@ -2,8 +2,8 @@ import pathlib
 from typing import Literal
 
 import pytest
-import traitlets
 from ipywidgets import Box
+from traitlets import traitlets
 
 from menubox import utils
 
