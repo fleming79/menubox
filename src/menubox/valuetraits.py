@@ -668,9 +668,16 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         if callable(on_change):
             on_change(change)
 
-    def get_tuple_obj(self, tuplename: str | Callable[[Self], tuple[T, ...]], /, add=True, **kwds) -> T:
+    def get_tuple_obj(
+        self,
+        tuplename: str | Callable[[Self], tuple[T, ...]],
+        /,
+        add=True,
+        index: int | None = None,
+        **kwds,
+    ) -> T:
         """
-        Retrieves or creates an object associated with a `TypedInstaneTuple` tuple trait.
+        Retrieves or creates an object associated with a `InstanceHPTuple` tuple trait.
 
         This method retrieves an existing object associated with a tuple trait
         or creates a new one if it doesn't exist. It also adds the new object
@@ -679,10 +686,10 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
         Args:
             tuplename: The name of the tuple trait.
             add: Whether to add the new object to the tuple.
+            index: An index can be used for updating objects if the InstanceHPTuple is configured to support it.
             **kwds: Keyword arguments to pass to the object's constructor.
-                Can include 'index' to specify the index of the object.
-
-        Returns: The object associated with the `TypedInstaneTuple` tuple trait.
+        Returns:
+            object: The object associated with the `InstanceHPTuple` tuple trait.
         """
         tuplename = utils.parse_object_name(tuplename)
         if not (ihp_tuple := self._InstanceHPTuple.get(tuplename)):
@@ -691,7 +698,6 @@ class ValueTraits(HasParent[S_co], Generic[S_co]):
                 f"Register tuple names ={list(self._InstanceHPTuple)}!"
             )
             raise KeyError(msg)
-        index = kwds.pop("index", None)
         obj = ihp_tuple.update_or_create_inst(self, kwds, index)
         if add:
             t = getattr(self, tuplename)
