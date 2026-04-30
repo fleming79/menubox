@@ -22,7 +22,7 @@ _template_folders: set[pathlib.Path] = set()
 __all__ = ["MenuboxVT"]
 
 
-class MenuboxVT(ValueTraits[S_co], Menubox[S_co], Generic[S_co]):
+class MenuboxVT(ValueTraits[S_co], Menubox[S_co], ipw.ValueWidget, Generic[S_co]):
     """
     MenuboxVT Combines Menubox with ValueTraits and provides additional features such as templates,
     copy/paste settings, configuration view and description rendering.
