@@ -101,7 +101,17 @@ class HasParent(Singular, HasApp, Generic[S_co]):
     def __await__(self) -> Generator[Any, None, Self]:
         return self.wait_tasks(TaskType.update_children, TaskType.init, timeout=10).__await__()
 
-    def __init__(self, *, parent: S_co | None = None, **kwargs):
+    def __new__(cls, /, *args, name="", parent: S_co | None = None, **kwargs) -> Self:  # noqa: ARG004
+        if name:
+            if (nearest := cls.validate_name(name)) != name:
+                msg = f"Invalid {name=} {nearest=}. Tip: You can use the classmethod `validate_name` to ensure a valid name."
+                raise ValueError(msg)
+        elif cls.SINGLE_BY and "name" in cls.SINGLE_BY:
+            msg = "'name' is a SINGLE_BY key and must be provided!"
+            raise ValueError(msg)
+        return super().__new__(cls, name=name, parent=parent, **kwargs)
+
+    def __init__(self, *args, name="", parent: S_co | None = None, **kwargs):
         """
         Initialize the HasParent class.
 
@@ -113,6 +123,8 @@ class HasParent(Singular, HasApp, Generic[S_co]):
             return
         if self.SINGLE_BY:
             assert isinstance(self.single_key, tuple)
+        if name:
+            self.set_trait("name", name)
         values = {}
         for name in tuple(kwargs):
             if name in self._InstanceHP:
@@ -182,7 +194,10 @@ class HasParent(Singular, HasApp, Generic[S_co]):
 
     @traitlets.validate("name")
     def _hp_validate_name(self, proposal: ProposalType) -> str:
-        return self._validate_name(proposal["value"])
+        if (nearest := self._validate_name(proposal["value"])) != proposal["value"]:
+            msg = f"Validation of 'name' failed {nearest=!r} but got {proposal['value']!r}"
+            raise RuntimeError(msg)
+        return nearest
 
     @traitlets.validate("parent_link", "parent_dlink")
     def _parent_link_dlink_validate(self, proposal: ProposalType):

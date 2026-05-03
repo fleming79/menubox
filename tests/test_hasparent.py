@@ -136,7 +136,7 @@ class TestHasParent:
         class HPsubclass(HP):
             SINGLE_BY = ("name",)
 
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError, match="'name' is a SINGLE_BY key and must be provided!"):
             hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2)
 
         hps = HPsubclass(a_link=hp.a_link + 1, a_dlink=hp.a_dlink + 2, name="hps")
