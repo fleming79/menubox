@@ -103,8 +103,8 @@ class HasParent(Singular, HasApp, Generic[S_co]):
 
     def __new__(cls, /, *args, name="", parent: S_co | None = None, **kwargs) -> Self:  # noqa: ARG004
         if name:
-            if (nearest := cls.validate_name(name)) != name:
-                msg = f"Invalid {name=} {nearest=}. Tip: You can use the classmethod `validate_name` to ensure a valid name."
+            if (nearest := cls.sanatise_name(name)) != name:
+                msg = f"Invalid {name=} {nearest=}. Tip: You can use the classmethod `sanatise_name` to ensure a valid name."
                 raise ValueError(msg)
         elif cls.SINGLE_BY and "name" in cls.SINGLE_BY:
             msg = "'name' is a SINGLE_BY key and must be provided!"
@@ -184,17 +184,17 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         cls._InstanceHP = tn_  # pyright: ignore[reportAttributeAccessIssue]
 
     @classmethod
-    def validate_name(cls, name: str) -> str:
+    def sanatise_name(cls, name: str) -> str:
         return name.strip()
 
-    def _validate_name(self, name: str):
+    def _sanatise_name(self, name: str) -> str:
         if not self.RENAMEABLE and self.trait_has_value("name") and self.name:
             return self.name
-        return self.validate_name(name)
+        return self.sanatise_name(name)
 
     @traitlets.validate("name")
     def _hp_validate_name(self, proposal: ProposalType) -> str:
-        if (nearest := self._validate_name(proposal["value"])) != proposal["value"]:
+        if (nearest := self._sanatise_name(proposal["value"])) != proposal["value"]:
             msg = f"Validation of 'name' failed {nearest=!r} but got {proposal['value']!r}"
             raise RuntimeError(msg)
         return nearest

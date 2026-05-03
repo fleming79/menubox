@@ -82,7 +82,7 @@ class MenuboxVT(ValueTraits[S_co], Menubox[S_co], ipw.ValueWidget, Generic[S_co]
     text_name = TF.InstanceHP(
         ComboboxValidate,
         default=lambda c: ComboboxValidate(
-            validate=c["owner"]._validate_name,
+            validate=c["owner"]._sanatise_name,
             description="Name",
             continuous_update=False,
             layout={"width": "auto"},

@@ -211,7 +211,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     dataframe_persist = NameTuple()
 
     @classmethod
-    def validate_name(cls, name: str) -> str:
+    def sanatise_name(cls, name: str) -> str:
         return utils.sanatise_filename(name).lower()
 
     async def _update_versions(self) -> None:
