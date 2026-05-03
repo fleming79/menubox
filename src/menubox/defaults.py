@@ -109,6 +109,7 @@ INDEX = _Index.token
 
 NO_VALUE_TYPE = Literal[NO_VALUE]
 NO_DEFAULT_TYPE = Literal[NO_DEFAULT]
+INDEX_TYPE = Literal[INDEX]
 
 
 class NoCloseBox(ipw.Box):

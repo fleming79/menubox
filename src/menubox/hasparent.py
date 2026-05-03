@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import weakref
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, cast, override
 
 import ipywidgets as ipw
 import pandas as pd

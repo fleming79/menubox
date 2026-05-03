@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 class InstanceHPTupleHookMappings(TypedDict, Generic[V, T]):
-    update_by: NotRequired[str]
+    update_by: NotRequired[str | defaults.INDEX_TYPE]
     update_item_names: NotRequired[tuple[str, ...]]
     set_parent: NotRequired[bool]
     close_on_remove: NotRequired[bool]
@@ -180,7 +180,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
                     except Exception as e:
                         if isinstance(val, dict):
                             val = self.update_or_create_inst(obj, val, i)
-                        elif self._hookmappings.get("update_by") == defaults.INDEX:
+                        elif self._hookmappings.get("update_by") is defaults.INDEX:
                             values = getattr(obj, self.name)
                             obj.setter(values[i], "value", v)
                             continue
@@ -217,7 +217,7 @@ class InstanceHPTuple(InstanceHP[V, tuple[T, ...]], Generic[V, T]):
         self.trait._validate(obj, inst)
         return inst
 
-    def _find_update_item(self, obj, kw: dict, index: int | None) -> T | None:
+    def _find_update_item(self, obj: V, kw: dict, index: int | None) -> T | None:
         """
         Check if an item exists in current tuple matching update_by in kw.
 
