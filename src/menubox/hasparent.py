@@ -626,7 +626,6 @@ class Link(HasParent):
     Inspiration traitlets.link
     """
 
-    mode: Literal["link", "dlink"] = "link"
     _updating = False
 
     def __init__(
@@ -642,17 +641,19 @@ class Link(HasParent):
             msg = f"{parent=} is closed!"
             raise RuntimeError(msg)
         self.obj = parent
+        # Dlink sets the transform separately first
         if transform:
             self._transform, self._transform_inv = transform
         super().__init__(parent=parent)
+        # Synchronise values before observing
         setattr(target[0], target[1], self._transform(getattr(source[0], source[1])))
         source[0].observe(self._update_target, names=source[1])
-        if self.mode == "link":
+        if not isinstance(self, Dlink):
             target[0].observe(self._update_source, names=target[1])
 
     def __repr__(self) -> str:
         return (
-            f"Link source={self.source[0].__class__.__qualname__}.{self.source[1]} "
+            f"{self.__class__.__name__} source={self.source[0].__class__.__qualname__}.{self.source[1]} "
             f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
             f"parent={self.parent!r}"
         )
@@ -677,7 +678,7 @@ class Link(HasParent):
                 raise traitlets.TraitError(msg)  # noqa: TRY301
         except traitlets.TraitError as e:
             msg = (
-                f"Link {utils.fullname(self.source[0])}.{self.source[1]}->"
+                f"{self.__class__.__name__} {utils.fullname(self.source[0])}.{self.source[1]} →"
                 f"{utils.fullname(self.source[0])}.{self.target[1]}"
             )
             self.obj.on_error(e, msg, self)
@@ -695,7 +696,15 @@ class Link(HasParent):
             value = getattr(self.target[0], self.target[1])
             if not self.obj.check_equality(value, change["new"]):
                 msg = f"Broken link {self}: the target value changed while updating the source."
-                raise traitlets.TraitError(msg)
+                raise traitlets.TraitError(msg)  # noqa: TRY301
+        except traitlets.TraitError as e:
+            msg = (
+                f"{self.__class__.__name__} {utils.fullname(self.source[0])}.{self.source[1]} ←"
+                f"{utils.fullname(self.source[0])}.{self.target[1]}"
+            )
+            self.obj.on_error(e, msg, self)
+            if mb.DEBUG_ENABLED:
+                raise
         finally:
             self._updating = False
 
@@ -719,8 +728,6 @@ class Link(HasParent):
 
 
 class Dlink(Link):
-    mode = "dlink"
-
     def __init__(
         self,
         source: tuple[HasTraits, str],
