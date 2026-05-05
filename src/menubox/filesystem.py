@@ -122,7 +122,7 @@ class Filesystem(MenuboxVT):
         cast("Self", 0),
         cfunc=lambda p: p._button_update_async,
         icon="redo",
-        tasktype=mb_async.TaskType.update,
+        pentype=mb_async.PenType.update,
     )
     button_home = TF.Button(
         icon="home",
@@ -198,8 +198,8 @@ class Filesystem(MenuboxVT):
             return
         match change["owner"]:
             case self.protocol:
-                if self.button_update.task:
-                    self.button_update.task.cancel("Protocol change")
+                if self.button_update.pen:
+                    self.button_update.pen.cancel("Protocol change")
                 self._fs = None
                 self.sw_main.options = []
                 self.url.value = ""

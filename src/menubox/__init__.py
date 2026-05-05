@@ -23,7 +23,7 @@ from menubox.defaults import hookimpl
 from menubox.hashome import HasHome, Home
 from menubox.hasparent import HasParent
 from menubox.instancehp_tuple import InstanceHPTuple
-from menubox.mb_async import TaskType, debounce, throttle
+from menubox.mb_async import debounce, throttle
 from menubox.menubox import Menubox
 from menubox.menuboxvt import MenuboxVT
 from menubox.modalbox import Modalbox
@@ -47,7 +47,6 @@ __all__ = [
     "NameTuple",
     "ProposalType",
     "StrTuple",
-    "TaskType",
     "TypedTuple",
     "ValueTraits",
     "async_run_button",

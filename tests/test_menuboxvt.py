@@ -70,21 +70,21 @@ async def test_menuboxvt(home: mb.Home):
     assert m.c.value == 2.3, "'Manually' copied value."
 
     m.template_controls.expand()
-    await m.template_controls.wait_tasks()
+    await m.template_controls.wait_pending()
     await m
     assert len(m._sw_template.options) == 2, "Should locate template files"
 
     # Test load json template
     m._sw_template.index = 0
     m._button_load_template.click()
-    await m.wait_tasks()
+    await m.wait_pending()
     assert m.a.value == 12.3, "From json template"
     assert m.c.value == 99, "From json template"
 
     # Test load yaml template
     m._sw_template.index = 1
     m._button_load_template.click()
-    await m.wait_tasks()
+    await m.wait_pending()
     assert m.a.value == 10, "From yaml template"
     assert m.c.value == 20, "From yaml template"
 

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
 from traitlets import traitlets
 
-from menubox import Menubox, TaskType, debounce, utils
+from menubox import Menubox, debounce, mb_async, utils
 from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, NameTuple
 from menubox.valuetraits import ValueTraits
@@ -67,9 +67,9 @@ class ChildrenSetter(ValueTraits):
                     for c in set(change["old"]).difference(change["new"]):
                         if isinstance(c, Menubox):
                             c.showbox = None
-            elif self.trait_has_value("children") and (pen := self.update()) and pen not in parent.tasks:
-                parent.tasks.add(pen)
-                pen.add_done_callback(parent.tasks.discard)
+            elif self.trait_has_value("children") and (pen := self.update()) and pen not in parent.pending:
+                parent.pending.add(pen)
+                pen.add_done_callback(parent.pending.discard)
 
     def _update(self):
         if (parent := self.parent) and not self.parent.closed:
@@ -85,7 +85,7 @@ class ChildrenSetter(ValueTraits):
                             c.showbox = box
             self.set_trait("value_traits", self._make_traitnames())
 
-    @debounce(0.01, tasktype=TaskType.update_children)
+    @debounce(0.01, pentype=mb_async.PenType.update_children)
     def update(self):
         self._update()
 

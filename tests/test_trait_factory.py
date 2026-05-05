@@ -47,7 +47,7 @@ class TestTraitFactory:
         obj = await BaseTestButton()
         obj.button.click()
         with anyio.move_on_after(0.1):
-            await obj.wait_tasks()
+            await obj.wait_pending()
         t1 = obj.clicked.get(obj.button)
         assert isinstance(t1, Pending)
         obj.button.click()
@@ -79,7 +79,7 @@ class TestTraitFactory:
         obj = await BaseTestButton()
         obj.button.click()
         with anyio.move_on_after(0.1):
-            await obj.wait_tasks()
+            await obj.wait_pending()
         assert obj.button.description == "Cancel"
         t1 = obj.clicked.get(obj.button)
         assert isinstance(t1, Pending)
@@ -104,7 +104,7 @@ class TestTraitFactory:
         obj = await BaseTestButton()
         obj.button.click()
         with anyio.move_on_after(0.1):
-            await obj.wait_tasks()
+            await obj.wait_pending()
         t1 = obj.clicked.get(obj.button)
         assert isinstance(t1, Pending)
         assert obj.button.disabled

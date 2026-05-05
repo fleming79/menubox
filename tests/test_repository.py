@@ -15,7 +15,7 @@ async def test_select_repository(home: mb.Home):
     w = SelectRepositoryWidget(home=home)
     assert w is w.select_repository.parent
     repo = Repository(home=home, name="new repository")
-    await repo.wait_tasks()
+    await repo.wait_pending()
     await repo.button_save_persistence_data.start(False)
     # Test select an existing repository
     await w.select_repository.update_repository_name_options()

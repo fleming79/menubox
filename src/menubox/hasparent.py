@@ -18,7 +18,7 @@ import menubox as mb
 from menubox import defaults as dv
 from menubox import mb_async, utils
 from menubox.css import CSScls
-from menubox.mb_async import TaskType
+from menubox.mb_async import PenType
 from menubox.trait_factory import TF
 from menubox.trait_types import ChangeType, NameTuple, ProposalType, R, S, S_co, T, W
 
@@ -65,7 +65,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
     - Formatting strings with access to the object's namespace.
     - Handling errors and logging.
     - Managing InstanceHP traits for enabling/disabling features.
-    - Waiting for asynchronous tasks to complete.
+    - Waiting for pending to complete.
     - Retrieving widgets associated with the object.
     The class utilizes traitlets for managing attributes and observing changes,
     ensuring that changes to the parent or linked objects trigger appropriate updates.
@@ -90,7 +90,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
     parent_link = NameTuple()
     name = TF.Str()
     parent: InstanceHP[Any, S_co | None] = TF.parent().configure(TF.IHPMode.X__N)  # pyright: ignore[reportAssignmentType]
-    tasks = TF.Set(klass_=cast("type[set[Pending[Any]]]", 0))
+    pending = TF.Set(klass_=cast("type[set[Pending[Any]]]", 0))
 
     def __repr__(self):
         if self.closed or not self._HasParent_init_complete:
@@ -99,7 +99,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         return f"<{cs}{self.__class__.__name__} name='{self.name}'>"
 
     def __await__(self) -> Generator[Any, None, Self]:
-        return self.wait_tasks(TaskType.update_children, TaskType.init, timeout=10).__await__()
+        return self.wait_pending(PenType.update_children, PenType.init, timeout=10).__await__()
 
     def __new__(cls, /, *args, name="", parent: S_co | None = None, **kwargs) -> Self:  # noqa: ARG004
         if name:
@@ -130,7 +130,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
             if name in self._InstanceHP:
                 values[name] = kwargs.pop(name)
         self._HasParent_init_complete = True
-        mb_async.run_async({"tasktype": TaskType.init}, self.init_async)
+        mb_async.run_async({"pentype": PenType.init}, self.init_async)
         super().__init__(**kwargs)
         if parent:
             self.parent = parent
@@ -214,7 +214,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
 
     @traitlets.observe("closed")
     def _observe_hasparent_closed(self, _):
-        for pen in self.tasks.copy():
+        for pen in self.pending.copy():
             pen.cancel(f"{self} is closed!")
         for inst in self._InstanceHP.values():
             inst._on_obj_close(self)
@@ -507,9 +507,9 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         if (b := c["old"]) and (cb := self._button_register.pop((c["name"], b), None)):
             b.on_click(cb, remove=True)
         if b := c["new"]:
-            taskname = f"button_clicked[{id(b)}] → {self.__class__.__name__}.{c['name']}"
+            penname = f"button_clicked[{id(b)}] → {self.__class__.__name__}.{c['name']}"
             self._button_register[(c["name"], b)] = on_click = functools.partial(
-                self._on_click, weakref.ref(self), taskname, mode
+                self._on_click, weakref.ref(self), penname, mode
             )
             b.on_click(on_click)
 
@@ -523,7 +523,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         b: ipw.Button,
     ) -> None:
         if self_ := ref():
-            if mode is TF.ButtonMode.cancel and (pen := mb_async.singular_tasks.get(key)):
+            if mode is TF.ButtonMode.cancel and (pen := mb_async.singular_pending.get(key)):
                 pen.cancel()
                 return
             mb_async.run_async({"obj": self_, "key": key}, self_._button_clicked, b, mode)
@@ -561,41 +561,41 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         if button_clicked:
             await button_clicked(b)
 
-    async def wait_update_tasks(self, timeout=None) -> Self:
-        await self.wait_tasks(TaskType.update, TaskType.init, TaskType.click, timeout=timeout)
+    async def wait_update_pending(self, timeout=None) -> Self:
+        await self.wait_pending(PenType.update, PenType.init, PenType.click, timeout=timeout)
         return self
 
-    async def wait_tasks(self, *tasktypes: TaskType, timeout=None) -> Self:
+    async def wait_pending(self, *pentypes: PenType, timeout=None) -> Self:
         """
-        Waits for tasks to complete belonging to this object, with an optional timeout.
+        Waits for pending to complete belonging to this object, with an optional timeout.
 
-        Tasks are added to this objects `tasks` set automatically when using `mb_async.run_async`.
-        The tasktype is also specified when creating the task.
+        Pending are added to this objects `pending` set automatically when using `mb_async.run_async`.
+        The pentype is also specified when using mb_async.run_async.
 
         Args:
-            *tasktypes:  The TaskType wait for.
-            If none are provided, all non-continuous tasks are waited for.
-            timeout: Optional timeout in seconds. If exceeded, the waiting tasks are cancelled.
+            *pentypes:  The PenType wait for.
+            If none are provided, all non-continuous pending are waited for.
+            timeout: Optional timeout in seconds. If exceeded, the waiting pending are cancelled.
         Returns:
             Self: Returns the instance of the class.
         Raises:
-            TypeError: If any of the provided tasktypes are not instances of TaskType.
+            TypeError: If any of the provided pentypes are not instances of PenType.
         """
 
-        if self.tasks:
-            tasktypes_ = []
-            for tt in tasktypes or TaskType:
-                if not isinstance(tt, TaskType):
+        if self.pending:
+            pentypes_ = []
+            for tt in pentypes or PenType:
+                if not isinstance(tt, PenType):
                     raise TypeError(str(tt))
-                if tt is not TaskType.continuous:
-                    tasktypes_.append(tt)
+                if tt is not PenType.continuous:
+                    pentypes_.append(tt)
             current = Caller.current_pending()
-            if tasks := [
+            if pending := [
                 pen
-                for pen in self.tasks.copy()
-                if pen is not current and pen.metadata.get("tasktype", TaskType.general) in tasktypes_
+                for pen in self.pending.copy()
+                if pen is not current and pen.metadata.get("pentype", PenType.general) in pentypes_
             ]:
-                await Caller().wait(tasks, timeout=timeout)
+                await Caller().wait(pending, timeout=timeout)
         return self
 
     def get_widgets(

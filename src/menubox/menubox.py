@@ -124,7 +124,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
     _view_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
     _tab_buttons = TF.InstanceHP[Self, weakref.WeakSet[ipw.Button]](klass=weakref.WeakSet)
 
-    task_load_view = TF.Pending()
+    pen_load_view = TF.Pending()
     html_title = TF.HTML_Title(cast("Self", 0)).configure(TF.IHPMode.X__N)
     out_help = TF.MarkdownOutput(cast("Self", 0), layout={"height": "400px"}).hooks(
         add_css_class=(CSScls.resize_vertical, CSScls.nested_borderbox)
@@ -404,7 +404,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
             msg = f'{view=} is not a current view! Available views = "{self._current_views}"'
             raise RuntimeError(msg)
         if not reload:
-            if self.task_load_view:
+            if self.pen_load_view:
                 if self.loading_view == view:
                     return self
             elif view == self.view:
@@ -413,7 +413,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         self._load_view(view)
         return self
 
-    @mb_async.singular_task(handle="task_load_view", tasktype=mb_async.TaskType.update_children)
+    @mb_async.singular(handle="pen_load_view", pentype=mb_async.PenType.update_children)
     async def _load_view(self, view: str | None):
         self.mb_refresh()
         if view and not self._mb_configured:
@@ -462,7 +462,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         # If you encounter a recursion error, add an await call in a subclss override.
         return view, self.views.get(view, None)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
-    @mb_async.debounce(0.05, tasktype=mb_async.TaskType.update_children)
+    @mb_async.debounce(0.05, pentype=mb_async.PenType.update_children)
     async def mb_refresh(self) -> None:
         """
         Refreshes the menubox content based on its current state.
@@ -484,12 +484,12 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
             await ec
             self.mb_refresh()
             return
-        if self.task_load_view and (task := self.task_load_view):
+        if self.pen_load_view and (pen := self.pen_load_view):
             with self.simple_output() as out:
                 button_cancel = TF.ipw.Button(description="Cancel")
-                button_cancel.on_click(lambda _: task.cancel("Button click to cancel from mb_refresh"))
+                button_cancel.on_click(lambda _: pen.cancel("Button click to cancel from mb_refresh"))
                 out.push(TF.ipd.HTML(f"<b>Loading view {self.view}</b>"), button_cancel)
-                await task.wait(result=False)
+                await pen.wait(result=False)
                 await self
                 button_cancel.close()
                 self.mb_refresh()
@@ -543,7 +543,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
 
     def refresh_view(self, force=False) -> Self:
         """Refreshes the view by reloading if the view isn't already loading."""
-        if force or not self.task_load_view:
+        if force or not self.pen_load_view:
             self.load_view(reload=True)
         return self
 
@@ -732,7 +732,7 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         if self.menuviews:
             self.menuviews = tuple(v for v in self.menuviews if v in self._current_views)
         if self.view and (
-            (self.task_load_view and self.loading_view not in self._current_views)
+            (self.pen_load_view and self.loading_view not in self._current_views)
             or (self.view not in self._current_views)
         ):
             self.load_view(reload=True)
@@ -955,8 +955,8 @@ class Menubox(HasParent[S_co], Panel, Generic[S_co]):
         self.load_view(view)
         if self.app.ready and add_to_shell:
             await self.add_to_shell(**kwgs)
-        if task := self.task_load_view:
-            await task.wait()
+        if pen := self.pen_load_view:
+            await pen.wait()
         return self
 
     @override

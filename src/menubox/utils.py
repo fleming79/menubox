@@ -336,7 +336,7 @@ def fullname(obj) -> str:
 
 def funcname(obj: Any) -> str:
     """
-    Get function name for a callable or task.
+    Get function name for a callable or pending.
 
     Known to work for standard functions, methods and functools.partial
     """

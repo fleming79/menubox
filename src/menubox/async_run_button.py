@@ -24,16 +24,16 @@ if TYPE_CHECKING:
 
 class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
     """
-    A button that runs the function in a singular task that can be cancelled by
+    A button that runs the function in a singular pen that can be cancelled by
     clicking the button again.
 
     Additional methods are added to the button `start`, `cancel`, `cancel_wait` which
-    control the button action. The active task is added as the attribute `task`.
+    control the button action. The active pen is added as the attribute `pen`.
 
     parent: HasParent | None
         Parent is passed as obj to run_async.
     c_func: async | AsyncRunButton | str
-        This is the function or AsyncRunButton to call with kw. Noting that the tasks
+        This is the function or AsyncRunButton to call with kw. Noting that the pending
         are linked, so cancelling one will cancel the other. Strings are also accepted
         with dotted name access relative to parent.
     kw : dict | callable
@@ -42,7 +42,7 @@ class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
     """
 
     _update_disabled = False
-    task = TF.Pending()
+    pen = TF.Pending()
     parent: InstanceHP[Any, S_co] = TF.parent().configure(TF.IHPMode.X___)  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __new__(
@@ -66,7 +66,7 @@ class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
         tooltip="",
-        tasktype: mb_async.TaskType = mb_async.TaskType.general,
+        penptype: mb_async.PenType = mb_async.PenType.general,
         **kwargs,
     ):
         if style is None:
@@ -79,7 +79,7 @@ class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
         self._button_style = button_style
         self._cancel_style: Literal["primary", "success", "info", "warning", "danger", ""] = cancel_button_style
         self._tooltip = tooltip
-        self._tasktype = tasktype
+        self._pentype = penptype
         self.add_class(CSScls.button)
         if not isinstance(parent, hasparent.HasParent):
             msg = f"parent must be an instance of HasParent not {type(parent)}"
@@ -96,22 +96,22 @@ class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
         self.on_click(self._on_click)
         self.log = self.parent.log
         if isinstance(b := self._cfunc(self.parent), AsyncRunButton):
-            utils.weak_observe(b, self._observe_main_button_task, "task", pass_change=True)
-            self.set_trait("task", b.task)
+            utils.weak_observe(b, self._observe_main_button_pen, "pen", pass_change=True)
+            self.set_trait("pen", b.pen)
 
     @property
     def kw(self) -> dict:
         assert self.parent
         return self._kw(self.parent)
 
-    @traitlets.observe("task")
-    def _observe_task(self, change: ChangeType):
+    @traitlets.observe("pen")
+    def _observe_pen(self, change: ChangeType):
         if parent := self.parent:
             if change["new"]:
-                parent.tasks.add(change["new"])
+                parent.pending.add(change["new"])
             if change["old"]:
-                parent.tasks.discard(change["old"])
-        if self.task:
+                parent.pending.discard(change["old"])
+        if self.pen:
             self.button_style = self._cancel_style
             self.icon = self._cancel_icon
         else:
@@ -119,25 +119,25 @@ class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
             self.tooltip = self._tooltip
             self.button_style = self._button_style
 
-    def _observe_main_button_task(self, change: ChangeType):
+    def _observe_main_button_pen(self, change: ChangeType):
         pen: Pending | None = change["new"]
-        self.set_trait("task", pen)
+        self.set_trait("pen", pen)
         if pen:
-            self.tasks.add(pen)
-            pen.add_done_callback(self.tasks.discard)
+            self.pending.add(pen)
+            pen.add_done_callback(self.pending.discard)
             if parent := self.parent:
-                parent.tasks.add(pen)
-                pen.add_done_callback(parent.tasks.discard)
+                parent.pending.add(pen)
+                pen.add_done_callback(parent.pending.discard)
 
     def _on_click(self, _: ipw.Button):  # pyright: ignore[reportIncompatibleMethodOverride]
-        if self.task:
+        if self.pen:
             self.cancel("Button clicked to cancel")
         else:
             self.start(True)
 
     def _done_callback(self, pen: Pending):
-        if pen is self.task:
-            self.set_trait("task", None)
+        if pen is self.pen:
+            self.set_trait("pen", None)
 
     def start(self, restart: bool, /, *args, **kwargs) -> Pending:  # pyright: ignore[reportGeneralTypeIssues]
         """
@@ -153,29 +153,29 @@ class AsyncRunButton(HasParent[S_co], ipw.Button, Generic[S_co]):
         while isinstance(cfunc, AsyncRunButton):
             btn, cfunc = cfunc, cfunc._cfunc(cfunc.parent)
         key = btn, cfunc
-        if not restart and (pen := mb_async.singular_tasks.get(key)) and (not pen.cancelled()):
+        if not restart and (pen := mb_async.singular_pending.get(key)) and (not pen.cancelled()):
             return pen
-        opts = mb_async.RunAsyncOptions(obj=self.parent, tasktype=self._tasktype, restart=restart, key=key)
+        opts = mb_async.RunAsyncOptions(obj=self.parent, pentype=self._pentype, restart=restart, key=key)
         pen = mb_async.run_async(opts, cfunc, *args, **self.kw | kwargs)
-        btn.set_trait("task", pen)
+        btn.set_trait("pen", pen)
         pen.add_done_callback(btn._done_callback)
         return pen
 
     def cancel(self, msg=""):
         """
-        Cancel the the task if there is one.
+        Cancel the pen if there is one.
 
         Args:
-            force: If task is already being cancelled force will call cancel again.
+            force: If the pen is already being cancelled force will call cancel again.
             message: The message.
         """
-        if task := self.task:
-            task.cancel(msg or f'Cancelled by call to cancel of :"{self}"')
+        if pen := self.pen:
+            pen.cancel(msg or f'Cancelled by call to cancel of :"{self}"')
 
     async def cancel_wait(self, msg="Cancelled by cancel_wait", timeout: float | None = None):
-        if task := self.task:
-            task.cancel(msg)
-            await task.wait(result=False, timeout=timeout)
+        if pen := self.pen:
+            pen.cancel(msg)
+            await pen.wait(result=False, timeout=timeout)
 
     @override
     def on_error(self, error: BaseException, msg: str, obj: Any = None) -> None:

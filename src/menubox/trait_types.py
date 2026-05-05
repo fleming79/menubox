@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any, Generic, Literal, ParamSpec, TypedDict, T
 
 import toolz
 from ipywidgets import Widget
-from traitlets.traitlets import Bunch, HasTraits, TraitType, Unicode
+from traitlets.traitlets import HasTraits, TraitType, Unicode
+from traitlets.utils.bunch import Bunch
 
 import menubox
 

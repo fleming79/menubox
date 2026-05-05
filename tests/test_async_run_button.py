@@ -32,58 +32,58 @@ class PMB(mb.Menubox):
         return kwgs
 
 
-def has_task(obj: HasParent):
-    return bool(getattr(obj, "task", None))
+def has_pending(obj: HasParent):
+    return bool(getattr(obj, "pen", None))
 
 
-async def test_async_run_button_description_and_task():
+async def test_async_run_button_description_and_pending():
     obj = PMB()
     assert obj.ab_main.description == "Button"
     assert obj.ab_main.icon == "play"
     pen = obj.ab_main.start(False)
-    assert obj.ab_main.task is pen
-    assert pen in obj.tasks
+    assert obj.ab_main.pen is pen
+    assert pen in obj.pending
     assert obj.ab_main.icon == "stop"
     await pen
     assert obj.ab_main.description == "Button"
-    assert pen not in obj.tasks
-    assert not obj.ab_main.task
+    assert pen not in obj.pending
+    assert not obj.ab_main.pen
 
 
 async def test_async_run_button_kwargs():
     obj = PMB()
-    task = obj.ab_main.start(False, a=False)
+    pending = obj.ab_main.start(False, a=False)
     obj.ab_main.start(False, a=False)
-    assert obj.ab_main.task is task
-    await task
+    assert obj.ab_main.pen is pending
+    await pending
     assert not obj.data.get("a")
 
     obj.ab_main.start(False)
     await obj.ab_main.cancel_wait()
-    assert not has_task(obj.ab_main)
+    assert not has_pending(obj.ab_main)
 
 
 async def test_async_run_button_nested():
     obj = PMB()
     assert obj.ab_nested.description == "Nested button"
     assert obj.ab_main.description == "Button"
-    b_task = obj.ab_main.start(False, primary=True)
+    b_pen = obj.ab_main.start(False, primary=True)
     assert obj.ab_nested_sub.icon == "stop"
-    assert not obj.ab_nested.disabled, "A nested button should be allowed to restart a running task."
+    assert not obj.ab_nested.disabled, "A nested button should be allowed to restart a running pending."
     obj.ab_nested.start(True, description="nested")
-    assert b_task.cancelled(), "Starting b2 should cancel b.task before stating a new task"
-    assert obj.ab_nested.task is obj.ab_main.task
-    assert obj.ab_main.task
-    assert obj.ab_main.task in obj.tasks
+    assert b_pen.cancelled(), "Starting b2 should cancel b.pen before stating a new pending"
+    assert obj.ab_nested.pen is obj.ab_main.pen
+    assert obj.ab_main.pen
+    assert obj.ab_main.pen in obj.pending
     assert obj.ab_main.icon == "stop"
     assert obj.ab_nested.icon == "stop"
-    assert obj.ab_nested.task
-    assert obj.ab_nested.task in obj.ab_nested.tasks
-    await obj.ab_nested.wait_tasks()
-    # await obj.ab_nested.task
+    assert obj.ab_nested.pen
+    assert obj.ab_nested.pen in obj.ab_nested.pending
+    await obj.ab_nested.wait_pending()
+
     assert obj.ab_nested.description == "Nested button"
     assert obj.ab_main.icon == "play"
-    assert not obj.data.get("primary"), "The task should that sets this should be cancelled"
+    assert not obj.data.get("primary"), "The pending should that sets this should be cancelled"
     assert obj.data.get("description") == "nested", "The kwarg should be passed in the called to button_nest.start"
-    assert not obj.ab_nested.task
-    assert not obj.tasks
+    assert not obj.ab_nested.pen
+    assert not obj.pending

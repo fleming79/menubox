@@ -115,21 +115,21 @@ async def test_persist_by_classname_name_version(home: mb.Home):
     assert p.version_widget
     assert p.version_widget.max == 2
     p.version_widget.value = 2
-    assert p.task_loading_persistence_data
-    await p.task_loading_persistence_data
+    assert p.pen_loading_persistence_data
+    await p.pen_loading_persistence_data
     assert p.version == 2
-    await p.wait_update_tasks()
+    await p.wait_update_pending()
     p.just_a_widget.value = 3
     await p.button_save_persistence_data.start(False)
 
     # sw_version_load
     assert 2 in p.sw_version_load.options
     p.sw_version_load.value = 1
-    assert p.task_loading_persistence_data
-    await p.task_loading_persistence_data
+    assert p.pen_loading_persistence_data
+    await p.pen_loading_persistence_data
     assert p.just_a_widget.value == 2, "From persist v1"
     p.sw_version_load.value = 2
-    await p.wait_update_tasks()
+    await p.wait_update_pending()
     assert p.just_a_widget.value == 3, "From persist v2"
 
 
@@ -148,10 +148,10 @@ async def test_menubox_persist_pool(home: mb.Home):
     assert mpp.box_shuffle
     assert obj.name == name
     assert mpp.get_obj(name) is obj
-    await mpp.wait_tasks()
+    await mpp.wait_pending()
     mpp.obj_name.value = name
-    await mpp.wait_tasks()
+    await mpp.wait_pending()
     assert not obj.versions
     await obj.button_save_persistence_data.start(False)
     assert obj.versions
-    await mpp.wait_tasks()
+    await mpp.wait_pending()

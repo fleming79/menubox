@@ -107,7 +107,7 @@ class TestInstance:
         hp1 = HPI(name="hp1", a=None)
         # Check button
         hp1.my_button.click()
-        await hp1.wait_tasks()
+        await hp1.wait_pending()
         assert hp1.clicked == 1, "Should have connected the button"
         assert hp1.box, "Loading children is debounced"
         await anyio.sleep(0.1)  # ChildSetter.update is debounced
@@ -115,7 +115,7 @@ class TestInstance:
         b2 = ipw.Button()
         hp1.set_trait("my_button", b2)
         b2.click()
-        await hp1.wait_tasks()
+        await hp1.wait_pending()
         assert hp1.clicked == 2, "Should have connected b2"
         await anyio.sleep(0.1)
         assert b2 in hp1.box.children, "'set_children' with mode='monitor' should update box.children"

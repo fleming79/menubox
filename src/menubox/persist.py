@@ -106,7 +106,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     are defined prior validation of `value_traits_persist`. This occurs at the end of
     init, so  objects.
 
-    If persistence data exists, a task is created to load persistence data after init.
+    If persistence data exists, a pending is created to load persistence data after init.
 
     Multiple versions of persistence data may be possible, if `PERSIST_MODE`
     is False. Loading of persistence data is possible by selecting the version in the
@@ -169,7 +169,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
         cfunc=lambda p: p._button_save_persistence_data_async,
         icon="save",
         tooltip="Save persistence data for current version",
-        tasktype=mb_async.TaskType.update,
+        pentype=mb_async.PenType.update,
     )
     version_widget = (
         TF.InstanceHP(
@@ -203,7 +203,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
     )
     box_version = TF.Box(cast("Self", 0))
     header_right_children = NameTuple[Self](lambda p: (p.menu_load_index, *MenuboxVT.header_right_children))
-    task_loading_persistence_data = TF.Pending()
+    pen_loading_persistence_data = TF.Pending()
     value_traits = NameTuple[Self](
         lambda p: (*MenuboxVT.value_traits, p.version, p.sw_version_load, p.version_widget, p.connections)
     )
@@ -283,7 +283,6 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
         return box
 
     async def _button_save_persistence_data_async(self, version: int | None = None):
-        """Use button_save.start to get an awaitable task."""
         version = await self._to_version(version)
         path = self.filesystem.to_path(self._get_persist_name(self.name, version))
         self.saved_timestamp = str(utils.now())
@@ -415,7 +414,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
             view = self.CONFIGURE_VIEW
         return await super().get_center(view)
 
-    @mb_async.singular_task(tasktype=mb_async.TaskType.update, handle="task_loading_persistence_data")
+    @mb_async.singular(pentype=mb_async.PenType.update, handle="pen_loading_persistence_data")
     async def load_persistence_data(self, version=None, quiet=False, data: dict | None = None, set_version=False):
         """
         Asynchronously loads persistence data for the menubox.
@@ -505,7 +504,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
             version = await self.get_latest_version()
         return version
 
-    @mb_async.singular_task(restart=False)
+    @mb_async.singular(restart=False)
     async def ask_save_close(self, ask_close=True):
         existing = await self.get_persistence_data(self.filesystem, self.name, self.version)
         existing.pop("saved_timestamp", None)

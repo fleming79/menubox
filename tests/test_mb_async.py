@@ -12,7 +12,7 @@ from menubox.trait_factory import TF
 
 class MBRunAsync(HasParent):
     my_set = TF.Set()
-    my_task = TF.Pending()
+    my_pen = TF.Pending()
 
 
 async def async_function(result, delay=0.0):
@@ -27,9 +27,9 @@ class TestRunAsync:
 
     async def test_run_async_singular(self):
         pen = run_async({"key": "my key"}, async_function, 2)
-        assert mb.mb_async.singular_tasks.get("my key") is pen
+        assert mb.mb_async.singular_pending.get("my key") is pen
         await pen
-        assert mb.mb_async.singular_tasks.get("my key") is None
+        assert mb.mb_async.singular_pending.get("my key") is None
 
     async def test_run_async_restart(self):
         pen_1 = run_async({"key": async_function}, async_function, 3, 0.1)
@@ -58,16 +58,16 @@ class TestRunAsync:
         assert await pen == 8
         assert pen not in obj.my_set
 
-    async def test_run_async_handle_task(self):
+    async def test_run_async_handle_pen(self):
         obj = MBRunAsync()
-        pen = run_async({"obj": obj, "handle": "my_task"}, async_function, 9)
-        assert obj.my_task is pen
+        pen = run_async({"obj": obj, "handle": "my_pen"}, async_function, 9)
+        assert obj.my_pen is pen
         assert await pen == 9
-        assert obj.my_task is None
+        assert obj.my_pen is None
 
-    async def test_run_async_tasktype(self):
-        pen = run_async({"tasktype": mb.mb_async.TaskType.update}, async_function, 10)
-        assert pen.metadata.get("tasktype") == mb.mb_async.TaskType.update
+    async def test_run_async_pentype(self):
+        pen = run_async({"pentype": mb.mb_async.PenType.update}, async_function, 10)
+        assert pen.metadata.get("pentype") == mb.mb_async.PenType.update
         await pen
 
     async def test_run_async_exception(self):
@@ -80,54 +80,54 @@ class TestRunAsync:
 
 
 class MBRunAsyncSingular(HasParent):
-    my_task_trait = TF.Pending()
+    my_pen_trait = TF.Pending()
 
-    @mb.mb_async.singular_task(handle="my_task_trait")
+    @mb.mb_async.singular(handle="my_pen_trait")
     async def async_singular_function(self, *args, **kwgs):
         await anyio.sleep(0.01)
         return args, kwgs
 
-    @mb.mb_async.singular_task(handle="my_task_trait", restart=False)
+    @mb.mb_async.singular(handle="my_pen_trait", restart=False)
     async def async_singular_function_restart_false(self, *args, **kwgs):
         await anyio.sleep(0.01)
         return args, kwgs
 
-    @mb.mb_async.singular_task()
+    @mb.mb_async.singular()
     def singular_function(self, num):
         return num
 
 
 class TestSingularTaskDecorator:
-    async def test_singular_task_decorator(self):
+    async def test_singular_decorator(self):
         obj = MBRunAsyncSingular()
         pen_1 = obj.async_singular_function(1)
         pen_2 = obj.async_singular_function(2)
         assert pen_1 is not pen_2
         assert not pen_2.done()
-        assert (await pen_2) == ((2,), {}), "Task restarts by default"
+        assert (await pen_2) == ((2,), {}), "Pending restarts by default"
         assert pen_1.cancelled()
         task4 = obj.async_singular_function(a=3)
         assert (await task4) == ((), {"a": 3}), "Pass keyword argument"
         obj.close()
-        await obj.wait_tasks()
+        await obj.wait_pending()
 
-    async def test_singular_task_decorator_restart_false_default(self):
+    async def test_singular_decorator_restart_false_default(self):
         obj = MBRunAsyncSingular()
         pen_1 = obj.async_singular_function_restart_false(1)
         pen_2 = obj.async_singular_function_restart_false(2)
         assert pen_1 is pen_2
         assert (await pen_1) == ((1,), {})
         obj.close()
-        await obj.wait_tasks()
+        await obj.wait_pending()
 
-    async def test_singular_task_decorator_kwargs(self):
+    async def test_singular_decorator_kwargs(self):
         obj = MBRunAsyncSingular()
         pen = obj.async_singular_function(1)
-        assert obj.my_task_trait is pen
+        assert obj.my_pen_trait is pen
         await pen
-        assert obj.my_task_trait is None
+        assert obj.my_pen_trait is None
         obj.close()
-        await obj.wait_tasks()
+        await obj.wait_pending()
 
 
 class TestToThread:

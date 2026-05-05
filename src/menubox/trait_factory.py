@@ -341,7 +341,7 @@ class TF:
         button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "primary",
         cancel_button_style: Literal["primary", "success", "info", "warning", "danger", ""] = "warning",
         tooltip="",
-        tasktype: mb_async.TaskType = mb_async.TaskType.general,
+        pentype: mb_async.PenType = mb_async.PenType.general,
         **kwargs,
     ):
         return InstanceHP(
@@ -358,7 +358,7 @@ class TF:
                 button_style=button_style,
                 cancel_button_style=cancel_button_style,
                 tooltip=tooltip,
-                tasktype=tasktype,
+                penptype=pentype,
                 **kwargs,
             ),
             co_=co_,

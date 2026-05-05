@@ -46,9 +46,9 @@ class ChildrenSetterTester(mb.MenuboxVT):
 async def test_children_setter_manual(dottednames: tuple):
     cto = ChildrenSetterTester()
     cs = ChildrenSetter(parent=cto, name="plain_box", children=lambda _: dottednames)
-    await cs.wait_tasks()
+    await cs.wait_pending()
     widgets = tuple(cto.get_widgets(dottednames))
-    await cs.wait_tasks()
+    await cs.wait_pending()
     assert cto.plain_box.children == widgets
 
 
@@ -56,24 +56,24 @@ async def test_children_setter_nested_enable_disable() -> None:
     cto = ChildrenSetterTester()
     dottednames = ("dropdown", "nested.button", "nested.dropdown")
     cs = ChildrenSetter(parent=cto, name="plain_box", children=lambda _: dottednames)
-    await cs.wait_tasks()
+    await cs.wait_pending()
     widgets = tuple(cto.get_widgets(dottednames))
-    await cs.wait_tasks()
+    await cs.wait_pending()
     assert cto.plain_box.children == widgets
 
     # check disable nested
     cto.set_trait("nested", None)
     assert all(b.comm is None for b in widgets[1:]), "Nested widgets should be closed"
-    assert cs.tasks, "Update debounced should be scheduled"
-    await cs.wait_tasks()
+    assert cs.pending, "Update debounced should be scheduled"
+    await cs.wait_pending()
     assert cto.plain_box.children == (cto.dropdown,)
 
     # Check enable nested
     cto.enable_ihp("nested", override={"dropdown": None})
     assert cto.nested
     assert cto.nested.dropdown is None
-    assert cs.tasks, "Update debounced should be scheduled"
-    await cs.wait_tasks()
+    assert cs.pending, "Update debounced should be scheduled"
+    await cs.wait_pending()
     widgets = tuple(cto.get_widgets(dottednames))
     assert cto.plain_box.children == widgets
 
@@ -112,14 +112,14 @@ async def test_children_setter_hide():
     cto = ChildrenSetterTester()
     assert cto.dynamic_box
     cs = ChildrenSetter(parent=cto, name="dynamic_box")
-    assert cs.tasks
+    assert cs.pending
     assert cs._dottednames == ("dd_no_default", "dropdown", "nested.dropdown", "nested.button")
     mb.utils.hide(cto.dropdown)
-    await cs.wait_tasks()
+    await cs.wait_pending()
     assert cto.nested
     assert cto.dynamic_box.children == (cto.nested.dropdown, cto.nested.button)
     mb.utils.unhide(cto.dropdown)
-    await cs.wait_tasks()
+    await cs.wait_pending()
     assert cto.dynamic_box.children == (cto.dropdown, cto.nested.dropdown, cto.nested.button)
 
 

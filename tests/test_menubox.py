@@ -42,11 +42,11 @@ class TestMenubox:
         assert m.button_toggleview in m.header.children, "Should be added"
         assert m.view == "a"
         m.button_toggleview.click()
-        await m.wait_tasks()
+        await m.wait_pending()
         await m
         assert m.view == "b"
         m.button_toggleview.click()
-        await m.wait_tasks()
+        await m.wait_pending()
         await m
         assert m.view == "a"
 
@@ -58,7 +58,7 @@ class TestMenubox:
         await m
         assert m.button_menu, "Setting menuviews should enable the button"
         m.button_menu.click()
-        await m.wait_tasks()
+        await m.wait_pending()
         assert m.box_menu
         assert m.button_menu_minimize in m.box_menu.children
         assert len(m.box_menu.children) == 2, "expected: (button_menu_minimize, button_load_view)"
@@ -66,7 +66,7 @@ class TestMenubox:
         assert isinstance(b, ipw.Button)
         assert b.description == "b"
         b.click()
-        await m.wait_tasks()
+        await m.wait_pending()
         assert m.view == "b"
 
     async def test_menubox_title_and_help(self):
@@ -107,7 +107,7 @@ class TestMenubox:
         assert m.activate_buttons
         button_clicked = mocker.patch.object(m, "button_clicked")
         m.activate_buttons[0].click()  # shuffle button for views 'd'
-        await m.wait_tasks()
+        await m.wait_pending()
         assert button_clicked.called
         assert button_clicked.await_count
 
@@ -300,7 +300,7 @@ class TestMenubox:
     async def test_menubox_onchange_showbox(self):
         m = mb.Menubox(views={"a": ipw.HTML("A")})
         await m.activate()
-        await m.wait_tasks()
+        await m.wait_pending()
         box = ipw.Box()
         m.set_trait("showbox", box)
         assert m in box.children
@@ -339,7 +339,7 @@ class TestMenubox:
         if name not in ["button_menu", "button_maximize"]:
             assert b in m.header.children
         b.click()
-        await m.wait_tasks()
+        await m.wait_pending()
         await m
         match name:
             case "button_menu":
@@ -347,7 +347,7 @@ class TestMenubox:
                 assert m.button_menu_minimize
                 assert b not in m.box_menu.children
                 m.button_menu_minimize.click()
-                await m.wait_tasks()
+                await m.wait_pending()
                 assert b in m.box_menu.children
             case "button_promote":
                 assert m is showbox.children[0]
@@ -358,13 +358,13 @@ class TestMenubox:
             case "button_maximize":
                 m.load_view(m.MINIMIZED)
                 b.click()
-                await m.wait_tasks()
+                await m.wait_pending()
                 await m
                 assert m.view == "a"
             case "button_help":
                 assert len(m.children) == 4
                 b.click()
-                await m.wait_tasks()
+                await m.wait_pending()
                 await m
                 assert len(m.children) == 2
             case "button_activate":
@@ -476,7 +476,7 @@ class TestMenubox:
         m.w2 = w2 = ipw.HTML("W2")  # pyright: ignore[reportAttributeAccessIssue]
 
         await m.activate()
-        await m.wait_tasks()
+        await m.wait_pending()
         assert m.box_center
         for widget, box in [(w1, m.box_center), (w2, m.header)]:
             assert widget
@@ -484,10 +484,10 @@ class TestMenubox:
             assert widget in box.children
             assert w1 in m._widget_watcher._widgets.values()
             mb.utils.hide(widget)
-            await m.wait_tasks()
+            await m.wait_pending()
             assert widget not in box.children
             mb.utils.unhide(widget)
-            await m.wait_tasks()
+            await m.wait_pending()
             assert widget in box.children
         assert m._widget_watcher.widgets
         assert m._widget_watcher._widgets

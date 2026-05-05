@@ -25,13 +25,13 @@ if TYPE_CHECKING:
     from menubox.trait_types import P, T
 
 
-__all__ = ["debounce", "periodic", "run_async", "singular_task", "throttle"]
+__all__ = ["PenType", "debounce", "periodic", "run_async", "singular", "throttle"]
 
 
-singular_tasks: dict[Hashable, Pending[Any]] = {}
+singular_pending: dict[Hashable, Pending[Any]] = {}
 
 
-class TaskType(int, enum.Enum):
+class PenType(int, enum.Enum):
     general = enum.auto()
     continuous = enum.auto()
     update = enum.auto()
@@ -43,12 +43,12 @@ class TaskType(int, enum.Enum):
     "Children are being updated"
 
 
-MANAGER_ONLY = [TaskType.continuous, TaskType.throttle, TaskType.debounce, TaskType.update_children]
-"A list of TaskTypes which should be omitted from PendingGroup trackers."
+MANAGER_ONLY = [PenType.continuous, PenType.throttle, PenType.debounce, PenType.update_children]
+"A list of PenTypes which should be omitted from PendingGroup trackers."
 
 
-def get_trackers(task_type: TaskType | None, /) -> type[PendingManager | PendingTracker]:
-    if task_type in MANAGER_ONLY:
+def get_trackers(pentype: PenType | None, /) -> type[PendingManager | PendingTracker]:
+    if pentype in MANAGER_ONLY:
         return PendingManager
     return PendingTracker
 
@@ -60,20 +60,20 @@ class RunAsyncOptions(TypedDict):
     "Specify a key to use with 'singular_instances'"
     restart: NotRequired[bool]
     """
-    Whether to restart a task with a matching `key` default: `True`.
+    Whether to restart a pending with a matching `key` default: `True`.
 
-    If `False` the current call arguments are ignored and the current task (`Pending`) is returned.
+    If `False` the current call arguments are ignored and the current pending (`Pending`) is returned.
     """
     obj: NotRequired[HasParent | None]
     ""
     handle: NotRequired[str]
     """
-    The name of the trait on `obj` where to store the task.
+    The name of the trait on `obj` where to store the pending.
 
     Both Pending instance and set traits are permitted.
     """
-    tasktype: NotRequired[TaskType]
-    "default: TaskType.general."
+    pentype: NotRequired[PenType]
+    "default: PenType.general."
 
     delay: NotRequired[float]
     "A delay in seconds to wait before executing `func`."
@@ -83,10 +83,10 @@ class RunAsyncOptions(TypedDict):
 
 
 def _on_done_callback(pen: Pending):
-    if (key := pen.metadata.get("key")) and singular_tasks.get(key) is pen:
-        singular_tasks.pop(key)
+    if (key := pen.metadata.get("key")) and singular_pending.get(key) is pen:
+        singular_pending.pop(key)
     if obj := get_obj_using_metadata(pen.metadata):
-        obj.tasks.discard(pen)
+        obj.pending.discard(pen)
         if handle := pen.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
                 set_.discard(pen)
@@ -99,7 +99,7 @@ def _on_done_callback(pen: Pending):
         elif not isinstance(error, PendingCancelled):
             mb.log.on_error(error, msg="run async failed")
     elif obj and obj.log.getEffectiveLevel() == 10:
-        obj.log.debug(f"Task complete: {pen}")
+        obj.log.debug(f"Pending complete: {pen}")
 
 
 def get_obj_using_metadata(metadata: RunAsyncOptions | dict) -> HasParent[Any] | None:
@@ -132,11 +132,11 @@ def run_async(
         kwargs: keyword arguments.
     """
 
-    if (key := opts.get("key")) and (current := singular_tasks.pop(key, None)) and not current.done():
+    if (key := opts.get("key")) and (current := singular_pending.pop(key, None)) and not current.done():
         if opts.get("restart", True):
             current.cancel()
         else:
-            singular_tasks[key] = current
+            singular_pending[key] = current
             return current
 
     pen = Caller("MainThread").schedule_call(
@@ -144,18 +144,18 @@ def run_async(
         args,
         kwargs,
         None,
-        get_trackers(opts.get("tasktype")),
+        get_trackers(opts.get("pentype")),
         delay=opts.get("delay", 0),
         start_time=time.monotonic(),
     )
     pen.add_done_callback(_on_done_callback)
     pen.metadata.update(opts)
     if key:
-        singular_tasks[key] = pen
+        singular_pending[key] = pen
     if obj := get_obj_using_metadata(pen.metadata):
         if obj.closed:
             pen.cancel(f"{obj=} is closed!")
-        obj.tasks.add(pen)
+        obj.pending.add(pen)
         if handle := pen.metadata.get("handle"):
             if isinstance(set_ := getattr(obj, handle), set):
                 set_.add(pen)
@@ -163,15 +163,15 @@ def run_async(
                 obj.set_trait(handle, pen)
     obj = obj or JupyterFrontEnd()
     if obj.log.getEffectiveLevel() == 10:
-        obj.log.debug(f"Task started: {pen}")
+        obj.log.debug(f"Pending started: {pen}")
     return pen
 
 
-def singular_task(
+def singular(
     **opts: Unpack[RunAsyncOptions],
 ) -> Callable[[Callable[P, CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """
-    A decorator to wrap a coroutine function to run as a singular task.
+    A decorator to wrap a coroutine function to run as a singular pending.
 
     obj is as the instance.
     kw are passed to run_async_singular such as 'handle'.
@@ -208,7 +208,7 @@ class _Periodic:
         "instance",
         "kwargs",
         "mode",
-        "task",
+        "pen",
         "wait",
         "wrapped",
     )
@@ -244,7 +244,7 @@ class _Periodic:
 
 
 def periodic(
-    wait, mode: PeriodicMode = PeriodicMode.periodic, tasktype=TaskType.continuous
+    wait, mode: PeriodicMode = PeriodicMode.periodic, pentype=PenType.continuous
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """
     A wrapper to control the rate at which a function may be called.
@@ -261,39 +261,39 @@ def periodic(
         "periodic":
             Run periodically forever.
     kw are passed to run_async_singular
-    Returns the current task.
+    Returns the current pending.
     """
 
     mode = PeriodicMode(mode)
-    tasktype = TaskType(tasktype)
-    _periodic_tasks: dict[tuple[object | None, Callable], _Periodic] = {}
+    pentype = PenType(pentype)
+    _pending: dict[tuple[object | None, Callable], _Periodic] = {}
 
-    def on_done(k, task):
-        info = _periodic_tasks.get(k)
-        if info and info.task is task:
-            info.task = info.wrapped = info.instance = None
-            del _periodic_tasks[k]
+    def on_done(k, pending):
+        info = _pending.get(k)
+        if info and info.pen is pending:
+            info.pen = info.wrapped = info.instance = None
+            del _pending[k]
 
     @wrapt.decorator
     def _periodic_wrapper(wrapped, instance, args, kwargs):
         k = (instance, wrapped)
-        info = _periodic_tasks.get(k)
+        info = _pending.get(k)
         if info and info._repeat is not None:
             info._repeat = True
             info.args = args
             info.kwargs = kwargs
-            return info.task
+            return info.pen
         info = _Periodic(wrapped, instance, args, kwargs, wait, mode)
-        info.task = run_async(RunAsyncOptions(key=wrapped, obj=instance, tasktype=tasktype), info)
-        _periodic_tasks[k] = info
-        info.task.add_done_callback(functools.partial(on_done, k))
-        return info.task
+        info.pen = run_async(RunAsyncOptions(key=wrapped, obj=instance, pentype=pentype), info)
+        _pending[k] = info
+        info.pen.add_done_callback(functools.partial(on_done, k))
+        return info.pen
 
     return _periodic_wrapper  # pyright: ignore[reportReturnType]
 
 
 def throttle(
-    wait: float, tasktype=TaskType.throttle
+    wait: float, pentype=PenType.throttle
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """
     A decorator that throttles the call to wrapped function.
@@ -302,11 +302,11 @@ def throttle(
 
     Returns a [async_kernel.caller.Pending][].
     """
-    return periodic(wait, mode=PeriodicMode.throttle, tasktype=tasktype)
+    return periodic(wait, mode=PeriodicMode.throttle, pentype=pentype)
 
 
 def debounce(
-    wait: float, tasktype=TaskType.debounce
+    wait: float, pentype=PenType.debounce
 ) -> Callable[[Callable[P, T | CoroutineType[Any, Any, T]]], Callable[P, Pending[T]]]:
     """
     A decorator that debounces the call to the wrapped function.
@@ -315,4 +315,4 @@ def debounce(
 
     Returns a [async_kernel.caller.Pending][].
     """
-    return periodic(wait, mode=PeriodicMode.debounce, tasktype=tasktype)
+    return periodic(wait, mode=PeriodicMode.debounce, pentype=pentype)
