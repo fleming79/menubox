@@ -578,7 +578,7 @@ class MenuboxPersist(HasFilesystem, MenuboxVT[S_co], Generic[S_co]):
 
 @final
 class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
-    """A Menubox that can load MenuboxPersist instances into the shell."""
+    """A Menubox that can load MenuboxPersist instances into the shell by prompting the user via a dialog."""
 
     SINGLE_BY = ("klass", "filesystem")
     RENAMEABLE = False
@@ -667,6 +667,12 @@ class MenuboxPersistPool(HasFilesystem, MenuboxVT[S_co], Generic[S_co, MP]):
 
     @override
     async def activate(self, *, add_to_shell=True, **kwgs):
+        """
+        Opens a dialog for the user to specify the name of the wrapped item to activate.
+
+        raises:
+            PendingCancelled: If the user closes without specifying a value.
+        """
         if self.klass.PERSIST_MODE in [
             MenuboxPersistMode.by_classname_name,
             MenuboxPersistMode.by_classname_name_version,
