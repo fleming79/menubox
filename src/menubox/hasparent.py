@@ -634,7 +634,7 @@ class HasParent(Singular, HasApp, Generic[S_co]):
         return getattr(self, name, default)
 
 
-class Link(HasParent):
+class Link(HasParent[S_co]):
     """
     Link traits from different objects together so they remain in sync.
 
@@ -642,6 +642,7 @@ class Link(HasParent):
     """
 
     _updating = False
+    parent: InstanceHP[Any, S_co] = TF.parent()  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
@@ -649,13 +650,12 @@ class Link(HasParent):
         target: tuple[HasTraits, str],
         transform: tuple[Callable[[Any], Any], Callable[[Any], Any]] | None = None,
         *,
-        parent: S,  # pyright: ignore[reportInvalidTypeVarUse]
+        parent: S_co,  # pyright: ignore[reportInvalidTypeVarUse]
     ) -> None:
         self.source, self.target = source, target
         if parent.closed:
             msg = f"{parent=} is closed!"
             raise RuntimeError(msg)
-        self.obj = parent
         # Dlink sets the transform separately first
         if transform:
             self._transform, self._transform_inv = transform
@@ -668,9 +668,9 @@ class Link(HasParent):
 
     def __repr__(self) -> str:
         return (
-            f"{self.__class__.__name__} source={self.source[0].__class__.__qualname__}.{self.source[1]} "
-            f" target={self.target[0].__class__.__qualname__}.{self.target[1]}"
-            f"parent={self.parent!r}"
+            f"<{self.__class__.__name__} source={self.source[0].__class__.__qualname__}.{self.source[1]} "
+            f" target={self.target[0].__class__.__qualname__}.{self.target[1]} "
+            f"parent={self.parent!r}>"
         )
 
     def _transform(self, x, /) -> Any:
@@ -688,7 +688,7 @@ class Link(HasParent):
             self._updating = True
             self.target[0].set_trait(self.target[1], self._transform(change["new"]))
             value = getattr(self.source[0], self.source[1])
-            if not self.obj.check_equality(value, change["new"]):
+            if not self.parent.check_equality(value, change["new"]):
                 msg = f"Broken link {self}: the source value changed while updating the target."
                 raise traitlets.TraitError(msg)  # noqa: TRY301
         except traitlets.TraitError as e:
@@ -696,7 +696,7 @@ class Link(HasParent):
                 f"{self.__class__.__name__} {utils.fullname(self.source[0])}.{self.source[1]} →"
                 f"{utils.fullname(self.source[0])}.{self.target[1]}"
             )
-            self.obj.on_error(e, msg, self)
+            self.parent.on_error(e, msg, self)
             if mb.DEBUG_ENABLED:
                 raise
         finally:
@@ -709,7 +709,7 @@ class Link(HasParent):
             self._updating = True
             self.source[0].set_trait(self.source[1], self._transform_inv(change["new"]))
             value = getattr(self.target[0], self.target[1])
-            if not self.obj.check_equality(value, change["new"]):
+            if not self.parent.check_equality(value, change["new"]):
                 msg = f"Broken link {self}: the target value changed while updating the source."
                 raise traitlets.TraitError(msg)  # noqa: TRY301
         except traitlets.TraitError as e:
@@ -717,7 +717,7 @@ class Link(HasParent):
                 f"{self.__class__.__name__} {utils.fullname(self.source[0])}.{self.source[1]} ←"
                 f"{utils.fullname(self.source[0])}.{self.target[1]}"
             )
-            self.obj.on_error(e, msg, self)
+            self.parent.on_error(e, msg, self)
             if mb.DEBUG_ENABLED:
                 raise
         finally:
